@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,6 +13,12 @@
 		54BECD2423F4FA1D00AE82A9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2223F4FA1D00AE82A9 /* Main.storyboard */; };
 		54BECD2623F4FA1E00AE82A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */; };
 		54BECD2923F4FA1E00AE82A9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2723F4FA1E00AE82A9 /* LaunchScreen.storyboard */; };
+		54BECD3223F4FAAC00AE82A9 /* Swiftfall in Frameworks */ = {isa = PBXBuildFile; productRef = 54BECD3123F4FAAC00AE82A9 /* Swiftfall */; };
+		54BECD3523F505BB00AE82A9 /* Card+Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD3423F505BB00AE82A9 /* Card+Image.swift */; };
+		54BECD3723F50AE500AE82A9 /* MiniCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD3623F50AE500AE82A9 /* MiniCardView.swift */; };
+		54BECD3923F50AF700AE82A9 /* MiniCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3823F50AF700AE82A9 /* MiniCardView.xib */; };
+		54BECD3C23F5143300AE82A9 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
+		54BECD3D23F5143300AE82A9 /* Mplantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3B23F5143300AE82A9 /* Mplantin.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +30,12 @@
 		54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		54BECD2823F4FA1E00AE82A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		54BECD2A23F4FA1E00AE82A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Magic Board.entitlements"; sourceTree = "<group>"; };
+		54BECD3423F505BB00AE82A9 /* Card+Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Card+Image.swift"; sourceTree = "<group>"; };
+		54BECD3623F50AE500AE82A9 /* MiniCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniCardView.swift; sourceTree = "<group>"; };
+		54BECD3823F50AF700AE82A9 /* MiniCardView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MiniCardView.xib; sourceTree = "<group>"; };
+		54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Matrix-Bold.ttf"; sourceTree = "<group>"; };
+		54BECD3B23F5143300AE82A9 /* Mplantin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Mplantin.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54BECD3223F4FAAC00AE82A9 /* Swiftfall in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,15 +69,29 @@
 		54BECD1B23F4FA1D00AE82A9 /* Magic Board */ = {
 			isa = PBXGroup;
 			children = (
+				54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */,
+				54BECD3E23F5143700AE82A9 /* Fonts */,
 				54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */,
 				54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */,
+				54BECD3423F505BB00AE82A9 /* Card+Image.swift */,
 				54BECD2023F4FA1D00AE82A9 /* ViewController.swift */,
+				54BECD3623F50AE500AE82A9 /* MiniCardView.swift */,
 				54BECD2223F4FA1D00AE82A9 /* Main.storyboard */,
+				54BECD3823F50AF700AE82A9 /* MiniCardView.xib */,
 				54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */,
 				54BECD2723F4FA1E00AE82A9 /* LaunchScreen.storyboard */,
 				54BECD2A23F4FA1E00AE82A9 /* Info.plist */,
 			);
 			path = "Magic Board";
+			sourceTree = "<group>";
+		};
+		54BECD3E23F5143700AE82A9 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */,
+				54BECD3B23F5143300AE82A9 /* Mplantin.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -83,6 +110,9 @@
 			dependencies = (
 			);
 			name = "Magic Board";
+			packageProductDependencies = (
+				54BECD3123F4FAAC00AE82A9 /* Swiftfall */,
+			);
 			productName = "Magic Board";
 			productReference = 54BECD1923F4FA1D00AE82A9 /* Magic Board.app */;
 			productType = "com.apple.product-type.application";
@@ -111,6 +141,9 @@
 				Base,
 			);
 			mainGroup = 54BECD1023F4FA1D00AE82A9;
+			packageReferences = (
+				54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */,
+			);
 			productRefGroup = 54BECD1A23F4FA1D00AE82A9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -128,6 +161,9 @@
 				54BECD2923F4FA1E00AE82A9 /* LaunchScreen.storyboard in Resources */,
 				54BECD2623F4FA1E00AE82A9 /* Assets.xcassets in Resources */,
 				54BECD2423F4FA1D00AE82A9 /* Main.storyboard in Resources */,
+				54BECD3923F50AF700AE82A9 /* MiniCardView.xib in Resources */,
+				54BECD3C23F5143300AE82A9 /* Matrix-Bold.ttf in Resources */,
+				54BECD3D23F5143300AE82A9 /* Mplantin.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +177,8 @@
 				54BECD2123F4FA1D00AE82A9 /* ViewController.swift in Sources */,
 				54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */,
 				54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */,
+				54BECD3523F505BB00AE82A9 /* Card+Image.swift in Sources */,
+				54BECD3723F50AE500AE82A9 /* MiniCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,7 +322,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -293,8 +333,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
@@ -302,7 +343,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -311,8 +354,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Release;
 		};
@@ -338,6 +382,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bmbowdish/Swiftfall.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		54BECD3123F4FAAC00AE82A9 /* Swiftfall */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */;
+			productName = Swiftfall;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 54BECD1123F4FA1D00AE82A9 /* Project object */;
 }

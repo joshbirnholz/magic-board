@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13122.16" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="ipad10_5" orientation="landscape" layout="fullscreen" appearance="dark"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13104.12"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15509"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -9,16 +10,65 @@
         <!--View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="ViewController" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="Magic_Board" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
-                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <rect key="frame" x="0.0" y="0.0" width="1112" height="834"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" xcode11CocoaTouchSystemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
+                        <subviews>
+                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" minimumZoomScale="0.10000000000000001" maximumZoomScale="0.90000000000000002" translatesAutoresizingMaskIntoConstraints="NO" id="KRg-bD-wUj">
+                                <rect key="frame" x="0.0" y="0.0" width="1112" height="834"/>
+                                <subviews>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="zuK-SY-7DO">
+                                        <rect key="frame" x="0.0" y="0.0" width="10000" height="7500"/>
+                                        <subviews>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="planeswalker" translatesAutoresizingMaskIntoConstraints="NO" id="mmm-X5-k7u">
+                                                <rect key="frame" x="4550" y="2943" width="900" height="1614"/>
+                                                <color key="tintColor" red="0.94645565750000005" green="0.24590164419999999" blue="0.21520549059999999" alpha="0.25110065607734805" colorSpace="custom" customColorSpace="sRGB"/>
+                                            </imageView>
+                                        </subviews>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstItem="mmm-X5-k7u" firstAttribute="centerX" secondItem="zuK-SY-7DO" secondAttribute="centerX" id="K6P-Nv-2hs"/>
+                                            <constraint firstAttribute="width" constant="10000" id="Top-Jz-SaU"/>
+                                            <constraint firstAttribute="width" secondItem="zuK-SY-7DO" secondAttribute="height" multiplier="4:3" id="Xcg-m1-fMX"/>
+                                            <constraint firstItem="mmm-X5-k7u" firstAttribute="centerY" secondItem="zuK-SY-7DO" secondAttribute="centerY" id="bbw-7E-WP4"/>
+                                        </constraints>
+                                    </view>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstItem="zuK-SY-7DO" firstAttribute="trailing" secondItem="mou-Yt-E2f" secondAttribute="trailing" constant="260" id="PzI-pm-8Q8"/>
+                                    <constraint firstItem="zuK-SY-7DO" firstAttribute="bottom" secondItem="mou-Yt-E2f" secondAttribute="bottom" constant="148" id="eoW-cv-N4s"/>
+                                    <constraint firstItem="zuK-SY-7DO" firstAttribute="top" secondItem="mou-Yt-E2f" secondAttribute="top" id="f4m-CG-tNj"/>
+                                    <constraint firstItem="zuK-SY-7DO" firstAttribute="leading" secondItem="mou-Yt-E2f" secondAttribute="leading" id="zLf-r9-OnN"/>
+                                </constraints>
+                                <viewLayoutGuide key="contentLayoutGuide" id="mou-Yt-E2f"/>
+                                <viewLayoutGuide key="frameLayoutGuide" id="xKy-eM-L8M"/>
+                                <connections>
+                                    <outlet property="delegate" destination="BYZ-38-t0r" id="zVQ-Qu-dbj"/>
+                                </connections>
+                            </scrollView>
+                        </subviews>
+                        <color key="backgroundColor" cocoaTouchSystemColor="viewFlipsideBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="KRg-bD-wUj" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="29a-9i-BVj"/>
+                            <constraint firstItem="KRg-bD-wUj" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" id="JrA-jk-NVh"/>
+                            <constraint firstItem="KRg-bD-wUj" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="Qqs-i3-KN3"/>
+                            <constraint firstItem="KRg-bD-wUj" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="fz8-Ir-6wK"/>
+                        </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
+                    <connections>
+                        <outlet property="board" destination="zuK-SY-7DO" id="ZPd-BP-zEB"/>
+                        <outlet property="boardWidthConstraint" destination="Top-Jz-SaU" id="h5U-RZ-Vp1"/>
+                        <outlet property="scrollView" destination="KRg-bD-wUj" id="Pfj-qA-TgP"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
+            <point key="canvasLocation" x="140.82733812949641" y="115.82733812949641"/>
         </scene>
     </scenes>
+    <resources>
+        <image name="planeswalker" width="900" height="1614"/>
+    </resources>
 </document>
