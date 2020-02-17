@@ -8,159 +8,12 @@
 
 import UIKit
 import Swiftfall
-
-extension NSTextAttachment {
-    func setImageHeight(height: CGFloat) {
-        guard let image = image else { return }
-        let ratio = image.size.width / image.size.height
-        
-		bounds = CGRect(x: bounds.origin.x, y: bounds.origin.y, width: ratio * height, height: height)
-    }
-}
-
-extension Swiftfall {
-	
-	enum Color: String {
-		case white = "W"
-		case blue = "U"
-		case black = "B"
-		case red = "R"
-		case green = "G"
-		case multicolor
-		case artifact
-		case colorless
-		
-		var name: String {
-			switch self {
-			case .white:
-				return "white"
-			case .blue:
-				return "blue"
-			case .black:
-				return "black"
-			case .red:
-				return "red"
-			case .green:
-				return "green"
-			case .multicolor:
-				return "multicolor"
-			case .artifact:
-				return "artifact"
-			case .colorless:
-				return "colorless"
-			}
-		}
-		
-		var land: String? {
-			switch self {
-			case .white:
-				return "plains"
-			case .blue:
-				return "island"
-			case .black:
-				return "swamp"
-			case .red:
-				return "mountain"
-			case .green:
-				return "forest"
-			case .multicolor:
-				return nil
-			case .artifact:
-				return nil
-			case .colorless:
-				return "wastes"
-			}
-		}
-		
-		var symbolColor: UIColor {
-			return UIColor(named: "\(name) mana")!
-		}
-		
-		var borderColor: UIColor {
-			return UIColor(named: "\(name) border")!
-		}
-		
-		var textBackgroundColor: UIColor {
-			return UIColor(named: "\(name) background")!
-		}
-		
-		var boxBackgroundColor: UIColor {
-			return UIColor(named: "\(name) box background")!
-		}
-	}
-	
-	enum SymbolName: String, CaseIterable {
-		case symbol_T = "{T}"
-		case symbol_Q = "{Q}"
-		case symbol_E = "{E}"
-		case symbol_PW = "{PW}"
-		case symbol_CHAOS = "{CHAOS}"
-		case symbol_X = "{X}"
-		case symbol_Y = "{Y}"
-		case symbol_Z = "{Z}"
-		case symbol_0 = "{0}"
-		case symbol_½ = "{½}"
-		case symbol_1 = "{1}"
-		case symbol_2 = "{2}"
-		case symbol_3 = "{3}"
-		case symbol_4 = "{4}"
-		case symbol_5 = "{5}"
-		case symbol_6 = "{6}"
-		case symbol_7 = "{7}"
-		case symbol_8 = "{8}"
-		case symbol_9 = "{9}"
-		case symbol_10 = "{10}"
-		case symbol_11 = "{11}"
-		case symbol_12 = "{12}"
-		case symbol_13 = "{13}"
-		case symbol_14 = "{14}"
-		case symbol_15 = "{15}"
-		case symbol_16 = "{16}"
-		case symbol_17 = "{17}"
-		case symbol_18 = "{18}"
-		case symbol_19 = "{19}"
-		case symbol_20 = "{20}"
-		case symbol_100 = "{100}"
-		case symbol_1000000 = "{1000000}"
-		case symbol_INFINITE = "{∞}"
-		case symbol_W_U = "{W/U}"
-		case symbol_W_B = "{W/B}"
-		case symbol_B_R = "{B/R}"
-		case symbol_B_G = "{B/G}"
-		case symbol_U_B = "{U/B}"
-		case symbol_U_R = "{U/R}"
-		case symbol_R_G = "{R/G}"
-		case symbol_R_W = "{R/W}"
-		case symbol_G_W = "{G/W}"
-		case symbol_G_U = "{G/U}"
-		case symbol_2_W = "{2/W}"
-		case symbol_2_U = "{2/U}"
-		case symbol_2_B = "{2/B}"
-		case symbol_2_R = "{2/R}"
-		case symbol_2_G = "{2/G}"
-		case symbol_P = "{P}"
-		case symbol_W_P = "{W/P}"
-		case symbol_U_P = "{U/P}"
-		case symbol_B_P = "{B/P}"
-		case symbol_R_P = "{R/P}"
-		case symbol_G_P = "{G/P}"
-		case symbol_HW = "{HW}"
-		case symbol_HR = "{HR}"
-		case symbol_W = "{W}"
-		case symbol_U = "{U}"
-		case symbol_B = "{B}"
-		case symbol_R = "{R}"
-		case symbol_G = "{G}"
-		case symbol_C = "{C}"
-		case symbol_S = "{S}"
-
-		var image: UIImage {
-			return UIImage(named: rawValue.replacingOccurrences(of: "/", with: "-"))!.withRenderingMode(.alwaysOriginal)
-		}
-	}
-}
+import RxSwift
+import RxCocoa
 
 class MiniCardView: UIView {
+	
+	private let bag = DisposeBag()
 
 	@IBOutlet var contentView: UIView!
 	@IBOutlet var cardView: UIView!
@@ -171,26 +24,32 @@ class MiniCardView: UIView {
 	@IBOutlet weak var titleBox: UIView!
 	@IBOutlet weak var bottomBox: UIView!
 	@IBOutlet weak var cardTextLabel: UILabel!
-	@IBOutlet weak var cardTextBox: UIView!
 	@IBOutlet weak var oracleBox: UIView!
 	@IBOutlet weak var tappedDarkeningView: UIView!
 	@IBOutlet weak var costLabel: UILabel!
 	@IBOutlet weak var typeLabel: UILabel!
+	@IBOutlet weak var borderView: UIView!
+	@IBOutlet weak var loyaltyBox: UIView!
+	@IBOutlet weak var loyaltyLabel: InsetLabel!
+	@IBOutlet weak var typeBox: UIView!
+	@IBOutlet weak var edgeView: UIView!
+	@IBOutlet weak var landView: UIView!
+	@IBOutlet weak var landManaSymbolImageView: UIImageView!
 	
-	var card: Swiftfall.Card! {
+	var card: Swiftfall.Card {
+		return cardInstance.card
+	}
+	
+	var cardInstance: CardInstance! {
 		didSet {
 			
 			titleLabel.text = card.name
 			
-			updatePowerToughness()
+			if let borderColor = Swiftfall.BorderColor(rawValue: card.borderColor) {
+				cardView.backgroundColor = borderColor.uiColor
+			}
 			
-			let colors = (card.colors ?? []).compactMap { Swiftfall.Color(rawValue: $0) }
-			
-			addGradient(to: titleBox, colors: colors, opacity: 1, type: \.boxBackgroundColor)
-			addGradient(to: bottomBox, colors: colors, opacity: 1, type: \.boxBackgroundColor)
-			addGradient(to: oracleBox, colors: colors, opacity: 0.75, type: \.textBackgroundColor)
-			addGradient(to: cardView, colors: colors, opacity: 1, type: \.borderColor)
-			addGradient(to: powerToughnessBox, colors: colors, opacity: 0.75, type: \.textBackgroundColor)
+			addColors()
 			
 			DispatchQueue.global(qos: .userInteractive).async { [weak self] in
 				let image = self?.card.image(type: .art)
@@ -204,10 +63,31 @@ class MiniCardView: UIView {
 				}
 			}
 			
-			if var oracleText = card.oracleText {
-				oracleText = oracleText.replacingOccurrences(of: "\n", with: "\n\n")
+			let isBasicLand = card.typeLine?.lowercased().contains("basic land") == true
+			let isLand = card.typeLine?.lowercased().contains("land") == true
+			landView.isHidden = !isLand
+			landManaSymbolImageView.isHidden = !isBasicLand
+			
+			if isBasicLand, let name = card.name, let image = UIImage(named: name) {
+				landManaSymbolImageView.image = image
+			}
+			
+			var text: [NSMutableAttributedString] = []
+			let textFontSize: CGFloat = 24
+			let textFont = UIFont(name: "MPlantin", size: textFontSize)!
+			let italicFont = UIFont(name: "MPlantin-Italic", size: textFontSize)!
+			if var oracleText = card.oracleText, !oracleText.isEmpty, !(card.typeLine?.contains("Basic Land") ?? false) {
+				oracleText = oracleText
+					.replacingOccurrences(of: "\n", with: "\n\n")
+					.replacingOccurrences(of: "−", with: "-")
 				
-				let attributedString = NSMutableAttributedString(string: oracleText, attributes: [.font: UIFont(name: "MPlantin", size: 24)])
+				let attributedString = NSMutableAttributedString(string: oracleText, attributes: [.font: textFont])
+				
+				let matches = oracleText.matches(forRegex: "\\((.*?)\\)")
+				for match in matches {
+					let range = NSRange(match.fullMatch.range, in: oracleText)
+					attributedString.addAttribute(.font, value: italicFont, range: range)
+				}
 				
 				for symbol in Swiftfall.SymbolName.allCases {
 					let attachment = NSTextAttachment()
@@ -220,12 +100,26 @@ class MiniCardView: UIView {
 					}
 				}
 				
-				cardTextLabel.attributedText = attributedString
+				text.append(attributedString)
 			}
+			
+			if let flavorText = card.flavorText {
+				let attributedString = NSMutableAttributedString(string: flavorText, attributes: [.font: italicFont])
+				
+				text.append(attributedString)
+			}
+			
+			for string in text.dropLast() {
+				string.append(NSAttributedString(string: "\n\n"))
+			}
+			
+			cardTextLabel.attributedText = text.reduce(into: NSMutableAttributedString(), { (string, current) in
+				string.append(current)
+			})
 			
 			if let cost = card.manaCost {
 				let cost = cost.replacingOccurrences(of: "}{", with: "} {")
-				let attributedString = NSMutableAttributedString(string: cost, attributes: [.font: UIFont(name: "MPlantin", size: 24)])
+				let attributedString = NSMutableAttributedString(string: cost, attributes: [.font: textFont])
 				
 				for symbol in Swiftfall.SymbolName.allCases {
 					let attachment = NSTextAttachment()
@@ -245,19 +139,82 @@ class MiniCardView: UIView {
 			
 			typeLabel.text = card.typeLine
 			
+			bind()
 		}
 	}
 	
-	private func addGradient(to view: UIView, colors: [Swiftfall.Color], opacity: Float, type: KeyPath<Swiftfall.Color, UIColor>) {
-		let backgroundColors: [UIColor] = {
-			var colors = colors.map { $0[keyPath: type] }
-			
-			if colors.isEmpty {
-				colors.insert(#colorLiteral(red: 1, green: 1, blue: 1, alpha: 1), at: 0)
+	private func addColors() {
+		let originalColors = (card.colors ?? [Swiftfall.Color.colorless.rawValue]).compactMap { Swiftfall.Color(rawValue: $0) }
+		var colors = originalColors
+		
+		let typeLine = card.typeLine?.lowercased() ?? ""
+		
+		if colors.isEmpty {
+			if typeLine.contains("basic land") {
+				for color in Swiftfall.Color.allCases {
+					guard let land = color.land, typeLine.contains(land) else { continue }
+					colors.append(color)
+				}
+			} else if typeLine.contains("land"), let oracleText = card.oracleText?.lowercased() {
+				let lines = oracleText.split(separator: "\n")
+				for line in lines {
+					let split = line.split(separator: ":")
+					guard split.count == 2 else { continue }
+					let abilityText = split[1]
+					
+					for color in Swiftfall.Color.allCases {
+						guard abilityText.contains("{\(color.rawValue.lowercased())}") else { continue }
+						colors.append(color)
+					}
+				}
+			} else if typeLine.contains("artifact") {
+				colors = [.artifact]
 			}
 			
-			return colors
-		}()
+			if colors.isEmpty {
+				colors = [.colorless]
+			}
+		}
+		
+		let regex = "\\{(.*?)\\}"
+		let costColors = (card.manaCost ?? "").matches(forRegex: regex).compactMap { $0.groups.compactMap { Swiftfall.Color(rawValue: $0.value) } }.joined()
+		if Set(costColors) == Set(colors) {
+			colors = Array(costColors).uniques
+		}
+		
+		if colors.count >= 3 && card.manaCost?.contains("/") == false {
+			colors = [.multicolor]
+		}
+		
+		func setBoxes(colors: [Swiftfall.Color]) {
+			addGradient(to: titleBox, colors: colors, opacity: 1, type: \.boxBackgroundColor)
+			addGradient(to: bottomBox, colors: colors, opacity: 1, type: \.boxBackgroundColor)
+			addGradient(to: oracleBox, colors: colors, opacity: 0.75, type: \.textBackgroundColor)
+			addGradient(to: powerToughnessBox, colors: colors, opacity: 1, type: \.textBackgroundColor)
+		}
+		
+		if typeLine.contains("land") {
+			setBoxes(colors: colors)
+		}
+		
+		addGradient(to: borderView, colors: colors, opacity: 1, type: \.borderColor)
+		
+		if colors != [.artifact] && (originalColors.isEmpty || originalColors == [.colorless]) {
+			colors = [.colorless]
+		} else if colors.count == 2 && card.manaCost?.contains("/") == false {
+			colors = [.multicolor]
+		}
+		
+		if !typeLine.contains("land") {
+			setBoxes(colors: colors)
+		}
+		
+		addGradient(to: edgeView, colors: colors, opacity: 1, type: \.cardEdgeColor)
+		
+	}
+	
+	private func addGradient(to view: UIView, colors: [Swiftfall.Color], opacity: Float, type: KeyPath<Swiftfall.Color, UIColor>) {
+		let backgroundColors: [UIColor] = colors.map { $0[keyPath: type] }
 		
 		if backgroundColors.count == 1, let backgroundColor = backgroundColors.first {
 			view.backgroundColor = backgroundColor.withAlphaComponent(CGFloat(opacity))
@@ -277,15 +234,10 @@ class MiniCardView: UIView {
 	
 	var isOracleBoxHidden: Bool {
 		set {
-			guard card.oracleText != nil else {
-				oracleBox.alpha = 0
-				return
-			}
-			
 			oracleBox.alpha = newValue ? 0 : 1
 		}
 		get {
-			oracleBox.alpha > 1
+			oracleBox.alpha == 0
 		}
 	}
 	
@@ -299,62 +251,124 @@ class MiniCardView: UIView {
 			costLabel.alpha = newValue ? 0 : 1
 		}
 		get {
-			costLabel.alpha > 1
+			costLabel.alpha == 0
 		}
 	}
 	
 	var isTypeLabelHidden: Bool {
 		set {
 			guard card.typeLine != nil else {
+				typeBox.alpha = 0
 				typeLabel.alpha = 0
 				return
 			}
 			
+			typeBox.alpha = newValue ? 0 : 0.6
 			typeLabel.alpha = newValue ? 0 : 1
 		}
 		get {
-			typeLabel.alpha > 1
+			typeBox.alpha == 0
 		}
 	}
 	
-	var powerMod: Int = 0 {
-		didSet {
-			updatePowerToughness()
-		}
+	private func bind() {
+		guard let cardInstance = cardInstance else { return }
+		
+		cardInstance.power
+			.map { [weak self] power in
+				guard let self  = self else { return NSAttributedString() }
+				return self.powerToughnessLabelText(power: power, toughness: self.cardInstance.toughness.value)
+			}
+			.bind(to: powerToughnessLabel.rx.attributedText)
+			.disposed(by: bag)
+		
+		cardInstance.toughness
+			.map { [weak self] toughness in
+				guard let self  = self else { return NSAttributedString() }
+				return self.powerToughnessLabelText(power: self.cardInstance.power.value, toughness: toughness)
+			}
+			.bind(to: powerToughnessLabel.rx.attributedText)
+			.disposed(by: bag)
+		
+//		Observable.combineLatest(cardInstance.power, cardInstance.toughness)
+//			.map { [weak self] arg in
+//				let (power, toughness) = arg
+//				guard let self = self else { return NSAttributedString() }
+//				return self.powerToughnessLabelText(power: power, toughness: toughness)
+//				}
+//			.bind(to: powerToughnessLabel.rx.attributedText)
+//			.disposed(by: bag)
+		
+		cardInstance.isPowerToughnessVisible
+			.map { !$0 }
+			.bind(to: powerToughnessLabel.rx.isHidden)
+			.disposed(by: bag)
+		
+		cardInstance.isPowerToughnessVisible
+			.map { !$0 }
+			.bind(to: powerToughnessBox.rx.isHidden)
+			.disposed(by: bag)
+		
+		cardInstance.isFlying
+			.subscribe (onNext: { [weak self] isFlying in
+				guard let self = self else { return }
+				
+				if isFlying {
+					self.cardView.startWiggle(durationModifier: 12, varianceModifier: 1.2, angleModifier: 2, bounceModifier: 1)
+					self.cardView.transform = CGAffineTransform(scaleX: 1.08, y: 1.08)
+					self.layer.shadowOpacity = 0.75
+					self.layer.shadowRadius = 50
+					//			self.layer.allowsEdgeAntialiasing = true
+					//			self.layer.shadowOffset = CGSize(width: 0, height: 50)
+					self.layer.zPosition = 10
+				} else {
+					self.cardView.stopWiggle()
+					self.cardView.transform = CGAffineTransform.identity
+					self.layer.shadowOpacity = 0
+					self.layer.zPosition = 0
+					//				self.layer.allowsEdgeAntialiasing = false
+					return
+				}
+			}).disposed(by: bag)
+		
+		cardInstance.loyalty
+			.map { $0 == nil }
+			.bind(to: loyaltyBox.rx.isHidden)
+			.disposed(by: bag)
+		
+		cardInstance.loyalty
+			.compactMap { $0 }
+			.map(String.init)
+			.bind(to: loyaltyLabel.rx.text)
+			.disposed(by: bag)
+		
+		cardInstance.flip
+			.subscribe(onNext: { [weak self] _ in
+				self?.flip()
+			}).disposed(by: bag)
 	}
 	
-	var toughnessMod: Int = 0 {
-		didSet {
-			updatePowerToughness()
-		}
-	}
-	
-	private func updatePowerToughness() {
-		if let power = card.power, let toughness = card.toughness {
-			let numPower = (Int(power) ?? 0) + powerMod
-			let numToughness = (Int(toughness) ?? 0) + toughnessMod
-			
-			let attributedString = NSMutableAttributedString()
-			
-			let powerString = NSAttributedString(string: "\(numPower)", attributes: [.foregroundColor: (powerMod == 0 ? UIColor.black : UIColor.blue).cgColor])
-			attributedString.append(powerString)
-			
-			attributedString.append(NSAttributedString(string: "/"))
-			
-			let toughnessString = NSAttributedString(string: "\(numToughness)", attributes: [.foregroundColor: (toughnessMod == 0 ? UIColor.black : UIColor.blue).cgColor])
-			attributedString.append(toughnessString)
-			
-			attributedString.addAttribute(.font, value: UIFont(name: "Matrix-Bold", size: 36.0), range: NSRange(location: 0, length: attributedString.length))
-			
-			powerToughnessLabel.attributedText = attributedString
-		} else {
-			powerToughnessLabel.isHidden = true
-			powerToughnessBox.isHidden = true
-		}
+	private func powerToughnessLabelText(power: String, toughness: String) -> NSAttributedString {
+		let attributedString = NSMutableAttributedString()
+		let modifiedColor = #colorLiteral(red: 0.2145935893, green: 0.5758153796, blue: 0.8829388022, alpha: 1)
+
+		let powerString = NSAttributedString(string: power, attributes: [.foregroundColor: (power == self.cardInstance.card.power ? UIColor.black : modifiedColor)])
+		attributedString.append(powerString)
+
+		attributedString.append(NSAttributedString(string: "/"))
+
+		let toughnessString = NSAttributedString(string: toughness, attributes: [.foregroundColor: (toughness == self.cardInstance.card.toughness ? UIColor.black : modifiedColor)])
+		attributedString.append(toughnessString)
+
+		attributedString.addAttribute(.font, value: UIFont(name: "Beleren2016-Bold", size: 40)!, range: NSRange(location: 0, length: attributedString.length))
+
+		return attributedString
 	}
 	
 	var isTapped: Bool = false {
 		didSet {
+			guard isTapped != oldValue else { return }
+			
 			UIView.animate(withDuration: 0.3) {
 				var amount: CGFloat = .pi/15
 				if !self.isTapped {
@@ -362,13 +376,12 @@ class MiniCardView: UIView {
 				}
 				
 				self.transform = self.transform.rotated(by: amount)
-				
 				self.tappedDarkeningView.alpha = self.isTapped ? 0.5 : 0
 			}
 		}
 	}
 	
-	func reverse() {
+	func flip() {
 		UIView.animate(withDuration: 0.3) {
 			self.transform = self.transform.rotated(by: .pi)
 		}
@@ -390,20 +403,63 @@ class MiniCardView: UIView {
 		contentView.frame = self.bounds
 		contentView.autoresizingMask = [.flexibleHeight, .flexibleWidth]
 		
-		cardView.layer.cornerRadius = 8
+		cardView.layer.cornerRadius = 16
 		cardView.layer.masksToBounds = true
 		
+		edgeView.roundCorners(topLeft: 10, topRight: 10, bottomLeft: 50, bottomRight: 50)
+		
+		borderView.layer.cornerRadius = 8
+		borderView.layer.masksToBounds = true
+		borderView.layer.borderWidth = 1
+		borderView.layer.borderColor = UIColor.black.cgColor
+		
+		for box in [titleBox, bottomBox, artImageView, oracleBox] {
+			box?.layer.borderWidth = 1
+			box?.layer.borderColor = UIColor.black.cgColor
+		}
+		
+		titleBox.layer.cornerRadius = 6
+		titleBox.layer.masksToBounds = true
+		
+		bottomBox.layer.cornerRadius = 6
+		bottomBox.layer.masksToBounds = true
+		
+		powerToughnessBox.layer.borderWidth = 1
+		powerToughnessBox.layer.borderColor = UIColor.black.cgColor
+		
 		powerToughnessBox.layer.cornerRadius = 6
+		powerToughnessBox.layer.masksToBounds = true
 		powerToughnessBox.layer.borderColor = UIColor.black.cgColor
 		powerToughnessBox.layer.borderWidth = 4
 		powerToughnessBox.layer.shadowOpacity = 0.3
 		
+		typeBox.layer.cornerRadius = 16
+		typeBox.layer.masksToBounds = true
+		
+		landView.layer.cornerRadius = landView.frame.width / 2
+		landView.layer.masksToBounds = true
+		
 		let gestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tapUnTap))
 		cardView.addGestureRecognizer(gestureRecognizer)
 		
-		let interaction = UIContextMenuInteraction(delegate: self)
-		cardView.addInteraction(interaction)
+//		let rotateGestureRecognizer = UIRotationGestureRecognizer(target: self, action: #selector(rotated(_:)))
+//		cardView.addGestureRecognizer(rotateGestureRecognizer)
+	}
+	
+	@objc private func rotated(_ gestureRecognizer: UIRotationGestureRecognizer) {
+		// user's two fingers. This creates a more natural looking rotation.
+		guard gestureRecognizer.view != nil else { return }
 		
+		print(gestureRecognizer.rotation / .pi)
+		if gestureRecognizer.state == .began || gestureRecognizer.state == .changed {
+			if gestureRecognizer.rotation >= .pi / 4 {
+				isTapped = true
+				gestureRecognizer.rotation = 0
+			} else if gestureRecognizer.rotation <= .pi / -4 {
+				isTapped = false
+				gestureRecognizer.rotation = 0
+			}
+		}
 	}
 	
 	@objc private func tapUnTap() {
@@ -414,118 +470,4 @@ class MiniCardView: UIView {
 		return cardView.hitTest(point, with: event)
 	}
 
-}
-
-extension MiniCardView: UIContextMenuInteractionDelegate {
-	func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
-		return UIContextMenuConfiguration(identifier: nil, previewProvider: { () -> UIViewController? in
-			
-			guard let image = self.card.image(type: .normal) else { return nil }
-			
-			let vc = UIViewController()
-			vc.view = UIImageView(image: image)
-			vc.view.backgroundColor = .black
-			vc.preferredContentSize = image.size
-			return vc
-		}, actionProvider: { _ in
-			return UIMenu(title: "", children: self.actions())
-		})
-	}
-	
-	func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willEndFor configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
-		print("will end")
-	}
-	
-	func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willPerformPreviewActionForMenuWith configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionCommitAnimating) {
-		tapUnTap()
-	}
-	
-	func actions() -> [UIMenuElement] {
-		var actions: [UIMenuElement] = []
-		
-		let tapUntap = UIAction(title: isTapped ? "Untap" : "Tap") { [weak self] _ in
-			self?.tapUnTap()
-		}
-		actions.append(tapUntap)
-		
-		let reverse = UIAction(title: "Reverse") { [weak self] _ in
-			self?.reverse()
-		}
-		actions.append(reverse)
-		
-//		if card.power != nil {
-//			var items: [UIMenuElement] = []
-//
-//			for (mod) in [+1, +2, -1, -2] {
-//				var first = String(mod)
-//				if !first.hasPrefix("-") {
-//					first = "+" + first
-//				}
-//				let action = UIAction(title: "\(first)") { _ in
-//					self.powerMod += mod
-//				}
-//				items.append(action)
-//			}
-//
-//			let action = UIAction(title: "Restore") { _ in
-//				self.powerMod = 0
-//			}
-//			items.append(action)
-//
-//			let menu = UIMenu(title: "Power", options: .displayInline, children: items)
-//			actions.append(menu)
-//		}
-//
-//		if card.toughness != nil {
-//			var items: [UIMenuElement] = []
-//
-//			for (mod) in [+1, +2, -1, -2] {
-//				var first = String(mod)
-//				if !first.hasPrefix("-") {
-//					first = "+" + first
-//				}
-//				let action = UIAction(title: "\(first)") { _ in
-//					self.toughnessMod += mod
-//				}
-//				items.append(action)
-//			}
-//
-//			let action = UIAction(title: "Restore") { _ in
-//				self.toughnessMod = 0
-//			}
-//			items.append(action)
-//
-//			let menu = UIMenu(title: "Toughness", options: .displayInline, children: items)
-//			actions.append(menu)
-//		}
-//
-//		if card.power != nil && card.toughness != nil {
-//			var items: [UIMenuElement] = []
-//
-//			for (mod) in [+1, +2, -1, -2] {
-//				var first = String(mod)
-//				if !first.hasPrefix("-") {
-//					first = "+" + first
-//				}
-//				let action = UIAction(title: "\(first)/\(first)") { _ in
-//					self.powerMod += mod
-//					self.toughnessMod += mod
-//				}
-//				items.append(action)
-//			}
-//
-//			let action = UIAction(title: "Restore") { _ in
-//				self.powerMod = 0
-//				self.toughnessMod = 0
-//			}
-//			items.append(action)
-//
-//			let menu = UIMenu(title: "Power/Toughness", options: .displayInline, children: items)
-//			actions.append(menu)
-//		}
-		
-		return actions
-	}
-	
-	
 }

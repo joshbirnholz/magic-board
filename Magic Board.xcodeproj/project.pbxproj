@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		547CD3D323F9EF2800AECA85 /* PickerCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D223F9EF2800AECA85 /* PickerCell.swift */; };
+		547CD3D523FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */; };
+		547CD3D723FA5AAF00AECA85 /* Array+Unique.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Unique.swift */; };
 		54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */; };
 		54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */; };
 		54BECD2123F4FA1D00AE82A9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD2023F4FA1D00AE82A9 /* ViewController.swift */; };
@@ -19,9 +22,26 @@
 		54BECD3923F50AF700AE82A9 /* MiniCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3823F50AF700AE82A9 /* MiniCardView.xib */; };
 		54BECD3C23F5143300AE82A9 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
 		54BECD3D23F5143300AE82A9 /* Mplantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3B23F5143300AE82A9 /* Mplantin.ttf */; };
+		54C6D7F123F892DD00AF980D /* Swiftfall+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F023F892DD00AF980D /* Swiftfall+Misc.swift */; };
+		54C6D7F323F892FA00AF980D /* NSTextAlignment+ImageHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */; };
+		54C6D7F523F89F3600AF980D /* UIView+Wiggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */; };
+		54C6D7F723F8B44900AF980D /* Beleren2016-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */; };
+		54C6D7F923F8B68400AF980D /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */; };
+		54C6D7FB23F8B88000AF980D /* String+Regex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FA23F8B88000AF980D /* String+Regex.swift */; };
+		54C6D7FE23F8C17F00AF980D /* SideTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */; };
+		54C6D80123F919DF00AF980D /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 54C6D80023F919DF00AF980D /* RxRelay */; };
+		54C6D80323F919DF00AF980D /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 54C6D80223F919DF00AF980D /* RxSwift */; };
+		54C6D80523F919DF00AF980D /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 54C6D80423F919DF00AF980D /* RxCocoa */; };
+		54C6D80723F919F900AF980D /* CardInstance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80623F919F900AF980D /* CardInstance.swift */; };
+		54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */; };
+		54C6D80D23F933E500AF980D /* Observable+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80C23F933E500AF980D /* Observable+Misc.swift */; };
+		54C6D80F23F942A400AF980D /* InsetLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80E23F942A400AF980D /* InsetLabel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		547CD3D223F9EF2800AECA85 /* PickerCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerCell.swift; sourceTree = "<group>"; };
+		547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIBezierPath+ShouldRoundRect.swift"; sourceTree = "<group>"; };
+		547CD3D623FA5AAF00AECA85 /* Array+Unique.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Unique.swift"; sourceTree = "<group>"; };
 		54BECD1923F4FA1D00AE82A9 /* Magic Board.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Magic Board.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -36,6 +56,17 @@
 		54BECD3823F50AF700AE82A9 /* MiniCardView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MiniCardView.xib; sourceTree = "<group>"; };
 		54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Matrix-Bold.ttf"; sourceTree = "<group>"; };
 		54BECD3B23F5143300AE82A9 /* Mplantin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Mplantin.ttf; sourceTree = "<group>"; };
+		54C6D7F023F892DD00AF980D /* Swiftfall+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Swiftfall+Misc.swift"; sourceTree = "<group>"; };
+		54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSTextAlignment+ImageHeight.swift"; sourceTree = "<group>"; };
+		54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Wiggle.swift"; sourceTree = "<group>"; };
+		54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Beleren2016-Bold.ttf"; sourceTree = "<group>"; };
+		54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MPlantin-Italic.ttf"; sourceTree = "<group>"; };
+		54C6D7FA23F8B88000AF980D /* String+Regex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Regex.swift"; sourceTree = "<group>"; };
+		54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideTableViewController.swift; sourceTree = "<group>"; };
+		54C6D80623F919F900AF980D /* CardInstance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardInstance.swift; sourceTree = "<group>"; };
+		54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BehaviorRelay+PropertyWrapper.swift"; sourceTree = "<group>"; };
+		54C6D80C23F933E500AF980D /* Observable+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Observable+Misc.swift"; sourceTree = "<group>"; };
+		54C6D80E23F942A400AF980D /* InsetLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsetLabel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,6 +74,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54C6D80323F919DF00AF980D /* RxSwift in Frameworks */,
+				54C6D80123F919DF00AF980D /* RxRelay in Frameworks */,
+				54C6D80523F919DF00AF980D /* RxCocoa in Frameworks */,
 				54BECD3223F4FAAC00AE82A9 /* Swiftfall in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,11 +105,15 @@
 			children = (
 				54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */,
 				54BECD3E23F5143700AE82A9 /* Fonts */,
+				54C6D7FC23F8B88D00AF980D /* Extensions */,
 				54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */,
 				54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */,
-				54BECD3423F505BB00AE82A9 /* Card+Image.swift */,
-				54BECD2023F4FA1D00AE82A9 /* ViewController.swift */,
+				54C6D80623F919F900AF980D /* CardInstance.swift */,
 				54BECD3623F50AE500AE82A9 /* MiniCardView.swift */,
+				54BECD2023F4FA1D00AE82A9 /* ViewController.swift */,
+				54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */,
+				547CD3D223F9EF2800AECA85 /* PickerCell.swift */,
+				54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */,
 				54BECD2223F4FA1D00AE82A9 /* Main.storyboard */,
 				54BECD3823F50AF700AE82A9 /* MiniCardView.xib */,
 				54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */,
@@ -88,10 +126,28 @@
 		54BECD3E23F5143700AE82A9 /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
+				54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */,
 				54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */,
 				54BECD3B23F5143300AE82A9 /* Mplantin.ttf */,
+				54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */,
 			);
 			path = Fonts;
+			sourceTree = "<group>";
+		};
+		54C6D7FC23F8B88D00AF980D /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				54BECD3423F505BB00AE82A9 /* Card+Image.swift */,
+				54C6D7F023F892DD00AF980D /* Swiftfall+Misc.swift */,
+				547CD3D623FA5AAF00AECA85 /* Array+Unique.swift */,
+				54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */,
+				54C6D80E23F942A400AF980D /* InsetLabel.swift */,
+				54C6D7FA23F8B88000AF980D /* String+Regex.swift */,
+				547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */,
+				54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */,
+				54C6D80C23F933E500AF980D /* Observable+Misc.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +168,9 @@
 			name = "Magic Board";
 			packageProductDependencies = (
 				54BECD3123F4FAAC00AE82A9 /* Swiftfall */,
+				54C6D80023F919DF00AF980D /* RxRelay */,
+				54C6D80223F919DF00AF980D /* RxSwift */,
+				54C6D80423F919DF00AF980D /* RxCocoa */,
 			);
 			productName = "Magic Board";
 			productReference = 54BECD1923F4FA1D00AE82A9 /* Magic Board.app */;
@@ -143,6 +202,7 @@
 			mainGroup = 54BECD1023F4FA1D00AE82A9;
 			packageReferences = (
 				54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */,
+				54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */,
 			);
 			productRefGroup = 54BECD1A23F4FA1D00AE82A9 /* Products */;
 			projectDirPath = "";
@@ -161,7 +221,9 @@
 				54BECD2923F4FA1E00AE82A9 /* LaunchScreen.storyboard in Resources */,
 				54BECD2623F4FA1E00AE82A9 /* Assets.xcassets in Resources */,
 				54BECD2423F4FA1D00AE82A9 /* Main.storyboard in Resources */,
+				54C6D7F723F8B44900AF980D /* Beleren2016-Bold.ttf in Resources */,
 				54BECD3923F50AF700AE82A9 /* MiniCardView.xib in Resources */,
+				54C6D7F923F8B68400AF980D /* MPlantin-Italic.ttf in Resources */,
 				54BECD3C23F5143300AE82A9 /* Matrix-Bold.ttf in Resources */,
 				54BECD3D23F5143300AE82A9 /* Mplantin.ttf in Resources */,
 			);
@@ -174,11 +236,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */,
+				547CD3D723FA5AAF00AECA85 /* Array+Unique.swift in Sources */,
+				54C6D80723F919F900AF980D /* CardInstance.swift in Sources */,
 				54BECD2123F4FA1D00AE82A9 /* ViewController.swift in Sources */,
+				54C6D7F523F89F3600AF980D /* UIView+Wiggle.swift in Sources */,
+				54C6D7FE23F8C17F00AF980D /* SideTableViewController.swift in Sources */,
+				54C6D7FB23F8B88000AF980D /* String+Regex.swift in Sources */,
+				54C6D80F23F942A400AF980D /* InsetLabel.swift in Sources */,
 				54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */,
 				54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */,
 				54BECD3523F505BB00AE82A9 /* Card+Image.swift in Sources */,
+				54C6D7F123F892DD00AF980D /* Swiftfall+Misc.swift in Sources */,
 				54BECD3723F50AE500AE82A9 /* MiniCardView.swift in Sources */,
+				54C6D7F323F892FA00AF980D /* NSTextAlignment+ImageHeight.swift in Sources */,
+				547CD3D523FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift in Sources */,
+				54C6D80D23F933E500AF980D /* Observable+Misc.swift in Sources */,
+				547CD3D323F9EF2800AECA85 /* PickerCell.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,16 +398,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -345,16 +419,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -392,6 +466,14 @@
 				minimumVersion = 1.5.2;
 			};
 		};
+		54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ReactiveX/RxSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -399,6 +481,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */;
 			productName = Swiftfall;
+		};
+		54C6D80023F919DF00AF980D /* RxRelay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxRelay;
+		};
+		54C6D80223F919DF00AF980D /* RxSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxSwift;
+		};
+		54C6D80423F919DF00AF980D /* RxCocoa */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxCocoa;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
