@@ -11,10 +11,10 @@ import Foundation
 typealias Match = (range: Range<String.Index>, value: String)
 
 extension String {
-	
-	func matches(forRegex regex: String) -> [(fullMatch: Match, groups: [Match])] {
+
+	func matches(forRegex regex: String, options: NSRegularExpression.Options = []) -> [(fullMatch: Match, groups: [Match])] {
 		do {
-			let regex = try NSRegularExpression(pattern: regex)
+			let regex = try NSRegularExpression(pattern: regex, options: options)
 			let results = regex.matches(in: self, range: NSRange(startIndex..., in: self))
 			return results.map { result in
 				let fullMatchRange = Range(result.range, in: self)!

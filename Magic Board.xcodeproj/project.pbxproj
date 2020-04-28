@@ -7,56 +7,246 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1340B26E200B9A956C1E6811 /* Pods_MagicBoardConnect.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99ECB50DBF05EEABA6994AF0 /* Pods_MagicBoardConnect.framework */; };
+		541DBA3324255F3100273E4C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542CF69C2415888700D453CA /* LaunchScreen.storyboard */; };
+		541DBA3424255F4A00273E4C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542CF69C2415888700D453CA /* LaunchScreen.storyboard */; };
+		541E0A1823FB9D59008E5E35 /* UIColor+Blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */; };
+		541E0A1C23FBBE84008E5E35 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541E0A1B23FBBE84008E5E35 /* GameState.swift */; };
+		542670D0241C2E4800A48580 /* CardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542670CF241C2E4800A48580 /* CardTableViewCell.swift */; };
+		542670D1241C2E4C00A48580 /* CardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542670CF241C2E4800A48580 /* CardTableViewCell.swift */; };
+		5429751D2417EC9A0066C8E6 /* Array+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */; };
+		542CF6902415888500D453CA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF68F2415888500D453CA /* AppDelegate.swift */; };
+		542CF6922415888500D453CA /* ConnectSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6912415888500D453CA /* ConnectSceneDelegate.swift */; };
+		542CF6A324158B0D00D453CA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */; };
+		542CF6AC24158B7100D453CA /* Array+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */; };
+		542CF6AD24158B7100D453CA /* UIView+Wiggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */; };
+		542CF6AE24158B7100D453CA /* InsetLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80E23F942A400AF980D /* InsetLabel.swift */; };
+		542CF6AF24158B7100D453CA /* String+Regex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FA23F8B88000AF980D /* String+Regex.swift */; };
+		542CF6B024158B7100D453CA /* UIBezierPath+ShouldRoundRect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */; };
+		542CF6B124158B7100D453CA /* UIColor+Blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */; };
+		542CF6B224158B7100D453CA /* UIImage+Half.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17D2413483800A1BBB8 /* UIImage+Half.swift */; };
+		542CF6B324158B7100D453CA /* BehaviorRelay+PropertyWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */; };
+		542CF6B424158B7100D453CA /* Observable+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80C23F933E500AF980D /* Observable+Misc.swift */; };
+		542CF6B524158B7100D453CA /* NSTextAlignment+ImageHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */; };
+		542CF6B724158B7100D453CA /* CGAffineTransform+Degrees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A18124138E2E00A1BBB8 /* CGAffineTransform+Degrees.swift */; };
+		542CF6B824158B7400D453CA /* OrderedSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9323FF034B0012F14C /* OrderedSet.swift */; };
+		542CF6B924158BA700D453CA /* CardInstance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80623F919F900AF980D /* CardInstance.swift */; };
+		542CF6BA24158BAB00D453CA /* MiniCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD3623F50AE500AE82A9 /* MiniCardView.swift */; };
+		542CF6BB24158BAB00D453CA /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541E0A1B23FBBE84008E5E35 /* GameState.swift */; };
+		542CF6BC24158BAB00D453CA /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9523FF03880012F14C /* Player.swift */; };
+		542CF6BD24158BAB00D453CA /* Pile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16C2410B87000A1BBB8 /* Pile.swift */; };
+		542CF6BE24158BAB00D453CA /* Counter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16A2410875000A1BBB8 /* Counter.swift */; };
+		542CF6BF24158BAF00D453CA /* BoardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD2023F4FA1D00AE82A9 /* BoardViewController.swift */; };
+		542CF6C024158BAF00D453CA /* CardImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A1722411CA7800A1BBB8 /* CardImageViewController.swift */; };
+		542CF6C124158BAF00D453CA /* BottomBarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E052224043A1A00ACF842 /* BottomBarViewController.swift */; };
+		542CF6C224158BAF00D453CA /* HandViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17F241375ED00A1BBB8 /* HandViewController.swift */; };
+		542CF6C324158BAF00D453CA /* CardInstance+NSItemProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17024115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift */; };
+		542CF6C424158BAF00D453CA /* SideTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */; };
+		542CF6C524158BAF00D453CA /* CountersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */; };
+		542CF6C724158BAF00D453CA /* PickerCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D223F9EF2800AECA85 /* PickerCell.swift */; };
+		542CF6C924158BAF00D453CA /* PileViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E05282405BB8A00ACF842 /* PileViewController.swift */; };
+		542CF6CA24158BB700D453CA /* MiniCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3823F50AF700AE82A9 /* MiniCardView.xib */; };
+		542CF6CB24158BBA00D453CA /* HUDCardPileView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 546E052424044EE700ACF842 /* HUDCardPileView.xib */; };
+		542CF6CC24158BBD00D453CA /* HUDCardPileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E0526240450B000ACF842 /* HUDCardPileView.swift */; };
+		542CF6D7241597CE00D453CA /* PlayerConnect.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542CF6D6241597CE00D453CA /* PlayerConnect.storyboard */; };
+		542CF6D8241597E500D453CA /* PlayerConnect.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542CF6D6241597CE00D453CA /* PlayerConnect.storyboard */; };
+		542CF6DB241599C200D453CA /* MultipeerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 542CF6DA241599C200D453CA /* MultipeerKit */; };
+		542CF6DD241599D200D453CA /* MultipeerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 542CF6DC241599D200D453CA /* MultipeerKit */; };
+		542CF6DF24159F7200D453CA /* Role.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6DE24159F7200D453CA /* Role.swift */; };
+		542CF6E12415A08800D453CA /* Role.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6DE24159F7200D453CA /* Role.swift */; };
+		542CF6E22415A0C900D453CA /* Board.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2223F4FA1D00AE82A9 /* Board.storyboard */; };
+		542CF6E52415A7E000D453CA /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6E42415A7E000D453CA /* Command.swift */; };
+		542CF6E62415B00300D453CA /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6E42415A7E000D453CA /* Command.swift */; };
+		5430805324251E2100E98D0B /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5430805224251E2100E98D0B /* Media.xcassets */; };
+		54308054242531AE00E98D0B /* CardService.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 544DE4AF2425170100BA1977 /* CardService.xcdatamodeld */; };
+		544B631A2416F8F000FB43AF /* CardService.h in Headers */ = {isa = PBXBuildFile; fileRef = 544B63182416F8F000FB43AF /* CardService.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		544DE4B324251AF700BA1977 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544DE4B224251AF700BA1977 /* CoreDataManager.swift */; };
+		544F294B2416FB8200B6B3C8 /* Swiftfall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F294A2416FB8200B6B3C8 /* Swiftfall.swift */; };
+		544F294D2416FF6B00B6B3C8 /* MTGCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F294C2416FF6B00B6B3C8 /* MTGCard.swift */; };
+		544F294F2417030B00B6B3C8 /* MTGSymbolName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F294E2417030B00B6B3C8 /* MTGSymbolName.swift */; };
+		544F29512417032400B6B3C8 /* MTGColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F29502417032400B6B3C8 /* MTGColor.swift */; };
+		544F29522417036A00B6B3C8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */; };
+		544F2954241703DD00B6B3C8 /* ImageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F2953241703DD00B6B3C8 /* ImageType.swift */; };
+		544F29562417041400B6B3C8 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 544F29552417041400B6B3C8 /* SDWebImage */; };
+		544F29572417081200B6B3C8 /* UIImage+Half.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17D2413483800A1BBB8 /* UIImage+Half.swift */; };
+		544F295824170E3700B6B3C8 /* DeckParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54ADEB2623FF443100AF1000 /* DeckParser.swift */; };
+		544F295A24170EF700B6B3C8 /* MTGCardIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F295924170EF700B6B3C8 /* MTGCardIdentifier.swift */; };
+		544F295B24170F1900B6B3C8 /* Swiftfall+GetCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9723FF404C0012F14C /* Swiftfall+GetCollection.swift */; };
+		544F295C2417107200B6B3C8 /* String+Regex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FA23F8B88000AF980D /* String+Regex.swift */; };
+		544F295E241717DC00B6B3C8 /* CardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F295D241717DC00B6B3C8 /* CardService.swift */; };
+		544F295F241723AD00B6B3C8 /* CardService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 544B63162416F8F000FB43AF /* CardService.framework */; };
+		544F2960241723AD00B6B3C8 /* CardService.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 544B63162416F8F000FB43AF /* CardService.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		544F2962241723B300B6B3C8 /* CardService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 544B63162416F8F000FB43AF /* CardService.framework */; };
+		544F2963241723B300B6B3C8 /* CardService.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 544B63162416F8F000FB43AF /* CardService.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		544F6DE6241CBF8A0069A912 /* CardRepresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */; };
+		544F6DE7241CBF8F0069A912 /* CardRepresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */; };
+		5463CA1E2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */; };
+		5463CA1F2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */; };
+		546E052324043A1A00ACF842 /* BottomBarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E052224043A1A00ACF842 /* BottomBarViewController.swift */; };
+		546E052524044EE700ACF842 /* HUDCardPileView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 546E052424044EE700ACF842 /* HUDCardPileView.xib */; };
+		546E0527240450B000ACF842 /* HUDCardPileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E0526240450B000ACF842 /* HUDCardPileView.swift */; };
+		546E05292405BB8A00ACF842 /* PileViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E05282405BB8A00ACF842 /* PileViewController.swift */; };
+		54795DA72418392600B5CA36 /* Beleren2016-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */; };
+		54795DA82418392600B5CA36 /* Beleren Small Caps.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */; };
+		54795DA92418392600B5CA36 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
+		54795DAA2418392600B5CA36 /* MPlantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */; };
+		54795DAB2418392600B5CA36 /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */; };
+		54795DB12418392700B5CA36 /* Beleren2016-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */; };
+		54795DB22418392700B5CA36 /* Beleren Small Caps.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */; };
+		54795DB32418392700B5CA36 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
+		54795DB42418392700B5CA36 /* MPlantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */; };
+		54795DB52418392700B5CA36 /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */; };
+		54795DB924189C1A00B5CA36 /* ContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54795DB624189AFA00B5CA36 /* ContainerViewController.swift */; };
+		54795DBB2419A32900B5CA36 /* ConnectSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6912415888500D453CA /* ConnectSceneDelegate.swift */; };
+		54795DBC2419A3CE00B5CA36 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */; };
+		54795DBE2419E6E400B5CA36 /* ContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54795DB624189AFA00B5CA36 /* ContainerViewController.swift */; };
+		54795DBF2419E6E700B5CA36 /* PlayerSelectViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547988F624161AEE006EC7CF /* PlayerSelectViewController.swift */; };
+		547988F724161AEE006EC7CF /* PlayerSelectViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547988F624161AEE006EC7CF /* PlayerSelectViewController.swift */; };
 		547CD3D323F9EF2800AECA85 /* PickerCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D223F9EF2800AECA85 /* PickerCell.swift */; };
 		547CD3D523FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */; };
-		547CD3D723FA5AAF00AECA85 /* Array+Unique.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Unique.swift */; };
+		547CD3D723FA5AAF00AECA85 /* Array+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */; };
+		548F0B49241DF47600639F71 /* CardDetailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548F0B48241DF47600639F71 /* CardDetailsViewController.swift */; };
+		548F0B4A241DF47600639F71 /* CardDetailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548F0B48241DF47600639F71 /* CardDetailsViewController.swift */; };
+		5498B06424023DBE00B34B91 /* Board.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2223F4FA1D00AE82A9 /* Board.storyboard */; };
+		5498B06524023DC400B34B91 /* MiniCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3823F50AF700AE82A9 /* MiniCardView.xib */; };
+		5498B06624023DC900B34B91 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */; };
+		54A0A16B2410875000A1BBB8 /* Counter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16A2410875000A1BBB8 /* Counter.swift */; };
+		54A0A16D2410B87000A1BBB8 /* Pile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16C2410B87000A1BBB8 /* Pile.swift */; };
+		54A0A16F2410D41600A1BBB8 /* CountersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */; };
+		54A0A17124115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17024115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift */; };
+		54A0A1732411CA7800A1BBB8 /* CardImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A1722411CA7800A1BBB8 /* CardImageViewController.swift */; };
+		54A0A17E2413483900A1BBB8 /* UIImage+Half.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17D2413483800A1BBB8 /* UIImage+Half.swift */; };
+		54A0A180241375ED00A1BBB8 /* HandViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17F241375ED00A1BBB8 /* HandViewController.swift */; };
+		54A0A18224138E2F00A1BBB8 /* CGAffineTransform+Degrees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A18124138E2E00A1BBB8 /* CGAffineTransform+Degrees.swift */; };
+		54A521B02420748D0092C95D /* UIView+Glow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521AF2420748D0092C95D /* UIView+Glow.swift */; };
+		54A521B12420748D0092C95D /* UIView+Glow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521AF2420748D0092C95D /* UIView+Glow.swift */; };
+		54A521B324209E4F0092C95D /* Typographizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521B224209E4F0092C95D /* Typographizer.swift */; };
+		54A521B524209E570092C95D /* String+Typographizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521B424209E570092C95D /* String+Typographizer.swift */; };
 		54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */; };
 		54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */; };
-		54BECD2123F4FA1D00AE82A9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD2023F4FA1D00AE82A9 /* ViewController.swift */; };
-		54BECD2423F4FA1D00AE82A9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2223F4FA1D00AE82A9 /* Main.storyboard */; };
-		54BECD2623F4FA1E00AE82A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */; };
-		54BECD2923F4FA1E00AE82A9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2723F4FA1E00AE82A9 /* LaunchScreen.storyboard */; };
-		54BECD3223F4FAAC00AE82A9 /* Swiftfall in Frameworks */ = {isa = PBXBuildFile; productRef = 54BECD3123F4FAAC00AE82A9 /* Swiftfall */; };
-		54BECD3523F505BB00AE82A9 /* Card+Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD3423F505BB00AE82A9 /* Card+Image.swift */; };
+		54BECD2123F4FA1D00AE82A9 /* BoardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD2023F4FA1D00AE82A9 /* BoardViewController.swift */; };
 		54BECD3723F50AE500AE82A9 /* MiniCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD3623F50AE500AE82A9 /* MiniCardView.swift */; };
-		54BECD3923F50AF700AE82A9 /* MiniCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3823F50AF700AE82A9 /* MiniCardView.xib */; };
-		54BECD3C23F5143300AE82A9 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
-		54BECD3D23F5143300AE82A9 /* Mplantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3B23F5143300AE82A9 /* Mplantin.ttf */; };
-		54C6D7F123F892DD00AF980D /* Swiftfall+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F023F892DD00AF980D /* Swiftfall+Misc.swift */; };
+		54C15C9423FF034B0012F14C /* OrderedSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9323FF034B0012F14C /* OrderedSet.swift */; };
+		54C15C9623FF03880012F14C /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9523FF03880012F14C /* Player.swift */; };
 		54C6D7F323F892FA00AF980D /* NSTextAlignment+ImageHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */; };
 		54C6D7F523F89F3600AF980D /* UIView+Wiggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */; };
-		54C6D7F723F8B44900AF980D /* Beleren2016-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */; };
-		54C6D7F923F8B68400AF980D /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */; };
 		54C6D7FB23F8B88000AF980D /* String+Regex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FA23F8B88000AF980D /* String+Regex.swift */; };
 		54C6D7FE23F8C17F00AF980D /* SideTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */; };
-		54C6D80123F919DF00AF980D /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 54C6D80023F919DF00AF980D /* RxRelay */; };
-		54C6D80323F919DF00AF980D /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 54C6D80223F919DF00AF980D /* RxSwift */; };
-		54C6D80523F919DF00AF980D /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 54C6D80423F919DF00AF980D /* RxCocoa */; };
 		54C6D80723F919F900AF980D /* CardInstance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80623F919F900AF980D /* CardInstance.swift */; };
 		54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */; };
 		54C6D80D23F933E500AF980D /* Observable+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80C23F933E500AF980D /* Observable+Misc.swift */; };
 		54C6D80F23F942A400AF980D /* InsetLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80E23F942A400AF980D /* InsetLabel.swift */; };
+		E82CFAA9B3F5A545BAD487F8 /* Pods_Magic_Board.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0713CDA20C60A0131455273F /* Pods_Magic_Board.framework */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		544B631B2416F8F000FB43AF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 544B63152416F8F000FB43AF;
+			remoteInfo = CardService;
+		};
+		544B63272416F91400FB43AF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 544B63152416F8F000FB43AF;
+			remoteInfo = CardService;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		544F2961241723AD00B6B3C8 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				544F2960241723AD00B6B3C8 /* CardService.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		544F2964241723B300B6B3C8 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				544F2963241723B300B6B3C8 /* CardService.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0713CDA20C60A0131455273F /* Pods_Magic_Board.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Magic_Board.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Blended.swift"; sourceTree = "<group>"; };
+		541E0A1B23FBBE84008E5E35 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		542670CF241C2E4800A48580 /* CardTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTableViewCell.swift; sourceTree = "<group>"; };
+		542CF68D2415888500D453CA /* Board Connect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Board Connect.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		542CF68F2415888500D453CA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		542CF6912415888500D453CA /* ConnectSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectSceneDelegate.swift; sourceTree = "<group>"; };
+		542CF69D2415888700D453CA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		542CF69F2415888700D453CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		542CF6CD24158C0F00D453CA /* Magic Board Connect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Magic Board Connect.entitlements"; sourceTree = "<group>"; };
+		542CF6D6241597CE00D453CA /* PlayerConnect.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = PlayerConnect.storyboard; sourceTree = "<group>"; };
+		542CF6DE24159F7200D453CA /* Role.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Role.swift; sourceTree = "<group>"; };
+		542CF6E42415A7E000D453CA /* Command.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Command.swift; sourceTree = "<group>"; };
+		5430805224251E2100E98D0B /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = SOURCE_ROOT; };
+		544B63162416F8F000FB43AF /* CardService.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CardService.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		544B63182416F8F000FB43AF /* CardService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CardService.h; sourceTree = "<group>"; };
+		544B63192416F8F000FB43AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		544DE4B02425170100BA1977 /* Card.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Card.xcdatamodel; sourceTree = "<group>"; };
+		544DE4B224251AF700BA1977 /* CoreDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
+		544F294A2416FB8200B6B3C8 /* Swiftfall.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Swiftfall.swift; sourceTree = "<group>"; };
+		544F294C2416FF6B00B6B3C8 /* MTGCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGCard.swift; sourceTree = "<group>"; };
+		544F294E2417030B00B6B3C8 /* MTGSymbolName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGSymbolName.swift; sourceTree = "<group>"; };
+		544F29502417032400B6B3C8 /* MTGColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGColor.swift; sourceTree = "<group>"; };
+		544F2953241703DD00B6B3C8 /* ImageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageType.swift; sourceTree = "<group>"; };
+		544F295924170EF700B6B3C8 /* MTGCardIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGCardIdentifier.swift; sourceTree = "<group>"; };
+		544F295D241717DC00B6B3C8 /* CardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardService.swift; sourceTree = "<group>"; };
+		544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRepresentation.swift; sourceTree = "<group>"; };
+		5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandCardCollectionViewController.swift; sourceTree = "<group>"; };
+		546E052224043A1A00ACF842 /* BottomBarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarViewController.swift; sourceTree = "<group>"; };
+		546E052424044EE700ACF842 /* HUDCardPileView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = HUDCardPileView.xib; sourceTree = "<group>"; };
+		546E0526240450B000ACF842 /* HUDCardPileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDCardPileView.swift; sourceTree = "<group>"; };
+		546E05282405BB8A00ACF842 /* PileViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileViewController.swift; sourceTree = "<group>"; };
+		54795DB624189AFA00B5CA36 /* ContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerViewController.swift; sourceTree = "<group>"; };
+		547988F624161AEE006EC7CF /* PlayerSelectViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelectViewController.swift; sourceTree = "<group>"; };
 		547CD3D223F9EF2800AECA85 /* PickerCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerCell.swift; sourceTree = "<group>"; };
 		547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIBezierPath+ShouldRoundRect.swift"; sourceTree = "<group>"; };
-		547CD3D623FA5AAF00AECA85 /* Array+Unique.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Unique.swift"; sourceTree = "<group>"; };
+		547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Misc.swift"; sourceTree = "<group>"; };
+		548F0B48241DF47600639F71 /* CardDetailsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDetailsViewController.swift; sourceTree = "<group>"; };
+		54A0A16A2410875000A1BBB8 /* Counter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Counter.swift; sourceTree = "<group>"; };
+		54A0A16C2410B87000A1BBB8 /* Pile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pile.swift; sourceTree = "<group>"; };
+		54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountersViewController.swift; sourceTree = "<group>"; };
+		54A0A17024115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CardInstance+NSItemProvider.swift"; sourceTree = "<group>"; };
+		54A0A1722411CA7800A1BBB8 /* CardImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardImageViewController.swift; sourceTree = "<group>"; };
+		54A0A17D2413483800A1BBB8 /* UIImage+Half.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Half.swift"; sourceTree = "<group>"; };
+		54A0A17F241375ED00A1BBB8 /* HandViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandViewController.swift; sourceTree = "<group>"; };
+		54A0A18124138E2E00A1BBB8 /* CGAffineTransform+Degrees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGAffineTransform+Degrees.swift"; sourceTree = "<group>"; };
+		54A521AF2420748D0092C95D /* UIView+Glow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+Glow.swift"; sourceTree = "<group>"; };
+		54A521B224209E4F0092C95D /* Typographizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Typographizer.swift; sourceTree = "<group>"; };
+		54A521B424209E570092C95D /* String+Typographizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+Typographizer.swift"; sourceTree = "<group>"; };
+		54ADEB2623FF443100AF1000 /* DeckParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckParser.swift; sourceTree = "<group>"; };
 		54BECD1923F4FA1D00AE82A9 /* Magic Board.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Magic Board.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		54BECD2023F4FA1D00AE82A9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		54BECD2323F4FA1D00AE82A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		54BECD2023F4FA1D00AE82A9 /* BoardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardViewController.swift; sourceTree = "<group>"; };
+		54BECD2323F4FA1D00AE82A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Board.storyboard; sourceTree = "<group>"; };
 		54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		54BECD2823F4FA1E00AE82A9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		54BECD2A23F4FA1E00AE82A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Magic Board.entitlements"; sourceTree = "<group>"; };
-		54BECD3423F505BB00AE82A9 /* Card+Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Card+Image.swift"; sourceTree = "<group>"; };
 		54BECD3623F50AE500AE82A9 /* MiniCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniCardView.swift; sourceTree = "<group>"; };
 		54BECD3823F50AF700AE82A9 /* MiniCardView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MiniCardView.xib; sourceTree = "<group>"; };
 		54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Matrix-Bold.ttf"; sourceTree = "<group>"; };
-		54BECD3B23F5143300AE82A9 /* Mplantin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Mplantin.ttf; sourceTree = "<group>"; };
-		54C6D7F023F892DD00AF980D /* Swiftfall+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Swiftfall+Misc.swift"; sourceTree = "<group>"; };
+		54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Beleren Small Caps.ttf"; sourceTree = "<group>"; };
+		54C15C9323FF034B0012F14C /* OrderedSet.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OrderedSet.swift; sourceTree = "<group>"; };
+		54C15C9523FF03880012F14C /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
+		54C15C9723FF404C0012F14C /* Swiftfall+GetCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Swiftfall+GetCollection.swift"; sourceTree = "<group>"; };
 		54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSTextAlignment+ImageHeight.swift"; sourceTree = "<group>"; };
 		54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Wiggle.swift"; sourceTree = "<group>"; };
 		54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Beleren2016-Bold.ttf"; sourceTree = "<group>"; };
@@ -67,28 +257,92 @@
 		54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BehaviorRelay+PropertyWrapper.swift"; sourceTree = "<group>"; };
 		54C6D80C23F933E500AF980D /* Observable+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Observable+Misc.swift"; sourceTree = "<group>"; };
 		54C6D80E23F942A400AF980D /* InsetLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsetLabel.swift; sourceTree = "<group>"; };
+		54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MPlantin.ttf; sourceTree = "<group>"; };
+		99ECB50DBF05EEABA6994AF0 /* Pods_MagicBoardConnect.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MagicBoardConnect.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		BC0C1ED25330E4F0435D789C /* Pods-Magic Board.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Magic Board.debug.xcconfig"; path = "Target Support Files/Pods-Magic Board/Pods-Magic Board.debug.xcconfig"; sourceTree = "<group>"; };
+		CB5C4778915FDF4B964A5573 /* Pods-Magic Board.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Magic Board.release.xcconfig"; path = "Target Support Files/Pods-Magic Board/Pods-Magic Board.release.xcconfig"; sourceTree = "<group>"; };
+		D5D90D40AC98DF89D97E0681 /* Pods-MagicBoardConnect.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicBoardConnect.debug.xcconfig"; path = "Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect.debug.xcconfig"; sourceTree = "<group>"; };
+		E2668C5C8B616506D10AA2E9 /* Pods-MagicBoardConnect.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicBoardConnect.release.xcconfig"; path = "Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		542CF68A2415888500D453CA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				544F2962241723B300B6B3C8 /* CardService.framework in Frameworks */,
+				542CF6DD241599D200D453CA /* MultipeerKit in Frameworks */,
+				1340B26E200B9A956C1E6811 /* Pods_MagicBoardConnect.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		544B63132416F8F000FB43AF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				544F29562417041400B6B3C8 /* SDWebImage in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		54BECD1623F4FA1D00AE82A9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54C6D80323F919DF00AF980D /* RxSwift in Frameworks */,
-				54C6D80123F919DF00AF980D /* RxRelay in Frameworks */,
-				54C6D80523F919DF00AF980D /* RxCocoa in Frameworks */,
-				54BECD3223F4FAAC00AE82A9 /* Swiftfall in Frameworks */,
+				544F295F241723AD00B6B3C8 /* CardService.framework in Frameworks */,
+				542CF6DB241599C200D453CA /* MultipeerKit in Frameworks */,
+				E82CFAA9B3F5A545BAD487F8 /* Pods_Magic_Board.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		542CF68E2415888500D453CA /* MagicBoardConnect */ = {
+			isa = PBXGroup;
+			children = (
+				542CF6CD24158C0F00D453CA /* Magic Board Connect.entitlements */,
+				542CF68F2415888500D453CA /* AppDelegate.swift */,
+				542CF6912415888500D453CA /* ConnectSceneDelegate.swift */,
+				54795DB624189AFA00B5CA36 /* ContainerViewController.swift */,
+				542CF6D6241597CE00D453CA /* PlayerConnect.storyboard */,
+				547988F624161AEE006EC7CF /* PlayerSelectViewController.swift */,
+				542CF69F2415888700D453CA /* Info.plist */,
+			);
+			path = MagicBoardConnect;
+			sourceTree = "<group>";
+		};
+		544B63172416F8F000FB43AF /* CardService */ = {
+			isa = PBXGroup;
+			children = (
+				544DE4AF2425170100BA1977 /* CardService.xcdatamodeld */,
+				5430805224251E2100E98D0B /* Media.xcassets */,
+				54A521B224209E4F0092C95D /* Typographizer.swift */,
+				54A521B424209E570092C95D /* String+Typographizer.swift */,
+				544DE4B224251AF700BA1977 /* CoreDataManager.swift */,
+				544B63182416F8F000FB43AF /* CardService.h */,
+				544F294A2416FB8200B6B3C8 /* Swiftfall.swift */,
+				544F295D241717DC00B6B3C8 /* CardService.swift */,
+				544F294C2416FF6B00B6B3C8 /* MTGCard.swift */,
+				544F2953241703DD00B6B3C8 /* ImageType.swift */,
+				544F294E2417030B00B6B3C8 /* MTGSymbolName.swift */,
+				544F29502417032400B6B3C8 /* MTGColor.swift */,
+				544F295924170EF700B6B3C8 /* MTGCardIdentifier.swift */,
+				54ADEB2623FF443100AF1000 /* DeckParser.swift */,
+				54C15C9723FF404C0012F14C /* Swiftfall+GetCollection.swift */,
+				544B63192416F8F000FB43AF /* Info.plist */,
+			);
+			path = CardService;
+			sourceTree = "<group>";
+		};
 		54BECD1023F4FA1D00AE82A9 = {
 			isa = PBXGroup;
 			children = (
+				544B63172416F8F000FB43AF /* CardService */,
 				54BECD1B23F4FA1D00AE82A9 /* Magic Board */,
+				542CF68E2415888500D453CA /* MagicBoardConnect */,
 				54BECD1A23F4FA1D00AE82A9 /* Products */,
+				B5A518DDFF07376000251054 /* Pods */,
+				95C03F81BEBD39FDB2D25609 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -96,6 +350,8 @@
 			isa = PBXGroup;
 			children = (
 				54BECD1923F4FA1D00AE82A9 /* Magic Board.app */,
+				542CF68D2415888500D453CA /* Board Connect.app */,
+				544B63162416F8F000FB43AF /* CardService.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -104,20 +360,38 @@
 			isa = PBXGroup;
 			children = (
 				54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */,
+				54C15C9323FF034B0012F14C /* OrderedSet.swift */,
+				542CF6DE24159F7200D453CA /* Role.swift */,
+				542CF6E42415A7E000D453CA /* Command.swift */,
 				54BECD3E23F5143700AE82A9 /* Fonts */,
 				54C6D7FC23F8B88D00AF980D /* Extensions */,
 				54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */,
 				54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */,
 				54C6D80623F919F900AF980D /* CardInstance.swift */,
+				544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */,
 				54BECD3623F50AE500AE82A9 /* MiniCardView.swift */,
-				54BECD2023F4FA1D00AE82A9 /* ViewController.swift */,
+				541E0A1B23FBBE84008E5E35 /* GameState.swift */,
+				54C15C9523FF03880012F14C /* Player.swift */,
+				54A0A16C2410B87000A1BBB8 /* Pile.swift */,
+				54A0A16A2410875000A1BBB8 /* Counter.swift */,
+				54BECD2023F4FA1D00AE82A9 /* BoardViewController.swift */,
+				54A0A1722411CA7800A1BBB8 /* CardImageViewController.swift */,
+				546E052224043A1A00ACF842 /* BottomBarViewController.swift */,
+				54A0A17F241375ED00A1BBB8 /* HandViewController.swift */,
+				54A0A17024115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift */,
 				54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */,
+				54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */,
 				547CD3D223F9EF2800AECA85 /* PickerCell.swift */,
-				54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */,
-				54BECD2223F4FA1D00AE82A9 /* Main.storyboard */,
+				546E05282405BB8A00ACF842 /* PileViewController.swift */,
+				542670CF241C2E4800A48580 /* CardTableViewCell.swift */,
+				5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */,
+				548F0B48241DF47600639F71 /* CardDetailsViewController.swift */,
+				542CF69C2415888700D453CA /* LaunchScreen.storyboard */,
+				54BECD2223F4FA1D00AE82A9 /* Board.storyboard */,
 				54BECD3823F50AF700AE82A9 /* MiniCardView.xib */,
+				546E052424044EE700ACF842 /* HUDCardPileView.xib */,
+				546E0526240450B000ACF842 /* HUDCardPileView.swift */,
 				54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */,
-				54BECD2723F4FA1E00AE82A9 /* LaunchScreen.storyboard */,
 				54BECD2A23F4FA1E00AE82A9 /* Info.plist */,
 			);
 			path = "Magic Board";
@@ -127,8 +401,9 @@
 			isa = PBXGroup;
 			children = (
 				54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */,
+				54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */,
 				54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */,
-				54BECD3B23F5143300AE82A9 /* Mplantin.ttf */,
+				54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */,
 				54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */,
 			);
 			path = Fonts;
@@ -137,40 +412,120 @@
 		54C6D7FC23F8B88D00AF980D /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				54BECD3423F505BB00AE82A9 /* Card+Image.swift */,
-				54C6D7F023F892DD00AF980D /* Swiftfall+Misc.swift */,
-				547CD3D623FA5AAF00AECA85 /* Array+Unique.swift */,
+				54A521AF2420748D0092C95D /* UIView+Glow.swift */,
+				547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */,
 				54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */,
 				54C6D80E23F942A400AF980D /* InsetLabel.swift */,
 				54C6D7FA23F8B88000AF980D /* String+Regex.swift */,
 				547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */,
+				541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */,
+				54A0A17D2413483800A1BBB8 /* UIImage+Half.swift */,
 				54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */,
 				54C6D80C23F933E500AF980D /* Observable+Misc.swift */,
+				54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */,
+				54A0A18124138E2E00A1BBB8 /* CGAffineTransform+Degrees.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		95C03F81BEBD39FDB2D25609 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0713CDA20C60A0131455273F /* Pods_Magic_Board.framework */,
+				99ECB50DBF05EEABA6994AF0 /* Pods_MagicBoardConnect.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B5A518DDFF07376000251054 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				BC0C1ED25330E4F0435D789C /* Pods-Magic Board.debug.xcconfig */,
+				CB5C4778915FDF4B964A5573 /* Pods-Magic Board.release.xcconfig */,
+				D5D90D40AC98DF89D97E0681 /* Pods-MagicBoardConnect.debug.xcconfig */,
+				E2668C5C8B616506D10AA2E9 /* Pods-MagicBoardConnect.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		544B63112416F8F000FB43AF /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				544B631A2416F8F000FB43AF /* CardService.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
-		54BECD1823F4FA1D00AE82A9 /* Magic Board */ = {
+		542CF68C2415888500D453CA /* MagicBoardConnect */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 54BECD2D23F4FA1F00AE82A9 /* Build configuration list for PBXNativeTarget "Magic Board" */;
+			buildConfigurationList = 542CF6A02415888700D453CA /* Build configuration list for PBXNativeTarget "MagicBoardConnect" */;
 			buildPhases = (
-				54BECD1523F4FA1D00AE82A9 /* Sources */,
-				54BECD1623F4FA1D00AE82A9 /* Frameworks */,
-				54BECD1723F4FA1D00AE82A9 /* Resources */,
+				70679E7F7F0B5C4242A5A8B7 /* [CP] Check Pods Manifest.lock */,
+				542CF6892415888500D453CA /* Sources */,
+				542CF68A2415888500D453CA /* Frameworks */,
+				542CF68B2415888500D453CA /* Resources */,
+				544F2964241723B300B6B3C8 /* Embed Frameworks */,
+				F4F7990BEDDD3F6FD02230E3 /* [CP] Embed Pods Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				544B63282416F91400FB43AF /* PBXTargetDependency */,
+			);
+			name = MagicBoardConnect;
+			packageProductDependencies = (
+				542CF6DC241599D200D453CA /* MultipeerKit */,
+			);
+			productName = MagicBoardConnect;
+			productReference = 542CF68D2415888500D453CA /* Board Connect.app */;
+			productType = "com.apple.product-type.application";
+		};
+		544B63152416F8F000FB43AF /* CardService */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 544B631F2416F8F000FB43AF /* Build configuration list for PBXNativeTarget "CardService" */;
+			buildPhases = (
+				544B63112416F8F000FB43AF /* Headers */,
+				544B63122416F8F000FB43AF /* Sources */,
+				544B63132416F8F000FB43AF /* Frameworks */,
+				544B63142416F8F000FB43AF /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
+			name = CardService;
+			packageProductDependencies = (
+				544F29552417041400B6B3C8 /* SDWebImage */,
+			);
+			productName = CardService;
+			productReference = 544B63162416F8F000FB43AF /* CardService.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		54BECD1823F4FA1D00AE82A9 /* Magic Board */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 54BECD2D23F4FA1F00AE82A9 /* Build configuration list for PBXNativeTarget "Magic Board" */;
+			buildPhases = (
+				9EB3D5CDE296A3875352E6C7 /* [CP] Check Pods Manifest.lock */,
+				54BECD1523F4FA1D00AE82A9 /* Sources */,
+				54BECD1623F4FA1D00AE82A9 /* Frameworks */,
+				54DD68F924006CBE00518E3B /* Resources */,
+				544F2961241723AD00B6B3C8 /* Embed Frameworks */,
+				D37F042C69AF4C4CF6A545FE /* [CP] Embed Pods Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				544B631C2416F8F000FB43AF /* PBXTargetDependency */,
+			);
 			name = "Magic Board";
 			packageProductDependencies = (
-				54BECD3123F4FAAC00AE82A9 /* Swiftfall */,
-				54C6D80023F919DF00AF980D /* RxRelay */,
-				54C6D80223F919DF00AF980D /* RxSwift */,
-				54C6D80423F919DF00AF980D /* RxCocoa */,
+				542CF6DA241599C200D453CA /* MultipeerKit */,
 			);
 			productName = "Magic Board";
 			productReference = 54BECD1923F4FA1D00AE82A9 /* Magic Board.app */;
@@ -186,6 +541,13 @@
 				LastUpgradeCheck = 1120;
 				ORGANIZATIONNAME = "Josh Birnholz";
 				TargetAttributes = {
+					542CF68C2415888500D453CA = {
+						CreatedOnToolsVersion = 11.2.1;
+					};
+					544B63152416F8F000FB43AF = {
+						CreatedOnToolsVersion = 11.2.1;
+						LastSwiftMigration = 1120;
+					};
 					54BECD1823F4FA1D00AE82A9 = {
 						CreatedOnToolsVersion = 11.2.1;
 					};
@@ -201,53 +563,259 @@
 			);
 			mainGroup = 54BECD1023F4FA1D00AE82A9;
 			packageReferences = (
-				54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */,
-				54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */,
+				542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */,
+				542CF6E72415EB8800D453CA /* XCRemoteSwiftPackageReference "SDWebImage" */,
 			);
 			productRefGroup = 54BECD1A23F4FA1D00AE82A9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				54BECD1823F4FA1D00AE82A9 /* Magic Board */,
+				542CF68C2415888500D453CA /* MagicBoardConnect */,
+				544B63152416F8F000FB43AF /* CardService */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		54BECD1723F4FA1D00AE82A9 /* Resources */ = {
+		542CF68B2415888500D453CA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				54BECD2923F4FA1E00AE82A9 /* LaunchScreen.storyboard in Resources */,
-				54BECD2623F4FA1E00AE82A9 /* Assets.xcassets in Resources */,
-				54BECD2423F4FA1D00AE82A9 /* Main.storyboard in Resources */,
-				54C6D7F723F8B44900AF980D /* Beleren2016-Bold.ttf in Resources */,
-				54BECD3923F50AF700AE82A9 /* MiniCardView.xib in Resources */,
-				54C6D7F923F8B68400AF980D /* MPlantin-Italic.ttf in Resources */,
-				54BECD3C23F5143300AE82A9 /* Matrix-Bold.ttf in Resources */,
-				54BECD3D23F5143300AE82A9 /* Mplantin.ttf in Resources */,
+				542CF6CB24158BBA00D453CA /* HUDCardPileView.xib in Resources */,
+				542CF6E22415A0C900D453CA /* Board.storyboard in Resources */,
+				54795DA72418392600B5CA36 /* Beleren2016-Bold.ttf in Resources */,
+				542CF6A324158B0D00D453CA /* Assets.xcassets in Resources */,
+				542CF6D7241597CE00D453CA /* PlayerConnect.storyboard in Resources */,
+				542CF6CA24158BB700D453CA /* MiniCardView.xib in Resources */,
+				54795DAB2418392600B5CA36 /* MPlantin-Italic.ttf in Resources */,
+				54795DAA2418392600B5CA36 /* MPlantin.ttf in Resources */,
+				54795DA92418392600B5CA36 /* Matrix-Bold.ttf in Resources */,
+				541DBA3424255F4A00273E4C /* LaunchScreen.storyboard in Resources */,
+				54795DA82418392600B5CA36 /* Beleren Small Caps.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		544B63142416F8F000FB43AF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5430805324251E2100E98D0B /* Media.xcassets in Resources */,
+				544F29522417036A00B6B3C8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		54DD68F924006CBE00518E3B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5498B06524023DC400B34B91 /* MiniCardView.xib in Resources */,
+				546E052524044EE700ACF842 /* HUDCardPileView.xib in Resources */,
+				5498B06624023DC900B34B91 /* Assets.xcassets in Resources */,
+				54795DB12418392700B5CA36 /* Beleren2016-Bold.ttf in Resources */,
+				542CF6D8241597E500D453CA /* PlayerConnect.storyboard in Resources */,
+				5498B06424023DBE00B34B91 /* Board.storyboard in Resources */,
+				54795DB52418392700B5CA36 /* MPlantin-Italic.ttf in Resources */,
+				54795DB42418392700B5CA36 /* MPlantin.ttf in Resources */,
+				541DBA3324255F3100273E4C /* LaunchScreen.storyboard in Resources */,
+				54795DB32418392700B5CA36 /* Matrix-Bold.ttf in Resources */,
+				54795DB22418392700B5CA36 /* Beleren Small Caps.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		70679E7F7F0B5C4242A5A8B7 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-MagicBoardConnect-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		9EB3D5CDE296A3875352E6C7 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Magic Board-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		D37F042C69AF4C4CF6A545FE /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Magic Board/Pods-Magic Board-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Magic Board/Pods-Magic Board-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Magic Board/Pods-Magic Board-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		F4F7990BEDDD3F6FD02230E3 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
+		542CF6892415888500D453CA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				542CF6902415888500D453CA /* AppDelegate.swift in Sources */,
+				5463CA1F2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */,
+				548F0B4A241DF47600639F71 /* CardDetailsViewController.swift in Sources */,
+				542CF6C724158BAF00D453CA /* PickerCell.swift in Sources */,
+				542CF6C224158BAF00D453CA /* HandViewController.swift in Sources */,
+				542CF6C324158BAF00D453CA /* CardInstance+NSItemProvider.swift in Sources */,
+				542CF6AE24158B7100D453CA /* InsetLabel.swift in Sources */,
+				542CF6B424158B7100D453CA /* Observable+Misc.swift in Sources */,
+				542CF6B124158B7100D453CA /* UIColor+Blended.swift in Sources */,
+				542670D1241C2E4C00A48580 /* CardTableViewCell.swift in Sources */,
+				54A521B12420748D0092C95D /* UIView+Glow.swift in Sources */,
+				542CF6BC24158BAB00D453CA /* Player.swift in Sources */,
+				542CF6BA24158BAB00D453CA /* MiniCardView.swift in Sources */,
+				542CF6AD24158B7100D453CA /* UIView+Wiggle.swift in Sources */,
+				542CF6C524158BAF00D453CA /* CountersViewController.swift in Sources */,
+				542CF6B224158B7100D453CA /* UIImage+Half.swift in Sources */,
+				542CF6BF24158BAF00D453CA /* BoardViewController.swift in Sources */,
+				542CF6C124158BAF00D453CA /* BottomBarViewController.swift in Sources */,
+				542CF6CC24158BBD00D453CA /* HUDCardPileView.swift in Sources */,
+				544F6DE7241CBF8F0069A912 /* CardRepresentation.swift in Sources */,
+				54795DBC2419A3CE00B5CA36 /* SceneDelegate.swift in Sources */,
+				542CF6C024158BAF00D453CA /* CardImageViewController.swift in Sources */,
+				542CF6E62415B00300D453CA /* Command.swift in Sources */,
+				542CF6B024158B7100D453CA /* UIBezierPath+ShouldRoundRect.swift in Sources */,
+				542CF6AC24158B7100D453CA /* Array+Misc.swift in Sources */,
+				542CF6B524158B7100D453CA /* NSTextAlignment+ImageHeight.swift in Sources */,
+				542CF6E12415A08800D453CA /* Role.swift in Sources */,
+				542CF6922415888500D453CA /* ConnectSceneDelegate.swift in Sources */,
+				542CF6B724158B7100D453CA /* CGAffineTransform+Degrees.swift in Sources */,
+				542CF6C424158BAF00D453CA /* SideTableViewController.swift in Sources */,
+				542CF6B924158BA700D453CA /* CardInstance.swift in Sources */,
+				542CF6BE24158BAB00D453CA /* Counter.swift in Sources */,
+				542CF6BD24158BAB00D453CA /* Pile.swift in Sources */,
+				547988F724161AEE006EC7CF /* PlayerSelectViewController.swift in Sources */,
+				54795DB924189C1A00B5CA36 /* ContainerViewController.swift in Sources */,
+				542CF6C924158BAF00D453CA /* PileViewController.swift in Sources */,
+				542CF6AF24158B7100D453CA /* String+Regex.swift in Sources */,
+				542CF6B324158B7100D453CA /* BehaviorRelay+PropertyWrapper.swift in Sources */,
+				542CF6B824158B7400D453CA /* OrderedSet.swift in Sources */,
+				542CF6BB24158BAB00D453CA /* GameState.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		544B63122416F8F000FB43AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				54A521B324209E4F0092C95D /* Typographizer.swift in Sources */,
+				54A521B524209E570092C95D /* String+Typographizer.swift in Sources */,
+				544F295B24170F1900B6B3C8 /* Swiftfall+GetCollection.swift in Sources */,
+				5429751D2417EC9A0066C8E6 /* Array+Misc.swift in Sources */,
+				544F29572417081200B6B3C8 /* UIImage+Half.swift in Sources */,
+				544DE4B324251AF700BA1977 /* CoreDataManager.swift in Sources */,
+				544F29512417032400B6B3C8 /* MTGColor.swift in Sources */,
+				544F294B2416FB8200B6B3C8 /* Swiftfall.swift in Sources */,
+				544F2954241703DD00B6B3C8 /* ImageType.swift in Sources */,
+				544F295E241717DC00B6B3C8 /* CardService.swift in Sources */,
+				544F295A24170EF700B6B3C8 /* MTGCardIdentifier.swift in Sources */,
+				54308054242531AE00E98D0B /* CardService.xcdatamodeld in Sources */,
+				544F295C2417107200B6B3C8 /* String+Regex.swift in Sources */,
+				544F294F2417030B00B6B3C8 /* MTGSymbolName.swift in Sources */,
+				544F295824170E3700B6B3C8 /* DeckParser.swift in Sources */,
+				544F294D2416FF6B00B6B3C8 /* MTGCard.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		54BECD1523F4FA1D00AE82A9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */,
-				547CD3D723FA5AAF00AECA85 /* Array+Unique.swift in Sources */,
+				5463CA1E2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */,
+				548F0B49241DF47600639F71 /* CardDetailsViewController.swift in Sources */,
+				54A0A18224138E2F00A1BBB8 /* CGAffineTransform+Degrees.swift in Sources */,
+				547CD3D723FA5AAF00AECA85 /* Array+Misc.swift in Sources */,
+				54A0A16D2410B87000A1BBB8 /* Pile.swift in Sources */,
 				54C6D80723F919F900AF980D /* CardInstance.swift in Sources */,
-				54BECD2123F4FA1D00AE82A9 /* ViewController.swift in Sources */,
+				54BECD2123F4FA1D00AE82A9 /* BoardViewController.swift in Sources */,
+				54A0A17124115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift in Sources */,
+				542670D0241C2E4800A48580 /* CardTableViewCell.swift in Sources */,
+				54A521B02420748D0092C95D /* UIView+Glow.swift in Sources */,
+				546E0527240450B000ACF842 /* HUDCardPileView.swift in Sources */,
+				54C15C9623FF03880012F14C /* Player.swift in Sources */,
+				54C15C9423FF034B0012F14C /* OrderedSet.swift in Sources */,
+				54A0A16F2410D41600A1BBB8 /* CountersViewController.swift in Sources */,
 				54C6D7F523F89F3600AF980D /* UIView+Wiggle.swift in Sources */,
+				546E05292405BB8A00ACF842 /* PileViewController.swift in Sources */,
 				54C6D7FE23F8C17F00AF980D /* SideTableViewController.swift in Sources */,
 				54C6D7FB23F8B88000AF980D /* String+Regex.swift in Sources */,
+				544F6DE6241CBF8A0069A912 /* CardRepresentation.swift in Sources */,
+				54795DBF2419E6E700B5CA36 /* PlayerSelectViewController.swift in Sources */,
+				546E052324043A1A00ACF842 /* BottomBarViewController.swift in Sources */,
+				541E0A1C23FBBE84008E5E35 /* GameState.swift in Sources */,
+				542CF6DF24159F7200D453CA /* Role.swift in Sources */,
+				542CF6E52415A7E000D453CA /* Command.swift in Sources */,
 				54C6D80F23F942A400AF980D /* InsetLabel.swift in Sources */,
+				541E0A1823FB9D59008E5E35 /* UIColor+Blended.swift in Sources */,
 				54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */,
+				54A0A1732411CA7800A1BBB8 /* CardImageViewController.swift in Sources */,
 				54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */,
-				54BECD3523F505BB00AE82A9 /* Card+Image.swift in Sources */,
-				54C6D7F123F892DD00AF980D /* Swiftfall+Misc.swift in Sources */,
+				54795DBB2419A32900B5CA36 /* ConnectSceneDelegate.swift in Sources */,
+				54A0A16B2410875000A1BBB8 /* Counter.swift in Sources */,
+				54A0A180241375ED00A1BBB8 /* HandViewController.swift in Sources */,
+				54A0A17E2413483900A1BBB8 /* UIImage+Half.swift in Sources */,
+				54795DBE2419E6E400B5CA36 /* ContainerViewController.swift in Sources */,
 				54BECD3723F50AE500AE82A9 /* MiniCardView.swift in Sources */,
 				54C6D7F323F892FA00AF980D /* NSTextAlignment+ImageHeight.swift in Sources */,
 				547CD3D523FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift in Sources */,
@@ -258,26 +826,144 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		544B631C2416F8F000FB43AF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 544B63152416F8F000FB43AF /* CardService */;
+			targetProxy = 544B631B2416F8F000FB43AF /* PBXContainerItemProxy */;
+		};
+		544B63282416F91400FB43AF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 544B63152416F8F000FB43AF /* CardService */;
+			targetProxy = 544B63272416F91400FB43AF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin PBXVariantGroup section */
-		54BECD2223F4FA1D00AE82A9 /* Main.storyboard */ = {
+		542CF69C2415888700D453CA /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				542CF69D2415888700D453CA /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		54BECD2223F4FA1D00AE82A9 /* Board.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
 				54BECD2323F4FA1D00AE82A9 /* Base */,
 			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		54BECD2723F4FA1E00AE82A9 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				54BECD2823F4FA1E00AE82A9 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
+			name = Board.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		542CF6A12415888700D453CA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D5D90D40AC98DF89D97E0681 /* Pods-MagicBoardConnect.debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "MagicBoardConnect/Magic Board Connect.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = CB7D3XVLP3;
+				INFOPLIST_FILE = MagicBoardConnect/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.MagicBoardConnect;
+				PRODUCT_NAME = "Board Connect";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		542CF6A22415888700D453CA /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E2668C5C8B616506D10AA2E9 /* Pods-MagicBoardConnect.release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "MagicBoardConnect/Magic Board Connect.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = CB7D3XVLP3;
+				INFOPLIST_FILE = MagicBoardConnect/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.MagicBoardConnect;
+				PRODUCT_NAME = "Board Connect";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		544B63202416F8F000FB43AF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = CB7D3XVLP3;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = CardService/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.CardService;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		544B63212416F8F000FB43AF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = CB7D3XVLP3;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = CardService/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.CardService;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
 		54BECD2B23F4FA1E00AE82A9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -394,10 +1080,12 @@
 		};
 		54BECD2E23F4FA1F00AE82A9 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BC0C1ED25330E4F0435D789C /* Pods-Magic Board.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -407,7 +1095,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -415,10 +1103,12 @@
 		};
 		54BECD2F23F4FA1F00AE82A9 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CB5C4778915FDF4B964A5573 /* Pods-Magic Board.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
 				CODE_SIGN_STYLE = Automatic;
+				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -428,7 +1118,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 2;
 			};
@@ -437,6 +1127,24 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		542CF6A02415888700D453CA /* Build configuration list for PBXNativeTarget "MagicBoardConnect" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				542CF6A12415888700D453CA /* Debug */,
+				542CF6A22415888700D453CA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		544B631F2416F8F000FB43AF /* Build configuration list for PBXNativeTarget "CardService" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				544B63202416F8F000FB43AF /* Debug */,
+				544B63212416F8F000FB43AF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		54BECD1423F4FA1D00AE82A9 /* Build configuration list for PBXProject "Magic Board" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -458,46 +1166,54 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */ = {
+		542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/bmbowdish/Swiftfall.git";
+			repositoryURL = "https://github.com/insidegui/MultipeerKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.2;
+				minimumVersion = 0.1.2;
 			};
 		};
-		54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */ = {
+		542CF6E72415EB8800D453CA /* XCRemoteSwiftPackageReference "SDWebImage" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ReactiveX/RxSwift.git";
+			repositoryURL = "https://github.com/SDWebImage/SDWebImage";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 5.0.1;
+				minimumVersion = 5.6.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		54BECD3123F4FAAC00AE82A9 /* Swiftfall */ = {
+		542CF6DA241599C200D453CA /* MultipeerKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 54BECD3023F4FAAC00AE82A9 /* XCRemoteSwiftPackageReference "Swiftfall" */;
-			productName = Swiftfall;
+			package = 542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */;
+			productName = MultipeerKit;
 		};
-		54C6D80023F919DF00AF980D /* RxRelay */ = {
+		542CF6DC241599D200D453CA /* MultipeerKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */;
-			productName = RxRelay;
+			package = 542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */;
+			productName = MultipeerKit;
 		};
-		54C6D80223F919DF00AF980D /* RxSwift */ = {
+		544F29552417041400B6B3C8 /* SDWebImage */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */;
-			productName = RxSwift;
-		};
-		54C6D80423F919DF00AF980D /* RxCocoa */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 54C6D7FF23F919DF00AF980D /* XCRemoteSwiftPackageReference "RxSwift" */;
-			productName = RxCocoa;
+			package = 542CF6E72415EB8800D453CA /* XCRemoteSwiftPackageReference "SDWebImage" */;
+			productName = SDWebImage;
 		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin XCVersionGroup section */
+		544DE4AF2425170100BA1977 /* CardService.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				544DE4B02425170100BA1977 /* Card.xcdatamodel */,
+			);
+			currentVersion = 544DE4B02425170100BA1977 /* Card.xcdatamodel */;
+			path = CardService.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 54BECD1123F4FA1D00AE82A9 /* Project object */;
 }

@@ -71,3 +71,20 @@ extension UIView{
         layer.mask = shape
     }
 }
+
+extension UIView {
+	func mask(withRect rect: CGRect, inverse: Bool = false) {
+		let path = UIBezierPath(rect: rect)
+		let maskLayer = CAShapeLayer()
+
+		if inverse {
+			path.append(UIBezierPath(rect: self.bounds))
+			maskLayer.fillRule = CAShapeLayerFillRule.evenOdd
+		}
+
+		maskLayer.path = path.cgPath
+
+		self.layer.mask = maskLayer
+	}
+
+}
