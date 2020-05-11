@@ -14,7 +14,7 @@ public enum MTGSymbolName: String, CaseIterable {
 	case symbol_Q = "{Q}"
 	case symbol_E = "{E}"
 	case symbol_PW = "{PW}"
-//	case symbol_ARON = "{A}"
+	case symbol_ARON = "{A}"
 	case symbol_CHAOS = "{CHAOS}"
 	case symbol_X = "{X}"
 	case symbol_Y = "{Y}"
