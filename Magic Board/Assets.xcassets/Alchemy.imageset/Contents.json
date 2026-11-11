@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "mtga-alchemy-e5a30d6544fb8fd1e81cf911db9a01c08e1bb471f20a72f2e0e17780797d46fb.pdf",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "preserves-vector-representation" : true
+  }
+}

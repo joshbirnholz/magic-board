@@ -143,8 +143,8 @@ class PickerCell: UITableViewCell, UIPickerViewDataSource, UIPickerViewDelegate 
 				toughnessRange.append(toughness)
 			}
 			
-			self.powerRange = powerRange
-			self.toughnessRange = toughnessRange
+			self.powerRange = powerRange.map { $0.replacingOccurrences(of: "*", with: "★") }
+			self.toughnessRange = toughnessRange.map { $0.replacingOccurrences(of: "*", with: "★") }
 			
 			updateSelectedComponentsToMatchCurrent(animated: false)
 		}

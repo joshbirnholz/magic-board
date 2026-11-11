@@ -10,7 +10,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 /// An ordered set is an ordered collection of instances of `Element` in which
 /// uniqueness of the objects is guaranteed.
-public struct OrderedSet<E: Hashable>: Equatable, Collection, Sequence {
+public struct OrderedSet<E: Hashable>: Equatable, MutableCollection, Sequence {
 	public typealias Element = E
 	public typealias Index = Int
 	
@@ -172,8 +172,25 @@ extension OrderedSet: RandomAccessCollection {
 	public var startIndex: Int { return contents.startIndex }
 	public var endIndex: Int { return contents.endIndex }
 	public subscript(index: Int) -> Element {
-		return contents[index]
+    get {
+      return array[index]
+    }
+    set {
+      array[index] = newValue
+    }
 	}
+}
+
+extension OrderedSet: RangeReplaceableCollection {
+  public mutating func replaceSubrange<C>(_ subrange: Range<Int>, with newElements: C) where C : Collection, E == C.Element {
+    for oldElement in array[subrange] {
+      set.remove(oldElement)
+    }
+    self.array.replaceSubrange(subrange, with: newElements)
+    for newElement in newElements {
+      set.insert(newElement)
+    }
+  }
 }
 
 public func == <T>(lhs: OrderedSet<T>, rhs: OrderedSet<T>) -> Bool {

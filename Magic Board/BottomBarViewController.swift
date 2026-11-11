@@ -11,6 +11,28 @@ import UIKit
 import RxSwift
 import RxCocoa
 import CardService
+import SwiftUI
+
+class LifeTrackerViewController: UIHostingController<LifeTracker> {
+  
+  var value: ObservableBridge<Int>! {
+    didSet {
+      bindValue()
+    }
+  }
+  
+  @objc required dynamic init?(coder aDecoder: NSCoder) {
+    let tracker = LifeTracker(life: ObservableBridge(BehaviorRelay(value: 0)))
+    
+    super.init(coder: aDecoder, rootView: tracker)
+  }
+  
+  private func bindValue() {
+    rootView = LifeTracker(life: value)
+    view.backgroundColor = .clear
+  }
+  
+}
 
 protocol PileViewProtocol: UIView {
 	
@@ -25,7 +47,7 @@ class HandViewControllerContainerView: UIView, PileViewProtocol, UIDropInteracti
 	
 }
 
-protocol BottomBarViewControllerDelegate: class {
+protocol BottomBarViewControllerDelegate: AnyObject {
 	func bottomBarViewController(_ bottomBarViewController: BottomBarViewController, passthroughViewsFor navigationController: UINavigationController) -> [UIView]?
 }
 extension BottomBarViewControllerDelegate {
@@ -47,9 +69,13 @@ class BottomBarViewController: UIViewController {
 	@IBOutlet weak var lifeStepper: UIStepper!
 	@IBOutlet weak var handContainerView: HandViewControllerContainerView!
 	
-	weak var handViewController: HandViewController!
+  @IBOutlet weak var untapButton: UIButton!
+  
+  weak var handViewController: HandViewController!
 	
 	weak var delegate: BottomBarViewControllerDelegate?
+  
+  var focusOn: ((CardInstance?) -> Void)?
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
@@ -64,25 +90,36 @@ class BottomBarViewController: UIViewController {
 		bind()
 	}
 	
-	private func bind() {
-		player.life
-			.map(String.init)
-			.bind(to: lifeLabel.rx.text)
-			.disposed(by: bag)
-		
-		lifeStepper.rx.value
-			.subscribe(onNext: { [weak self] value in
-				self?.player.life.accept(Int(value))
-				try? GameState.current.save()
-			}).disposed(by: bag)
+	private func bind() {    
+    player.life
+      .subscribe(onNext: { [weak self] value in
+        try? GameState.current.save()
+        self?.lifeLabel.text = "\(value)"
+      }).disposed(by: bag)
 	}
 	
 	override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 		if segue.identifier == "EmbedHandViewController", let destination = segue.destination as? HandViewController {
 			self.handViewController = destination
+			destination.isDragEnabled = true
 			destination.player = player
-			setupPile(player.hand, view: handContainerView)
-		}
+      
+      destination.selectedCard
+        .subscribe { [weak self] cardInstance in
+          guard let cardInstance else {
+            self?.focusOn?(nil)
+            return
+          }
+          if cardInstance.revealedPlayers.value.contains(cardInstance.ownerIdentifier == .a ? .b : .a) || cardInstance.pile?.location == .command {
+            self?.focusOn?(cardInstance)
+          }
+        }.disposed(by: bag)
+
+      
+//			setupPile(player.hand, view: handContainerView)
+    } else if segue.identifier == "EmbedLifeTracker", let destination = segue.destination as? LifeTrackerViewController {
+      destination.value = ObservableBridge(player.life)
+    }
 	}
 	
 	func setupPile(_ pile: Pile, view: PileViewProtocol) {
@@ -129,19 +166,41 @@ class BottomBarViewController: UIViewController {
 	}
 	
 	fileprivate func drawOpeningHand() {
-		GameState.current.move(cardInstances: player.hand.cards.value.contents, to: player.library)
-		player.library.cards.mutate {
-			$0 = OrderedSet($0.contents.shuffled())
-		}
-		let newHand = Array(player.library.cards.value.suffix(7))
+    if !player.hand.cards.value.contents.isEmpty {
+      GameState.current.move(cardInstances: player.hand.cards.value.contents, to: player.library)
+      player.library.cards.mutate {
+        $0 = OrderedSet($0.contents.shuffled())
+      }
+    }
+    let newHand = Array(player.library.cards.value.suffix(7))
+		
 		GameState.current.move(cardInstances: newHand, to: player.hand)
+    
+    let shouldOrderLandsFirst = false
+    
+    if shouldOrderLandsFirst {
+      player.hand.cards.mutate {
+        $0 = OrderedSet($0.sorted { first, second in
+          let firstValue = first.representation.isLand ? 0 : 1
+          let secondValue = second.representation.isLand ? 0 : 1
+          return firstValue < secondValue
+        })
+      }
+      
+      try? GameState.current.save()
+    }
 	}
 	
 	fileprivate func untapAll() {
 		for cardInstance in GameState.current.battlefield.value where cardInstance.controllerIdentifier.value == player.identifier {
-			if !cardInstance.doesNotUntapNextTurn.value && !cardInstance.doesNotUntapAutomatically.value {
+      if !cardInstance.doesNotUntapNextTurn.value && !cardInstance.doesNotUntapAutomatically.value && !cardInstance.counters.value.contains(.stun) {
 				cardInstance.isTapped.accept(false)
 			}
+      if let index = cardInstance.counters.value.firstIndex(of: .stun) {
+        var counters = cardInstance.counters.value
+        counters.remove(at: index)
+        cardInstance.counters.accept(counters)
+      }
 			cardInstance.doesNotUntapNextTurn.accept(false)
 			cardInstance.isSummoningSick.accept(false)
 		}
@@ -158,7 +217,6 @@ class BottomBarViewController: UIViewController {
 		} else {
 			untapAll()
 		}
-		
 	}
 	
 	
@@ -180,7 +238,7 @@ class BottomBarViewController: UIViewController {
 		}
 		
 		var uiAction: UIAction {
-			return UIAction(title: title, handler: { _ in self.handler?() })
+			return UIAction(title: title, attributes: style == .destructive ? [.destructive] : [], handler: { _ in self.handler?() })
 		}
 	}
 	
@@ -259,7 +317,7 @@ extension BottomBarViewController: UIDragInteractionDelegate {
 	func dragItems(forCardsAt indices: IndexSet, in pile: Pile, image: UIImage?) -> [UIDragItem] {
 		return indices.map { index in
 			let cardInstance = pile.cards.value[index]
-			let item = NSItemProvider(object: cardInstance)
+			let item = NSItemProvider(card: cardInstance)
 			let dragItem = UIDragItem(itemProvider: item)
 			dragItem.localObject = cardInstance
 			dragItem.previewProvider = { [weak self] in
@@ -304,7 +362,7 @@ extension BottomBarViewController: UIDropInteractionDelegate {
 	}
 	
 	func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
-		let cardItems = session.items.compactMap { $0.localObject as? CardInstance }
+		let cardItems = session.items.compactMap { $0.cardInstance }
 		
 		guard let pileView = interaction.view as? PileViewProtocol else { return UIDropProposal(operation: .cancel) }
 		guard let destinationPile = (pileView as? HUDCardPileView)?.pile ?? (pileView is HandViewControllerContainerView ? player.hand : nil) else { return UIDropProposal(operation: .cancel) }
@@ -340,7 +398,7 @@ extension BottomBarViewController: UIDropInteractionDelegate {
 		let destinationPile = self.pile(for: pileView)
 		
 		func continuation(insertionIndex: Int? = nil) {
-			let cardInstances = (session.localDragSession?.items.compactMap { ($0.localObject as? CardInstance) } ?? [])
+			let cardInstances = (session.localDragSession?.items.compactMap { ($0.cardInstance) } ?? [])
 				.sorted { (first, second) -> Bool in
 					if let firstIndex = first.indexInPile, let secondIndex = second.indexInPile {
 						return firstIndex > secondIndex

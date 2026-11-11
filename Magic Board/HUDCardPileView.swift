@@ -68,6 +68,18 @@ class HUDCardPileView: UIView {
 				}
 			}
 		}).disposed(by: bag)
+    
+    pile.isTopCardRevealed
+      .observeOn(MainScheduler.instance)
+      .subscribe(onNext: { [weak self] (cards) in
+      guard let self = self else { return }      
+      DispatchQueue.global(qos: .userInteractive).async {
+        let image = self.pile.topCardImage
+        DispatchQueue.main.async { [weak self] in
+          self?.topCardImageView.image = image
+        }
+      }
+    }).disposed(by: bag)
 	}
 	
 }

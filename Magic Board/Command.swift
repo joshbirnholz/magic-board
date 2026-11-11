@@ -29,14 +29,32 @@ enum Command: Codable {
 	}
 	
 	struct PlayCardParameters: Codable {
+		enum Mode: String, Codable {
+			case `default`
+			case morph
+			case manifest
+			case foretell
+      case prototype
+		}
+		
 		var cardInstanceID: UUID
 		/// nil is no alt face, a negative value is face-down, and a positive value is an index pointing a face in the card's `cardFaces` array
 		var faceIndex: Int?
+		var mode: Mode = .default
+    var increaseTax: Bool = false
+    var tapped: Bool = false
 	}
 	
 	struct LoadDeckParameters: Codable {
+		enum Source: String, Codable {
+			case decklist
+			case remoteURL
+		}
+		
 		var playerIdentifier: Player.Identifier
 		var deckList: String
+		var source: Source
+    var handSmoothing: Bool = false
 	}
 	
 	struct RevealCardsToPlayerParameters: Codable {
@@ -52,6 +70,7 @@ enum Command: Codable {
 		case revealCardsToPlayer
 		case removeAllRevealedCards
 		case unrevealCardsToPlayer
+    case reorderHand
 	}
 	
 	case moveCards(MoveCommandParameters)
@@ -61,6 +80,7 @@ enum Command: Codable {
 	case revealCardsToPlayer(RevealCardsToPlayerParameters)
 	case removeAllRevealedCards(Player.Identifier)
 	case unrevealCardsToPlayer(RevealCardsToPlayerParameters)
+  case reorderHand(RevealCardsToPlayerParameters)
 	
 	func encode(to encoder: Encoder) throws {
 		var container = encoder.container(keyedBy: CodingKeys.self)
@@ -79,6 +99,8 @@ enum Command: Codable {
 			try container.encode(playerIdentifier, forKey: .removeAllRevealedCards)
 		case .unrevealCardsToPlayer(let parameters):
 			try container.encode(parameters, forKey: .unrevealCardsToPlayer)
+    case .reorderHand(let parameters):
+      try container.encode(parameters, forKey: .reorderHand)
 		}
 	}
 	
@@ -98,7 +120,9 @@ enum Command: Codable {
 			self = .removeAllRevealedCards(playerIdentifier)
 		} else if let parameters = try container.decodeIfPresent(RevealCardsToPlayerParameters.self, forKey: .unrevealCardsToPlayer) {
 			self = .unrevealCardsToPlayer(parameters)
-		} else {
+		} else if let parameters = try container.decodeIfPresent(RevealCardsToPlayerParameters.self, forKey: .reorderHand) {
+      self = .reorderHand(parameters)
+    } else {
 			throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Could not decode a command"))
 		}
 	}

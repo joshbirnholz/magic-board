@@ -14,6 +14,7 @@ import CardService
 class AppDelegate: UIResponder, UIApplicationDelegate {
 	
 	let transceiver = MultipeerTransceiver()
+  let webServer = WebServer(port: 8080)
 	
 	var role: Role = .board
 	
@@ -23,6 +24,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 		_ = CardService.shared
 		
 		transceiver.resume()
+    webServer.start()
 		UIApplication.shared.isIdleTimerDisabled = true
 		
 		return true

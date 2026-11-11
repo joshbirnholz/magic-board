@@ -39,6 +39,7 @@ struct Pile: Codable, Equatable, Hashable {
 	let playerIdentifier: Player.Identifier
 	
 	var cards: BehaviorRelay<OrderedSet<CardInstance>>
+  var isTopCardRevealed: BehaviorRelay<Bool>
 	
 	init(location: Location, isHidden: Bool, playerIdentifier: Player.Identifier, cards: Cards = []) {
 		self.id = UUID()
@@ -52,17 +53,16 @@ struct Pile: Codable, Equatable, Hashable {
 			return instance
 		}))
 		self.playerIdentifier = playerIdentifier
+    self.isTopCardRevealed = BehaviorRelay(value: false)
 	}
 	
 	var topCardImage: UIImage? {
 		if cards.value.isEmpty {
 			return nil
-		} else if isHidden {
-			return #imageLiteral(resourceName: "mtg-card-back-png-1")
-		} else if let topCard = cards.value.last?.representation {
-			return topCard.image(type: .small)
+    } else if !isHidden || isTopCardRevealed.value {
+			return cards.value.last?.representation.image(type: .small)
 		} else {
-			return nil
+      return #imageLiteral(resourceName: "mtg-card-back-png-1")
 		}
 	}
 }

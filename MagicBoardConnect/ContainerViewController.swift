@@ -78,6 +78,9 @@ class ContainerViewController: UIViewController {
 	
 	var containedTabBarController: UITabBarController!
 	
+	var handViewController: UIViewController!
+	@IBOutlet weak var handViewControllerContainerView: UIView!
+	
 	private let cornerRoundingRadius: CGFloat = 10
 	
 	private let bag = DisposeBag()
@@ -118,6 +121,30 @@ class ContainerViewController: UIViewController {
 			}).map { $1 == nil }
 			.bind(to: self.minimizedBarView.rx.isHidden)
 			.disposed(by: bag)
+	}
+	
+	override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+		super.viewWillTransition(to: size, with: coordinator)
+		
+		coordinator.animate(alongsideTransition: { [weak self] context in
+			guard let self = self else { return }
+			
+			self.updateHandViewControllerVisibility(animated: false)
+		})
+	}
+	
+	private func updateHandViewControllerVisibility(animated: Bool) {
+		let orientation = self.view.window!.windowScene!.interfaceOrientation
+		
+		if orientation == .landscapeLeft || orientation == .landscapeRight {
+			self.handViewController.viewWillDisappear(animated)
+			self.handViewControllerContainerView.isHidden = false
+			self.handViewController.viewDidDisappear(animated)
+		} else {
+			self.handViewController.viewWillAppear(animated)
+			self.handViewControllerContainerView.isHidden = true
+			self.handViewController.viewDidAppear(animated)
+		}
 	}
 	
 	private func makeRevealedCardsViewController(for player: Player) -> UIViewController! {
@@ -184,6 +211,8 @@ class ContainerViewController: UIViewController {
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
 		
+		initializeHandViewController()
+		
 		initializeTabBarController()
 	}
 	
@@ -195,6 +224,8 @@ class ContainerViewController: UIViewController {
 	override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 		if segue.identifier == "EmbedTabBarController", let destination = segue.destination as? UITabBarController {
 			containedTabBarController = destination
+		} else if segue.identifier == "EmbedHandViewController" {
+			self.handViewController = segue.destination
 		}
 	}
 	
@@ -235,12 +266,7 @@ class ContainerViewController: UIViewController {
 	}
 	
 	private func pileViewController(for pile: Pile, withExtraButton: Bool, withDoneButton: Bool) -> UIViewController? {
-		let viewController: UIViewController? = {
-			if pile.location == .hand {
-				return storyboard?.instantiateViewController(identifier: "HandCardCollectionViewController")
-			}
-			return storyboard?.instantiateViewController(identifier: "PileViewController") as? PileViewController
-		}()
+		let viewController: UIViewController? = storyboard?.instantiateViewController(identifier: "PileViewController") as? PileViewController
 		guard let pileViewController = viewController as? PileDisplaying else { return nil }
 		pileViewController.setPile(pile)
 		
@@ -293,7 +319,7 @@ class ContainerViewController: UIViewController {
 					}
 					
 					let card = cardInstance.representation.card
-					while let item = set.first(where: { $0.representation.card == card || $0.representation.name == card.name }) {
+					while let item = set.first(where: { $0.representation.card == card || $0.representation.name == card.name || $0.representation.name == card.printedName }) {
 						set.remove(item)
 					}
 					set.append(cardInstance)
@@ -308,6 +334,18 @@ class ContainerViewController: UIViewController {
 		return navigationController
 	}
 	
+	private func initializeHandViewController() {
+		guard !isTabBarControllerInitialized else { return }
+		
+		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
+		guard let player = sceneDelegate?.player else { return }
+
+		guard let handViewController = self.handViewController as? PileDisplaying else { return }
+		handViewController.setPile(player.hand)
+
+		updateHandViewControllerVisibility(animated: false)
+	}
+	
 	private func initializeTabBarController() {
 		guard !isTabBarControllerInitialized else { return }
 		
@@ -316,7 +354,7 @@ class ContainerViewController: UIViewController {
 		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
 		guard let player = sceneDelegate?.player else { return }
 		
-		var viewControllers: [UIViewController] = [player.hand, player.graveyard, player.exile, player.library].compactMap { pile in
+		var viewControllers: [UIViewController] = [player.graveyard, player.exile, player.library].compactMap { pile in
 			pileViewController(for: pile, withExtraButton: true, withDoneButton: false)
 		}
 		

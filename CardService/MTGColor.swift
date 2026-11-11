@@ -11,6 +11,22 @@ import UIKit
 
 public extension Array where Element == MTGColor {
 	var ordered: [MTGColor] {
+		switch Set(self) {
+		case [.white, .blue]: return [.white, .blue]
+		case [.blue, .black]: return [.blue, .black]
+		case [.black, .red]: return [.black, .red]
+		case [.red, .green]: return [.red, .green]
+		case [.green, .white]: return [.green, .white]
+		case [.white, .black]: return [.white, .black]
+		case [.blue, .red]: return [.blue, .red]
+		case [.black, .green]: return [.black, .green]
+		case [.red, .white]: return [.red, .white]
+		case [.green, .blue]: return [.green, .blue]
+		case [.red, .green, .white]: return [.red, .green, .white]
+		case [.blue, .black, .red]: return [.blue, .black, .red]
+		default: break
+		}
+		
 		return self.sorted {
 			switch ($0.orderNumber, $1.orderNumber) {
 			case (let first?, let second?): return first < second
@@ -22,7 +38,7 @@ public extension Array where Element == MTGColor {
 	}
 }
 
-public enum MTGColor: String, Codable, CaseIterable {
+public enum MTGColor: String, Codable, CaseIterable, Hashable {
 	case white = "W"
 	case blue = "U"
 	case black = "B"
@@ -51,6 +67,10 @@ public enum MTGColor: String, Codable, CaseIterable {
 		case .colorless:
 			return "colorless"
 		}
+	}
+	
+	public var initial: String {
+		return String(rawValue.first!)
 	}
 	
 	public var orderNumber: Int? {
@@ -93,28 +113,42 @@ public enum MTGColor: String, Codable, CaseIterable {
 		return nil
 	}
 	
-	public var symbolColor: UIColor {
-		return UIColor(named: "\(name) mana")!
-	}
-	
-	public var borderColor: UIColor {
-		return UIColor(named: "\(name) border")!
-	}
-	
 	public var textBackgroundColor: UIColor {
-		return UIColor(named: "\(name) background")!
+		return UIColor(named: "textbox-\(rawValue.first!.lowercased())")!
 	}
 	
-	public var boxBackgroundColor: UIColor {
-		return UIColor(named: "\(name) box background")!
-	}
-	
-	public var cardEdgeColor: UIColor {
-		return UIColor(named: "\(name) edge")!
-	}
-	
-	public var cardEdgeImage: UIImage {
-		return UIImage(named: "bg-\(name)")!
+	public static func colors(for card: MTGCard) -> [MTGColor] {
+		var colors: [MTGColor] = []
+		
+		if (card.typeLine?.lowercased() ?? "").contains("land") {
+			colors = MTGColor.allCases.compactMap {
+				(card.oracleText ?? "").contains("{\($0.initial)}") ? $0 : nil
+			}
+			
+			if colors.isEmpty {
+				let colorlessLands = ["Crumbling Vestige", "Gemstone Caverns"]
+				let allColorLands = ["Fabled Passage"]
+				if(allColorLands.contains(card.name ?? "") || !colorlessLands.contains(card.name ?? "") && card.oracleText?.contains("any color") == true) {
+					colors = [.white, .blue, .black, .red, .green]
+				} else {
+					let lands: [(String, MTGColor)] = [
+						("plains", .white),
+						("island", .blue),
+						("swamp", .black),
+						("mountain", .red),
+						("forest", .green)
+					]
+					colors = lands.compactMap { land, color in
+						card.oracleText?.lowercased().contains(land) == true ? color : nil
+					}
+				}
+			}
+			
+		} else {
+			colors = card.colors ?? []
+		}
+		
+		return colors
 	}
 	
 }

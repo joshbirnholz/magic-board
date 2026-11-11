@@ -23,7 +23,7 @@ extension BehaviorRelay: Codable where Element: Codable {
 	}
 }
 
-class CardInstance: NSObject, Codable {
+final class CardInstance: NSObject, Codable {
 	
 	let uuid: UUID
 	
@@ -44,8 +44,6 @@ class CardInstance: NSObject, Codable {
 	
 	var representation: CardRepresentation {
 		didSet {
-			representedCardDidChange.onNext(())
-			
 			if !didAddStartingLoyaltyCounters, let loyalty = representation.loyalty.flatMap(Int.init) {
 				self.counters.mutate { counters in
 					counters.append(contentsOf: [Counter](repeating: .loyalty, count: loyalty))
@@ -54,16 +52,31 @@ class CardInstance: NSObject, Codable {
 			}
 			
 			self.power.accept(representation.power ?? "0")
+      self.colors.accept(representation.colors ?? [])
 			self.toughness.accept(representation.toughness ?? "0")
 			self.isPowerToughnessVisible.accept(representation.power != nil || representation.toughness != nil)
+			
+			let defaultIsFlying = CardInstance.defaultIsFlying(for: representation)
+			if isFlying.value != defaultIsFlying {
+				isFlying.accept(defaultIsFlying)
+			}
+      
+      representedCardDidChange.onNext(())
 		}
 	}
 	
 	let ownerIdentifier: Player.Identifier
 	let controllerIdentifier: BehaviorRelay<Player.Identifier>
+  
+  let isCommander: BehaviorRelay<Bool>
+  let commanderCasts: BehaviorRelay<Int>
 	
 	let power: BehaviorRelay<String>
 	let toughness: BehaviorRelay<String>
+  let colors: BehaviorRelay<[MTGColor]>
+  
+  // TODO: Add isArtifact and isEnchantment
+//  let isArtifact: BehaviorRelay
 	
 	let counters: BehaviorRelay<[Counter]>
 	
@@ -84,7 +97,7 @@ class CardInstance: NSObject, Codable {
 	let center: BehaviorRelay<CGPoint?>
 	
 	private enum CodingKeys: String, CodingKey {
-		case uuid, didAddStartingLoyaltyCounters, representation, ownerIdentifier, controllerIdentifier, power, toughness, counters, isPowerToughnessVisible, isTapped, isFlying, isSummoningSick, doesNotUntapAutomatically, revealedPlayers, previouslyViewedFocusIndex, center, doesNotUntapNextTurn
+		case uuid, didAddStartingLoyaltyCounters, representation, ownerIdentifier, controllerIdentifier, power, toughness, counters, isPowerToughnessVisible, isTapped, isFlying, isSummoningSick, doesNotUntapAutomatically, revealedPlayers, previouslyViewedFocusIndex, center, doesNotUntapNextTurn, isCommander, commanderCasts, colors
 	}
 	
 	convenience init(card: MTGCard, center: CGPoint?, ownerIdentifier: Player.Identifier) {
@@ -94,12 +107,20 @@ class CardInstance: NSObject, Codable {
 	private static func defaultPower(for representation: CardRepresentation) -> String {
 		return representation.power ?? "0"
 	}
+  
+  private static func defaultColors(for representation: CardRepresentation) -> [MTGColor] {
+    return representation.colors ?? []
+  }
 	
 	private static func defaultToughness(for representation: CardRepresentation) -> String {
 		return representation.toughness ?? "0"
 	}
 	
 	private static func defaultPowerToughnessVisibility(for representation: CardRepresentation) -> Bool {
+    if representation.keywords.contains("Station") {
+      return false
+    }
+    
 		return representation.power != nil || representation.toughness != nil
 	}
 	
@@ -108,6 +129,13 @@ class CardInstance: NSObject, Codable {
 //		let regex = """
 //		(^|[.,] )[Ff]lying[.,]
 //		"""
+    if representation.keywords.contains("Station") {
+      return false
+    }
+    
+    if representation.keywords.contains("Flying") {
+      return true
+    }
 		
 		let flyingRegex = #"(^|[.,] *)[Ff]lying([.,]|$)"#
 		if let matches = representation.oracleText?.matches(forRegex: flyingRegex, options: .anchorsMatchLines), !matches.isEmpty {
@@ -126,15 +154,17 @@ class CardInstance: NSObject, Codable {
 		return isSummoningSick
 	}
 	
-	private static func defaultLoyaltyCounters(for representation: CardRepresentation) -> [Counter] {
+	private static func defaultCounters(for representation: CardRepresentation) -> [Counter] {
 		if let loyalty = representation.loyalty.flatMap(Int.init) {
 			return .init(repeating: .loyalty, count: loyalty)
+		} else if representation.typeLine?.contains("Saga") == true {
+			return [.lore]
 		} else {
 			return []
 		}
 	}
 	
-	func reset() {
+  func reset(removingCounters: Bool) {
 		switch representation {
 		case .card(_):
 			break
@@ -144,6 +174,14 @@ class CardInstance: NSObject, Codable {
 			self.representation = .card(card)
 		case .faceDown(let representation):
 			self.representation = representation
+		case .morph(let card):
+			self.representation = .card(card)
+		case .manifest(let card):
+			self.representation = .card(card)
+		case .foretold(let card):
+			self.representation = .card(card)
+    case .prototyped(let card):
+      self.representation = .card(card)
 		}
 		
 		power.accept(Self.defaultPower(for: representation))
@@ -155,10 +193,16 @@ class CardInstance: NSObject, Codable {
 		controllerIdentifier.accept(ownerIdentifier)
 		doesNotUntapAutomatically.accept(false)
 		doesNotUntapNextTurn.accept(false)
+    
+    if representation.oracleText?.contains("before the game begins") != true && representation.oracleText?.contains("is the chosen color") != true {
+      colors.accept(Self.defaultColors(for: representation))
+    }
 		
-		let counters = Self.defaultLoyaltyCounters(for: representation)
-		self.counters.accept(counters)
-		didAddStartingLoyaltyCounters = !counters.isEmpty
+    if removingCounters {
+      let counters = Self.defaultCounters(for: representation)
+      self.counters.accept(counters)
+      didAddStartingLoyaltyCounters = !counters.isEmpty
+    }
 	}
 	
 	init(card: CardRepresentation, center: CGPoint?, ownerIdentifier: Player.Identifier) {
@@ -173,14 +217,18 @@ class CardInstance: NSObject, Codable {
 		isFlying = BehaviorRelay(value: Self.defaultIsFlying(for: card))
 		isSummoningSick = BehaviorRelay(value: Self.defaultIsSummoningSick(for: card))
 		
+    colors = BehaviorRelay(value: Self.defaultColors(for: card))
+    
 		self.center = BehaviorRelay(value: center)
 		
 		self.ownerIdentifier = ownerIdentifier
 		self.controllerIdentifier = BehaviorRelay(value: ownerIdentifier)
 		self.doesNotUntapAutomatically = BehaviorRelay(value: false)
 		self.doesNotUntapNextTurn = BehaviorRelay(value: false)
+    self.isCommander = BehaviorRelay(value: false)
+    self.commanderCasts = BehaviorRelay(value: 0)
 		
-		let counters = Self.defaultLoyaltyCounters(for: card)
+		let counters = Self.defaultCounters(for: card)
 		self.counters = BehaviorRelay(value: counters)
 		didAddStartingLoyaltyCounters = !counters.isEmpty
 		

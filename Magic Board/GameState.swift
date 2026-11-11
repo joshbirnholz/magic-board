@@ -95,6 +95,7 @@ struct GameState: Codable {
 		for (localPlayer, remotePlayer) in zip(self.allPlayers, otherGameState.allPlayers) {
 			for (localPlayerPile, remotePlayerPile) in zip(localPlayer.allPiles, remotePlayer.allPiles) {
 				localPlayerPile.cards.accept(remotePlayerPile.cards.value)
+        localPlayerPile.isTopCardRevealed.accept(remotePlayerPile.isTopCardRevealed.value)
 			}
 			
 			localPlayer.name.accept(remotePlayer.name.value)
@@ -103,8 +104,8 @@ struct GameState: Codable {
 		
 		battlefield.accept(otherGameState.battlefield.value)
 		
-		for cardInstance in battlefield.value {
-			if let otherCard = otherGameState.battlefield.value.first(where: { $0.uuid == cardInstance.uuid }) {
+    for (id, cardInstance) in otherGameState.allCards {
+			if let otherCard = otherGameState.allCards[id] {
 				cardInstance.representation = otherCard.representation
 				cardInstance.center.accept(otherCard.center.value)
 				cardInstance.controllerIdentifier.accept(otherCard.controllerIdentifier.value)
@@ -115,6 +116,8 @@ struct GameState: Codable {
 				cardInstance.isSummoningSick.accept(otherCard.isSummoningSick.value)
 				cardInstance.isTapped.accept(otherCard.isTapped.value)
 				cardInstance.power.accept(otherCard.power.value)
+        cardInstance.colors.accept(otherCard.colors.value)
+        cardInstance.isCommander.accept(otherCard.isCommander.value)
 				cardInstance.toughness.accept(otherCard.toughness.value)
 			} else {
 				cardInstance.remove.onNext(())
@@ -136,11 +139,15 @@ struct GameState: Codable {
 	}
 	
 	func cardInstance(with id: UUID) -> CardInstance? {
-		cardInstances(with: [id]).first?.value
+		allCards[id]
 	}
 	
 	func cardInstances<C: Collection>(with ids: C) -> [UUID: CardInstance] where C.Element == UUID {
-		return allCards.filter { ids.contains($0.key) }
+    var result: [UUID: CardInstance] = [:]
+    for id in ids {
+      result[id] = allCards[id]
+    }
+    return result
 	}
 	
 	var allCards: [UUID: CardInstance] {
@@ -204,7 +211,9 @@ struct GameState: Codable {
 					cardInstance.remove.onNext(())
 				}
 				
-				cardInstance.reset()
+        let shouldKeepCounters = [UUID(uuidString: "26ad696e-9f17-4110-9c59-b9211e662900")!, UUID(uuidString: "088ac883-6f44-4046-bf19-81c7fd952e55")!].contains(cardInstance.representation.card.oracleID) && destination.location != .hand && destination.location != .library
+        
+				cardInstance.reset(removingCounters: !shouldKeepCounters)
 				
 				var insertionIndex = insertionIndex ?? destination.cards.value.count
 				if source != destination {

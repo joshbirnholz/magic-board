@@ -9,11 +9,10 @@
 import Foundation
 import UIKit
 
-
 public struct MTGCard: Codable, Equatable, Hashable {
 	
 	public func hash(into hasher: inout Hasher) {
-		hasher.combine(self.scyfallID)
+		hasher.combine(self.scryfallID)
 	}
 	
 	public enum BorderColor: String, Codable {
@@ -40,10 +39,16 @@ public struct MTGCard: Codable, Equatable, Hashable {
 		public let toughness: String?
 		public let oracleText: String?
 		public let flavorText: String?
+    public let printedText: String?
+    public let printedTypeLine: String?
+    public let printedName: String?
 		public let name: String?
 		public let loyalty: String?
 		public let manaCost: String?
 		public let colors: [MTGColor]?
+		public let colorIndicator: [MTGColor]?
+		public let watermark: String?
+		public let artist: String?
 		
 		var imageUris: [String: URL]?
 	}
@@ -51,15 +56,22 @@ public struct MTGCard: Codable, Equatable, Hashable {
 	public struct RelatedCard: Codable, Equatable, Hashable {
 		public enum Component: String, Codable {
 			case token
-			case meldPart
-			case meldResult
-			case comboPiece
+			case meldPart = "meld_part"
+			case meldResult = "meld_result"
+			case comboPiece = "combo_piece"
 		}
 		public let scryfallID: UUID
 		public let component: Component?
 		public let name: String
-		public let typeLine: String?
+		public let typeLine: String
 		public let url: URL
+	}
+	
+	public enum Rarity: String, Codable, Equatable, Hashable, CaseIterable {
+		case common
+		case uncommon
+		case rare
+		case mythic
 	}
 	
 	public enum Language: String, Codable, Equatable, Hashable {
@@ -79,10 +91,13 @@ public struct MTGCard: Codable, Equatable, Hashable {
 		case ancientGreek = "grc"
 		case arabic = "ar"
 		case sanskrit = "sa"
-		case phyrexian = "px"
+		case phyrexian = "ph"
+    case quenya = "qya"
+    case dwarvish = "dw"
+    case klingon = "tlh"
 	}
 	
-	public let scyfallID: UUID
+	public let scryfallID: UUID
 	public let typeLine: String?
 	public let power: String?
 	public let toughness: String?
@@ -101,17 +116,31 @@ public struct MTGCard: Codable, Equatable, Hashable {
 	public let collectorNumber: String
 	public let set: String
 	public let colors: [MTGColor]?
+	public let colorIndicator: [MTGColor]?
+  public let producedMana: [MTGColor]?
 	
 	public let printedName: String?
 	public let printedText: String?
 	public let printedTypeLine: String?
+	public let flavorName: String?
 	public let artist: String?
+	public let rarity: Rarity
+	public let oracleID: UUID?
+	public let frame: String
+	public let keywords: [String]?
 	
+	public let isPromo: Bool
+	public let isFoundInBoosters: Bool
 	public let isFoilAvailable: Bool
 	public let isNonFoilAvailable: Bool
 	
 	public let language: Language
 	public let releaseDate: Date?
+	
+	public let watermark: String?
+	public let frameEffects: [String]?
+  
+  public let securityStamp: String?
 	
 	let imageUris: [String: URL]?
 	

@@ -25,7 +25,7 @@ class ConnectSceneDelegate: UIResponder, UIWindowSceneDelegate {
 		// This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
 		guard let _ = window else { return }
 		
-		AppDelegate.shared.transceiver.receive(GameState.self) { gameState in
+		AppDelegate.shared.transceiver.receive(GameState.self) { gameState, peer  in
 			GameState.current.update(withValuesFrom: gameState)
 			
 			DispatchQueue.global(qos: .userInitiated).async {

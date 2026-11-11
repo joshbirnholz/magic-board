@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "pt-land-borderless.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

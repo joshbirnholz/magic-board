@@ -1,16 +1,21 @@
 {
   "images" : [
     {
+      "filename" : "Swamp.png",
       "idiom" : "universal",
-      "filename" : "B mana large.pdf"
+      "scale" : "1x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "3x"
     }
   ],
   "info" : {
-    "version" : 1,
-    "author" : "xcode"
-  },
-  "properties" : {
-    "template-rendering-intent" : "original",
-    "preserves-vector-representation" : true
+    "author" : "xcode",
+    "version" : 1
   }
 }

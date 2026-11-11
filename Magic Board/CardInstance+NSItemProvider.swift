@@ -9,13 +9,11 @@
 import Foundation
 import CardService
 
-fileprivate let encoder = JSONEncoder()
-fileprivate let decoder = JSONDecoder()
-
 extension CardInstance: NSItemProviderWriting, NSItemProviderReading {
 	
 	enum ItemError: Error {
 		case wrongTypeIdentifier
+		case unableToFindCard
 	}
 	
 	var pile: Pile? {
@@ -35,19 +33,15 @@ extension CardInstance: NSItemProviderWriting, NSItemProviderReading {
 		return pile.cards.value.firstIndex(of: self)
 	}
 	
-	private static let typeIdentifier = "com.josh.birnholz.Magic-Board.\(String(describing: CardInstance.self))"
+	public static let typeIdentifier = "com.josh.birnholz.Magic-Board.\(String(describing: CardInstance.self))"
 	static let writableTypeIdentifiersForItemProvider: [String] = [CardInstance.typeIdentifier, "public.plain-text"]
 	
 	func loadData(withTypeIdentifier typeIdentifier: String, forItemProviderCompletionHandler completionHandler: @escaping (Data?, Error?) -> Void) -> Progress? {
 		
 		switch typeIdentifier {
 		case CardInstance.typeIdentifier:
-			do {
-				let data = try encoder.encode(self)
-				completionHandler(data, nil)
-			} catch {
-				completionHandler(nil, error)
-			}
+			let data = uuid.uuidString.data(using: .utf8)
+			completionHandler(data, nil)
 		case "public.plain-text":
 			let isHidden: Bool = pile?.isHidden == true
 			guard !isHidden else {
@@ -71,6 +65,58 @@ extension CardInstance: NSItemProviderWriting, NSItemProviderReading {
 			throw ItemError.wrongTypeIdentifier
 		}
 		
-		return try decoder.decode(Self.self, from: data)
+		guard let uuidString = String(data: data, encoding: .utf8),
+			let uuid = UUID(uuidString: uuidString),
+			let cardInstance = GameState.current.cardInstance(with: uuid) else {
+				throw ItemError.unableToFindCard
+		}
+		print("Found card instance from item provider for \(cardInstance.representation.name ?? "")")
+		return cardInstance as! Self
+	}
+}
+
+extension NSItemProvider {
+	
+	/// Synchronously attempts to load a card instance.
+	var cardInstance: CardInstance? {
+		guard canLoadObject(ofClass: CardInstance.self) else { return nil }
+		
+		var cardInstance: CardInstance?
+		
+		let semaphore = DispatchSemaphore(value: 0)
+		
+		DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+			guard let self = self else { semaphore.signal(); return }
+			self.loadObject(ofClass: CardInstance.self) { (object, error) in
+				cardInstance = object as? CardInstance
+				semaphore.signal()
+			}
+		}
+		
+		semaphore.wait()
+		
+		return cardInstance
+	}
+	
+}
+
+extension UIDragItem {
+	var cardInstance: CardInstance? {
+		if let cardInstance = localObject as? CardInstance {
+			return cardInstance
+		}
+		
+		if let data = itemProvider.teamData, let string = String(data: data, encoding: .utf8), let uuid = UUID(uuidString: string), let cardInstance = GameState.current.cardInstance(with: uuid) {
+			return cardInstance
+		}
+		
+		return itemProvider.cardInstance
+	}
+}
+
+extension NSItemProvider {
+	convenience init(card: CardInstance) {
+		self.init(object: card)
+		teamData = card.uuid.uuidString.data(using: .utf8)
 	}
 }

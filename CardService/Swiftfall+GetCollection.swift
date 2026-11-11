@@ -7,12 +7,30 @@
 //
 
 import Foundation
+import ReerJSON
+
+enum Source: CustomStringConvertible {
+  case scryfall
+  case custom
+  
+  var url: String {
+    switch self {
+    case .scryfall: "https://api.scryfall.com/"
+    case .custom: "https://tts-magic-booster.fly.dev/custom/"
+//    case .scryfall: "http://100.78.225.115:8080/custom/"
+    }
+  }
+  
+  var description: String {
+    url
+  }
+}
 
 fileprivate extension Swiftfall {
 	
-	static func parseResource<ResultType: Decodable>(call: String, body: Data? = nil, method: String? = "GET", completion: @escaping (Swift.Result<ResultType, Error>) -> ()) {
+  static func parseResource<ResultType: Decodable>(call: String, body: Data? = nil, method: String? = "GET", source: Source = .scryfall, completion: @escaping (Swift.Result<ResultType, Error>) -> ()) {
         
-        let url = URL(string: "\(scryfall)\(call)")
+    let url = URL(string: "\(source.url)\(call)")
 		var request = URLRequest(url: url!)
 		request.httpBody = body
 		request.httpMethod = method
@@ -24,7 +42,7 @@ fileprivate extension Swiftfall {
                 return
             }
             
-            let decoder = JSONDecoder()
+            let decoder = ReerJSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let httpStatus = (response as! HTTPURLResponse).statusCode
             do {
@@ -72,9 +90,10 @@ extension Swiftfall {
         }
     }
 	
-	static func getCollection(identifiers: [MTGCardIdentifier]) throws -> CardCollectionList {
+  static func getCollection(identifiers: [MTGCardIdentifier], source: Source = .scryfall) throws -> CardCollectionList {
 		let encoder = JSONEncoder()
 		encoder.outputFormatting = .prettyPrinted
+    encoder.keyEncodingStrategy = .convertToSnakeCase
 		
 		let data = try encoder.encode(["identifiers": identifiers])
 		let string = String(data: data, encoding: .utf8)!
@@ -86,7 +105,7 @@ extension Swiftfall {
 		var cardlist: Swift.Result<CardCollectionList, Error>?
         var stop = false
 		
-		parseResource(call: call, body: string.data(using: .utf8), method: "POST") {
+		parseResource(call: call, body: string.data(using: .utf8), method: "POST", source: source) {
 			(newcardlist: Swift.Result<CardCollectionList, Error>) in
             cardlist = newcardlist
             stop = true

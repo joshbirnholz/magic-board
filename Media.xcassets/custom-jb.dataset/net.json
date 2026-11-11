@@ -1,0 +1,133 @@
+[
+  {
+    "manaCost": "",
+    "language": "en",
+    "frame": "2015",
+    "colors": [],
+    "isNonFoilAvailable": true,
+    "isPromo": false,
+    "scryfallCardBackID": "0AEEBAF5-8C7D-4636-9E82-8C27447861F7",
+    "set": "JB",
+    "name": "Factory of Momir Vig",
+    "typeLine": "Emblem",
+    "isFullArt": false,
+    "layout": "emblem",
+    "collectorNumber": "1",
+    "allParts": [],
+    "printedTypeLine": "Emblem",
+    "printedName": "Factory of Momir Vig",
+    "isFoundInBoosters": false,
+    "imageUris": {
+      "large": "https://i.imgur.com/AkM5d2n.jpg",
+      "normal": "https://i.imgur.com/Rp0SYUj.jpg",
+      "art_crop": "https://i.imgur.com/Heid220.jpg",
+      "png": "https://i.imgur.com/OEjX9Bl.png",
+      "small": "https://i.imgur.com/jaQzSQt.jpg"
+    },
+    "rarity": "common",
+    "borderColor": "black",
+    "printedText": "{X}, Discard a card: Create a token that's a copy of a random creature card with converted mana cost X. Activate this ability only any time you could cast a sorcery and only once each turn.",
+    "scryfallID": "BE7EBF32-9D48-4866-9324-ECD5AC0ED4AB",
+    "isFoilAvailable": false,
+    "oracleText": "{X}, Discard a card: Create a token that's a copy of a random creature card with converted mana cost X. Activate this ability only any time you could cast a sorcery and only once each turn."
+  },
+  {
+    "manaCost": "",
+    "language": "en",
+    "frame": "2015",
+    "colors": ["B"],
+    "isNonFoilAvailable": true,
+    "isPromo": false,
+    "scryfallCardBackID": "0AEEBAF5-8C7D-4636-9E82-8C27447861F7",
+    "set": "JB",
+    "name": "Snake",
+    "typeLine": "Token Creature — Snake",
+    "isFullArt": false,
+    "layout": "token",
+    "collectorNumber": "2",
+    "allParts": [],
+    "printedTypeLine": "Token Creature — Snake",
+    "printedName": "Snake",
+    "isFoundInBoosters": false,
+    "imageUris": {
+      "large": "http://josh.birnholz.com/tts/cards/custom/c13snakefixed.jpg",
+      "normal": "http://josh.birnholz.com/tts/cards/custom/c13snakefixed.jpg",
+      "art_crop": "https://i.imgur.com/orOKzEX.jpg",
+      "png": "http://josh.birnholz.com/tts/cards/custom/c13snakefixed.jpg",
+      "small": "http://josh.birnholz.com/tts/cards/custom/c13snakefixed.jpg"
+    },
+    "rarity": "common",
+    "borderColor": "black",
+    "printedText": "Deathtouch",
+    "keywords": ["Deathtouch"],
+    "scryfallID": "47E9A3E4-4406-11EB-B378-0242AC130002",
+    "isFoilAvailable": false,
+    "oracleText": "Deathtouch",
+    "power": "1",
+    "toughness": "1"
+  },
+  {
+  "oracleID": "8331664a-fea6-4233-aa8e-9a024f4078c8",
+  "scryfallID": "64ec2eed-8a8d-44f9-8709-e724c3c66e66",
+  "name": "Auriel, Vigilant Sentinel",
+  "language": "en",
+  "layout": "normal",
+  "imageUris": {
+    "small": "https://i.imgur.com/vgZLMY9.jpg",
+    "normal": "https://i.imgur.com/254q77Q.jpg",
+    "large": "https://i.imgur.com/bscLbpK.jpg",
+    "png": "https://i.imgur.com/iLZ6cnX.png",
+    "art_crop": "https://i.imgur.com/kVBdCRO.jpg",
+    "border_crop": "https://i.imgur.com/kcl5Hxb.jpg"
+  },
+  "manaCost": "{3}{W}{W}",
+  "cmc": 5,
+  "power": "3",
+  "toughness": "3",
+  "typeLine": "Legendary Creature — Angel",
+  "oracleText": "Flying, vigilance\nWhenever Auriel, Vigilant Sentinel or another creature you control with vigilance becomes tapped, you gain 1 life.\nAt the beginning of your end step, if you gained 3 or more life this turn, create a 2/2 white Knight creature token with vigilance.",
+  "colors": [
+    "W"
+  ],
+  "colorIdentity": [
+    "W"
+  ],
+  "keywords": [
+    "Flying",
+    "Vigilance"
+  ],
+  "allParts": [
+    {
+      "scryfallID": "f4035134-a162-4651-86c5-ae006b6e0e20",
+      "component": "token",
+      "name": "Knight",
+      "typeLine": "Token Creature — Knight",
+      "url": "https://api.scryfall.com/cards/f4035134-a162-4651-86c5-ae006b6e0e20",
+    }
+  ],
+  "games": [
+    "paper"
+  ],
+  "reserved": false,
+  "isFoilAvailable": true,
+  "isNonFoilAvailable": true,
+  "finishes": [
+    "nonfoil",
+    "foil"
+  ],
+  "oversized": false,
+  "isPromo": false,
+  "set": "custom",
+  "setName": "Custom",
+  "setType": "expansion",
+  "collectorNumber": "1001",
+  "digital": false,
+  "rarity": "rare",
+  "scryfallCardBackID": "0aeebaf5-8c7d-4636-9e82-8c27447861f7",
+  "artist": "DALL•E",
+  "borderColor": "black",
+  "frame": "2015",
+  "isFullArt": false,
+  "isFoundInBoosters": false,
+}
+]

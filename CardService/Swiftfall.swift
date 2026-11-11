@@ -1,8 +1,10 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+import ReerJSON
 
 internal class Swiftfall {
-    
-    static let scryfall = "https://api.scryfall.com/"
     
     public struct Symbol: Codable, CustomStringConvertible {
         
@@ -99,6 +101,9 @@ internal class Swiftfall {
         // The text of the ruling.
         public let comment: String
         
+		// The oracle ID associated with this ruling
+		public let oracleId: UUID?
+		
         // A simple print function for a ruling
         public var description: String {
             return "Source: \(source)\nComments: \(comment)\n"
@@ -186,7 +191,7 @@ internal class Swiftfall {
         public let searchUri: String
         
         // the release date of the set
-        public let releasedAt: String?
+        public let releasedAt: Date?
         
         // A computer-readable classification for this set. See below.
         public let setType: String
@@ -208,7 +213,6 @@ internal class Swiftfall {
         
         //A URI to an SVG file for this set’s icon on Scryfall’s CDN. Hotlinking this image isn’t recommended, because it may change slightly over time. You should download it and use it locally for your particular user interface needs.
         public let iconSvgUri: String?
-        
         
         private func getCards(searchURI:String) -> [CardList?] {
             let call = searchURI
@@ -300,9 +304,9 @@ internal class Swiftfall {
             // A URI where you can retrieve a full object describing this card on Scryfall’s API.
             public let uri: String
 			
-			public let component: String?
+			public let component: String
 			
-			public let typeLine: String?
+			public let typeLine: String
             
             public var description: String {
                 return "Name: \(name)\nURI: \(uri)"
@@ -322,6 +326,8 @@ internal class Swiftfall {
             public let oracleText: String?
             
             public let colors: [String]?
+			
+			public let colorIndicator: [String]?
             
             public let power: String?
             
@@ -333,7 +339,15 @@ internal class Swiftfall {
             
             public let illustrationId: String?
             
-            public let imageUris: [String: URL]?
+            public var imageUris: [String: URL]?
+			
+			public let watermark: String?
+			
+			public let artist: String?
+          
+          public let printedName: String?
+          public let printedTypeLine: String?
+          public let printedText: String?
             
             public var description: String {
                 var text = ""
@@ -388,6 +402,16 @@ internal class Swiftfall {
             
         }
 		
+		public struct Preview: Codable, CustomStringConvertible, Equatable, Hashable {
+			public var description: String {
+				return sourceUri ?? ""
+			}
+			
+			public let source: String?
+			public let sourceUri: String?
+			public let previewedAt: String?
+		}
+		
 		public enum Language: String, Codable, Equatable, Hashable {
 			case english = "en"
 			case spanish = "es"
@@ -405,16 +429,21 @@ internal class Swiftfall {
 			case ancientGreek = "grc"
 			case arabic = "ar"
 			case sanskrit = "sa"
-			case phyrexian = "px"
+			case phyrexian = "ph"
+      case quenya = "qya"
+      case dwarvish = "dw"
+      case klingon = "tlh"
 		}
         
         public let prices: Prices?
+		
+		public let preview: Preview?
         
         // A unique ID for this card in Scryfall’s database.
         public let id: UUID
         
         // A unique ID for this card’s oracle identity. This value is consistent across reprinted card editions, and unique among different cards with the same name (tokens, Unstable variants, etc).
-        public let oracleId: UUID
+        public let oracleId: UUID?
         
         // This card’s multiverse IDs on Gatherer, if any, as an array of integers. Note that Scryfall includes many promo cards, tokens, and other esoteric objects that do not have these identifiers.
         public let multiverseIds: [Int]
@@ -469,6 +498,16 @@ internal class Swiftfall {
         
         // This card’s colors.
         public let colors: [String]?
+		
+		// True if you should consider avoiding use of this print downstream.
+		public let contentWarning: Bool?
+		
+		// An array of keywords that this card uses, such as 'Flying' and 'Cumulative upkeep'.
+		public let keywords: [String]?
+		
+		public let colorIndicator: [String]?
+      
+      public let producedMana: [String]?
         
         // Online listings for these cards names.
         public let purchaseUris: [String:String]?
@@ -480,7 +519,7 @@ internal class Swiftfall {
         public let illustrationId: String?
         
         // uris of the images
-        public let imageUris: [String:String]?
+		public var imageUris: [String:URL]?
         
         // legality in different formats
         public let legalities: [String:String]
@@ -496,12 +535,17 @@ internal class Swiftfall {
         
         // This card's set code
         public let set: String
+		
+		// This card's set type
+		public let setType: String?
         
         // This card's set's full name
         public let setName: String
         
         // This card's rarity. This is not the same for all versions of the card.
         public let rarity: String
+		
+		public let cardBackId: UUID?
         
         // This card's artist
         public let artist: String?
@@ -521,10 +565,10 @@ internal class Swiftfall {
 		
 		// This card’s frame effects, if any.
 		// https://scryfall.com/docs/api/layouts
-		public let frameEffects: [String]?
+		public var frameEffects: [String]?
         
         // True if this card’s artwork is larger than normal.
-        public let fullArt: Bool
+        public var fullArt: Bool
         
         // This card’s watermark, if any.
         public let watermark: String?
@@ -541,6 +585,9 @@ internal class Swiftfall {
 		/// The localized name printed on this card, if any.
 		public let printedName: String?
 		
+		///
+		public var flavorName: String?
+		
 		/// The localized text printed on this card, if any.
 		public let printedText: String?
 		
@@ -554,6 +601,13 @@ internal class Swiftfall {
 		
 		/// True if this printing exists in a nonfoil version.
 		public let nonfoil: Bool
+		
+		public let promo: Bool
+		
+		
+		public let booster: Bool
+      
+      public var securityStamp: String?
 		
 		/// The date this card was first released.
 		public let releasedAt: String
@@ -608,7 +662,9 @@ internal class Swiftfall {
     }
     
     /// Retreives JSON data from URL and parses it with JSON decoder.
-    static func parseResource<ResultType: Decodable>(call: String, completion: @escaping (Result<ResultType>) -> ()) {
+	static func parseResource<ResultType: Decodable>(call: String, dateDecodingStrategy: @autoclosure (() -> JSONDecoder.DateDecodingStrategy) = .formatted({ var df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"; return df }()), completion: @escaping (Result<ResultType>) -> ()) {
+		
+		let dateDecodingStrategy = dateDecodingStrategy()
         
         let url = URL(string: call)
         let task = URLSession.shared.dataTask(with: url!) {(data, response, error) in
@@ -618,11 +674,9 @@ internal class Swiftfall {
                 return
             }
             
-            let decoder = JSONDecoder()
+            let decoder = ReerJSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-			let formatter = DateFormatter()
-			formatter.dateFormat = "yyyy-MM-dd"
-			decoder.dateDecodingStrategy = .formatted(formatter)
+			decoder.dateDecodingStrategy = dateDecodingStrategy
             let httpStatus = (response as! HTTPURLResponse).statusCode
             do {
                 if (200..<300).contains(httpStatus) {
@@ -644,8 +698,8 @@ internal class Swiftfall {
     }
 	
 	// gets a Card by using the Scryfall ID
-    public static func getCard(id: String) throws -> Card {
-        let call = "\(scryfall)cards/\(id)"
+    public static func getCard(id: String, source: Source = .scryfall) throws -> Card {
+        let call = "\(source.url)cards/\(id)"
         var card: Result<Card>?
         
         let semaphore = DispatchSemaphore(value: 0)
@@ -661,8 +715,8 @@ internal class Swiftfall {
     }
     
     // gets a Card by using the code and id number
-    public static func getCard(code: String, number: String) throws -> Card {
-        let call = "\(scryfall)cards/\(code)/\(number)"
+  public static func getCard(code: String, number: String, source: Source = .scryfall) throws -> Card {
+        let call = "\(source.url)cards/\(code)/\(number)"
         var card: Result<Card>?
         
         let semaphore = DispatchSemaphore(value: 0)
@@ -679,7 +733,7 @@ internal class Swiftfall {
     
     // gets a Card by using the arena code
     public static func getCard(arena: Int) throws -> Card {
-        let call = "\(scryfall)cards/arena/\(arena)"
+        let call = "\(Source.scryfall.url)cards/arena/\(arena)"
         var card: Result<Card>?
         
         let semaphore = DispatchSemaphore(value: 0)
@@ -695,9 +749,9 @@ internal class Swiftfall {
     }
     
     // fuzzy
-    public static func getCard(fuzzy: String) throws -> Card {
+    public static func getCard(fuzzy: String, source: Source = .scryfall) throws -> Card {
         let encodeFuzz = fuzzy.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
-        let call = "\(scryfall)cards/named?fuzzy=\(encodeFuzz)"
+        let call = "\(source.url)cards/named?fuzzy=\(encodeFuzz)"
         
         
         var card: Result<Card>?
@@ -715,9 +769,9 @@ internal class Swiftfall {
     
     
     // exact
-    public static func getCard(exact: String) throws -> Card {
+    public static func getCard(exact: String, source: Source = .scryfall) throws -> Card {
         let encodeExactly = exact.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
-        let call = "\(scryfall)cards/named?exact=\(encodeExactly)"
+      let call = "\(source.url)cards/named?exact=\(encodeExactly)"
         
         var card: Result<Card>?
         
@@ -734,8 +788,12 @@ internal class Swiftfall {
     }
     
     // fuzzy
-    public static func getRandomCard() throws -> Card {
-        let call = "\(scryfall)cards/random"
+    public static func getRandomCard(query: String? = nil) throws -> Card {
+        var call = "\(Source.scryfall.url)cards/random"
+      
+        if let query = query?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), !query.isEmpty {
+          call += "?q=\(query)"
+        }
         
         var card: Result<Card>?
         
@@ -754,7 +812,7 @@ internal class Swiftfall {
     // get a catalog
     public static func getCatalog(catalog: String) throws -> Catalog {
         let encodeCatalog = catalog.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
-        let call = "\(scryfall)catalog/\(encodeCatalog)"
+        let call = "\(Source.scryfall.url)catalog/\(encodeCatalog)"
         var cat: Result<Catalog>?
         
         let semaphore = DispatchSemaphore(value: 0)
@@ -772,7 +830,7 @@ internal class Swiftfall {
     // set
     public static func getSet(code: String) throws -> ScryfallSet {
         let encodeExactly = code.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
-        let call = "\(scryfall)sets/\(encodeExactly)"
+        let call = "\(Source.scryfall.url)sets/\(encodeExactly)"
         
         var set: Result<ScryfallSet>?
         
@@ -791,7 +849,7 @@ internal class Swiftfall {
     
     public static func getSetList() throws -> SetList
     {
-        let call = "\(scryfall)sets/"
+        let call = "\(Source.scryfall.url)sets/"
         
         var setlist: Result<SetList>?
         
@@ -809,7 +867,7 @@ internal class Swiftfall {
     
     
     public static func getCardList() throws -> CardList {
-        let call = "\(scryfall)cards/"
+        let call = "\(Source.scryfall.url)cards/"
         
         var cardlist: Result<CardList>?
         
@@ -824,10 +882,88 @@ internal class Swiftfall {
         
         return try cardlist!.promote()
     }
+	
+	public enum SearchOrder: String {
+		case name, set, released, rarity, color, usd, tix, eur, cmc, power, toughness, edhrec, artist
+	}
+	
+	public enum SearchOrderDirection: String {
+		case auto, ascending = "asc", descending = "desc"
+	}
+	
+	public static func getCards(query: String, unique: Bool = false, order: SearchOrder? = nil, dir: SearchOrderDirection? = nil) -> [CardList?] {
+		let orderQuery: String = {
+			if let order = order {
+				return "order=\(order.rawValue)&"
+			} else {
+				return ""
+			}
+		}()
+		let orderDirQuery: String = {
+			if let dir = dir {
+				return "dir=\(dir.rawValue)&"
+			} else {
+				return ""
+			}
+		}()
+		var call = "\(Source.scryfall.url)cards/search?\(orderQuery)\(orderDirQuery)q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+		
+		if unique {
+			call += "&unique=prints"
+		}
+		
+		var cardlist: Result<CardList>?
+		
+		let semaphore = DispatchSemaphore(value: 0)
+		parseResource(call: call) {
+			(newcardlist: Result<CardList>) in
+			cardlist = newcardlist
+			semaphore.signal()
+		}
+		
+		semaphore.wait()
+		var cardListArray: [CardList?] = []
+		do {
+			if try cardlist!.promote().hasMore {
+				
+				cardListArray += (self.getCards(searchURI: try cardlist!.promote().nextPage!))
+			}
+			let newlist = try cardlist!.promote()
+			cardListArray.append(newlist)
+			return cardListArray
+		} catch {
+			return []
+		}
+	}
+	
+	private static func getCards(searchURI:String) -> [CardList?] {
+		let call = searchURI
+		
+		var cardlist: Result<CardList>?
+		
+		let semaphore = DispatchSemaphore(value: 0)
+		parseResource(call: call) {
+			(newcardlist: Result<CardList>) in
+			cardlist = newcardlist
+			semaphore.signal()
+		}
+		
+		semaphore.wait()
+		var cardListArray: [CardList?] = []
+		do {
+			if try cardlist!.promote().hasMore {
+				cardListArray += (self.getCards(searchURI: try cardlist!.promote().nextPage!))
+			}
+			let newlist = try cardlist!.promote()
+			cardListArray.append(newlist)
+			return cardListArray
+		} catch {
+			return []
+		}
+	}
     
-    public static func getCardList(page:Int) throws -> CardList
-    {
-        let call = "\(scryfall)cards?page=\(page)"
+	public static func getCardList(page:Int) throws -> CardList {
+        let call = "\(Source.scryfall.url)cards?page=\(page)"
         
         var cardlist: Result<CardList>?
         
@@ -845,7 +981,7 @@ internal class Swiftfall {
     
     
     public static func getRulingList(code:String,number:Int) throws -> RulingList {
-        let call = "\(scryfall)cards/\(code)/\(number)/rulings"
+        let call = "\(Source.scryfall.url)cards/\(code)/\(number)/rulings"
         
         var rulelist: Result<RulingList>?
         
@@ -861,9 +997,27 @@ internal class Swiftfall {
         return try rulelist!.promote()
         
     }
+  
+  public static func getRulingList(id: UUID) throws -> RulingList {
+    let call = "\(Source.scryfall.url)cards/\(id)/rulings"
+      
+      var rulelist: Result<RulingList>?
+      
+      let semaphore = DispatchSemaphore(value: 0)
+      parseResource(call: call) {
+          (newrulelist: Result<RulingList>) in
+          rulelist = newrulelist
+          semaphore.signal()
+      }
+      
+      semaphore.wait()
+      
+      return try rulelist!.promote()
+      
+  }
     
     public static func getSymbols() throws -> SymbolList {
-        let call = "\(scryfall)symbology"
+        let call = "\(Source.scryfall.url)symbology"
         
         var symbollist: Result<SymbolList>?
         let semaphore = DispatchSemaphore(value: 0)
@@ -880,7 +1034,7 @@ internal class Swiftfall {
     
     // give a search term and return a catalog of similar cards
     public static func autocomplete(_ string: String) throws -> Catalog {
-        let call = "\(scryfall)cards/autocomplete?q=\(string)"
+        let call = "\(Source.scryfall.url)cards/autocomplete?q=\(string)"
         
         var cat: Result<Catalog>?
         

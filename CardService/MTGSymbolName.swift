@@ -14,8 +14,9 @@ public enum MTGSymbolName: String, CaseIterable {
 	case symbol_Q = "{Q}"
 	case symbol_E = "{E}"
 	case symbol_PW = "{PW}"
-	case symbol_ARON = "{A}"
+	case symbol_ACRON = "{A}"
 	case symbol_CHAOS = "{CHAOS}"
+	case symbol_TIX = "{TIX}"
 	case symbol_X = "{X}"
 	case symbol_Y = "{Y}"
 	case symbol_Z = "{Z}"
@@ -74,6 +75,16 @@ public enum MTGSymbolName: String, CaseIterable {
 	case symbol_G = "{G}"
 	case symbol_C = "{C}"
 	case symbol_S = "{S}"
+	case symbol_B_G_P = "{B/G/P}"
+	case symbol_B_R_P = "{B/R/P}"
+	case symbol_G_U_P = "{G/U/P}"
+	case symbol_G_W_P = "{G/W/P}"
+	case symbol_R_G_P = "{R/G/P}"
+	case symbol_R_W_P = "{R/W/P}"
+	case symbol_U_B_P = "{U/B/P}"
+	case symbol_U_R_P = "{U/R/P}"
+	case symbol_W_B_P = "{W/B/P}"
+	case symbol_W_U_P = "{W/U/P}"
 
 	public var image: UIImage {
 		return UIImage(named: rawValue.replacingOccurrences(of: "/", with: "-"))!.withRenderingMode(.alwaysOriginal)

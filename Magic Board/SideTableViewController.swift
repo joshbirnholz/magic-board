@@ -9,12 +9,362 @@
 import UIKit
 import CardService
 import RxSwift
+import SwiftUI
+import RxRelay
+import CardView
+
+struct CardControlView: View {
+	let card: CardInstance
+	let dismiss: () -> Void
+	
+	@State var doesNotAutoUntapChecked: Bool
+	@State var doesNotUntapNextTurnChecked: Bool
+  @State var isCommanderChecked: Bool
+  @State var commanderCasts: Int
+  @State var colors: [MTGColor]
+  
+	@State var creationCount: Int = 1
+	
+	init(card: CardInstance, dismiss: @escaping () -> Void) {
+		self.card = card
+		self.doesNotAutoUntapChecked = card.doesNotUntapAutomatically.value
+		self.doesNotUntapNextTurnChecked = card.doesNotUntapNextTurn.value
+    self.isCommanderChecked = card.isCommander.value
+    self.commanderCasts = card.commanderCasts.value
+		self.dismiss = dismiss
+    self.colors = card.colors.value
+	}
+	
+	@ViewBuilder var mainSection: some View {
+		Button("Switch Control") {
+			switch card.controllerIdentifier.value {
+			case .a:
+				card.controllerIdentifier.accept(.b)
+			case .b:
+				card.controllerIdentifier.accept(.a)
+			}
+			try? GameState.current.save()
+		}
+		
+		Button {
+			card.doesNotUntapAutomatically.accept(!card.doesNotUntapAutomatically.value)
+			doesNotAutoUntapChecked.toggle()
+		} label: {
+			HStack {
+				Text("Doesn't Auto-Untap")
+				if doesNotAutoUntapChecked {
+					Spacer()
+					Image(systemName: "checkmark")
+				}
+			}
+		}
+		
+		Button {
+			card.doesNotUntapNextTurn.accept(!card.doesNotUntapNextTurn.value)
+			doesNotUntapNextTurnChecked.toggle()
+		} label: {
+			HStack {
+				Text("Doesn't Untap Next Turn")
+				if doesNotUntapNextTurnChecked {
+					Spacer()
+					Image(systemName: "checkmark")
+				}
+			}
+		}
+		
+		if card.representation.layout == "transform", case .alternateFace(let mtgCard, _) = card.representation, let faces = mtgCard.cardFaces, !faces.isEmpty {
+			Button("Transform") {
+				if let otherSide = faces.first(where: { $0.name != card.representation.name }) {
+					card.representation = .alternateFace(mtgCard, otherSide)
+					try? GameState.current.save()
+				}
+			}
+		}
+	}
+	
+	@ViewBuilder var removeSection: some View {
+		Button("Remove") {
+			card.remove.onNext(())
+			try? GameState.current.save()
+		}.foregroundColor(.red)
+	}
+	
+	@ViewBuilder var cardFaceSection: some View {
+		switch card.representation {
+		case .faceDown(let card):
+			// For face-down cards, don't give any information about what other faces it may have. Just give the option to turn it face up.
+			Button("Face-Up") {
+				self.card.representation = card
+				
+				try? GameState.current.save()
+				dismiss()
+			}
+		case .morph(let card), .manifest(let card), .foretold(let card):
+			// For morph cards, don't give any information about what other faces it may have. Just give the option to turn it face up.
+			Button("Face-Up") {
+				self.card.representation = .card(card)
+				
+				try? GameState.current.save()
+				dismiss()
+			}
+    case .card(let card), .alternateFace(let card, _), .prototyped(let card):
+			if card.layout == "split" {
+				Button(card.name ?? "") {
+					self.card.representation = .card(card)
+					try? GameState.current.save()
+				}
+			}
+			
+			if let faces = card.cardFaces, !faces.isEmpty {
+				ForEach(faces, id: \.self) { face in
+					Button(face.name ?? "") {
+						self.card.representation = .alternateFace(card, face)
+						try? GameState.current.save()
+					}
+				}
+			}
+      
+      if card.prototype != nil {
+        Toggle(isOn: .init(get: {
+          if case .prototyped(_) = self.card.representation {
+            return true
+          } else {
+            return false
+          }
+        }, set: { newValue in
+          if newValue {
+            self.card.representation = .prototyped(card)
+          } else {
+            self.card.representation = .card(card)
+          }
+          
+          try? GameState.current.save()
+          dismiss()
+        }), label: {
+          Text("Prototyped")
+        })
+      }
+			
+			Button("Face-Down") {
+				self.card.representation = .faceDown(self.card.representation)
+				try? GameState.current.save()
+				dismiss()
+			}
+		case .tokenCopy(let representedCard):
+			Button("Face-Down") {
+				self.card.representation = .faceDown(.tokenCopy(representedCard))
+				try? GameState.current.save()
+				dismiss()
+			}
+		}
+	}
+	
+	@ViewBuilder var createSection: some View {
+		HStack {
+			Text(String(creationCount))
+			Spacer()
+			Stepper("", value: $creationCount, in: 1...20)
+		}
+		if card.representation.card.language != .english {
+			Button("English Version") {
+				guard let card = try? CardService.shared.getCard(code: card.representation.card.set, number: card.representation.card.collectorNumber) else { return }
+				DispatchQueue.main.async {
+					self.card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+						[(self.card.controllerIdentifier.value, .card(card))]
+					}
+					dismiss()
+				}
+			}
+		}
+		
+		if card.representation.name == "Factory of Momir Vig" || card.representation.name == "Momir Vig, Simic Visionary Avatar" {
+			Button("Random Creature (X = \(creationCount))") {
+				card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+					let card = try CardService.shared.getMomirCard(convertedManaCost: creationCount)
+					
+					let rep: CardRepresentation = {
+						if let faces = card.cardFaces, faces.count > 1, let firstFace = faces.first {
+							return .alternateFace(card, firstFace)
+						} else {
+							return .card(card)
+						}
+					}()
+					
+					let copy = CardRepresentation.tokenCopy(rep)
+					return [(self.card.controllerIdentifier.value, copy)]
+				}
+				dismiss()
+			}
+		}
+		
+		if let parts = card.representation.card.allParts?.filter({ $0.name != card.representation.name }), !parts.isEmpty {
+			ForEach(parts, id: \.self) { part in
+				Button(part.name) {
+					DispatchQueue.global(qos: .userInteractive).async {
+						guard let card = try? CardService.shared.getCard(scryfallID: part.scryfallID) else { return }
+						DispatchQueue.main.async {
+							self.card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+								if let faces = card.cardFaces, faces.count > 1, let front = faces.first {
+									return Array(repeating: (self.card.controllerIdentifier.value, .alternateFace(card, front)), count: creationCount)
+								} else {
+									return Array(repeating: (self.card.controllerIdentifier.value, .card(card)), count: creationCount)
+								}
+							}
+							dismiss()
+						}
+					}
+				}
+			}
+		}
+		
+		if !(card.representation.isEmblem || card.representation.typeLine == "Vanguard" || card.representation.typeLine == "Phenomenon" || card.representation.typeLine?.contains("Conspiracy") == true || card.representation.typeLine?.contains("Scheme") == true || card.representation.typeLine?.hasPrefix("Plane") == true) {
+			Button("Token Copy") {
+				card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+					Array(repeating: (card.controllerIdentifier.value, .tokenCopy(card.representation)), count: creationCount)
+				}
+				dismiss()
+			}
+		}
+		
+	}
+	
+	@ViewBuilder var specializeSection: some View {
+    if let parts = card.representation.card.allParts?.compactMap({ try? CardService.shared.getCard(scryfallID: $0.scryfallID) }), !parts.isEmpty {
+      let sorted = parts.sorted { first, second in
+        return (specializedColor(for: first, from: parts)?.orderNumber ?? -1) < (specializedColor(for: second, from: parts)?.orderNumber ?? -1)
+      }
+			ForEach(sorted, id: \.scryfallID) { part in
+        Button(action: {
+          self.card.representation = .card(part)
+          try? GameState.current.save()
+        }, label: {
+          HStack {
+            Text(part.name ?? "")
+            Spacer()
+            if let color = specializedColor(for: part, from: parts) {
+              addSymbols(string: "{\(color.initial.uppercased())}")
+            }
+          }
+        })
+			}
+		}
+	}
+	
+  var body: some View {
+    List {
+      Section {
+        mainSection
+      }
+      
+      if card.representation.card.set.lowercased() == "hbg" {
+        Section(header: Text("Specialize…")) {
+          specializeSection
+        }
+      } else {
+        switch card.representation {
+        case .faceDown, .morph, .manifest, .foretold:
+          EmptyView()
+        default:
+          Section(header: Text("Create…")) {
+            createSection
+          }
+        }
+        
+        Section(header: Text("Card Face")) {
+          cardFaceSection
+        }
+      }
+      
+      if !card.representation.isToken {
+        Section {
+          Button(action: {
+            self.card.isCommander.mutate {
+              $0.toggle()
+            }
+            
+            withAnimation {
+              isCommanderChecked.toggle()
+            }
+            
+            try? GameState.current.save()
+          }, label: {
+            HStack {
+              Text("Commander")
+              Spacer()
+              if isCommanderChecked {
+                Image(systemName: "checkmark")
+              }
+            }
+          })
+          
+          if card.isCommander.value {
+            Stepper(value: $commanderCasts, in: 0...(Int.max)) {
+              HStack {
+                Text("Commander Tax")
+                Spacer()
+                addSymbols(string: "{\(commanderCasts * 2)}", symbolLength: 16)
+                
+              }
+            }
+          }
+        }
+      }
+      
+      Section(header: Text("Properties")) {
+        HStack {
+          ForEach(MTGCardView.Color.allCases, id: \.self) { color in
+            Button(action: {
+              let color = MTGColor(rawValue: color.initial.uppercased())!
+              
+              var set = Set(self.colors)
+              
+              if self.colors.contains(color) {
+                set.remove(color)
+              } else {
+                set.insert(color)
+              }
+              
+              self.colors = Array(set)
+            }, label: {
+              Image("{\(color.initial)}")
+                .resizable()
+                .aspectRatio(1, contentMode: .fit)
+                .opacity(self.colors.contains(MTGColor(rawValue: color.initial.uppercased())!) ? 1 : 0.1)
+            }).buttonStyle(.plain)
+          }
+        }
+      }
+      
+      Section {
+        removeSection
+      }
+    }
+    .listStyle(SidebarListStyle())
+//    .listStyle(.insetGrouped)
+    .navigationTitle(card.representation.name ?? "")
+    .navigationBarTitleDisplayMode(.inline)
+    .bind(commanderCasts, to: card.commanderCasts)
+    .bind(colors, to: card.colors)
+  }
+}
+
+extension View {
+  @ViewBuilder
+  func bind<V>(
+      _ value: V,
+      to relay: BehaviorRelay<V>
+  ) -> some View where V : Equatable {
+    onChange(of: value) { newValue in
+      relay.accept(newValue)
+    }
+  }
+}
 
 class CardCell: UITableViewCell {
 	@IBOutlet weak var cardImageView: UIImageView!
 }
 
-protocol PowerToughnessCellDelegate: class {
+protocol PowerToughnessCellDelegate: AnyObject {
 	func updateHeight()
 }
 
@@ -28,7 +378,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 		
 		static var viewControllerCombinations: [[SectionModel]] {
 			return [
-				[.control],
+//				[.control],
 				[.creature]
 			]
 		}
@@ -51,7 +401,8 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 			case .card:
 				return [.card]
 			case .creature:
-				return [.flying,
+				return [
+          .flying,
 //						.summoningSickness,
 						.powerToughness]
 			case .control:
@@ -95,6 +446,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 		case summoningSickness
 		case powerToughness
 		case flying
+    case commander
 		case flip
 		case remove
 		case removeAll
@@ -130,7 +482,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 		super.viewDidLoad()
 		tableView.clipsToBounds = false
 		
-		tableView.contentInset.top -= 20
+//		tableView.contentInset.top -= 20
 	}
 
     // MARK: - Table view data source
@@ -201,6 +553,10 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 			guard let card = card else { break }
 			cell.textLabel?.text = "Flying"
 			cell.accessoryType = card.isFlying.value ? .checkmark : .none
+    case .commander:
+      guard let card = card else { break }
+      cell.textLabel?.text = "Commander"
+      cell.accessoryType = card.isCommander.value ? .checkmark : .none
 		case .chain:
 			guard let card = card else { break }
 			cell.textLabel?.text = "Doesn't Auto-Untap"
@@ -268,6 +624,12 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 			card.isFlying.accept(!card.isFlying.value)
 			tableView.cellForRow(at: indexPath)?.accessoryType = card.isFlying.value ? .checkmark : .none
 			try? GameState.current.save()
+    case .commander:
+      guard let card = card else { break }
+      card.isCommander.accept(!card.isCommander.value)
+      
+      tableView.cellForRow(at: indexPath)?.accessoryType = card.isCommander.value ? .checkmark : .none
+      try? GameState.current.save()
 		case .chain:
 			guard let card = card else { break }
 			card.doesNotUntapAutomatically.accept(!card.doesNotUntapAutomatically.value)
@@ -383,13 +745,38 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 				alert.addAction(action)
 			}
 			
-			let tokenCopyAction = UIAlertAction(title: "Token Copy\(cardInstance.representation.name.map { " of \($0)" } ?? "")", style: .default) { [weak self] _ in
-				cardInstance.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
-					[(cardInstance.controllerIdentifier.value, .tokenCopy(cardInstance.representation))]
+			if cardInstance.representation.name == "Factory of Momir Vig" || cardInstance.representation.name == "Momir Vig, Simic Visionary Avatar" {
+				for i in 0...16 {
+					let tokenCopyAction = UIAlertAction(title: "Random Creature (X = \(i))", style: .default) { [weak self] _ in
+						cardInstance.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+							let card = try CardService.shared.getMomirCard(convertedManaCost: i)
+							
+							let rep: CardRepresentation = {
+								if let faces = card.cardFaces, faces.count > 1, let firstFace = faces.first {
+									return .alternateFace(card, firstFace)
+								} else {
+									return .card(card)
+								}
+							}()
+							
+							let copy = CardRepresentation.tokenCopy(rep)
+							return [(cardInstance.controllerIdentifier.value, copy)]
+						}
+						self?.dismiss(animated: true, completion: nil)
+					}
+					alert.addAction(tokenCopyAction)
 				}
-				self?.dismiss(animated: true, completion: nil)
 			}
-			alert.addAction(tokenCopyAction)
+			
+			if !(cardInstance.representation.isEmblem || cardInstance.representation.typeLine == "Vanguard" || cardInstance.representation.typeLine == "Phenomenon" || cardInstance.representation.typeLine?.contains("Conspiracy") == true || cardInstance.representation.typeLine?.contains("Scheme") == true || cardInstance.representation.typeLine?.hasPrefix("Plane") == true) {
+				let tokenCopyAction = UIAlertAction(title: "Token Copy\(cardInstance.representation.name.map { " of \($0)" } ?? "")", style: .default) { [weak self] _ in
+					cardInstance.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+						[(cardInstance.controllerIdentifier.value, .tokenCopy(cardInstance.representation))]
+					}
+					self?.dismiss(animated: true, completion: nil)
+				}
+				alert.addAction(tokenCopyAction)
+			}
 			
 			if let parts = cardInstance.representation.card.allParts?.filter({ $0.name != cardInstance.representation.name }), !parts.isEmpty {
 				for part in parts {
@@ -398,7 +785,11 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 							guard let card = try? CardService.shared.getCard(scryfallID: part.scryfallID) else { return }
 							DispatchQueue.main.async { [weak self] in
 								cardInstance.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
-									[(cardInstance.controllerIdentifier.value, .card(card))]
+									if let faces = card.cardFaces, faces.count > 1, let front = faces.first {
+										return [(cardInstance.controllerIdentifier.value, .alternateFace(card, front))]
+									} else {
+										return [(cardInstance.controllerIdentifier.value, .card(card))]
+									}
 								}
 								self?.dismiss(animated: true, completion: nil)
 							}
@@ -433,6 +824,16 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 						try? GameState.current.save()
 					}
 					alert.addAction(faceUpAction)
+				case .morph(let card), .manifest(let card), .foretold(let card):
+					// For morph cards, don't give any information about what other faces it may have. Just give the option to turn it face up.
+					let faceUpAction = UIAlertAction(title: "Face-Up", style: .default) { _ in
+						cardInstance.representation = .card(card)
+						
+						try? GameState.current.save()
+					}
+					alert.addAction(faceUpAction)
+        case .prototyped(let card):
+          break
 				case .card(let card), .alternateFace(let card, _):
 					if card.layout == "split" {
 						let splitFaceAction = UIAlertAction(title: card.name, style: .default) { _ in
@@ -556,4 +957,26 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
     }
     */
 
+}
+
+public func specializedColor(for card: MTGCard, from cards: [MTGCard]) -> MTGColor? {
+  if card.keywords?.contains("Specialize") == true {
+    return nil
+  }
+  
+  guard let sharedColor = [MTGColor.white, .blue, .black, .red, .green].first(where: { color in
+    cards.contains { otherCard in
+      (otherCard.manaCost ?? "").lowercased().contains("{\(color.initial.lowercased())}{\(color.initial.lowercased())}")
+    }
+  }) else { return nil }
+  
+  guard let colors = card.colors else { return nil }
+  
+  if colors.count == 1 {
+    return colors.first
+  }
+  
+  var set = Set(colors)
+  set.remove(sharedColor)
+  return set.first
 }

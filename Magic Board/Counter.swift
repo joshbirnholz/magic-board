@@ -13,6 +13,7 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 	case plusOnePlusOne
 	case minusOneMinusOne
 	case loyalty
+	case lore
 	
 	case deathtouch
 	case doublestrike
@@ -31,6 +32,8 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 	case green
 	case purple
 	case yellow
+  
+  case stun
 	
 	var color: UIColor {
 		switch self {
@@ -50,6 +53,8 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 			return #colorLiteral(red: 0.5326987213, green: 0.1988100325, blue: 0.9686274529, alpha: 1)
 		case .yellow:
 			return #colorLiteral(red: 0.9529411793, green: 0.6587831172, blue: 0.2176297476, alpha: 1)
+		case .lore:
+			return #colorLiteral(red: 0.9538559318, green: 0.8971239924, blue: 0.7882547975, alpha: 1)
 		case .deathtouch:
 			return #colorLiteral(red: 0.3050225377, green: 0.3543257713, blue: 0.3664812148, alpha: 1)
 		case .doublestrike:
@@ -72,6 +77,8 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 			return #colorLiteral(red: 0.4098989367, green: 0, blue: 0.004982399289, alpha: 1)
 		case .vigilance:
 			return #colorLiteral(red: 0.002303533489, green: 0.4835820198, blue: 0.2841368616, alpha: 1)
+    case .stun:
+      return #colorLiteral(red: 0.001011309098, green: 0.32381019, blue: 0.5295761228, alpha: 1)
 		}
 	}
 	
@@ -107,6 +114,10 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 			return "Trample"
 		case .vigilance:
 			return "Vigilance"
+		case .lore:
+			return "Lore"
+    case .stun:
+      return "Stun"
 		}
 	}
 	

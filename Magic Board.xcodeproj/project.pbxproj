@@ -3,15 +3,30 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1340B26E200B9A956C1E6811 /* Pods_MagicBoardConnect.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99ECB50DBF05EEABA6994AF0 /* Pods_MagicBoardConnect.framework */; };
+		5411A9552AE0B53D00697E9F /* UIImageViewAligned.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5411A9542AE0B53D00697E9F /* UIImageViewAligned.swift */; };
+		5411A9582AE0B5F900697E9F /* RxBlocking in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9572AE0B5F900697E9F /* RxBlocking */; };
+		5411A95A2AE0B5F900697E9F /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9592AE0B5F900697E9F /* RxCocoa */; };
+		5411A95C2AE0B5F900697E9F /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A95B2AE0B5F900697E9F /* RxRelay */; };
+		5411A95E2AE0B5F900697E9F /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A95D2AE0B5F900697E9F /* RxSwift */; };
+		5411A9622AE0B5FF00697E9F /* RxBlocking in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9612AE0B5FF00697E9F /* RxBlocking */; };
+		5411A9642AE0B5FF00697E9F /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9632AE0B5FF00697E9F /* RxCocoa */; };
+		5411A9662AE0B5FF00697E9F /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9652AE0B5FF00697E9F /* RxRelay */; };
+		5411A9682AE0B5FF00697E9F /* RxSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9672AE0B5FF00697E9F /* RxSwift */; };
+		54156B012ADF107000F2BBD5 /* LandOrganizerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54156AFF2ADF106B00F2BBD5 /* LandOrganizerViewController.swift */; };
 		541DBA3324255F3100273E4C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542CF69C2415888700D453CA /* LaunchScreen.storyboard */; };
 		541DBA3424255F4A00273E4C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 542CF69C2415888700D453CA /* LaunchScreen.storyboard */; };
 		541E0A1823FB9D59008E5E35 /* UIColor+Blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */; };
 		541E0A1C23FBBE84008E5E35 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541E0A1B23FBBE84008E5E35 /* GameState.swift */; };
+		5420DD672AD6515900495CDE /* DebouncedValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5420DD662AD6515900495CDE /* DebouncedValue.swift */; };
+		5420DD682AD6515900495CDE /* DebouncedValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5420DD662AD6515900495CDE /* DebouncedValue.swift */; };
+		5424106C2AB11F4A00B5DF44 /* MPlantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5424106B2AB11F4500B5DF44 /* MPlantin.ttf */; };
+		5424106D2AB11F4B00B5DF44 /* MPlantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5424106B2AB11F4500B5DF44 /* MPlantin.ttf */; };
+		5424106F2AB11F5900B5DF44 /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5424106E2AB11F5600B5DF44 /* MPlantin-Italic.ttf */; };
+		542410702AB11F5900B5DF44 /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5424106E2AB11F5600B5DF44 /* MPlantin-Italic.ttf */; };
 		542670D0241C2E4800A48580 /* CardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542670CF241C2E4800A48580 /* CardTableViewCell.swift */; };
 		542670D1241C2E4C00A48580 /* CardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542670CF241C2E4800A48580 /* CardTableViewCell.swift */; };
 		5429751D2417EC9A0066C8E6 /* Array+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */; };
@@ -36,7 +51,6 @@
 		542CF6BC24158BAB00D453CA /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9523FF03880012F14C /* Player.swift */; };
 		542CF6BD24158BAB00D453CA /* Pile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16C2410B87000A1BBB8 /* Pile.swift */; };
 		542CF6BE24158BAB00D453CA /* Counter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A16A2410875000A1BBB8 /* Counter.swift */; };
-		542CF6BF24158BAF00D453CA /* BoardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD2023F4FA1D00AE82A9 /* BoardViewController.swift */; };
 		542CF6C024158BAF00D453CA /* CardImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A1722411CA7800A1BBB8 /* CardImageViewController.swift */; };
 		542CF6C124158BAF00D453CA /* BottomBarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E052224043A1A00ACF842 /* BottomBarViewController.swift */; };
 		542CF6C224158BAF00D453CA /* HandViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A0A17F241375ED00A1BBB8 /* HandViewController.swift */; };
@@ -59,6 +73,16 @@
 		542CF6E62415B00300D453CA /* Command.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6E42415A7E000D453CA /* Command.swift */; };
 		5430805324251E2100E98D0B /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5430805224251E2100E98D0B /* Media.xcassets */; };
 		54308054242531AE00E98D0B /* CardService.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 544DE4AF2425170100BA1977 /* CardService.xcdatamodeld */; };
+		5439CF85246A76880060A1EA /* Icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5439CF75246A76800060A1EA /* Icons.swift */; };
+		5439CF87246A76880060A1EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5439CF7A246A76850060A1EA /* Assets.xcassets */; };
+		5439CF88246A76880060A1EA /* String+Regex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5439CF7C246A76860060A1EA /* String+Regex.swift */; };
+		5439CF89246A76880060A1EA /* NSTextAlignment+ImageHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5439CF7D246A76860060A1EA /* NSTextAlignment+ImageHeight.swift */; };
+		5439CF8A246A76880060A1EA /* UIImageViewAligned.m in Sources */ = {isa = PBXBuildFile; fileRef = 5439CF7E246A76860060A1EA /* UIImageViewAligned.m */; };
+		5439CF8B246A76880060A1EA /* UIView+Tooltips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5439CF7F246A76860060A1EA /* UIView+Tooltips.swift */; };
+		5439CF8D246A76880060A1EA /* MTGCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5439CF81246A76870060A1EA /* MTGCardView.xib */; };
+		5439CF91246A76AB0060A1EA /* CardView.h in Headers */ = {isa = PBXBuildFile; fileRef = 5439CF90246A76AB0060A1EA /* CardView.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		5439CF92246A7D290060A1EA /* CardView.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 548223D52469F147004D695E /* CardView.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		5439CF95246A7D3A0060A1EA /* CardView.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 548223D52469F147004D695E /* CardView.framework */; };
 		544B631A2416F8F000FB43AF /* CardService.h in Headers */ = {isa = PBXBuildFile; fileRef = 544B63182416F8F000FB43AF /* CardService.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		544DE4B324251AF700BA1977 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544DE4B224251AF700BA1977 /* CoreDataManager.swift */; };
 		544F294B2416FB8200B6B3C8 /* Swiftfall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F294A2416FB8200B6B3C8 /* Swiftfall.swift */; };
@@ -80,22 +104,25 @@
 		544F2963241723B300B6B3C8 /* CardService.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 544B63162416F8F000FB43AF /* CardService.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		544F6DE6241CBF8A0069A912 /* CardRepresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */; };
 		544F6DE7241CBF8F0069A912 /* CardRepresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */; };
-		5463CA1E2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */; };
-		5463CA1F2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */; };
+		5453D719246E064A008A8962 /* LandscapeHandViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5453D718246E064A008A8962 /* LandscapeHandViewController.swift */; };
+		5453D71A246E064F008A8962 /* LandscapeHandViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5453D718246E064A008A8962 /* LandscapeHandViewController.swift */; };
+		545CC92D249407CE00A38969 /* Swiftfall+BulkData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545CC92C249407CE00A38969 /* Swiftfall+BulkData.swift */; };
+		545CC92F2494BA9700A38969 /* MTGRuling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 545CC92E2494BA9700A38969 /* MTGRuling.swift */; };
+		545CC9342494C8D200A38969 /* RMShapedImageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 545CC9332494C8D200A38969 /* RMShapedImageView.m */; };
+		545CC9352494C97500A38969 /* RMShapedImageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 545CC9332494C8D200A38969 /* RMShapedImageView.m */; };
+		5469B1292AB63EF2008C140A /* FannedHandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54890C182AB191F30061B5E4 /* FannedHandView.swift */; };
 		546E052324043A1A00ACF842 /* BottomBarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E052224043A1A00ACF842 /* BottomBarViewController.swift */; };
 		546E052524044EE700ACF842 /* HUDCardPileView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 546E052424044EE700ACF842 /* HUDCardPileView.xib */; };
 		546E0527240450B000ACF842 /* HUDCardPileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E0526240450B000ACF842 /* HUDCardPileView.swift */; };
 		546E05292405BB8A00ACF842 /* PileViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546E05282405BB8A00ACF842 /* PileViewController.swift */; };
+		546F9569246DC7AF002E9A93 /* BoosterPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546F9568246DC7AF002E9A93 /* BoosterPack.swift */; };
+		546F956B246DCADF002E9A93 /* Array+Separate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546F956A246DCADF002E9A93 /* Array+Separate.swift */; };
 		54795DA72418392600B5CA36 /* Beleren2016-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */; };
 		54795DA82418392600B5CA36 /* Beleren Small Caps.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */; };
 		54795DA92418392600B5CA36 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
-		54795DAA2418392600B5CA36 /* MPlantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */; };
-		54795DAB2418392600B5CA36 /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */; };
 		54795DB12418392700B5CA36 /* Beleren2016-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */; };
 		54795DB22418392700B5CA36 /* Beleren Small Caps.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */; };
 		54795DB32418392700B5CA36 /* Matrix-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */; };
-		54795DB42418392700B5CA36 /* MPlantin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */; };
-		54795DB52418392700B5CA36 /* MPlantin-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */; };
 		54795DB924189C1A00B5CA36 /* ContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54795DB624189AFA00B5CA36 /* ContainerViewController.swift */; };
 		54795DBB2419A32900B5CA36 /* ConnectSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542CF6912415888500D453CA /* ConnectSceneDelegate.swift */; };
 		54795DBC2419A3CE00B5CA36 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */; };
@@ -105,8 +132,11 @@
 		547CD3D323F9EF2800AECA85 /* PickerCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D223F9EF2800AECA85 /* PickerCell.swift */; };
 		547CD3D523FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */; };
 		547CD3D723FA5AAF00AECA85 /* Array+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */; };
-		548F0B49241DF47600639F71 /* CardDetailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548F0B48241DF47600639F71 /* CardDetailsViewController.swift */; };
-		548F0B4A241DF47600639F71 /* CardDetailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548F0B48241DF47600639F71 /* CardDetailsViewController.swift */; };
+		548223DC2469F147004D695E /* CardView.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 548223D52469F147004D695E /* CardView.framework */; };
+		548223DD2469F147004D695E /* CardView.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 548223D52469F147004D695E /* CardView.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		5486BECA2AE065780042FDFC /* OverlayedGeometryReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54890C1A2AB230CC0061B5E4 /* OverlayedGeometryReader.swift */; };
+		54890C192AB191F30061B5E4 /* FannedHandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54890C182AB191F30061B5E4 /* FannedHandView.swift */; };
+		54890C1B2AB230CC0061B5E4 /* OverlayedGeometryReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54890C1A2AB230CC0061B5E4 /* OverlayedGeometryReader.swift */; };
 		5498B06424023DBE00B34B91 /* Board.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2223F4FA1D00AE82A9 /* Board.storyboard */; };
 		5498B06524023DC400B34B91 /* MiniCardView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD3823F50AF700AE82A9 /* MiniCardView.xib */; };
 		5498B06624023DC900B34B91 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */; };
@@ -122,6 +152,142 @@
 		54A521B12420748D0092C95D /* UIView+Glow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521AF2420748D0092C95D /* UIView+Glow.swift */; };
 		54A521B324209E4F0092C95D /* Typographizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521B224209E4F0092C95D /* Typographizer.swift */; };
 		54A521B524209E570092C95D /* String+Typographizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A521B424209E570092C95D /* String+Typographizer.swift */; };
+		54ACE4AB2AB5734D00E7353C /* Dandan.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54ACE4AA2AB5734D00E7353C /* Dandan.txt */; };
+		54B667B524EA5C8F00B66C8D /* Predatory 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6673C24EA5C8F00B66C8D /* Predatory 4.txt */; };
+		54B667B624EA5C8F00B66C8D /* Elves 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6673D24EA5C8F00B66C8D /* Elves 1.txt */; };
+		54B667B724EA5C8F00B66C8D /* Cats 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6673E24EA5C8F00B66C8D /* Cats 1.txt */; };
+		54B667B824EA5C8F00B66C8D /* Devilish 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6673F24EA5C8F00B66C8D /* Devilish 3.txt */; };
+		54B667B924EA5C8F00B66C8D /* Mill.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674024EA5C8F00B66C8D /* Mill.txt */; };
+		54B667BA24EA5C8F00B66C8D /* Above the Clouds 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674124EA5C8F00B66C8D /* Above the Clouds 1.txt */; };
+		54B667BB24EA5C8F00B66C8D /* Devilish 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674224EA5C8F00B66C8D /* Devilish 2.txt */; };
+		54B667BC24EA5C8F00B66C8D /* Minotaurs 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674324EA5C8F00B66C8D /* Minotaurs 1.txt */; };
+		54B667BD24EA5C8F00B66C8D /* Feathered Friends 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674424EA5C8F00B66C8D /* Feathered Friends 4.txt */; };
+		54B667BE24EA5C8F00B66C8D /* Angels 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674524EA5C8F00B66C8D /* Angels 2.txt */; };
+		54B667BF24EA5C8F00B66C8D /* Elves 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674624EA5C8F00B66C8D /* Elves 2.txt */; };
+		54B667C024EA5C8F00B66C8D /* Cats 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674724EA5C8F00B66C8D /* Cats 2.txt */; };
+		54B667C124EA5C8F00B66C8D /* Walls.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674824EA5C8F00B66C8D /* Walls.txt */; };
+		54B667C224EA5C8F00B66C8D /* Above the Clouds 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674924EA5C8F00B66C8D /* Above the Clouds 2.txt */; };
+		54B667C324EA5C8F00B66C8D /* Dinosaurs 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674A24EA5C8F00B66C8D /* Dinosaurs 4.txt */; };
+		54B667C424EA5C8F00B66C8D /* Above the Clouds 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674B24EA5C8F00B66C8D /* Above the Clouds 3.txt */; };
+		54B667C524EA5C8F00B66C8D /* Devilish 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674C24EA5C8F00B66C8D /* Devilish 1.txt */; };
+		54B667C624EA5C8F00B66C8D /* Minotaurs 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674D24EA5C8F00B66C8D /* Minotaurs 2.txt */; };
+		54B667C724EA5C8F00B66C8D /* Angels 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674E24EA5C8F00B66C8D /* Angels 1.txt */; };
+		54B667C824EA5C8F00B66C8D /* Feathered Friends 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6674F24EA5C8F00B66C8D /* Feathered Friends 3.txt */; };
+		54B667C924EA5C8F00B66C8D /* Predatory 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675024EA5C8F00B66C8D /* Predatory 2.txt */; };
+		54B667CA24EA5C8F00B66C8D /* Dogs 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675124EA5C8F00B66C8D /* Dogs 1.txt */; };
+		54B667CB24EA5C8F00B66C8D /* Dinosaurs 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675224EA5C8F00B66C8D /* Dinosaurs 1.txt */; };
+		54B667CC24EA5C8F00B66C8D /* Devilish 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675324EA5C8F00B66C8D /* Devilish 4.txt */; };
+		54B667CD24EA5C8F00B66C8D /* Spirits 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675424EA5C8F00B66C8D /* Spirits 2.txt */; };
+		54B667CE24EA5C8F00B66C8D /* Seismic.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675524EA5C8F00B66C8D /* Seismic.txt */; };
+		54B667CF24EA5C8F00B66C8D /* Predatory 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675624EA5C8F00B66C8D /* Predatory 3.txt */; };
+		54B667D024EA5C8F00B66C8D /* Feathered Friends 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675724EA5C8F00B66C8D /* Feathered Friends 2.txt */; };
+		54B667D124EA5C8F00B66C8D /* Predatory 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675824EA5C8F00B66C8D /* Predatory 1.txt */; };
+		54B667D224EA5C8F00B66C8D /* Chandra.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675924EA5C8F00B66C8D /* Chandra.txt */; };
+		54B667D324EA5C8F00B66C8D /* Dogs 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675A24EA5C8F00B66C8D /* Dogs 2.txt */; };
+		54B667D424EA5C8F00B66C8D /* Dinosaurs 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675B24EA5C8F00B66C8D /* Dinosaurs 3.txt */; };
+		54B667D524EA5C8F00B66C8D /* Above the Clouds 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675C24EA5C8F00B66C8D /* Above the Clouds 4.txt */; };
+		54B667D624EA5C8F00B66C8D /* Dinosaurs 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675D24EA5C8F00B66C8D /* Dinosaurs 2.txt */; };
+		54B667D724EA5C8F00B66C8D /* Spirits 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675E24EA5C8F00B66C8D /* Spirits 1.txt */; };
+		54B667D824EA5C8F00B66C8D /* Feathered Friends 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6675F24EA5C8F00B66C8D /* Feathered Friends 1.txt */; };
+		54B667D924EA5C8F00B66C8D /* Wizards 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676024EA5C8F00B66C8D /* Wizards 1.txt */; };
+		54B667DA24EA5C8F00B66C8D /* Tree-Hugging 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676124EA5C8F00B66C8D /* Tree-Hugging 1.txt */; };
+		54B667DB24EA5C8F00B66C8D /* Spellcasting 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676224EA5C8F00B66C8D /* Spellcasting 1.txt */; };
+		54B667DC24EA5C8F00B66C8D /* Legion 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676324EA5C8F00B66C8D /* Legion 2.txt */; };
+		54B667DD24EA5C8F00B66C8D /* Goblins 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676424EA5C8F00B66C8D /* Goblins 4.txt */; };
+		54B667DE24EA5C8F00B66C8D /* Reanimated 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676524EA5C8F00B66C8D /* Reanimated 3.txt */; };
+		54B667DF24EA5C8F00B66C8D /* Reanimated 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676624EA5C8F00B66C8D /* Reanimated 2.txt */; };
+		54B667E024EA5C8F00B66C8D /* Legion 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676724EA5C8F00B66C8D /* Legion 3.txt */; };
+		54B667E124EA5C8F00B66C8D /* Under the Sea 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676824EA5C8F00B66C8D /* Under the Sea 1.txt */; };
+		54B667E224EA5C8F00B66C8D /* Rogues 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676924EA5C8F00B66C8D /* Rogues 1.txt */; };
+		54B667E324EA5C8F00B66C8D /* Wizards 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676A24EA5C8F00B66C8D /* Wizards 2.txt */; };
+		54B667E424EA5C8F00B66C8D /* Tree-Hugging 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676B24EA5C8F00B66C8D /* Tree-Hugging 2.txt */; };
+		54B667E524EA5C8F00B66C8D /* Spellcasting 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676C24EA5C8F00B66C8D /* Spellcasting 2.txt */; };
+		54B667E624EA5C8F00B66C8D /* Legion 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676D24EA5C8F00B66C8D /* Legion 1.txt */; };
+		54B667E724EA5C8F00B66C8D /* Reanimated 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676E24EA5C8F00B66C8D /* Reanimated 1.txt */; };
+		54B667E824EA5C8F00B66C8D /* Spellcasting 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6676F24EA5C8F00B66C8D /* Spellcasting 3.txt */; };
+		54B667E924EA5C8F00B66C8D /* Under the Sea 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677024EA5C8F00B66C8D /* Under the Sea 2.txt */; };
+		54B667EA24EA5C8F00B66C8D /* Rogues 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677124EA5C8F00B66C8D /* Rogues 2.txt */; };
+		54B667EB24EA5C8F00B66C8D /* Tree-Hugging 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677224EA5C8F00B66C8D /* Tree-Hugging 3.txt */; };
+		54B667EC24EA5C8F00B66C8D /* Spooky 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677324EA5C8F00B66C8D /* Spooky 4.txt */; };
+		54B667ED24EA5C8F00B66C8D /* Wizards 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677424EA5C8F00B66C8D /* Wizards 3.txt */; };
+		54B667EE24EA5C8F00B66C8D /* Witchcraft 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677524EA5C8F00B66C8D /* Witchcraft 2.txt */; };
+		54B667EF24EA5C8F00B66C8D /* Pirates 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677624EA5C8F00B66C8D /* Pirates 2.txt */; };
+		54B667F024EA5C8F00B66C8D /* Liliana.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677724EA5C8F00B66C8D /* Liliana.txt */; };
+		54B667F124EA5C8F00B66C8D /* Goblins 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677824EA5C8F00B66C8D /* Goblins 2.txt */; };
+		54B667F224EA5C8F00B66C8D /* Legion 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677924EA5C8F00B66C8D /* Legion 4.txt */; };
+		54B667F324EA5C8F00B66C8D /* Goblins 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677A24EA5C8F00B66C8D /* Goblins 3.txt */; };
+		54B667F424EA5C8F00B66C8D /* Reanimated 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677B24EA5C8F00B66C8D /* Reanimated 4.txt */; };
+		54B667F524EA5C8F00B66C8D /* Spooky 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677C24EA5C8F00B66C8D /* Spooky 1.txt */; };
+		54B667F624EA5C8F00B66C8D /* Spooky 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677D24EA5C8F00B66C8D /* Spooky 3.txt */; };
+		54B667F724EA5C8F00B66C8D /* Witchcraft 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677E24EA5C8F00B66C8D /* Witchcraft 1.txt */; };
+		54B667F824EA5C8F00B66C8D /* Wizards 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6677F24EA5C8F00B66C8D /* Wizards 4.txt */; };
+		54B667F924EA5C8F00B66C8D /* Pirates 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678024EA5C8F00B66C8D /* Pirates 1.txt */; };
+		54B667FA24EA5C8F00B66C8D /* Tree-Hugging 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678124EA5C8F00B66C8D /* Tree-Hugging 4.txt */; };
+		54B667FB24EA5C8F00B66C8D /* Spellcasting 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678224EA5C8F00B66C8D /* Spellcasting 4.txt */; };
+		54B667FC24EA5C8F00B66C8D /* Goblins 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678324EA5C8F00B66C8D /* Goblins 1.txt */; };
+		54B667FD24EA5C8F00B66C8D /* Spooky 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678424EA5C8F00B66C8D /* Spooky 2.txt */; };
+		54B667FE24EA5C8F00B66C8D /* Well-Read 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678524EA5C8F00B66C8D /* Well-Read 3.txt */; };
+		54B667FF24EA5C8F00B66C8D /* Lands 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678624EA5C8F00B66C8D /* Lands 1.txt */; };
+		54B6680024EA5C8F00B66C8D /* Plus One 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678724EA5C8F00B66C8D /* Plus One 3.txt */; };
+		54B6680124EA5C8F00B66C8D /* Archaeology 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678824EA5C8F00B66C8D /* Archaeology 4.txt */; };
+		54B6680224EA5C8F00B66C8D /* Heavily Armored 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678924EA5C8F00B66C8D /* Heavily Armored 1.txt */; };
+		54B6680324EA5C8F00B66C8D /* Doctor 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678A24EA5C8F00B66C8D /* Doctor 1.txt */; };
+		54B6680424EA5C8F00B66C8D /* Plus One 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678B24EA5C8F00B66C8D /* Plus One 2.txt */; };
+		54B6680524EA5C8F00B66C8D /* Well-Read 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678C24EA5C8F00B66C8D /* Well-Read 2.txt */; };
+		54B6680624EA5C8F00B66C8D /* Smashing 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678D24EA5C8F00B66C8D /* Smashing 4.txt */; };
+		54B6680724EA5C8F00B66C8D /* Dragons 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678E24EA5C8F00B66C8D /* Dragons 2.txt */; };
+		54B6680824EA5C8F00B66C8D /* Lightning 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6678F24EA5C8F00B66C8D /* Lightning 1.txt */; };
+		54B6680924EA5C8F00B66C8D /* Lands 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679024EA5C8F00B66C8D /* Lands 2.txt */; };
+		54B6680A24EA5C8F00B66C8D /* Heavily Armored 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679124EA5C8F00B66C8D /* Heavily Armored 2.txt */; };
+		54B6680B24EA5C8F00B66C8D /* Doctor 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679224EA5C8F00B66C8D /* Doctor 3.txt */; };
+		54B6680C24EA5C8F00B66C8D /* Doctor 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679324EA5C8F00B66C8D /* Doctor 2.txt */; };
+		54B6680D24EA5C8F00B66C8D /* Heavily Armored 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679424EA5C8F00B66C8D /* Heavily Armored 3.txt */; };
+		54B6680E24EA5C8F00B66C8D /* Plus One 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679524EA5C8F00B66C8D /* Plus One 1.txt */; };
+		54B6680F24EA5C8F00B66C8D /* Well-Read 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679624EA5C8F00B66C8D /* Well-Read 1.txt */; };
+		54B6681024EA5C8F00B66C8D /* Dragons 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679724EA5C8F00B66C8D /* Dragons 1.txt */; };
+		54B6681124EA5C8F00B66C8D /* Lightning 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679824EA5C8F00B66C8D /* Lightning 2.txt */; };
+		54B6681224EA5C8F00B66C8D /* Smashing 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679924EA5C8F00B66C8D /* Smashing 3.txt */; };
+		54B6681324EA5C8F00B66C8D /* Archaeology 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679A24EA5C8F00B66C8D /* Archaeology 2.txt */; };
+		54B6681424EA5C8F00B66C8D /* Basri.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679B24EA5C8F00B66C8D /* Basri.txt */; };
+		54B6681524EA5C8F00B66C8D /* Discarding 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679C24EA5C8F00B66C8D /* Discarding 1.txt */; };
+		54B6681624EA5C8F00B66C8D /* Archaeology 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679D24EA5C8F00B66C8D /* Archaeology 3.txt */; };
+		54B6681724EA5C8F00B66C8D /* Well-Read 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679E24EA5C8F00B66C8D /* Well-Read 4.txt */; };
+		54B6681824EA5C8F00B66C8D /* Plus One 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B6679F24EA5C8F00B66C8D /* Plus One 4.txt */; };
+		54B6681924EA5C8F00B66C8D /* Smashing 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A024EA5C8F00B66C8D /* Smashing 2.txt */; };
+		54B6681A24EA5C8F00B66C8D /* Archaeology 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A124EA5C8F00B66C8D /* Archaeology 1.txt */; };
+		54B6681B24EA5C8F00B66C8D /* Heavily Armored 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A224EA5C8F00B66C8D /* Heavily Armored 4.txt */; };
+		54B6681C24EA5C8F00B66C8D /* Rainbow.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A324EA5C8F00B66C8D /* Rainbow.txt */; };
+		54B6681D24EA5C8F00B66C8D /* Discarding 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A424EA5C8F00B66C8D /* Discarding 2.txt */; };
+		54B6681E24EA5C8F00B66C8D /* Doctor 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A524EA5C8F00B66C8D /* Doctor 4.txt */; };
+		54B6681F24EA5C8F00B66C8D /* Smashing 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A624EA5C8F00B66C8D /* Smashing 1.txt */; };
+		54B6682024EA5C8F00B66C8D /* Vampires 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A724EA5C8F00B66C8D /* Vampires 4.txt */; };
+		54B6682124EA5C8F00B66C8D /* Minions 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A824EA5C8F00B66C8D /* Minions 4.txt */; };
+		54B6682224EA5C8F00B66C8D /* Vampires 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667A924EA5C8F00B66C8D /* Vampires 3.txt */; };
+		54B6682324EA5C8F00B66C8D /* Minions 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667AA24EA5C8F00B66C8D /* Minions 1.txt */; };
+		54B6682424EA5C8F00B66C8D /* Phyrexian.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667AB24EA5C8F00B66C8D /* Phyrexian.txt */; };
+		54B6682524EA5C8F00B66C8D /* Enchanted 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667AC24EA5C8F00B66C8D /* Enchanted 1.txt */; };
+		54B6682624EA5C8F00B66C8D /* Vampires 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667AD24EA5C8F00B66C8D /* Vampires 2.txt */; };
+		54B6682724EA5C8F00B66C8D /* Unicorns.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667AE24EA5C8F00B66C8D /* Unicorns.txt */; };
+		54B6682824EA5C8F00B66C8D /* Garruk.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667AF24EA5C8F00B66C8D /* Garruk.txt */; };
+		54B6682924EA5C8F00B66C8D /* Teferi.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667B024EA5C8F00B66C8D /* Teferi.txt */; };
+		54B6682A24EA5C8F00B66C8D /* Minions 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667B124EA5C8F00B66C8D /* Minions 3.txt */; };
+		54B6682B24EA5C8F00B66C8D /* Minions 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667B224EA5C8F00B66C8D /* Minions 2.txt */; };
+		54B6682C24EA5C8F00B66C8D /* Enchanted 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667B324EA5C8F00B66C8D /* Enchanted 2.txt */; };
+		54B6682D24EA5C8F00B66C8D /* Vampires 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 54B667B424EA5C8F00B66C8D /* Vampires 1.txt */; };
+		54B6B1B72AD619D600823454 /* OrderedSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C15C9323FF034B0012F14C /* OrderedSet.swift */; };
+		54B822312AED97440059998E /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 54B822302AED97440059998E /* Vapor */; };
+		54B822342AED97630059998E /* Leaf in Frameworks */ = {isa = PBXBuildFile; productRef = 54B822332AED97630059998E /* Leaf */; };
+		54B822362AED97850059998E /* WebServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B822352AED97850059998E /* WebServer.swift */; };
+		54B934542967BD8D00FA1D32 /* MTGCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B934532967BD8D00FA1D32 /* MTGCardView.swift */; };
+		54BBC2532AD8D7A200565651 /* SmartQuotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BBC2522AD8D7A200565651 /* SmartQuotes.swift */; };
+		54BBC2552AD8F45300565651 /* LifeTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BBC2542AD8F45300565651 /* LifeTracker.swift */; };
+		54BBC2562AD9096500565651 /* LifeTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BBC2542AD8F45300565651 /* LifeTracker.swift */; };
+		54BC670D28C28DB8000E971B /* RemoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BC670C28C28DB8000E971B /* RemoteCard.swift */; };
+		54BC670E28C28DB8000E971B /* RemoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BC670C28C28DB8000E971B /* RemoteCard.swift */; };
+		54BC671028C4156A000E971B /* JumpStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BC670F28C4156A000E971B /* JumpStartView.swift */; };
+		54BC671128C4156A000E971B /* JumpStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BC670F28C4156A000E971B /* JumpStartView.swift */; };
+		54BC671328C415A5000E971B /* LoadDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BC671228C415A5000E971B /* LoadDeckView.swift */; };
+		54BC671428C415A5000E971B /* LoadDeckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BC671228C415A5000E971B /* LoadDeckView.swift */; };
 		54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */; };
 		54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */; };
 		54BECD2123F4FA1D00AE82A9 /* BoardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54BECD2023F4FA1D00AE82A9 /* BoardViewController.swift */; };
@@ -136,10 +302,28 @@
 		54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */; };
 		54C6D80D23F933E500AF980D /* Observable+Misc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80C23F933E500AF980D /* Observable+Misc.swift */; };
 		54C6D80F23F942A400AF980D /* InsetLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C6D80E23F942A400AF980D /* InsetLabel.swift */; };
-		E82CFAA9B3F5A545BAD487F8 /* Pods_Magic_Board.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0713CDA20C60A0131455273F /* Pods_Magic_Board.framework */; };
+		54C7B4EA2AB16E1800689C90 /* AdventureTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C7B4E92AB16E1800689C90 /* AdventureTextView.swift */; };
+		54C7B4EB2AB16E1800689C90 /* AdventureTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C7B4E92AB16E1800689C90 /* AdventureTextView.swift */; };
+		54D0F5F32AB8DE5800864E79 /* AsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544A87AA24E9E67100A8BBA1 /* AsyncImage.swift */; };
+		54D0F5F42AB8DE5900864E79 /* AsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544A87AA24E9E67100A8BBA1 /* AsyncImage.swift */; };
+		54D0F5F52AB8DE5B00864E79 /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544A87AB24E9E67200A8BBA1 /* ImageLoader.swift */; };
+		54D0F5F62AB8DE5B00864E79 /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544A87AB24E9E67200A8BBA1 /* ImageLoader.swift */; };
+		54D6AFF12ABA657E000AA867 /* TextBoxTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D6AFF02ABA657E000AA867 /* TextBoxTest.swift */; };
+		54D6AFF22ABA657E000AA867 /* TextBoxTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D6AFF02ABA657E000AA867 /* TextBoxTest.swift */; };
+		54D9C1ED2472D859007E5B86 /* MTGSymbolName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D9C1EC2472D859007E5B86 /* MTGSymbolName.swift */; };
+		54F8A4762E8B251A00F72BEF /* ReerJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 54F8A4752E8B251A00F72BEF /* ReerJSON */; };
+		54F8A4992E8D8DAA00F72BEF /* JumpInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F8A4972E8D8DA600F72BEF /* JumpInView.swift */; };
+		54F8A49A2E8E16DC00F72BEF /* JumpInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F8A4972E8D8DA600F72BEF /* JumpInView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		5439CF93246A7D340060A1EA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 548223D42469F147004D695E;
+			remoteInfo = CardView;
+		};
 		544B631B2416F8F000FB43AF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
@@ -154,6 +338,13 @@
 			remoteGlobalIDString = 544B63152416F8F000FB43AF;
 			remoteInfo = CardService;
 		};
+		548223DA2469F147004D695E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 548223D42469F147004D695E;
+			remoteInfo = CardView;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -164,6 +355,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				544F2960241723AD00B6B3C8 /* CardService.framework in Embed Frameworks */,
+				548223DD2469F147004D695E /* CardView.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -174,6 +366,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				5439CF92246A7D290060A1EA /* CardView.framework in Embed Frameworks */,
 				544F2963241723B300B6B3C8 /* CardService.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -182,9 +375,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0713CDA20C60A0131455273F /* Pods_Magic_Board.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Magic_Board.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		5411A9542AE0B53D00697E9F /* UIImageViewAligned.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImageViewAligned.swift; sourceTree = "<group>"; };
+		54156AFF2ADF106B00F2BBD5 /* LandOrganizerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandOrganizerViewController.swift; sourceTree = "<group>"; };
 		541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Blended.swift"; sourceTree = "<group>"; };
 		541E0A1B23FBBE84008E5E35 /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		5420DD662AD6515900495CDE /* DebouncedValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebouncedValue.swift; sourceTree = "<group>"; };
+		5424106B2AB11F4500B5DF44 /* MPlantin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MPlantin.ttf; sourceTree = "<group>"; };
+		5424106E2AB11F5600B5DF44 /* MPlantin-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MPlantin-Italic.ttf"; sourceTree = "<group>"; };
 		542670CF241C2E4800A48580 /* CardTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTableViewCell.swift; sourceTree = "<group>"; };
 		542CF68D2415888500D453CA /* Board Connect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Board Connect.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		542CF68F2415888500D453CA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -196,6 +393,16 @@
 		542CF6DE24159F7200D453CA /* Role.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Role.swift; sourceTree = "<group>"; };
 		542CF6E42415A7E000D453CA /* Command.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Command.swift; sourceTree = "<group>"; };
 		5430805224251E2100E98D0B /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = SOURCE_ROOT; };
+		5439CF75246A76800060A1EA /* Icons.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Icons.swift; sourceTree = "<group>"; };
+		5439CF7A246A76850060A1EA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5439CF7C246A76860060A1EA /* String+Regex.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+Regex.swift"; sourceTree = "<group>"; };
+		5439CF7D246A76860060A1EA /* NSTextAlignment+ImageHeight.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSTextAlignment+ImageHeight.swift"; sourceTree = "<group>"; };
+		5439CF7E246A76860060A1EA /* UIImageViewAligned.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UIImageViewAligned.m; sourceTree = "<group>"; };
+		5439CF7F246A76860060A1EA /* UIView+Tooltips.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+Tooltips.swift"; sourceTree = "<group>"; };
+		5439CF81246A76870060A1EA /* MTGCardView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MTGCardView.xib; sourceTree = "<group>"; };
+		5439CF90246A76AB0060A1EA /* CardView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CardView.h; sourceTree = "<group>"; };
+		544A87AA24E9E67100A8BBA1 /* AsyncImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncImage.swift; sourceTree = "<group>"; };
+		544A87AB24E9E67200A8BBA1 /* ImageLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 		544B63162416F8F000FB43AF /* CardService.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CardService.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		544B63182416F8F000FB43AF /* CardService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CardService.h; sourceTree = "<group>"; };
 		544B63192416F8F000FB43AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -209,17 +416,28 @@
 		544F295924170EF700B6B3C8 /* MTGCardIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGCardIdentifier.swift; sourceTree = "<group>"; };
 		544F295D241717DC00B6B3C8 /* CardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardService.swift; sourceTree = "<group>"; };
 		544F6DE5241CBF8A0069A912 /* CardRepresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRepresentation.swift; sourceTree = "<group>"; };
+		5453D718246E064A008A8962 /* LandscapeHandViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandscapeHandViewController.swift; sourceTree = "<group>"; };
+		545CC92C249407CE00A38969 /* Swiftfall+BulkData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Swiftfall+BulkData.swift"; sourceTree = "<group>"; };
+		545CC92E2494BA9700A38969 /* MTGRuling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGRuling.swift; sourceTree = "<group>"; };
+		545CC9302494C8CB00A38969 /* RMShapedImageView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RMShapedImageView.h; sourceTree = "<group>"; };
+		545CC9322494C8D100A38969 /* Magic Board-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Magic Board-Bridging-Header.h"; sourceTree = "<group>"; };
+		545CC9332494C8D200A38969 /* RMShapedImageView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RMShapedImageView.m; sourceTree = "<group>"; };
 		5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandCardCollectionViewController.swift; sourceTree = "<group>"; };
+		5465D86626B35152006FBA62 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		546E052224043A1A00ACF842 /* BottomBarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarViewController.swift; sourceTree = "<group>"; };
 		546E052424044EE700ACF842 /* HUDCardPileView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = HUDCardPileView.xib; sourceTree = "<group>"; };
 		546E0526240450B000ACF842 /* HUDCardPileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDCardPileView.swift; sourceTree = "<group>"; };
 		546E05282405BB8A00ACF842 /* PileViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PileViewController.swift; sourceTree = "<group>"; };
+		546F9568246DC7AF002E9A93 /* BoosterPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoosterPack.swift; sourceTree = "<group>"; };
+		546F956A246DCADF002E9A93 /* Array+Separate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Separate.swift"; sourceTree = "<group>"; };
 		54795DB624189AFA00B5CA36 /* ContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerViewController.swift; sourceTree = "<group>"; };
 		547988F624161AEE006EC7CF /* PlayerSelectViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSelectViewController.swift; sourceTree = "<group>"; };
 		547CD3D223F9EF2800AECA85 /* PickerCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerCell.swift; sourceTree = "<group>"; };
 		547CD3D423FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIBezierPath+ShouldRoundRect.swift"; sourceTree = "<group>"; };
 		547CD3D623FA5AAF00AECA85 /* Array+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Misc.swift"; sourceTree = "<group>"; };
-		548F0B48241DF47600639F71 /* CardDetailsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDetailsViewController.swift; sourceTree = "<group>"; };
+		548223D52469F147004D695E /* CardView.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CardView.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		54890C182AB191F30061B5E4 /* FannedHandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FannedHandView.swift; sourceTree = "<group>"; };
+		54890C1A2AB230CC0061B5E4 /* OverlayedGeometryReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayedGeometryReader.swift; sourceTree = "<group>"; };
 		54A0A16A2410875000A1BBB8 /* Counter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Counter.swift; sourceTree = "<group>"; };
 		54A0A16C2410B87000A1BBB8 /* Pile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pile.swift; sourceTree = "<group>"; };
 		54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountersViewController.swift; sourceTree = "<group>"; };
@@ -231,7 +449,136 @@
 		54A521AF2420748D0092C95D /* UIView+Glow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+Glow.swift"; sourceTree = "<group>"; };
 		54A521B224209E4F0092C95D /* Typographizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Typographizer.swift; sourceTree = "<group>"; };
 		54A521B424209E570092C95D /* String+Typographizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "String+Typographizer.swift"; sourceTree = "<group>"; };
+		54ACE4AA2AB5734D00E7353C /* Dandan.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Dandan.txt; sourceTree = "<group>"; };
 		54ADEB2623FF443100AF1000 /* DeckParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckParser.swift; sourceTree = "<group>"; };
+		54B6673C24EA5C8F00B66C8D /* Predatory 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Predatory 4.txt"; sourceTree = "<group>"; };
+		54B6673D24EA5C8F00B66C8D /* Elves 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Elves 1.txt"; sourceTree = "<group>"; };
+		54B6673E24EA5C8F00B66C8D /* Cats 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Cats 1.txt"; sourceTree = "<group>"; };
+		54B6673F24EA5C8F00B66C8D /* Devilish 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Devilish 3.txt"; sourceTree = "<group>"; };
+		54B6674024EA5C8F00B66C8D /* Mill.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Mill.txt; sourceTree = "<group>"; };
+		54B6674124EA5C8F00B66C8D /* Above the Clouds 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Above the Clouds 1.txt"; sourceTree = "<group>"; };
+		54B6674224EA5C8F00B66C8D /* Devilish 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Devilish 2.txt"; sourceTree = "<group>"; };
+		54B6674324EA5C8F00B66C8D /* Minotaurs 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Minotaurs 1.txt"; sourceTree = "<group>"; };
+		54B6674424EA5C8F00B66C8D /* Feathered Friends 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Feathered Friends 4.txt"; sourceTree = "<group>"; };
+		54B6674524EA5C8F00B66C8D /* Angels 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Angels 2.txt"; sourceTree = "<group>"; };
+		54B6674624EA5C8F00B66C8D /* Elves 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Elves 2.txt"; sourceTree = "<group>"; };
+		54B6674724EA5C8F00B66C8D /* Cats 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Cats 2.txt"; sourceTree = "<group>"; };
+		54B6674824EA5C8F00B66C8D /* Walls.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Walls.txt; sourceTree = "<group>"; };
+		54B6674924EA5C8F00B66C8D /* Above the Clouds 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Above the Clouds 2.txt"; sourceTree = "<group>"; };
+		54B6674A24EA5C8F00B66C8D /* Dinosaurs 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dinosaurs 4.txt"; sourceTree = "<group>"; };
+		54B6674B24EA5C8F00B66C8D /* Above the Clouds 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Above the Clouds 3.txt"; sourceTree = "<group>"; };
+		54B6674C24EA5C8F00B66C8D /* Devilish 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Devilish 1.txt"; sourceTree = "<group>"; };
+		54B6674D24EA5C8F00B66C8D /* Minotaurs 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Minotaurs 2.txt"; sourceTree = "<group>"; };
+		54B6674E24EA5C8F00B66C8D /* Angels 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Angels 1.txt"; sourceTree = "<group>"; };
+		54B6674F24EA5C8F00B66C8D /* Feathered Friends 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Feathered Friends 3.txt"; sourceTree = "<group>"; };
+		54B6675024EA5C8F00B66C8D /* Predatory 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Predatory 2.txt"; sourceTree = "<group>"; };
+		54B6675124EA5C8F00B66C8D /* Dogs 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dogs 1.txt"; sourceTree = "<group>"; };
+		54B6675224EA5C8F00B66C8D /* Dinosaurs 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dinosaurs 1.txt"; sourceTree = "<group>"; };
+		54B6675324EA5C8F00B66C8D /* Devilish 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Devilish 4.txt"; sourceTree = "<group>"; };
+		54B6675424EA5C8F00B66C8D /* Spirits 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spirits 2.txt"; sourceTree = "<group>"; };
+		54B6675524EA5C8F00B66C8D /* Seismic.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Seismic.txt; sourceTree = "<group>"; };
+		54B6675624EA5C8F00B66C8D /* Predatory 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Predatory 3.txt"; sourceTree = "<group>"; };
+		54B6675724EA5C8F00B66C8D /* Feathered Friends 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Feathered Friends 2.txt"; sourceTree = "<group>"; };
+		54B6675824EA5C8F00B66C8D /* Predatory 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Predatory 1.txt"; sourceTree = "<group>"; };
+		54B6675924EA5C8F00B66C8D /* Chandra.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Chandra.txt; sourceTree = "<group>"; };
+		54B6675A24EA5C8F00B66C8D /* Dogs 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dogs 2.txt"; sourceTree = "<group>"; };
+		54B6675B24EA5C8F00B66C8D /* Dinosaurs 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dinosaurs 3.txt"; sourceTree = "<group>"; };
+		54B6675C24EA5C8F00B66C8D /* Above the Clouds 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Above the Clouds 4.txt"; sourceTree = "<group>"; };
+		54B6675D24EA5C8F00B66C8D /* Dinosaurs 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dinosaurs 2.txt"; sourceTree = "<group>"; };
+		54B6675E24EA5C8F00B66C8D /* Spirits 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spirits 1.txt"; sourceTree = "<group>"; };
+		54B6675F24EA5C8F00B66C8D /* Feathered Friends 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Feathered Friends 1.txt"; sourceTree = "<group>"; };
+		54B6676024EA5C8F00B66C8D /* Wizards 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Wizards 1.txt"; sourceTree = "<group>"; };
+		54B6676124EA5C8F00B66C8D /* Tree-Hugging 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Tree-Hugging 1.txt"; sourceTree = "<group>"; };
+		54B6676224EA5C8F00B66C8D /* Spellcasting 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spellcasting 1.txt"; sourceTree = "<group>"; };
+		54B6676324EA5C8F00B66C8D /* Legion 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Legion 2.txt"; sourceTree = "<group>"; };
+		54B6676424EA5C8F00B66C8D /* Goblins 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Goblins 4.txt"; sourceTree = "<group>"; };
+		54B6676524EA5C8F00B66C8D /* Reanimated 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Reanimated 3.txt"; sourceTree = "<group>"; };
+		54B6676624EA5C8F00B66C8D /* Reanimated 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Reanimated 2.txt"; sourceTree = "<group>"; };
+		54B6676724EA5C8F00B66C8D /* Legion 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Legion 3.txt"; sourceTree = "<group>"; };
+		54B6676824EA5C8F00B66C8D /* Under the Sea 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Under the Sea 1.txt"; sourceTree = "<group>"; };
+		54B6676924EA5C8F00B66C8D /* Rogues 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Rogues 1.txt"; sourceTree = "<group>"; };
+		54B6676A24EA5C8F00B66C8D /* Wizards 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Wizards 2.txt"; sourceTree = "<group>"; };
+		54B6676B24EA5C8F00B66C8D /* Tree-Hugging 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Tree-Hugging 2.txt"; sourceTree = "<group>"; };
+		54B6676C24EA5C8F00B66C8D /* Spellcasting 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spellcasting 2.txt"; sourceTree = "<group>"; };
+		54B6676D24EA5C8F00B66C8D /* Legion 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Legion 1.txt"; sourceTree = "<group>"; };
+		54B6676E24EA5C8F00B66C8D /* Reanimated 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Reanimated 1.txt"; sourceTree = "<group>"; };
+		54B6676F24EA5C8F00B66C8D /* Spellcasting 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spellcasting 3.txt"; sourceTree = "<group>"; };
+		54B6677024EA5C8F00B66C8D /* Under the Sea 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Under the Sea 2.txt"; sourceTree = "<group>"; };
+		54B6677124EA5C8F00B66C8D /* Rogues 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Rogues 2.txt"; sourceTree = "<group>"; };
+		54B6677224EA5C8F00B66C8D /* Tree-Hugging 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Tree-Hugging 3.txt"; sourceTree = "<group>"; };
+		54B6677324EA5C8F00B66C8D /* Spooky 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spooky 4.txt"; sourceTree = "<group>"; };
+		54B6677424EA5C8F00B66C8D /* Wizards 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Wizards 3.txt"; sourceTree = "<group>"; };
+		54B6677524EA5C8F00B66C8D /* Witchcraft 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Witchcraft 2.txt"; sourceTree = "<group>"; };
+		54B6677624EA5C8F00B66C8D /* Pirates 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Pirates 2.txt"; sourceTree = "<group>"; };
+		54B6677724EA5C8F00B66C8D /* Liliana.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Liliana.txt; sourceTree = "<group>"; };
+		54B6677824EA5C8F00B66C8D /* Goblins 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Goblins 2.txt"; sourceTree = "<group>"; };
+		54B6677924EA5C8F00B66C8D /* Legion 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Legion 4.txt"; sourceTree = "<group>"; };
+		54B6677A24EA5C8F00B66C8D /* Goblins 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Goblins 3.txt"; sourceTree = "<group>"; };
+		54B6677B24EA5C8F00B66C8D /* Reanimated 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Reanimated 4.txt"; sourceTree = "<group>"; };
+		54B6677C24EA5C8F00B66C8D /* Spooky 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spooky 1.txt"; sourceTree = "<group>"; };
+		54B6677D24EA5C8F00B66C8D /* Spooky 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spooky 3.txt"; sourceTree = "<group>"; };
+		54B6677E24EA5C8F00B66C8D /* Witchcraft 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Witchcraft 1.txt"; sourceTree = "<group>"; };
+		54B6677F24EA5C8F00B66C8D /* Wizards 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Wizards 4.txt"; sourceTree = "<group>"; };
+		54B6678024EA5C8F00B66C8D /* Pirates 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Pirates 1.txt"; sourceTree = "<group>"; };
+		54B6678124EA5C8F00B66C8D /* Tree-Hugging 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Tree-Hugging 4.txt"; sourceTree = "<group>"; };
+		54B6678224EA5C8F00B66C8D /* Spellcasting 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spellcasting 4.txt"; sourceTree = "<group>"; };
+		54B6678324EA5C8F00B66C8D /* Goblins 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Goblins 1.txt"; sourceTree = "<group>"; };
+		54B6678424EA5C8F00B66C8D /* Spooky 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Spooky 2.txt"; sourceTree = "<group>"; };
+		54B6678524EA5C8F00B66C8D /* Well-Read 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Well-Read 3.txt"; sourceTree = "<group>"; };
+		54B6678624EA5C8F00B66C8D /* Lands 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Lands 1.txt"; sourceTree = "<group>"; };
+		54B6678724EA5C8F00B66C8D /* Plus One 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Plus One 3.txt"; sourceTree = "<group>"; };
+		54B6678824EA5C8F00B66C8D /* Archaeology 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Archaeology 4.txt"; sourceTree = "<group>"; };
+		54B6678924EA5C8F00B66C8D /* Heavily Armored 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Heavily Armored 1.txt"; sourceTree = "<group>"; };
+		54B6678A24EA5C8F00B66C8D /* Doctor 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Doctor 1.txt"; sourceTree = "<group>"; };
+		54B6678B24EA5C8F00B66C8D /* Plus One 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Plus One 2.txt"; sourceTree = "<group>"; };
+		54B6678C24EA5C8F00B66C8D /* Well-Read 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Well-Read 2.txt"; sourceTree = "<group>"; };
+		54B6678D24EA5C8F00B66C8D /* Smashing 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Smashing 4.txt"; sourceTree = "<group>"; };
+		54B6678E24EA5C8F00B66C8D /* Dragons 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dragons 2.txt"; sourceTree = "<group>"; };
+		54B6678F24EA5C8F00B66C8D /* Lightning 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Lightning 1.txt"; sourceTree = "<group>"; };
+		54B6679024EA5C8F00B66C8D /* Lands 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Lands 2.txt"; sourceTree = "<group>"; };
+		54B6679124EA5C8F00B66C8D /* Heavily Armored 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Heavily Armored 2.txt"; sourceTree = "<group>"; };
+		54B6679224EA5C8F00B66C8D /* Doctor 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Doctor 3.txt"; sourceTree = "<group>"; };
+		54B6679324EA5C8F00B66C8D /* Doctor 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Doctor 2.txt"; sourceTree = "<group>"; };
+		54B6679424EA5C8F00B66C8D /* Heavily Armored 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Heavily Armored 3.txt"; sourceTree = "<group>"; };
+		54B6679524EA5C8F00B66C8D /* Plus One 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Plus One 1.txt"; sourceTree = "<group>"; };
+		54B6679624EA5C8F00B66C8D /* Well-Read 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Well-Read 1.txt"; sourceTree = "<group>"; };
+		54B6679724EA5C8F00B66C8D /* Dragons 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Dragons 1.txt"; sourceTree = "<group>"; };
+		54B6679824EA5C8F00B66C8D /* Lightning 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Lightning 2.txt"; sourceTree = "<group>"; };
+		54B6679924EA5C8F00B66C8D /* Smashing 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Smashing 3.txt"; sourceTree = "<group>"; };
+		54B6679A24EA5C8F00B66C8D /* Archaeology 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Archaeology 2.txt"; sourceTree = "<group>"; };
+		54B6679B24EA5C8F00B66C8D /* Basri.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Basri.txt; sourceTree = "<group>"; };
+		54B6679C24EA5C8F00B66C8D /* Discarding 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Discarding 1.txt"; sourceTree = "<group>"; };
+		54B6679D24EA5C8F00B66C8D /* Archaeology 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Archaeology 3.txt"; sourceTree = "<group>"; };
+		54B6679E24EA5C8F00B66C8D /* Well-Read 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Well-Read 4.txt"; sourceTree = "<group>"; };
+		54B6679F24EA5C8F00B66C8D /* Plus One 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Plus One 4.txt"; sourceTree = "<group>"; };
+		54B667A024EA5C8F00B66C8D /* Smashing 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Smashing 2.txt"; sourceTree = "<group>"; };
+		54B667A124EA5C8F00B66C8D /* Archaeology 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Archaeology 1.txt"; sourceTree = "<group>"; };
+		54B667A224EA5C8F00B66C8D /* Heavily Armored 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Heavily Armored 4.txt"; sourceTree = "<group>"; };
+		54B667A324EA5C8F00B66C8D /* Rainbow.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Rainbow.txt; sourceTree = "<group>"; };
+		54B667A424EA5C8F00B66C8D /* Discarding 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Discarding 2.txt"; sourceTree = "<group>"; };
+		54B667A524EA5C8F00B66C8D /* Doctor 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Doctor 4.txt"; sourceTree = "<group>"; };
+		54B667A624EA5C8F00B66C8D /* Smashing 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Smashing 1.txt"; sourceTree = "<group>"; };
+		54B667A724EA5C8F00B66C8D /* Vampires 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Vampires 4.txt"; sourceTree = "<group>"; };
+		54B667A824EA5C8F00B66C8D /* Minions 4.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Minions 4.txt"; sourceTree = "<group>"; };
+		54B667A924EA5C8F00B66C8D /* Vampires 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Vampires 3.txt"; sourceTree = "<group>"; };
+		54B667AA24EA5C8F00B66C8D /* Minions 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Minions 1.txt"; sourceTree = "<group>"; };
+		54B667AB24EA5C8F00B66C8D /* Phyrexian.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Phyrexian.txt; sourceTree = "<group>"; };
+		54B667AC24EA5C8F00B66C8D /* Enchanted 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Enchanted 1.txt"; sourceTree = "<group>"; };
+		54B667AD24EA5C8F00B66C8D /* Vampires 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Vampires 2.txt"; sourceTree = "<group>"; };
+		54B667AE24EA5C8F00B66C8D /* Unicorns.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Unicorns.txt; sourceTree = "<group>"; };
+		54B667AF24EA5C8F00B66C8D /* Garruk.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Garruk.txt; sourceTree = "<group>"; };
+		54B667B024EA5C8F00B66C8D /* Teferi.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Teferi.txt; sourceTree = "<group>"; };
+		54B667B124EA5C8F00B66C8D /* Minions 3.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Minions 3.txt"; sourceTree = "<group>"; };
+		54B667B224EA5C8F00B66C8D /* Minions 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Minions 2.txt"; sourceTree = "<group>"; };
+		54B667B324EA5C8F00B66C8D /* Enchanted 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Enchanted 2.txt"; sourceTree = "<group>"; };
+		54B667B424EA5C8F00B66C8D /* Vampires 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Vampires 1.txt"; sourceTree = "<group>"; };
+		54B822352AED97850059998E /* WebServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServer.swift; sourceTree = "<group>"; };
+		54B934532967BD8D00FA1D32 /* MTGCardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MTGCardView.swift; path = ../../../Documents/Xcode/CardView/Sources/MTGCardView.swift; sourceTree = "<group>"; };
+		54BBC2522AD8D7A200565651 /* SmartQuotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQuotes.swift; sourceTree = "<group>"; };
+		54BBC2542AD8F45300565651 /* LifeTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeTracker.swift; sourceTree = "<group>"; };
+		54BC670C28C28DB8000E971B /* RemoteCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCard.swift; sourceTree = "<group>"; };
+		54BC670F28C4156A000E971B /* JumpStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JumpStartView.swift; sourceTree = "<group>"; };
+		54BC671228C415A5000E971B /* LoadDeckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadDeckView.swift; sourceTree = "<group>"; };
 		54BECD1923F4FA1D00AE82A9 /* Magic Board.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Magic Board.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		54BECD1C23F4FA1D00AE82A9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		54BECD1E23F4FA1D00AE82A9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -250,19 +597,16 @@
 		54C6D7F223F892FA00AF980D /* NSTextAlignment+ImageHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSTextAlignment+ImageHeight.swift"; sourceTree = "<group>"; };
 		54C6D7F423F89F3600AF980D /* UIView+Wiggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Wiggle.swift"; sourceTree = "<group>"; };
 		54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Beleren2016-Bold.ttf"; sourceTree = "<group>"; };
-		54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MPlantin-Italic.ttf"; sourceTree = "<group>"; };
 		54C6D7FA23F8B88000AF980D /* String+Regex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Regex.swift"; sourceTree = "<group>"; };
 		54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideTableViewController.swift; sourceTree = "<group>"; };
 		54C6D80623F919F900AF980D /* CardInstance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardInstance.swift; sourceTree = "<group>"; };
 		54C6D80A23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BehaviorRelay+PropertyWrapper.swift"; sourceTree = "<group>"; };
 		54C6D80C23F933E500AF980D /* Observable+Misc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Observable+Misc.swift"; sourceTree = "<group>"; };
 		54C6D80E23F942A400AF980D /* InsetLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsetLabel.swift; sourceTree = "<group>"; };
-		54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MPlantin.ttf; sourceTree = "<group>"; };
-		99ECB50DBF05EEABA6994AF0 /* Pods_MagicBoardConnect.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MagicBoardConnect.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		BC0C1ED25330E4F0435D789C /* Pods-Magic Board.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Magic Board.debug.xcconfig"; path = "Target Support Files/Pods-Magic Board/Pods-Magic Board.debug.xcconfig"; sourceTree = "<group>"; };
-		CB5C4778915FDF4B964A5573 /* Pods-Magic Board.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Magic Board.release.xcconfig"; path = "Target Support Files/Pods-Magic Board/Pods-Magic Board.release.xcconfig"; sourceTree = "<group>"; };
-		D5D90D40AC98DF89D97E0681 /* Pods-MagicBoardConnect.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicBoardConnect.debug.xcconfig"; path = "Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect.debug.xcconfig"; sourceTree = "<group>"; };
-		E2668C5C8B616506D10AA2E9 /* Pods-MagicBoardConnect.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MagicBoardConnect.release.xcconfig"; path = "Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect.release.xcconfig"; sourceTree = "<group>"; };
+		54C7B4E92AB16E1800689C90 /* AdventureTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdventureTextView.swift; sourceTree = "<group>"; };
+		54D6AFF02ABA657E000AA867 /* TextBoxTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextBoxTest.swift; sourceTree = "<group>"; };
+		54D9C1EC2472D859007E5B86 /* MTGSymbolName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGSymbolName.swift; sourceTree = "<group>"; };
+		54F8A4972E8D8DA600F72BEF /* JumpInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JumpInView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -270,9 +614,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5411A9662AE0B5FF00697E9F /* RxRelay in Frameworks */,
+				5439CF95246A7D3A0060A1EA /* CardView.framework in Frameworks */,
+				5411A9622AE0B5FF00697E9F /* RxBlocking in Frameworks */,
+				5411A9642AE0B5FF00697E9F /* RxCocoa in Frameworks */,
 				544F2962241723B300B6B3C8 /* CardService.framework in Frameworks */,
 				542CF6DD241599D200D453CA /* MultipeerKit in Frameworks */,
-				1340B26E200B9A956C1E6811 /* Pods_MagicBoardConnect.framework in Frameworks */,
+				5411A9682AE0B5FF00697E9F /* RxSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -280,7 +628,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54F8A4762E8B251A00F72BEF /* ReerJSON in Frameworks */,
 				544F29562417041400B6B3C8 /* SDWebImage in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		548223D22469F147004D695E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,15 +644,28 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5411A95C2AE0B5F900697E9F /* RxRelay in Frameworks */,
 				544F295F241723AD00B6B3C8 /* CardService.framework in Frameworks */,
+				5411A9582AE0B5F900697E9F /* RxBlocking in Frameworks */,
+				5411A95A2AE0B5F900697E9F /* RxCocoa in Frameworks */,
 				542CF6DB241599C200D453CA /* MultipeerKit in Frameworks */,
-				E82CFAA9B3F5A545BAD487F8 /* Pods_Magic_Board.framework in Frameworks */,
+				54B822312AED97440059998E /* Vapor in Frameworks */,
+				54B822342AED97630059998E /* Leaf in Frameworks */,
+				548223DC2469F147004D695E /* CardView.framework in Frameworks */,
+				5411A95E2AE0B5F900697E9F /* RxSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5411A9562AE0B5F800697E9F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		542CF68E2415888500D453CA /* MagicBoardConnect */ = {
 			isa = PBXGroup;
 			children = (
@@ -304,6 +673,10 @@
 				542CF68F2415888500D453CA /* AppDelegate.swift */,
 				542CF6912415888500D453CA /* ConnectSceneDelegate.swift */,
 				54795DB624189AFA00B5CA36 /* ContainerViewController.swift */,
+				5453D718246E064A008A8962 /* LandscapeHandViewController.swift */,
+				54890C182AB191F30061B5E4 /* FannedHandView.swift */,
+				54890C1A2AB230CC0061B5E4 /* OverlayedGeometryReader.swift */,
+				54C7B4E92AB16E1800689C90 /* AdventureTextView.swift */,
 				542CF6D6241597CE00D453CA /* PlayerConnect.storyboard */,
 				547988F624161AEE006EC7CF /* PlayerSelectViewController.swift */,
 				542CF69F2415888700D453CA /* Info.plist */,
@@ -311,27 +684,211 @@
 			path = MagicBoardConnect;
 			sourceTree = "<group>";
 		};
+		5439CF7B246A76860060A1EA /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				5439CF7C246A76860060A1EA /* String+Regex.swift */,
+				5439CF7D246A76860060A1EA /* NSTextAlignment+ImageHeight.swift */,
+				5439CF7E246A76860060A1EA /* UIImageViewAligned.m */,
+				5439CF7F246A76860060A1EA /* UIView+Tooltips.swift */,
+				5411A9542AE0B53D00697E9F /* UIImageViewAligned.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		5439CF83246A76870060A1EA /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		544A87A824E9E63E00A8BBA1 /* SwiftUI AsyncImageLoader */ = {
+			isa = PBXGroup;
+			children = (
+				544A87AA24E9E67100A8BBA1 /* AsyncImage.swift */,
+				544A87AB24E9E67200A8BBA1 /* ImageLoader.swift */,
+			);
+			path = "SwiftUI AsyncImageLoader";
+			sourceTree = "<group>";
+		};
 		544B63172416F8F000FB43AF /* CardService */ = {
 			isa = PBXGroup;
 			children = (
 				544DE4AF2425170100BA1977 /* CardService.xcdatamodeld */,
 				5430805224251E2100E98D0B /* Media.xcassets */,
+				54B6673B24EA5C8F00B66C8D /* JumpStart */,
 				54A521B224209E4F0092C95D /* Typographizer.swift */,
+				54D6AFF02ABA657E000AA867 /* TextBoxTest.swift */,
+				54ACE4AA2AB5734D00E7353C /* Dandan.txt */,
 				54A521B424209E570092C95D /* String+Typographizer.swift */,
 				544DE4B224251AF700BA1977 /* CoreDataManager.swift */,
-				544B63182416F8F000FB43AF /* CardService.h */,
 				544F294A2416FB8200B6B3C8 /* Swiftfall.swift */,
 				544F295D241717DC00B6B3C8 /* CardService.swift */,
+				54BBC2522AD8D7A200565651 /* SmartQuotes.swift */,
+				54B822352AED97850059998E /* WebServer.swift */,
+				54BC670C28C28DB8000E971B /* RemoteCard.swift */,
+				54156AFF2ADF106B00F2BBD5 /* LandOrganizerViewController.swift */,
 				544F294C2416FF6B00B6B3C8 /* MTGCard.swift */,
+				546F9568246DC7AF002E9A93 /* BoosterPack.swift */,
+				546F956A246DCADF002E9A93 /* Array+Separate.swift */,
+				54BBC2542AD8F45300565651 /* LifeTracker.swift */,
 				544F2953241703DD00B6B3C8 /* ImageType.swift */,
 				544F294E2417030B00B6B3C8 /* MTGSymbolName.swift */,
 				544F29502417032400B6B3C8 /* MTGColor.swift */,
 				544F295924170EF700B6B3C8 /* MTGCardIdentifier.swift */,
 				54ADEB2623FF443100AF1000 /* DeckParser.swift */,
+				545CC92E2494BA9700A38969 /* MTGRuling.swift */,
 				54C15C9723FF404C0012F14C /* Swiftfall+GetCollection.swift */,
+				545CC92C249407CE00A38969 /* Swiftfall+BulkData.swift */,
+				544B63182416F8F000FB43AF /* CardService.h */,
 				544B63192416F8F000FB43AF /* Info.plist */,
 			);
 			path = CardService;
+			sourceTree = "<group>";
+		};
+		548223D62469F147004D695E /* CardView */ = {
+			isa = PBXGroup;
+			children = (
+				5439CF7A246A76850060A1EA /* Assets.xcassets */,
+				5439CF7B246A76860060A1EA /* Extensions */,
+				5439CF83246A76870060A1EA /* Fonts */,
+				5439CF75246A76800060A1EA /* Icons.swift */,
+				5465D86626B35152006FBA62 /* Info.plist */,
+				54B934532967BD8D00FA1D32 /* MTGCardView.swift */,
+				5439CF81246A76870060A1EA /* MTGCardView.xib */,
+				54D9C1EC2472D859007E5B86 /* MTGSymbolName.swift */,
+				5439CF90246A76AB0060A1EA /* CardView.h */,
+			);
+			path = CardView;
+			sourceTree = "<group>";
+		};
+		54B6673B24EA5C8F00B66C8D /* JumpStart */ = {
+			isa = PBXGroup;
+			children = (
+				54B6674124EA5C8F00B66C8D /* Above the Clouds 1.txt */,
+				54B6674924EA5C8F00B66C8D /* Above the Clouds 2.txt */,
+				54B6674B24EA5C8F00B66C8D /* Above the Clouds 3.txt */,
+				54B6675C24EA5C8F00B66C8D /* Above the Clouds 4.txt */,
+				54B6674E24EA5C8F00B66C8D /* Angels 1.txt */,
+				54B6674524EA5C8F00B66C8D /* Angels 2.txt */,
+				54B667A124EA5C8F00B66C8D /* Archaeology 1.txt */,
+				54B6679A24EA5C8F00B66C8D /* Archaeology 2.txt */,
+				54B6679D24EA5C8F00B66C8D /* Archaeology 3.txt */,
+				54B6678824EA5C8F00B66C8D /* Archaeology 4.txt */,
+				54B6679B24EA5C8F00B66C8D /* Basri.txt */,
+				54B6673E24EA5C8F00B66C8D /* Cats 1.txt */,
+				54B6674724EA5C8F00B66C8D /* Cats 2.txt */,
+				54B6675924EA5C8F00B66C8D /* Chandra.txt */,
+				54B6674C24EA5C8F00B66C8D /* Devilish 1.txt */,
+				54B6674224EA5C8F00B66C8D /* Devilish 2.txt */,
+				54B6673F24EA5C8F00B66C8D /* Devilish 3.txt */,
+				54B6675324EA5C8F00B66C8D /* Devilish 4.txt */,
+				54B6675224EA5C8F00B66C8D /* Dinosaurs 1.txt */,
+				54B6675D24EA5C8F00B66C8D /* Dinosaurs 2.txt */,
+				54B6675B24EA5C8F00B66C8D /* Dinosaurs 3.txt */,
+				54B6674A24EA5C8F00B66C8D /* Dinosaurs 4.txt */,
+				54B6679C24EA5C8F00B66C8D /* Discarding 1.txt */,
+				54B667A424EA5C8F00B66C8D /* Discarding 2.txt */,
+				54B6678A24EA5C8F00B66C8D /* Doctor 1.txt */,
+				54B6679324EA5C8F00B66C8D /* Doctor 2.txt */,
+				54B6679224EA5C8F00B66C8D /* Doctor 3.txt */,
+				54B667A524EA5C8F00B66C8D /* Doctor 4.txt */,
+				54B6675124EA5C8F00B66C8D /* Dogs 1.txt */,
+				54B6675A24EA5C8F00B66C8D /* Dogs 2.txt */,
+				54B6679724EA5C8F00B66C8D /* Dragons 1.txt */,
+				54B6678E24EA5C8F00B66C8D /* Dragons 2.txt */,
+				54B6673D24EA5C8F00B66C8D /* Elves 1.txt */,
+				54B6674624EA5C8F00B66C8D /* Elves 2.txt */,
+				54B667AC24EA5C8F00B66C8D /* Enchanted 1.txt */,
+				54B667B324EA5C8F00B66C8D /* Enchanted 2.txt */,
+				54B6675F24EA5C8F00B66C8D /* Feathered Friends 1.txt */,
+				54B6675724EA5C8F00B66C8D /* Feathered Friends 2.txt */,
+				54B6674F24EA5C8F00B66C8D /* Feathered Friends 3.txt */,
+				54B6674424EA5C8F00B66C8D /* Feathered Friends 4.txt */,
+				54B667AF24EA5C8F00B66C8D /* Garruk.txt */,
+				54B6678324EA5C8F00B66C8D /* Goblins 1.txt */,
+				54B6677824EA5C8F00B66C8D /* Goblins 2.txt */,
+				54B6677A24EA5C8F00B66C8D /* Goblins 3.txt */,
+				54B6676424EA5C8F00B66C8D /* Goblins 4.txt */,
+				54B6678924EA5C8F00B66C8D /* Heavily Armored 1.txt */,
+				54B6679124EA5C8F00B66C8D /* Heavily Armored 2.txt */,
+				54B6679424EA5C8F00B66C8D /* Heavily Armored 3.txt */,
+				54B667A224EA5C8F00B66C8D /* Heavily Armored 4.txt */,
+				54B6678624EA5C8F00B66C8D /* Lands 1.txt */,
+				54B6679024EA5C8F00B66C8D /* Lands 2.txt */,
+				54B6676D24EA5C8F00B66C8D /* Legion 1.txt */,
+				54B6676324EA5C8F00B66C8D /* Legion 2.txt */,
+				54B6676724EA5C8F00B66C8D /* Legion 3.txt */,
+				54B6677924EA5C8F00B66C8D /* Legion 4.txt */,
+				54B6678F24EA5C8F00B66C8D /* Lightning 1.txt */,
+				54B6679824EA5C8F00B66C8D /* Lightning 2.txt */,
+				54B6677724EA5C8F00B66C8D /* Liliana.txt */,
+				54B6674024EA5C8F00B66C8D /* Mill.txt */,
+				54B667AA24EA5C8F00B66C8D /* Minions 1.txt */,
+				54B667B224EA5C8F00B66C8D /* Minions 2.txt */,
+				54B667B124EA5C8F00B66C8D /* Minions 3.txt */,
+				54B667A824EA5C8F00B66C8D /* Minions 4.txt */,
+				54B6674324EA5C8F00B66C8D /* Minotaurs 1.txt */,
+				54B6674D24EA5C8F00B66C8D /* Minotaurs 2.txt */,
+				54B667AB24EA5C8F00B66C8D /* Phyrexian.txt */,
+				54B6678024EA5C8F00B66C8D /* Pirates 1.txt */,
+				54B6677624EA5C8F00B66C8D /* Pirates 2.txt */,
+				54B6679524EA5C8F00B66C8D /* Plus One 1.txt */,
+				54B6678B24EA5C8F00B66C8D /* Plus One 2.txt */,
+				54B6678724EA5C8F00B66C8D /* Plus One 3.txt */,
+				54B6679F24EA5C8F00B66C8D /* Plus One 4.txt */,
+				54B6675824EA5C8F00B66C8D /* Predatory 1.txt */,
+				54B6675024EA5C8F00B66C8D /* Predatory 2.txt */,
+				54B6675624EA5C8F00B66C8D /* Predatory 3.txt */,
+				54B6673C24EA5C8F00B66C8D /* Predatory 4.txt */,
+				54B667A324EA5C8F00B66C8D /* Rainbow.txt */,
+				54B6676E24EA5C8F00B66C8D /* Reanimated 1.txt */,
+				54B6676624EA5C8F00B66C8D /* Reanimated 2.txt */,
+				54B6676524EA5C8F00B66C8D /* Reanimated 3.txt */,
+				54B6677B24EA5C8F00B66C8D /* Reanimated 4.txt */,
+				54B6676924EA5C8F00B66C8D /* Rogues 1.txt */,
+				54B6677124EA5C8F00B66C8D /* Rogues 2.txt */,
+				54B6675524EA5C8F00B66C8D /* Seismic.txt */,
+				54B667A624EA5C8F00B66C8D /* Smashing 1.txt */,
+				54B667A024EA5C8F00B66C8D /* Smashing 2.txt */,
+				54B6679924EA5C8F00B66C8D /* Smashing 3.txt */,
+				54B6678D24EA5C8F00B66C8D /* Smashing 4.txt */,
+				54B6676224EA5C8F00B66C8D /* Spellcasting 1.txt */,
+				54B6676C24EA5C8F00B66C8D /* Spellcasting 2.txt */,
+				54B6676F24EA5C8F00B66C8D /* Spellcasting 3.txt */,
+				54B6678224EA5C8F00B66C8D /* Spellcasting 4.txt */,
+				54B6675E24EA5C8F00B66C8D /* Spirits 1.txt */,
+				54B6675424EA5C8F00B66C8D /* Spirits 2.txt */,
+				54B6677C24EA5C8F00B66C8D /* Spooky 1.txt */,
+				54B6678424EA5C8F00B66C8D /* Spooky 2.txt */,
+				54B6677D24EA5C8F00B66C8D /* Spooky 3.txt */,
+				54B6677324EA5C8F00B66C8D /* Spooky 4.txt */,
+				54B667B024EA5C8F00B66C8D /* Teferi.txt */,
+				54B6676124EA5C8F00B66C8D /* Tree-Hugging 1.txt */,
+				54B6676B24EA5C8F00B66C8D /* Tree-Hugging 2.txt */,
+				54B6677224EA5C8F00B66C8D /* Tree-Hugging 3.txt */,
+				54B6678124EA5C8F00B66C8D /* Tree-Hugging 4.txt */,
+				54B6676824EA5C8F00B66C8D /* Under the Sea 1.txt */,
+				54B6677024EA5C8F00B66C8D /* Under the Sea 2.txt */,
+				54B667AE24EA5C8F00B66C8D /* Unicorns.txt */,
+				54B667B424EA5C8F00B66C8D /* Vampires 1.txt */,
+				54B667AD24EA5C8F00B66C8D /* Vampires 2.txt */,
+				54B667A924EA5C8F00B66C8D /* Vampires 3.txt */,
+				54B667A724EA5C8F00B66C8D /* Vampires 4.txt */,
+				54B6674824EA5C8F00B66C8D /* Walls.txt */,
+				54B6679624EA5C8F00B66C8D /* Well-Read 1.txt */,
+				54B6678C24EA5C8F00B66C8D /* Well-Read 2.txt */,
+				54B6678524EA5C8F00B66C8D /* Well-Read 3.txt */,
+				54B6679E24EA5C8F00B66C8D /* Well-Read 4.txt */,
+				54B6677E24EA5C8F00B66C8D /* Witchcraft 1.txt */,
+				54B6677524EA5C8F00B66C8D /* Witchcraft 2.txt */,
+				54B6676024EA5C8F00B66C8D /* Wizards 1.txt */,
+				54B6676A24EA5C8F00B66C8D /* Wizards 2.txt */,
+				54B6677424EA5C8F00B66C8D /* Wizards 3.txt */,
+				54B6677F24EA5C8F00B66C8D /* Wizards 4.txt */,
+			);
+			path = JumpStart;
 			sourceTree = "<group>";
 		};
 		54BECD1023F4FA1D00AE82A9 = {
@@ -340,9 +897,10 @@
 				544B63172416F8F000FB43AF /* CardService */,
 				54BECD1B23F4FA1D00AE82A9 /* Magic Board */,
 				542CF68E2415888500D453CA /* MagicBoardConnect */,
+				548223D62469F147004D695E /* CardView */,
 				54BECD1A23F4FA1D00AE82A9 /* Products */,
 				B5A518DDFF07376000251054 /* Pods */,
-				95C03F81BEBD39FDB2D25609 /* Frameworks */,
+				5411A9562AE0B5F800697E9F /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -352,6 +910,7 @@
 				54BECD1923F4FA1D00AE82A9 /* Magic Board.app */,
 				542CF68D2415888500D453CA /* Board Connect.app */,
 				544B63162416F8F000FB43AF /* CardService.framework */,
+				548223D52469F147004D695E /* CardView.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -378,21 +937,28 @@
 				54A0A1722411CA7800A1BBB8 /* CardImageViewController.swift */,
 				546E052224043A1A00ACF842 /* BottomBarViewController.swift */,
 				54A0A17F241375ED00A1BBB8 /* HandViewController.swift */,
+				5420DD662AD6515900495CDE /* DebouncedValue.swift */,
 				54A0A17024115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift */,
 				54C6D7FD23F8C17F00AF980D /* SideTableViewController.swift */,
 				54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */,
+				54BC670F28C4156A000E971B /* JumpStartView.swift */,
+				54F8A4972E8D8DA600F72BEF /* JumpInView.swift */,
 				547CD3D223F9EF2800AECA85 /* PickerCell.swift */,
 				546E05282405BB8A00ACF842 /* PileViewController.swift */,
+				54BC671228C415A5000E971B /* LoadDeckView.swift */,
 				542670CF241C2E4800A48580 /* CardTableViewCell.swift */,
 				5463CA1D2421926900732CB1 /* HandCardCollectionViewController.swift */,
-				548F0B48241DF47600639F71 /* CardDetailsViewController.swift */,
+				544A87A824E9E63E00A8BBA1 /* SwiftUI AsyncImageLoader */,
 				542CF69C2415888700D453CA /* LaunchScreen.storyboard */,
 				54BECD2223F4FA1D00AE82A9 /* Board.storyboard */,
 				54BECD3823F50AF700AE82A9 /* MiniCardView.xib */,
 				546E052424044EE700ACF842 /* HUDCardPileView.xib */,
 				546E0526240450B000ACF842 /* HUDCardPileView.swift */,
+				545CC9302494C8CB00A38969 /* RMShapedImageView.h */,
+				545CC9332494C8D200A38969 /* RMShapedImageView.m */,
 				54BECD2523F4FA1E00AE82A9 /* Assets.xcassets */,
 				54BECD2A23F4FA1E00AE82A9 /* Info.plist */,
+				545CC9322494C8D100A38969 /* Magic Board-Bridging-Header.h */,
 			);
 			path = "Magic Board";
 			sourceTree = "<group>";
@@ -403,8 +969,8 @@
 				54C6D7F623F8B44800AF980D /* Beleren2016-Bold.ttf */,
 				54C15C9123FE74610012F14C /* Beleren Small Caps.ttf */,
 				54BECD3A23F5143300AE82A9 /* Matrix-Bold.ttf */,
-				54D2E7EC23FA6AB50007C41D /* MPlantin.ttf */,
-				54C6D7F823F8B68400AF980D /* MPlantin-Italic.ttf */,
+				5424106B2AB11F4500B5DF44 /* MPlantin.ttf */,
+				5424106E2AB11F5600B5DF44 /* MPlantin-Italic.ttf */,
 			);
 			path = Fonts;
 			sourceTree = "<group>";
@@ -428,22 +994,9 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
-		95C03F81BEBD39FDB2D25609 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				0713CDA20C60A0131455273F /* Pods_Magic_Board.framework */,
-				99ECB50DBF05EEABA6994AF0 /* Pods_MagicBoardConnect.framework */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
 		B5A518DDFF07376000251054 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				BC0C1ED25330E4F0435D789C /* Pods-Magic Board.debug.xcconfig */,
-				CB5C4778915FDF4B964A5573 /* Pods-Magic Board.release.xcconfig */,
-				D5D90D40AC98DF89D97E0681 /* Pods-MagicBoardConnect.debug.xcconfig */,
-				E2668C5C8B616506D10AA2E9 /* Pods-MagicBoardConnect.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -459,6 +1012,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		548223D02469F147004D695E /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5439CF91246A76AB0060A1EA /* CardView.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
@@ -466,21 +1027,24 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 542CF6A02415888700D453CA /* Build configuration list for PBXNativeTarget "MagicBoardConnect" */;
 			buildPhases = (
-				70679E7F7F0B5C4242A5A8B7 /* [CP] Check Pods Manifest.lock */,
 				542CF6892415888500D453CA /* Sources */,
 				542CF68A2415888500D453CA /* Frameworks */,
 				542CF68B2415888500D453CA /* Resources */,
 				544F2964241723B300B6B3C8 /* Embed Frameworks */,
-				F4F7990BEDDD3F6FD02230E3 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5439CF94246A7D340060A1EA /* PBXTargetDependency */,
 				544B63282416F91400FB43AF /* PBXTargetDependency */,
 			);
 			name = MagicBoardConnect;
 			packageProductDependencies = (
 				542CF6DC241599D200D453CA /* MultipeerKit */,
+				5411A9612AE0B5FF00697E9F /* RxBlocking */,
+				5411A9632AE0B5FF00697E9F /* RxCocoa */,
+				5411A9652AE0B5FF00697E9F /* RxRelay */,
+				5411A9672AE0B5FF00697E9F /* RxSwift */,
 			);
 			productName = MagicBoardConnect;
 			productReference = 542CF68D2415888500D453CA /* Board Connect.app */;
@@ -502,30 +1066,54 @@
 			name = CardService;
 			packageProductDependencies = (
 				544F29552417041400B6B3C8 /* SDWebImage */,
+				54F8A4752E8B251A00F72BEF /* ReerJSON */,
 			);
 			productName = CardService;
 			productReference = 544B63162416F8F000FB43AF /* CardService.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		548223D42469F147004D695E /* CardView */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 548223E02469F147004D695E /* Build configuration list for PBXNativeTarget "CardView" */;
+			buildPhases = (
+				548223D02469F147004D695E /* Headers */,
+				548223D12469F147004D695E /* Sources */,
+				548223D22469F147004D695E /* Frameworks */,
+				548223D32469F147004D695E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CardView;
+			productName = CardView;
+			productReference = 548223D52469F147004D695E /* CardView.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 		54BECD1823F4FA1D00AE82A9 /* Magic Board */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 54BECD2D23F4FA1F00AE82A9 /* Build configuration list for PBXNativeTarget "Magic Board" */;
 			buildPhases = (
-				9EB3D5CDE296A3875352E6C7 /* [CP] Check Pods Manifest.lock */,
 				54BECD1523F4FA1D00AE82A9 /* Sources */,
 				54BECD1623F4FA1D00AE82A9 /* Frameworks */,
 				54DD68F924006CBE00518E3B /* Resources */,
 				544F2961241723AD00B6B3C8 /* Embed Frameworks */,
-				D37F042C69AF4C4CF6A545FE /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				544B631C2416F8F000FB43AF /* PBXTargetDependency */,
+				548223DB2469F147004D695E /* PBXTargetDependency */,
 			);
 			name = "Magic Board";
 			packageProductDependencies = (
 				542CF6DA241599C200D453CA /* MultipeerKit */,
+				5411A9572AE0B5F900697E9F /* RxBlocking */,
+				5411A9592AE0B5F900697E9F /* RxCocoa */,
+				5411A95B2AE0B5F900697E9F /* RxRelay */,
+				5411A95D2AE0B5F900697E9F /* RxSwift */,
+				54B822302AED97440059998E /* Vapor */,
+				54B822332AED97630059998E /* Leaf */,
 			);
 			productName = "Magic Board";
 			productReference = 54BECD1923F4FA1D00AE82A9 /* Magic Board.app */;
@@ -537,8 +1125,9 @@
 		54BECD1123F4FA1D00AE82A9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1120;
-				LastUpgradeCheck = 1120;
+				LastUpgradeCheck = 1500;
 				ORGANIZATIONNAME = "Josh Birnholz";
 				TargetAttributes = {
 					542CF68C2415888500D453CA = {
@@ -548,8 +1137,13 @@
 						CreatedOnToolsVersion = 11.2.1;
 						LastSwiftMigration = 1120;
 					};
+					548223D42469F147004D695E = {
+						CreatedOnToolsVersion = 11.4.1;
+						LastSwiftMigration = 1140;
+					};
 					54BECD1823F4FA1D00AE82A9 = {
 						CreatedOnToolsVersion = 11.2.1;
+						LastSwiftMigration = 1150;
 					};
 				};
 			};
@@ -565,6 +1159,10 @@
 			packageReferences = (
 				542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */,
 				542CF6E72415EB8800D453CA /* XCRemoteSwiftPackageReference "SDWebImage" */,
+				5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */,
+				54B8222F2AED97440059998E /* XCRemoteSwiftPackageReference "vapor" */,
+				54B822322AED97630059998E /* XCRemoteSwiftPackageReference "leaf" */,
+				54F8A4742E8B251A00F72BEF /* XCRemoteSwiftPackageReference "ReerJSON" */,
 			);
 			productRefGroup = 54BECD1A23F4FA1D00AE82A9 /* Products */;
 			projectDirPath = "";
@@ -573,6 +1171,7 @@
 				54BECD1823F4FA1D00AE82A9 /* Magic Board */,
 				542CF68C2415888500D453CA /* MagicBoardConnect */,
 				544B63152416F8F000FB43AF /* CardService */,
+				548223D42469F147004D695E /* CardView */,
 			);
 		};
 /* End PBXProject section */
@@ -588,8 +1187,8 @@
 				542CF6A324158B0D00D453CA /* Assets.xcassets in Resources */,
 				542CF6D7241597CE00D453CA /* PlayerConnect.storyboard in Resources */,
 				542CF6CA24158BB700D453CA /* MiniCardView.xib in Resources */,
-				54795DAB2418392600B5CA36 /* MPlantin-Italic.ttf in Resources */,
-				54795DAA2418392600B5CA36 /* MPlantin.ttf in Resources */,
+				5424106D2AB11F4B00B5DF44 /* MPlantin.ttf in Resources */,
+				542410702AB11F5900B5DF44 /* MPlantin-Italic.ttf in Resources */,
 				54795DA92418392600B5CA36 /* Matrix-Bold.ttf in Resources */,
 				541DBA3424255F4A00273E4C /* LaunchScreen.storyboard in Resources */,
 				54795DA82418392600B5CA36 /* Beleren Small Caps.ttf in Resources */,
@@ -600,8 +1199,139 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54B667E224EA5C8F00B66C8D /* Rogues 1.txt in Resources */,
+				54B6682624EA5C8F00B66C8D /* Vampires 2.txt in Resources */,
+				54ACE4AB2AB5734D00E7353C /* Dandan.txt in Resources */,
+				54B667D424EA5C8F00B66C8D /* Dinosaurs 3.txt in Resources */,
+				54B667FC24EA5C8F00B66C8D /* Goblins 1.txt in Resources */,
+				54B6681F24EA5C8F00B66C8D /* Smashing 1.txt in Resources */,
+				54B667FB24EA5C8F00B66C8D /* Spellcasting 4.txt in Resources */,
+				54B667FA24EA5C8F00B66C8D /* Tree-Hugging 4.txt in Resources */,
+				54B667BC24EA5C8F00B66C8D /* Minotaurs 1.txt in Resources */,
+				54B667ED24EA5C8F00B66C8D /* Wizards 3.txt in Resources */,
+				54B667C824EA5C8F00B66C8D /* Feathered Friends 3.txt in Resources */,
+				54B6682824EA5C8F00B66C8D /* Garruk.txt in Resources */,
+				54B6680324EA5C8F00B66C8D /* Doctor 1.txt in Resources */,
+				54B6680A24EA5C8F00B66C8D /* Heavily Armored 2.txt in Resources */,
+				54B6680524EA5C8F00B66C8D /* Well-Read 2.txt in Resources */,
+				54B6680E24EA5C8F00B66C8D /* Plus One 1.txt in Resources */,
+				54B6681824EA5C8F00B66C8D /* Plus One 4.txt in Resources */,
+				54B667F824EA5C8F00B66C8D /* Wizards 4.txt in Resources */,
+				54B667D624EA5C8F00B66C8D /* Dinosaurs 2.txt in Resources */,
+				54B667D024EA5C8F00B66C8D /* Feathered Friends 2.txt in Resources */,
+				54B667D524EA5C8F00B66C8D /* Above the Clouds 4.txt in Resources */,
+				54B667DC24EA5C8F00B66C8D /* Legion 2.txt in Resources */,
+				54B6680024EA5C8F00B66C8D /* Plus One 3.txt in Resources */,
+				54B6681C24EA5C8F00B66C8D /* Rainbow.txt in Resources */,
+				54B667FE24EA5C8F00B66C8D /* Well-Read 3.txt in Resources */,
+				54B667E024EA5C8F00B66C8D /* Legion 3.txt in Resources */,
+				54B6682924EA5C8F00B66C8D /* Teferi.txt in Resources */,
+				54B667EF24EA5C8F00B66C8D /* Pirates 2.txt in Resources */,
+				54B6682124EA5C8F00B66C8D /* Minions 4.txt in Resources */,
 				5430805324251E2100E98D0B /* Media.xcassets in Resources */,
+				54B667F924EA5C8F00B66C8D /* Pirates 1.txt in Resources */,
+				54B6680B24EA5C8F00B66C8D /* Doctor 3.txt in Resources */,
+				54B667F224EA5C8F00B66C8D /* Legion 4.txt in Resources */,
+				54B667BF24EA5C8F00B66C8D /* Elves 2.txt in Resources */,
+				54B667E924EA5C8F00B66C8D /* Under the Sea 2.txt in Resources */,
+				54B6681924EA5C8F00B66C8D /* Smashing 2.txt in Resources */,
+				54B6680724EA5C8F00B66C8D /* Dragons 2.txt in Resources */,
+				54B667CC24EA5C8F00B66C8D /* Devilish 4.txt in Resources */,
+				54B6682024EA5C8F00B66C8D /* Vampires 4.txt in Resources */,
+				54B667F124EA5C8F00B66C8D /* Goblins 2.txt in Resources */,
+				54B667BE24EA5C8F00B66C8D /* Angels 2.txt in Resources */,
+				54B667DE24EA5C8F00B66C8D /* Reanimated 3.txt in Resources */,
+				54B667E324EA5C8F00B66C8D /* Wizards 2.txt in Resources */,
+				54B667D324EA5C8F00B66C8D /* Dogs 2.txt in Resources */,
+				54B6680F24EA5C8F00B66C8D /* Well-Read 1.txt in Resources */,
+				54B667B824EA5C8F00B66C8D /* Devilish 3.txt in Resources */,
+				54B6682C24EA5C8F00B66C8D /* Enchanted 2.txt in Resources */,
+				54B6681624EA5C8F00B66C8D /* Archaeology 3.txt in Resources */,
+				54B667F624EA5C8F00B66C8D /* Spooky 3.txt in Resources */,
+				54B6681324EA5C8F00B66C8D /* Archaeology 2.txt in Resources */,
+				54B6682424EA5C8F00B66C8D /* Phyrexian.txt in Resources */,
+				54B667F524EA5C8F00B66C8D /* Spooky 1.txt in Resources */,
+				54B667DF24EA5C8F00B66C8D /* Reanimated 2.txt in Resources */,
+				54B667EC24EA5C8F00B66C8D /* Spooky 4.txt in Resources */,
+				54B667C924EA5C8F00B66C8D /* Predatory 2.txt in Resources */,
+				54B667D724EA5C8F00B66C8D /* Spirits 1.txt in Resources */,
+				54B6681A24EA5C8F00B66C8D /* Archaeology 1.txt in Resources */,
+				54B667E724EA5C8F00B66C8D /* Reanimated 1.txt in Resources */,
+				54B667BB24EA5C8F00B66C8D /* Devilish 2.txt in Resources */,
+				54B6681024EA5C8F00B66C8D /* Dragons 1.txt in Resources */,
+				54B667E624EA5C8F00B66C8D /* Legion 1.txt in Resources */,
+				54B667D924EA5C8F00B66C8D /* Wizards 1.txt in Resources */,
+				54B6680824EA5C8F00B66C8D /* Lightning 1.txt in Resources */,
+				54B667EE24EA5C8F00B66C8D /* Witchcraft 2.txt in Resources */,
+				54B667D224EA5C8F00B66C8D /* Chandra.txt in Resources */,
+				54B6681124EA5C8F00B66C8D /* Lightning 2.txt in Resources */,
+				54B667C124EA5C8F00B66C8D /* Walls.txt in Resources */,
+				54B667CE24EA5C8F00B66C8D /* Seismic.txt in Resources */,
+				54B667CD24EA5C8F00B66C8D /* Spirits 2.txt in Resources */,
+				54B667C424EA5C8F00B66C8D /* Above the Clouds 3.txt in Resources */,
+				54B667C724EA5C8F00B66C8D /* Angels 1.txt in Resources */,
+				54B667CF24EA5C8F00B66C8D /* Predatory 3.txt in Resources */,
+				54B6681D24EA5C8F00B66C8D /* Discarding 2.txt in Resources */,
+				54B6681B24EA5C8F00B66C8D /* Heavily Armored 4.txt in Resources */,
+				54B6680C24EA5C8F00B66C8D /* Doctor 2.txt in Resources */,
+				54B6680924EA5C8F00B66C8D /* Lands 2.txt in Resources */,
+				54B667C324EA5C8F00B66C8D /* Dinosaurs 4.txt in Resources */,
+				54B6682A24EA5C8F00B66C8D /* Minions 3.txt in Resources */,
+				54B6680224EA5C8F00B66C8D /* Heavily Armored 1.txt in Resources */,
+				54B667E124EA5C8F00B66C8D /* Under the Sea 1.txt in Resources */,
+				54B6680D24EA5C8F00B66C8D /* Heavily Armored 3.txt in Resources */,
+				54B6682524EA5C8F00B66C8D /* Enchanted 1.txt in Resources */,
+				54B667C624EA5C8F00B66C8D /* Minotaurs 2.txt in Resources */,
+				54B667FD24EA5C8F00B66C8D /* Spooky 2.txt in Resources */,
+				54B6680624EA5C8F00B66C8D /* Smashing 4.txt in Resources */,
+				54B667B624EA5C8F00B66C8D /* Elves 1.txt in Resources */,
+				54B6682B24EA5C8F00B66C8D /* Minions 2.txt in Resources */,
+				54B667E524EA5C8F00B66C8D /* Spellcasting 2.txt in Resources */,
+				54B667CA24EA5C8F00B66C8D /* Dogs 1.txt in Resources */,
+				54B667B724EA5C8F00B66C8D /* Cats 1.txt in Resources */,
+				54B667F024EA5C8F00B66C8D /* Liliana.txt in Resources */,
+				54B667E824EA5C8F00B66C8D /* Spellcasting 3.txt in Resources */,
+				54B667D824EA5C8F00B66C8D /* Feathered Friends 1.txt in Resources */,
+				54B6681224EA5C8F00B66C8D /* Smashing 3.txt in Resources */,
+				54B667EA24EA5C8F00B66C8D /* Rogues 2.txt in Resources */,
+				54B667BD24EA5C8F00B66C8D /* Feathered Friends 4.txt in Resources */,
+				54B6681724EA5C8F00B66C8D /* Well-Read 4.txt in Resources */,
+				54B667DB24EA5C8F00B66C8D /* Spellcasting 1.txt in Resources */,
+				54B667B524EA5C8F00B66C8D /* Predatory 4.txt in Resources */,
+				54B667DA24EA5C8F00B66C8D /* Tree-Hugging 1.txt in Resources */,
+				54B667BA24EA5C8F00B66C8D /* Above the Clouds 1.txt in Resources */,
+				54B6682724EA5C8F00B66C8D /* Unicorns.txt in Resources */,
+				54B6681E24EA5C8F00B66C8D /* Doctor 4.txt in Resources */,
+				54B6682324EA5C8F00B66C8D /* Minions 1.txt in Resources */,
+				54B6680424EA5C8F00B66C8D /* Plus One 2.txt in Resources */,
+				54B6680124EA5C8F00B66C8D /* Archaeology 4.txt in Resources */,
+				54B667D124EA5C8F00B66C8D /* Predatory 1.txt in Resources */,
+				54B6681424EA5C8F00B66C8D /* Basri.txt in Resources */,
+				54B667F724EA5C8F00B66C8D /* Witchcraft 1.txt in Resources */,
+				54B667EB24EA5C8F00B66C8D /* Tree-Hugging 3.txt in Resources */,
+				54B6681524EA5C8F00B66C8D /* Discarding 1.txt in Resources */,
+				54B667F424EA5C8F00B66C8D /* Reanimated 4.txt in Resources */,
+				54B667FF24EA5C8F00B66C8D /* Lands 1.txt in Resources */,
+				54B6682224EA5C8F00B66C8D /* Vampires 3.txt in Resources */,
+				54B667CB24EA5C8F00B66C8D /* Dinosaurs 1.txt in Resources */,
+				54B667C024EA5C8F00B66C8D /* Cats 2.txt in Resources */,
 				544F29522417036A00B6B3C8 /* Assets.xcassets in Resources */,
+				54B667C224EA5C8F00B66C8D /* Above the Clouds 2.txt in Resources */,
+				54B667E424EA5C8F00B66C8D /* Tree-Hugging 2.txt in Resources */,
+				54B667B924EA5C8F00B66C8D /* Mill.txt in Resources */,
+				54B667DD24EA5C8F00B66C8D /* Goblins 4.txt in Resources */,
+				54B6682D24EA5C8F00B66C8D /* Vampires 1.txt in Resources */,
+				54B667C524EA5C8F00B66C8D /* Devilish 1.txt in Resources */,
+				54B667F324EA5C8F00B66C8D /* Goblins 3.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		548223D32469F147004D695E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5439CF87246A76880060A1EA /* Assets.xcassets in Resources */,
+				5439CF8D246A76880060A1EA /* MTGCardView.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -612,11 +1342,11 @@
 				5498B06524023DC400B34B91 /* MiniCardView.xib in Resources */,
 				546E052524044EE700ACF842 /* HUDCardPileView.xib in Resources */,
 				5498B06624023DC900B34B91 /* Assets.xcassets in Resources */,
+				5424106F2AB11F5900B5DF44 /* MPlantin-Italic.ttf in Resources */,
 				54795DB12418392700B5CA36 /* Beleren2016-Bold.ttf in Resources */,
 				542CF6D8241597E500D453CA /* PlayerConnect.storyboard in Resources */,
+				5424106C2AB11F4A00B5DF44 /* MPlantin.ttf in Resources */,
 				5498B06424023DBE00B34B91 /* Board.storyboard in Resources */,
-				54795DB52418392700B5CA36 /* MPlantin-Italic.ttf in Resources */,
-				54795DB42418392700B5CA36 /* MPlantin.ttf in Resources */,
 				541DBA3324255F3100273E4C /* LaunchScreen.storyboard in Resources */,
 				54795DB32418392700B5CA36 /* Matrix-Bold.ttf in Resources */,
 				54795DB22418392700B5CA36 /* Beleren Small Caps.ttf in Resources */,
@@ -625,98 +1355,16 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		70679E7F7F0B5C4242A5A8B7 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-MagicBoardConnect-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		9EB3D5CDE296A3875352E6C7 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-Magic Board-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		D37F042C69AF4C4CF6A545FE /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Magic Board/Pods-Magic Board-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Magic Board/Pods-Magic Board-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Magic Board/Pods-Magic Board-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		F4F7990BEDDD3F6FD02230E3 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MagicBoardConnect/Pods-MagicBoardConnect-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		542CF6892415888500D453CA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				542CF6902415888500D453CA /* AppDelegate.swift in Sources */,
-				5463CA1F2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */,
-				548F0B4A241DF47600639F71 /* CardDetailsViewController.swift in Sources */,
 				542CF6C724158BAF00D453CA /* PickerCell.swift in Sources */,
 				542CF6C224158BAF00D453CA /* HandViewController.swift in Sources */,
 				542CF6C324158BAF00D453CA /* CardInstance+NSItemProvider.swift in Sources */,
+				54F8A4992E8D8DAA00F72BEF /* JumpInView.swift in Sources */,
 				542CF6AE24158B7100D453CA /* InsetLabel.swift in Sources */,
 				542CF6B424158B7100D453CA /* Observable+Misc.swift in Sources */,
 				542CF6B124158B7100D453CA /* UIColor+Blended.swift in Sources */,
@@ -726,29 +1374,41 @@
 				542CF6BA24158BAB00D453CA /* MiniCardView.swift in Sources */,
 				542CF6AD24158B7100D453CA /* UIView+Wiggle.swift in Sources */,
 				542CF6C524158BAF00D453CA /* CountersViewController.swift in Sources */,
+				54BC671128C4156A000E971B /* JumpStartView.swift in Sources */,
 				542CF6B224158B7100D453CA /* UIImage+Half.swift in Sources */,
-				542CF6BF24158BAF00D453CA /* BoardViewController.swift in Sources */,
+				54890C192AB191F30061B5E4 /* FannedHandView.swift in Sources */,
 				542CF6C124158BAF00D453CA /* BottomBarViewController.swift in Sources */,
 				542CF6CC24158BBD00D453CA /* HUDCardPileView.swift in Sources */,
+				54D6AFF22ABA657E000AA867 /* TextBoxTest.swift in Sources */,
 				544F6DE7241CBF8F0069A912 /* CardRepresentation.swift in Sources */,
+				54D0F5F62AB8DE5B00864E79 /* ImageLoader.swift in Sources */,
 				54795DBC2419A3CE00B5CA36 /* SceneDelegate.swift in Sources */,
 				542CF6C024158BAF00D453CA /* CardImageViewController.swift in Sources */,
 				542CF6E62415B00300D453CA /* Command.swift in Sources */,
 				542CF6B024158B7100D453CA /* UIBezierPath+ShouldRoundRect.swift in Sources */,
+				545CC9352494C97500A38969 /* RMShapedImageView.m in Sources */,
+				54BBC2562AD9096500565651 /* LifeTracker.swift in Sources */,
 				542CF6AC24158B7100D453CA /* Array+Misc.swift in Sources */,
 				542CF6B524158B7100D453CA /* NSTextAlignment+ImageHeight.swift in Sources */,
+				54D0F5F42AB8DE5900864E79 /* AsyncImage.swift in Sources */,
 				542CF6E12415A08800D453CA /* Role.swift in Sources */,
 				542CF6922415888500D453CA /* ConnectSceneDelegate.swift in Sources */,
 				542CF6B724158B7100D453CA /* CGAffineTransform+Degrees.swift in Sources */,
+				54890C1B2AB230CC0061B5E4 /* OverlayedGeometryReader.swift in Sources */,
 				542CF6C424158BAF00D453CA /* SideTableViewController.swift in Sources */,
 				542CF6B924158BA700D453CA /* CardInstance.swift in Sources */,
+				5420DD682AD6515900495CDE /* DebouncedValue.swift in Sources */,
 				542CF6BE24158BAB00D453CA /* Counter.swift in Sources */,
 				542CF6BD24158BAB00D453CA /* Pile.swift in Sources */,
 				547988F724161AEE006EC7CF /* PlayerSelectViewController.swift in Sources */,
 				54795DB924189C1A00B5CA36 /* ContainerViewController.swift in Sources */,
 				542CF6C924158BAF00D453CA /* PileViewController.swift in Sources */,
+				5453D719246E064A008A8962 /* LandscapeHandViewController.swift in Sources */,
 				542CF6AF24158B7100D453CA /* String+Regex.swift in Sources */,
 				542CF6B324158B7100D453CA /* BehaviorRelay+PropertyWrapper.swift in Sources */,
+				54BC670E28C28DB8000E971B /* RemoteCard.swift in Sources */,
+				54BC671428C415A5000E971B /* LoadDeckView.swift in Sources */,
+				54C7B4EB2AB16E1800689C90 /* AdventureTextView.swift in Sources */,
 				542CF6B824158B7400D453CA /* OrderedSet.swift in Sources */,
 				542CF6BB24158BAB00D453CA /* GameState.swift in Sources */,
 			);
@@ -758,6 +1418,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				546F956B246DCADF002E9A93 /* Array+Separate.swift in Sources */,
+				546F9569246DC7AF002E9A93 /* BoosterPack.swift in Sources */,
 				54A521B324209E4F0092C95D /* Typographizer.swift in Sources */,
 				54A521B524209E570092C95D /* String+Typographizer.swift in Sources */,
 				544F295B24170F1900B6B3C8 /* Swiftfall+GetCollection.swift in Sources */,
@@ -765,7 +1427,9 @@
 				544F29572417081200B6B3C8 /* UIImage+Half.swift in Sources */,
 				544DE4B324251AF700BA1977 /* CoreDataManager.swift in Sources */,
 				544F29512417032400B6B3C8 /* MTGColor.swift in Sources */,
+				545CC92D249407CE00A38969 /* Swiftfall+BulkData.swift in Sources */,
 				544F294B2416FB8200B6B3C8 /* Swiftfall.swift in Sources */,
+				545CC92F2494BA9700A38969 /* MTGRuling.swift in Sources */,
 				544F2954241703DD00B6B3C8 /* ImageType.swift in Sources */,
 				544F295E241717DC00B6B3C8 /* CardService.swift in Sources */,
 				544F295A24170EF700B6B3C8 /* MTGCardIdentifier.swift in Sources */,
@@ -777,16 +1441,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		548223D12469F147004D695E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5439CF8B246A76880060A1EA /* UIView+Tooltips.swift in Sources */,
+				5411A9552AE0B53D00697E9F /* UIImageViewAligned.swift in Sources */,
+				5439CF89246A76880060A1EA /* NSTextAlignment+ImageHeight.swift in Sources */,
+				5439CF88246A76880060A1EA /* String+Regex.swift in Sources */,
+				54D9C1ED2472D859007E5B86 /* MTGSymbolName.swift in Sources */,
+				54B6B1B72AD619D600823454 /* OrderedSet.swift in Sources */,
+				54B934542967BD8D00FA1D32 /* MTGCardView.swift in Sources */,
+				54BBC2532AD8D7A200565651 /* SmartQuotes.swift in Sources */,
+				5439CF85246A76880060A1EA /* Icons.swift in Sources */,
+				5439CF8A246A76880060A1EA /* UIImageViewAligned.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		54BECD1523F4FA1D00AE82A9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */,
-				5463CA1E2421926900732CB1 /* HandCardCollectionViewController.swift in Sources */,
-				548F0B49241DF47600639F71 /* CardDetailsViewController.swift in Sources */,
 				54A0A18224138E2F00A1BBB8 /* CGAffineTransform+Degrees.swift in Sources */,
 				547CD3D723FA5AAF00AECA85 /* Array+Misc.swift in Sources */,
 				54A0A16D2410B87000A1BBB8 /* Pile.swift in Sources */,
+				54156B012ADF107000F2BBD5 /* LandOrganizerViewController.swift in Sources */,
 				54C6D80723F919F900AF980D /* CardInstance.swift in Sources */,
 				54BECD2123F4FA1D00AE82A9 /* BoardViewController.swift in Sources */,
 				54A0A17124115E4D00A1BBB8 /* CardInstance+NSItemProvider.swift in Sources */,
@@ -795,30 +1475,45 @@
 				546E0527240450B000ACF842 /* HUDCardPileView.swift in Sources */,
 				54C15C9623FF03880012F14C /* Player.swift in Sources */,
 				54C15C9423FF034B0012F14C /* OrderedSet.swift in Sources */,
+				5420DD672AD6515900495CDE /* DebouncedValue.swift in Sources */,
 				54A0A16F2410D41600A1BBB8 /* CountersViewController.swift in Sources */,
+				54BC671028C4156A000E971B /* JumpStartView.swift in Sources */,
 				54C6D7F523F89F3600AF980D /* UIView+Wiggle.swift in Sources */,
+				5469B1292AB63EF2008C140A /* FannedHandView.swift in Sources */,
 				546E05292405BB8A00ACF842 /* PileViewController.swift in Sources */,
 				54C6D7FE23F8C17F00AF980D /* SideTableViewController.swift in Sources */,
 				54C6D7FB23F8B88000AF980D /* String+Regex.swift in Sources */,
 				544F6DE6241CBF8A0069A912 /* CardRepresentation.swift in Sources */,
+				54D6AFF12ABA657E000AA867 /* TextBoxTest.swift in Sources */,
 				54795DBF2419E6E700B5CA36 /* PlayerSelectViewController.swift in Sources */,
 				546E052324043A1A00ACF842 /* BottomBarViewController.swift in Sources */,
+				54D0F5F32AB8DE5800864E79 /* AsyncImage.swift in Sources */,
 				541E0A1C23FBBE84008E5E35 /* GameState.swift in Sources */,
 				542CF6DF24159F7200D453CA /* Role.swift in Sources */,
+				545CC9342494C8D200A38969 /* RMShapedImageView.m in Sources */,
+				54B822362AED97850059998E /* WebServer.swift in Sources */,
 				542CF6E52415A7E000D453CA /* Command.swift in Sources */,
 				54C6D80F23F942A400AF980D /* InsetLabel.swift in Sources */,
 				541E0A1823FB9D59008E5E35 /* UIColor+Blended.swift in Sources */,
+				5486BECA2AE065780042FDFC /* OverlayedGeometryReader.swift in Sources */,
 				54BECD1D23F4FA1D00AE82A9 /* AppDelegate.swift in Sources */,
 				54A0A1732411CA7800A1BBB8 /* CardImageViewController.swift in Sources */,
 				54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */,
+				54F8A49A2E8E16DC00F72BEF /* JumpInView.swift in Sources */,
 				54795DBB2419A32900B5CA36 /* ConnectSceneDelegate.swift in Sources */,
 				54A0A16B2410875000A1BBB8 /* Counter.swift in Sources */,
 				54A0A180241375ED00A1BBB8 /* HandViewController.swift in Sources */,
 				54A0A17E2413483900A1BBB8 /* UIImage+Half.swift in Sources */,
 				54795DBE2419E6E400B5CA36 /* ContainerViewController.swift in Sources */,
+				54BBC2552AD8F45300565651 /* LifeTracker.swift in Sources */,
+				54D0F5F52AB8DE5B00864E79 /* ImageLoader.swift in Sources */,
 				54BECD3723F50AE500AE82A9 /* MiniCardView.swift in Sources */,
+				5453D71A246E064F008A8962 /* LandscapeHandViewController.swift in Sources */,
 				54C6D7F323F892FA00AF980D /* NSTextAlignment+ImageHeight.swift in Sources */,
 				547CD3D523FA14F300AECA85 /* UIBezierPath+ShouldRoundRect.swift in Sources */,
+				54BC670D28C28DB8000E971B /* RemoteCard.swift in Sources */,
+				54BC671328C415A5000E971B /* LoadDeckView.swift in Sources */,
+				54C7B4EA2AB16E1800689C90 /* AdventureTextView.swift in Sources */,
 				54C6D80D23F933E500AF980D /* Observable+Misc.swift in Sources */,
 				547CD3D323F9EF2800AECA85 /* PickerCell.swift in Sources */,
 			);
@@ -827,6 +1522,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		5439CF94246A7D340060A1EA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 548223D42469F147004D695E /* CardView */;
+			targetProxy = 5439CF93246A7D340060A1EA /* PBXContainerItemProxy */;
+		};
 		544B631C2416F8F000FB43AF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 544B63152416F8F000FB43AF /* CardService */;
@@ -836,6 +1536,11 @@
 			isa = PBXTargetDependency;
 			target = 544B63152416F8F000FB43AF /* CardService */;
 			targetProxy = 544B63272416F91400FB43AF /* PBXContainerItemProxy */;
+		};
+		548223DB2469F147004D695E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 548223D42469F147004D695E /* CardView */;
+			targetProxy = 548223DA2469F147004D695E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -861,15 +1566,14 @@
 /* Begin XCBuildConfiguration section */
 		542CF6A12415888700D453CA /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D5D90D40AC98DF89D97E0681 /* Pods-MagicBoardConnect.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "MagicBoardConnect/Magic Board Connect.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = MagicBoardConnect/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -877,6 +1581,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.MagicBoardConnect;
 				PRODUCT_NAME = "Board Connect";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Magic Board/Magic Board-Bridging-Header.h";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = " $(PROJECT_NAME)-Swift.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -884,15 +1590,14 @@
 		};
 		542CF6A22415888700D453CA /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E2668C5C8B616506D10AA2E9 /* Pods-MagicBoardConnect.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "MagicBoardConnect/Magic Board Connect.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = MagicBoardConnect/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -900,6 +1605,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.MagicBoardConnect;
 				PRODUCT_NAME = "Board Connect";
 				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Magic Board/Magic Board-Bridging-Header.h";
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = " $(PROJECT_NAME)-Swift.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -909,6 +1616,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
@@ -916,17 +1624,21 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
 				INFOPLIST_FILE = CardService/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
 				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.CardService;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = " $(PROJECT_NAME)-Swift.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -939,6 +1651,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
@@ -946,17 +1659,90 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
 				INFOPLIST_FILE = CardService/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
 				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.CardService;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = " $(PROJECT_NAME)-Swift.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		548223DE2469F147004D695E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = CB7D3XVLP3;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				INFOPLIST_FILE = CardView/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
+				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.CardView;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = " $(PROJECT_NAME)-Swift.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		548223DF2469F147004D695E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = CB7D3XVLP3;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				INFOPLIST_FILE = CardView/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++14";
+				PRODUCT_BUNDLE_IDENTIFIER = com.josh.birnholz.CardView;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SWIFT_OBJC_INTERFACE_HEADER_NAME = " $(PROJECT_NAME)-Swift.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -990,6 +1776,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -1000,6 +1787,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1050,6 +1838,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -1060,6 +1849,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -1080,47 +1870,64 @@
 		};
 		54BECD2E23F4FA1F00AE82A9 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BC0C1ED25330E4F0435D789C /* Pods-Magic Board.debug.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Magic Board/Magic Board-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
 		54BECD2F23F4FA1F00AE82A9 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CB5C4778915FDF4B964A5573 /* Pods-Magic Board.release.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Magic Board/Magic Board.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = YES;
 				DEVELOPMENT_TEAM = CB7D3XVLP3;
 				INFOPLIST_FILE = "Magic Board/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.josh.birnholz.Magic-Board";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Magic Board/Magic Board-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 2;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1141,6 +1948,15 @@
 			buildConfigurations = (
 				544B63202416F8F000FB43AF /* Debug */,
 				544B63212416F8F000FB43AF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		548223E02469F147004D695E /* Build configuration list for PBXNativeTarget "CardView" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				548223DE2469F147004D695E /* Debug */,
+				548223DF2469F147004D695E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1166,12 +1982,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ReactiveX/RxSwift";
+			requirement = {
+				kind = exactVersion;
+				version = 5.1.0;
+			};
+		};
 		542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/insidegui/MultipeerKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.2;
+				minimumVersion = 0.3.1;
 			};
 		};
 		542CF6E72415EB8800D453CA /* XCRemoteSwiftPackageReference "SDWebImage" */ = {
@@ -1182,9 +2006,73 @@
 				minimumVersion = 5.6.0;
 			};
 		};
+		54B8222F2AED97440059998E /* XCRemoteSwiftPackageReference "vapor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/vapor";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.84.6;
+			};
+		};
+		54B822322AED97630059998E /* XCRemoteSwiftPackageReference "leaf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/leaf.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.4;
+			};
+		};
+		54F8A4742E8B251A00F72BEF /* XCRemoteSwiftPackageReference "ReerJSON" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/reers/ReerJSON";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5411A9572AE0B5F900697E9F /* RxBlocking */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxBlocking;
+		};
+		5411A9592AE0B5F900697E9F /* RxCocoa */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxCocoa;
+		};
+		5411A95B2AE0B5F900697E9F /* RxRelay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxRelay;
+		};
+		5411A95D2AE0B5F900697E9F /* RxSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxSwift;
+		};
+		5411A9612AE0B5FF00697E9F /* RxBlocking */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxBlocking;
+		};
+		5411A9632AE0B5FF00697E9F /* RxCocoa */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxCocoa;
+		};
+		5411A9652AE0B5FF00697E9F /* RxRelay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxRelay;
+		};
+		5411A9672AE0B5FF00697E9F /* RxSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxSwift;
+		};
 		542CF6DA241599C200D453CA /* MultipeerKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 542CF6D9241599C200D453CA /* XCRemoteSwiftPackageReference "MultipeerKit" */;
@@ -1199,6 +2087,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 542CF6E72415EB8800D453CA /* XCRemoteSwiftPackageReference "SDWebImage" */;
 			productName = SDWebImage;
+		};
+		54B822302AED97440059998E /* Vapor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B8222F2AED97440059998E /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = Vapor;
+		};
+		54B822332AED97630059998E /* Leaf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54B822322AED97630059998E /* XCRemoteSwiftPackageReference "leaf" */;
+			productName = Leaf;
+		};
+		54F8A4752E8B251A00F72BEF /* ReerJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 54F8A4742E8B251A00F72BEF /* XCRemoteSwiftPackageReference "ReerJSON" */;
+			productName = ReerJSON;
 		};
 /* End XCSwiftPackageProductDependency section */
 

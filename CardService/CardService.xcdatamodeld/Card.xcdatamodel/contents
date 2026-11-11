@@ -1,15 +1,83 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="15508" systemVersion="19D76" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25D125" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Card" representedClassName="Card" syncable="YES" codeGenerationType="class">
+        <attribute name="artist" optional="YES" attributeType="String"/>
+        <attribute name="borderColor" optional="YES" attributeType="String"/>
         <attribute name="collectorNumber" optional="YES" attributeType="String"/>
+        <attribute name="colorIndicator" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
+        <attribute name="colors" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
+        <attribute name="convertedManaCost" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="flavorName" optional="YES" attributeType="String"/>
+        <attribute name="flavorText" optional="YES" attributeType="String"/>
+        <attribute name="frame" optional="YES" attributeType="String"/>
+        <attribute name="frameEffects" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
+        <attribute name="imageURIs" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String: URL]"/>
+        <attribute name="isCustom" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isDigital" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFoilAvailable" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isFoundInBoosters" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isFullArt" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isNonFoilAvailable" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isPromo" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="keywords" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
         <attribute name="language" optional="YES" attributeType="String"/>
-        <attribute name="mtgCard" optional="YES" attributeType="Binary"/>
+        <attribute name="layout" optional="YES" attributeType="String"/>
+        <attribute name="legalities" optional="YES" attributeType="String" customClassName="[String: String]"/>
+        <attribute name="loyalty" optional="YES" attributeType="String"/>
+        <attribute name="manaCost" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="oracleID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="oracleText" optional="YES" attributeType="String"/>
+        <attribute name="power" optional="YES" attributeType="String"/>
+        <attribute name="printedName" optional="YES" attributeType="String"/>
+        <attribute name="printedText" optional="YES" attributeType="String"/>
+        <attribute name="printedTypeLine" optional="YES" attributeType="String"/>
+        <attribute name="producedMana" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
+        <attribute name="rarity" optional="YES" attributeType="String"/>
         <attribute name="releaseDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="scryfallID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="scryfallURL" optional="YES" attributeType="URI"/>
+        <attribute name="securityStamp" optional="YES" attributeType="String"/>
         <attribute name="set" optional="YES" attributeType="String"/>
+        <attribute name="setType" optional="YES" attributeType="String"/>
+        <attribute name="toughness" optional="YES" attributeType="String"/>
+        <attribute name="typeLine" optional="YES" attributeType="String"/>
+        <attribute name="watermark" optional="YES" attributeType="String"/>
+        <relationship name="faces" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="CardFace"/>
+        <relationship name="relatedCards" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="CardRelatedCard"/>
+        <fetchIndex name="byNameIndex">
+            <fetchIndexElement property="name" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
-    <elements>
-        <element name="Card" positionX="-63" positionY="-18" width="128" height="148"/>
-    </elements>
+    <entity name="CardFace" representedClassName="CardFace" syncable="YES" codeGenerationType="class">
+        <attribute name="artist" optional="YES" attributeType="String"/>
+        <attribute name="colorIndicator" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
+        <attribute name="colors" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String]"/>
+        <attribute name="flavorText" optional="YES" attributeType="String"/>
+        <attribute name="imageURIs" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="[String: URL]"/>
+        <attribute name="loyalty" optional="YES" attributeType="String"/>
+        <attribute name="manaCost" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="oracleText" optional="YES" attributeType="String"/>
+        <attribute name="power" optional="YES" attributeType="String"/>
+        <attribute name="printedName" optional="YES" attributeType="String"/>
+        <attribute name="printedText" optional="YES" attributeType="String"/>
+        <attribute name="printedTypeLine" optional="YES" attributeType="String"/>
+        <attribute name="toughness" optional="YES" attributeType="String"/>
+        <attribute name="typeLine" optional="YES" attributeType="String"/>
+        <attribute name="watermark" optional="YES" attributeType="String"/>
+    </entity>
+    <entity name="CardRelatedCard" representedClassName="CardRelatedCard" syncable="YES" codeGenerationType="class">
+        <attribute name="component" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="scryfallID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="typeLine" optional="YES" attributeType="String"/>
+        <attribute name="url" optional="YES" attributeType="URI"/>
+    </entity>
+    <entity name="Ruling" representedClassName="Ruling" syncable="YES" codeGenerationType="class">
+        <attribute name="comment" optional="YES" attributeType="String"/>
+        <attribute name="oracleID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="publishDate" optional="YES" attributeType="String"/>
+        <attribute name="source" optional="YES" attributeType="String"/>
+    </entity>
 </model>

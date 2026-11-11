@@ -56,12 +56,12 @@ class CounterCell: UITableViewCell {
 					}
 					
 					for symbol in MTGSymbolName.allCases {
-						let attachment = NSTextAttachment()
-						attachment.image = symbol.image
-						attachment.setImageHeight(height: fontSize * 0.8)
-						let attachmentString = NSAttributedString(attachment: attachment)
-						
 						while let range = attributedString.string.range(of: symbol.rawValue) {
+							let attachment = NSTextAttachment()
+							attachment.image = symbol.image
+							attachment.setImageHeight(height: fontSize * 0.8)
+							let attachmentString = NSAttributedString(attachment: attachment)
+							
 							attributedString.replaceCharacters(in: NSRange(range, in: attributedString.string), with: attachmentString)
 						}
 					}
@@ -129,12 +129,12 @@ class CounterCell: UITableViewCell {
 	}
 }
 
+struct CounterAndCount: Hashable {
+	var counter: Counter
+	var count: Int
+}
+
 class CountersViewController: UITableViewController {
-	
-	struct CounterAndCount: Hashable {
-		var counter: Counter
-		var count: Int
-	}
 	
 	enum SectionModel: Int, CaseIterable {
 		case counters
@@ -169,7 +169,14 @@ class CountersViewController: UITableViewController {
 		cell.nameLabel.text = counterAndCount.counter.name
 		
 		cell.stepper.value = Double(counterAndCount.count)
-		cell.countLabel.text = String(counterAndCount.count)
+		
+		if counterAndCount.counter == .lore {
+			cell.countLabel.textColor = .black
+			cell.countLabel.text = romanNumeralFor(counterAndCount.count) ?? String(counterAndCount.count)
+		} else {
+			cell.countLabel.textColor = .white
+			cell.countLabel.text = String(counterAndCount.count)
+		}
 		
 		if self.cardInstance.representation.typeLine?.lowercased().contains("planeswalker") == true && counterAndCount.counter == .loyalty {
 			let regex = #"^([+-]?(?:\d+|X)): (.+)"#
@@ -252,7 +259,11 @@ class CountersViewController: UITableViewController {
 	}
 	
 	@objc private func newCounterButtonPressed(_ sender: UIButton) {
-		guard let index = newCounterButtons.firstIndex(of: sender) else { return }
+		guard var index = newCounterButtons.firstIndex(of: sender) else { return }
+		
+		if index > 2 {
+			index += 12
+		}
 		
 		guard let counter = Counter(rawValue: index) else { return }
 		
@@ -264,6 +275,19 @@ class CountersViewController: UITableViewController {
 			counters.append(counter)
 		}
 		
+		try? GameState.current.save()
+	}
+	
+	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+		guard
+			let counterAndCount = dataSource.itemIdentifier(for: indexPath),
+			counterAndCount.counter != .loyalty
+    else {
+      tableView.deselectRow(at: indexPath, animated: true)
+      return
+    }
+		
+    add(counterAndCount.counter)
 		try? GameState.current.save()
 	}
 	

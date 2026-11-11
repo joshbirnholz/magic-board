@@ -10,7 +10,6 @@ import Foundation
 import UIKit
 import CardService
 import RxSwift
-import Shiny
 
 class CardImageViewController: UIViewController {
 	
@@ -19,7 +18,6 @@ class CardImageViewController: UIViewController {
 	var temporaryImage: UIImage?
 	
 	@IBOutlet private weak var cardImageView: UIImageView!
-	@IBOutlet weak var shinyView: ShinyView!
 	
 	@IBOutlet weak var nameLabel: UILabel?
 	@IBOutlet weak var typeLabel: UILabel?
@@ -150,9 +148,9 @@ class CardImageViewController: UIViewController {
 			return
 		}
 		
-		nameLabel?.text = card.name
-		typeLabel?.text = card.typeLine
-		oracleLabel?.text = card.oracleText
+    nameLabel?.text = card.card.printedName ?? card.name
+    typeLabel?.text = card.card.printedTypeLine ?? card.typeLine
+    oracleLabel?.text = card.card.printedText ?? card.oracleText
 		powerToughnessLabel?.text = [card.power, card.toughness, card.loyalty].compactMap { $0 }.joined(separator: "/")
 	}
 	
@@ -161,7 +159,7 @@ class CardImageViewController: UIViewController {
 extension CardImageViewController: UIDragInteractionDelegate {
 	var dragItem: UIDragItem? {
 		guard let cardInstance = cardInstance else { return nil }
-		let item = NSItemProvider(object: cardInstance)
+		let item = NSItemProvider(card: cardInstance)
 		let dragItem = UIDragItem(itemProvider: item)
 		dragItem.localObject = cardInstance
 		dragItem.previewProvider = { [weak self] in
@@ -187,7 +185,7 @@ extension CardImageViewController: UIDragInteractionDelegate {
 	
 	func dragInteraction(_ interaction: UIDragInteraction, itemsForAddingTo session: UIDragSession, withTouchAt point: CGPoint) -> [UIDragItem] {
 		guard let cardInstance = cardInstance else { return [] }
-		let cardInstances = session.items.compactMap { $0.localObject as? CardInstance }
+		let cardInstances = session.items.compactMap { $0.cardInstance }
 		guard !cardInstances.contains(cardInstance) else { return [] }
 		guard let dragItem = dragItem else { return [] }
 		return [dragItem]

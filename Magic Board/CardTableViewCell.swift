@@ -160,12 +160,11 @@ class CardTableViewCell: UITableViewCell {
 		let attributedString = NSMutableAttributedString(string: cost)
 		
 		for symbol in MTGSymbolName.allCases {
-			let attachment = NSTextAttachment()
-			attachment.image = symbol.image
-			attachment.setImageHeight(height: 15)
-			let attachmentString = NSAttributedString(attachment: attachment)
-			
 			while let range = attributedString.string.range(of: symbol.rawValue) {
+				let attachment = NSTextAttachment()
+				attachment.image = symbol.image
+				attachment.setImageHeight(height: 15)
+				let attachmentString = NSAttributedString(attachment: attachment)
 				attributedString.replaceCharacters(in: NSRange(range, in: attributedString.string), with: attachmentString)
 			}
 		}
@@ -183,10 +182,10 @@ class CardTableViewCell: UITableViewCell {
 			.replacingOccurrences(of: "−", with: "-")
 			.replacingOccurrences(of: "}{", with: "} {")
 		
-		let italicFontDescriptor = self.oracleLabel.font!.fontDescriptor.withSymbolicTraits(.traitItalic)!
-		let italicFont = UIFont(descriptor: italicFontDescriptor, size: oracleLabel.font!.pointSize)
+		let defaultFont = UIFont.systemFont(ofSize: 14)
+		let italicFont = UIFont(name: "MPlantin-Italic", size: 15)!
 		
-		let attributedString = NSMutableAttributedString(string: oracleText, attributes: [.foregroundColor: detailColor])
+		let attributedString = NSMutableAttributedString(string: oracleText, attributes: [.foregroundColor: detailColor, .font: defaultFont])
 		
 		let matches = oracleText.matches(forRegex: #"(?:\((.*?)\)|^(.+) — )"#, options: .dotMatchesLineSeparators)
 		for match in matches {

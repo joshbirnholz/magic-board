@@ -20,7 +20,13 @@ class Player: Codable {
 		case b
 	}
 	
-	var identifier: Identifier
+  var identifier: Identifier
+	
+	var isHidden: Bool {
+    didSet {
+      try? GameState.current.save()
+    }
+  }
 	
 	let hand: Pile
 	let library: Pile
@@ -43,10 +49,10 @@ class Player: Codable {
 	let name: BehaviorRelay<String>
 	
 	enum CodingKeys: String, CodingKey {
-		case identifier, hand, library, graveyard, sideboard, commandZone, exile, life, name
+		case identifier, hand, library, graveyard, sideboard, commandZone, exile, life, name, isHidden
 	}
 	
-	init(identifier: Identifier, name: String? = nil, hand: Cards = [], library: Cards = [], graveyard: Cards = [], sideboard: Cards = [], commandZone: Cards = [], exile: Cards = [], life: Int = 20) {
+  init(identifier: Identifier, name: String? = nil, hand: Cards = [], library: Cards = [], graveyard: Cards = [], sideboard: Cards = [], commandZone: Cards = [], exile: Cards = [], life: Int = 40, isHidden: Bool = false) {
 		self.identifier = identifier
 		self.hand = Pile(location: .hand, isHidden: true, playerIdentifier: identifier, cards: hand)
 		self.library = Pile(location: .library, isHidden: true, playerIdentifier: identifier, cards: library)
@@ -56,6 +62,7 @@ class Player: Codable {
 		self.exile = Pile(location: .exile, isHidden: false, playerIdentifier: identifier, cards: exile)
 		self.life = BehaviorRelay(value: life)
 		self.name = BehaviorRelay(value: name ?? (identifier == .a ? "Player 1" : "Player 2"))
+    self.isHidden = false
 	}
 	
 	var allPiles: [Pile] {

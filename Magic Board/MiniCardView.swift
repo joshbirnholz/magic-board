@@ -10,37 +10,101 @@ import UIKit
 import CardService
 import RxSwift
 import RxCocoa
+import CardView
+import SwiftUI
+
+func romanNumeralFor(_ n: Int) -> String? {
+	guard n > 0 && n < 4000 else {
+		return nil
+	}
+	
+	var returnString = ""
+	let arabicNumbers = [1000,  900, 500,  400, 100,   90,  50,   40,  10,    9,   5,    4,  1]
+	let romanLetters  = [ "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+
+	var num = n
+	for (ar, rome) in zip(arabicNumbers, romanLetters) {
+		let repeats = num / ar
+		returnString += String(repeating: rome, count: repeats)
+		num = num % ar
+	}
+	return returnString
+}
 
 class MiniCardView: UIView {
 	
 	private var bag = DisposeBag()
 
 	@IBOutlet var contentView: UIView!
-	@IBOutlet var cardView: UIView!
-	@IBOutlet weak var titleLabel: UILabel!
-	@IBOutlet weak var powerToughnessLabel: UILabel!
-	@IBOutlet weak var powerToughnessBox: UIView!
-	@IBOutlet weak var artImageView: UIImageView!
-	@IBOutlet weak var titleBox: UIView!
-	@IBOutlet weak var bottomBox: UIView!
-	@IBOutlet weak var cardTextLabel: UILabel!
-	@IBOutlet weak var oracleBox: UIView!
-	@IBOutlet weak var tappedDarkeningView: UIView!
-	@IBOutlet weak var costLabel: UILabel!
-	@IBOutlet weak var typeLabel: UILabel!
-	@IBOutlet weak var borderView: UIView!
-	@IBOutlet weak var loyaltyBox: UIView!
-	@IBOutlet weak var loyaltyLabel: InsetLabel!
-	@IBOutlet weak var typeBox: UIView!
-	@IBOutlet weak var edgeView: UIImageView!
-	@IBOutlet weak var landView: UIView!
-	@IBOutlet weak var watermarkImageView: UIImageView!
-	@IBOutlet weak var landIconImageView: UIImageView!
-	@IBOutlet weak var edgeViewBottomSpacingConstraint: NSLayoutConstraint!
-	@IBOutlet weak var chainsImageView: UIImageView!
 	@IBOutlet weak var countersStackView: UIStackView!
-	@IBOutlet weak var triggeredAbilityImageView: UIImageView!
-	@IBOutlet weak var tapAbilityImageView: UIImageView!
+	@IBOutlet weak var cardView: RMShapedImageView!
+	
+	private enum Contents: Equatable {
+		case image(UIImage)
+		case cardProperties(MTGCardView.CardProperties)
+		
+		static let backFace: Contents = .image(#imageLiteral(resourceName: "mtg-card-back-png-1"))
+	}
+	
+	private var contents: Contents = .backFace {
+		didSet {
+      guard contents != oldValue else { return }
+      
+      switch self.contents {
+      case .image(let image):
+        self.cardView.image = image
+      case .cardProperties(let properties):
+        self.cardView.image = self.image(for: properties, size: self.cardView.bounds.size)
+      }
+    }
+  }
+  
+  private var properties: MTGCardView.CardProperties? {
+    get {
+			if case .cardProperties(let properties) = contents {
+				return properties
+			}
+			return nil
+		}
+		set {
+			if let properties = newValue {
+				contents = .cardProperties(properties)
+			} else {
+				contents = .backFace
+			}
+		}
+	}
+	
+	private var cardImage: UIImage? {
+		get {
+			if case .image(let image) = contents {
+				return image
+			}
+			return nil
+		}
+		set {
+			if let image = newValue {
+				contents = .image(image)
+			} else {
+				contents = .backFace
+			}
+			
+		}
+	}
+	
+	private func image(for properties: MTGCardView.CardProperties, size: CGSize) -> UIImage! {
+		let frame = CGRect(origin: .zero, size: size)
+		let cardView = MTGCardView(frame: frame)
+		cardView.backgroundColor = .clear
+		cardView.properties = properties
+		cardView.layoutIfNeeded()
+		
+		UIGraphicsBeginImageContextWithOptions(cardView.bounds.size, false, 2)
+		defer { UIGraphicsEndImageContext() }
+		guard let context = UIGraphicsGetCurrentContext() else { return nil }
+		cardView.layer.render(in: context)
+		return UIGraphicsGetImageFromCurrentImageContext()
+	}
 	
 	var card: CardRepresentation {
 		return cardInstance!.representation
@@ -55,321 +119,130 @@ class MiniCardView: UIView {
 	private func updateCard() {
 		bag = DisposeBag()
 		
-		titleLabel.text = card.name
+		let isUndecidedFace: Bool = {
+			var representation = self.card
+			
+			while case .tokenCopy(let rep) = representation {
+				representation = rep
+			}
+      
+//      if representation.card.typeLine?.contains("Saga") == true {
+//        return true
+//      }
+			
+			if case .alternateFace(_, _) = representation {
+				return false
+			} else if let faces = representation.card.cardFaces, faces.count > 1 {
+				return true
+			} else {
+				return false
+			}
+		}()
 		
-		let borderColor = card.borderColor
-		cardView.backgroundColor = borderColor.uiColor
+		let isAltFace: Bool = {
+			if case .alternateFace(let card, let face) = self.card, let index = card.cardFaces?.firstIndex(of: face) {
+				return index >= 1
+			}
+//			let isAltFace: Bool = {
+//				if card.layout == "meld" {
+//					return card.card.allParts?.contains(where: {
+//						$0.component == .meldResult && $0.scryfallID == card.card.scryfallID
+//					}) == true
+//				}
+//
+//				return (faceIndex ?? 0) >= 1
+//			}()
+			
+			if case .card(let mTGCard) = card, mTGCard.layout == "meld" {
+				return mTGCard.allParts?.contains(where: {
+					$0.component == .meldResult && $0.scryfallID == card.card.scryfallID
+				}) == true
+			}
+			
+			return false
+		}()
 		
-		addColors()
-		
-		if let view = self.card.fullArt ? self.edgeView : self.artImageView {
-			view.image = nil
+		/*if card.layout == "saga" {
+			cardView.properties = nil
+			cardView.cardImage = nil
+			
+			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
+				let image = card.image(type: .normal)
+				DispatchQueue.main.async { [weak self] in
+					guard let self = self, let image = image, card == self.card else { return }
+					UIView.transition(with: self.cardView.cardImageView,
+									  duration: 0.2,
+									  options: .transitionCrossDissolve,
+									  animations: { self.cardView.cardImage = image },
+									  completion: nil)
+				}
+			}
+		} else */if case .faceDown(_) = card {
+			UIView.transition(with: self.cardView,
+								  duration: 0.2,
+								  options: .transitionCrossDissolve,
+								  animations: { self.contents = .backFace },
+								  completion: nil)
+		} else if isUndecidedFace {
+			
+			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
+				let image = card.image(type: .normal)
+				DispatchQueue.main.async { [weak self] in
+					guard let self = self, let image = image, card == self.card else { return }
+					UIView.transition(with: self.cardView,
+									  duration: 0.2,
+									  options: .transitionCrossDissolve,
+									  animations: { self.cardImage = image },
+									  completion: nil)
+				}
+			}
+		} else {
+			var properties = MTGCardView.properties(
+				includedIcons: .permanent,
+				name: card.name,
+				manaCost: card.manaCost,
+				typeLine: card.typeLine,
+				oracleText: card.oracleText,
+        colorInitials: cardInstance.colors.value.map { $0.initial },
+				fullArt: card.fullArt,
+				borderColor: card.borderColor.rawValue,
+        frame: card.card.frame,
+        frameEffects: card.frameEffects,
+				power: card.power,
+				toughness: card.toughness,
+				loyalty: card.loyalty,
+				layout: card.layout,
+				flavorName: card.flavorName,
+				isAltFace: isAltFace,
+        keywords: card.keywords,
+        securityStamp: card.card.securityStamp,
+        isCommander: cardInstance.isCommander.value
+      )
+			self.properties = properties
+			
 			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
 				let image = card.image(type: .art)
 				DispatchQueue.main.async { [weak self] in
 					guard let self = self, let image = image, card == self.card else { return }
-					UIView.transition(with: view,
+					UIView.transition(with: self.cardView,
 									  duration: 0.2,
 									  options: .transitionCrossDissolve,
-									  animations: { view.image = image },
+									  animations: {
+										properties.art = image
+										self.properties = properties
+					},
 									  completion: nil)
 				}
 			}
 		}
 		
-		borderView.mask = nil
-		if card.fullArt {
-			borderView.mask(withRect: artImageView.frame.inset(by: UIEdgeInsets(top: artImageView.layer.borderWidth, left: artImageView.layer.borderWidth, bottom: artImageView.layer.borderWidth, right: artImageView.layer.borderWidth)), inverse: true)
-			//				edgeViewBottomSpacingConstraint.constant = 0
-			//				edgeView.roundCorners(topLeft: 10, topRight: 10, bottomLeft: 10, bottomRight: 10)
-			
-			//				titleBox.backgroundColor = titleBox.backgroundColor?.darkened(by: 0.6)
-			bottomBox.backgroundColor = bottomBox.backgroundColor//?.darkened(by: 0.25)
-			//				titleLabel.textColor = .white
-			
-			oracleBox.backgroundColor = UIColor.black.withAlphaComponent(0.55)
-			cardTextLabel.textColor = .white
-		}
-		
-		landView.isHidden = !card.isLand
-		watermarkImageView.isHidden = !card.isBasicLand
-		
-		if card.isBasicLand, let typeLine = card.typeLine, let landName = typeLine.components(separatedBy: " ").last, let color = MTGColor(landName: landName) {
-			watermarkImageView.image = UIImage(named: landName) ?? #imageLiteral(resourceName: "Wastes")
-			
-			landIconImageView.image = UIImage(named: "{\(color.rawValue)}")
-		}
-		
-		var text: [NSMutableAttributedString] = []
-		let textFontSize: CGFloat = 24
-		let textFont = UIFont(name: "MPlantin", size: textFontSize)!
-		let italicFont = UIFont(name: "MPlantin-Italic", size: textFontSize)!
-		if var oracleText = card.oracleText, !oracleText.isEmpty, !card.isBasicLand {
-			oracleText = oracleText
-				.replacingOccurrences(of: "\n", with: "\n\n")
-				.replacingOccurrences(of: "−", with: "-")
-			
-			let attributedString = NSMutableAttributedString(string: oracleText, attributes: [.font: textFont])
-			
-			let matches = oracleText.matches(forRegex: #"(?:\((.*?)\)|^(.+) — )"#, options: .dotMatchesLineSeparators)
-			for match in matches {
-				let range = NSRange(match.fullMatch.range, in: oracleText)
-				attributedString.addAttribute(.font, value: italicFont, range: range)
-			}
-			
-			for symbol in MTGSymbolName.allCases {
-				let attachment = NSTextAttachment()
-				attachment.image = symbol.image
-				attachment.setImageHeight(height: textFontSize * 0.67)
-				let attachmentString = NSAttributedString(attachment: attachment)
-				
-				while let range = attributedString.string.range(of: symbol.rawValue) {
-					attributedString.replaceCharacters(in: NSRange(range, in: attributedString.string), with: attachmentString)
-				}
-			}
-			
-			text.append(attributedString)
-		}
-		
-		if let flavorText = card.flavorText, card.card.language == .english {
-			let attributedString = NSMutableAttributedString(string: flavorText, attributes: [.font: italicFont])
-			
-			let matches = flavorText.matches(forRegex: "\\*([^*]+)\\*")
-			for (fullMatch, groups) in matches {
-				guard let group = groups.first else { continue }
-				let range = NSRange(fullMatch.range, in: attributedString.string)
-				attributedString.addAttribute(.font, value: textFont, range: range)
-				// TODO: Remove the asterisks -- repalce the range of the full match in the attributed string with just the text of the capture group.
-			}
-			
-			text.append(attributedString)
-		}
-		
-		for string in text.dropLast() {
-			string.append(NSAttributedString(string: "\n\n"))
-		}
-		
-		cardTextLabel.attributedText = text.reduce(into: NSMutableAttributedString(), { (string, current) in
-			string.append(current)
-		})
-		
-		if let cost = card.manaCost {
-			let cost = cost.replacingOccurrences(of: "}{", with: "} {")
-			let attributedString = NSMutableAttributedString(string: cost, attributes: [.font: textFont])
-			
-			for symbol in MTGSymbolName.allCases {
-				let attachment = NSTextAttachment()
-				attachment.image = symbol.image
-				attachment.setImageHeight(height: 30)
-				let attachmentString = NSAttributedString(attachment: attachment)
-				
-				while let range = attributedString.string.range(of: symbol.rawValue) {
-					attributedString.replaceCharacters(in: NSRange(range, in: attributedString.string), with: attachmentString)
-				}
-			}
-			
-			costLabel.attributedText = attributedString
-		} else {
-			costLabel.text = nil
-		}
-		
-		typeLabel.text = card.typeLine
-		
 		updateTransform(controllerIdentifier: cardInstance.controllerIdentifier.value, isTapped: cardInstance.isTapped.value, animated: false)
-		
-		if let oracleText = card.oracleText, !oracleText.matches(forRegex: #"^((At )|(When )|(Whenever ))"#, options: .anchorsMatchLines).isEmpty {
-			triggeredAbilityImageView.isHidden = false
-			// TODO: Make this NOT match "enters the battlefield" effects
-		} else {
-			triggeredAbilityImageView.isHidden = true
-		}
-		
-		if let oracleText = card.oracleText, !oracleText.matches(forRegex: #"^.*{T}.*:"#, options: .anchorsMatchLines).isEmpty {
-			// TODO: Check why this isn't working!
-			tapAbilityImageView.isHidden = false
-		} else {
-			tapAbilityImageView.isHidden = true
-		}
 		
 		bind()
 	}
 	
-	private func addColors() {
-		let originalColors = card.colors ?? [.colorless]
-		var colors = originalColors
-		
-		let typeLine = card.typeLine?.lowercased() ?? ""
-		
-		if colors.isEmpty {
-			if typeLine.contains("basic land") {
-				for color in MTGColor.allCases {
-					guard let land = color.land, typeLine.contains(land) else { continue }
-					colors.append(color)
-				}
-			} else if typeLine.contains("land"), let oracleText = card.oracleText?.lowercased() {
-				let lines = oracleText.split(separator: "\n")
-				
-				var foundMulticolor = false
-				
-				for line in lines {
-					let split = line.split(separator: ":")
-					guard split.count == 2 else { continue }
-					let abilityText = split[1]
-					
-					for color in MTGColor.allCases {
-						guard abilityText.contains("{\(color.rawValue.lowercased())}") else { continue }
-						colors.append(color)
-					}
-					
-					if abilityText.contains("of any color") {
-						foundMulticolor = true
-					}
-				}
-				
-				if colors.isEmpty && foundMulticolor {
-					colors = [.multicolor]
-				}
-			} else if typeLine.contains("artifact") {
-				colors = [.artifact]
-			}
-			
-			if colors.isEmpty {
-				colors = [.colorless]
-			}
-		}
-		
-		let regex = "\\{(.*?)\\}"
-		let costColors = (card.manaCost ?? "").matches(forRegex: regex).compactMap { $0.groups.compactMap { MTGColor(rawValue: $0.value) } }.joined()
-		if Set(costColors) == Set(colors) {
-			colors = Array(costColors).uniques
-		}
-		
-		if colors.count >= 3 && card.manaCost?.contains("/") == false && !card.isToken {
-			colors = [.multicolor]
-		}
-		
-		var didSetBoxes = false
-		
-		func setBoxes(colors: [MTGColor]) {
-			if card.isToken {
-				titleBox.backgroundColor = .black
-				titleLabel.textColor = #colorLiteral(red: 0.9784926772, green: 0.8576988578, blue: 0.3988588452, alpha: 1)
-				titleLabel.font = UIFont(name: "Beleren Small Caps", size: titleLabel.font.pointSize)
-				titleLabel.textAlignment = .center
-			} else if card.isEmblem {
-				titleBox.backgroundColor = .black
-				titleLabel.textColor = .white
-				titleLabel.font = UIFont(name: "Beleren Small Caps", size: titleLabel.font.pointSize)
-				titleLabel.textAlignment = .center
-			} else {
-				titleLabel.textColor = .black
-				titleLabel.font = UIFont(name: "Beleren2016-Bold", size: titleLabel.font.pointSize)
-				titleLabel.textAlignment = .natural
-				addGradient(to: titleBox, colors: colors, opacity: 1, type: \.boxBackgroundColor)
-			}
-			
-			addGradient(to: bottomBox, colors: colors, opacity: 1, type: \.boxBackgroundColor)
-			addGradient(to: oracleBox, colors: colors, opacity: 0.75, type: \.textBackgroundColor)
-			addGradient(to: powerToughnessBox, colors: colors, opacity: 1, type: \.textBackgroundColor)
-			didSetBoxes = true
-		}
-		
-		if typeLine.contains("land") {
-			setBoxes(colors: colors)
-		}
-		
-		addGradient(to: borderView, colors: colors, opacity: 1, type: \.borderColor)
-		
-		if colors != [.artifact] && (originalColors.isEmpty || originalColors == [.colorless]) {
-			colors = [.colorless]
-		} else if colors.count == 2 && card.manaCost?.contains("/") == false && !card.isToken {
-			colors = [.multicolor]
-		}
-		
-		if !didSetBoxes {
-			setBoxes(colors: colors)
-		}
-		
-		if typeLine.contains("artifact") {
-//			addGradient(to: edgeView, colors: [.artifact], opacity: 1, type: \.cardEdgeColor)
-			edgeView.image = MTGColor.artifact.cardEdgeImage
-		} else if typeLine.contains("land") {
-			edgeView.image = #imageLiteral(resourceName: "bg-land")
-		} else {
-			edgeView.image = colors.first?.cardEdgeImage
-//			addGradient(to: edgeView, colors: colors, opacity: 1, type: \.cardEdgeColor)
-		}
-		
-	}
-	
-	private func addGradient(to view: UIView, colors: [MTGColor], opacity: Float, type: KeyPath<MTGColor, UIColor>) {
-		class CustomGradientLayer: CAGradientLayer { }
-		view.layer.sublayers?.filter({ $0 is CustomGradientLayer }).forEach { $0.removeFromSuperlayer() }
-		
-		let backgroundColors: [UIColor] = colors.map { $0[keyPath: type] }
-		
-		if backgroundColors.count == 1, let backgroundColor = backgroundColors.first {
-			view.backgroundColor = backgroundColor.withAlphaComponent(CGFloat(opacity))
-		} else {
-			let gradient = CustomGradientLayer()
-			gradient.frame = view.bounds
-			gradient.colors = backgroundColors.map { $0.cgColor }
-			
-			gradient.startPoint = CGPoint(x: 0.0, y: 0.5)
-			gradient.endPoint = CGPoint(x: 1.0, y: 0.5)
-			gradient.locations = [0.38, 0.62]
-			gradient.opacity = opacity
-			
-			view.layer.insertSublayer(gradient, at: 0)
-		}
-	}
-	
 	private var shouldAlwaysHideTextBox: Bool {
 		return card.isBasicLand || ((card.oracleText == nil || card.oracleText == "") && (card.flavorText == nil || card.flavorText == ""))
-	}
-	
-	var isOracleBoxHidden: Bool {
-		set {
-			guard !shouldAlwaysHideTextBox else {
-				oracleBox.alpha = 0
-				return
-			}
-			
-			oracleBox.alpha = newValue ? 0 : 1
-		}
-		get {
-			oracleBox.alpha == 0
-		}
-	}
-	
-	var isCostLabelHidden: Bool {
-		set {
-			guard card.manaCost != nil else {
-				costLabel.alpha = 0
-				return
-			}
-			
-			costLabel.alpha = newValue ? 0 : 1
-		}
-		get {
-			costLabel.alpha == 0
-		}
-	}
-	
-	var isTypeLabelHidden: Bool {
-		set {
-			guard card.typeLine != nil else {
-				typeBox.alpha = 0
-				typeLabel.alpha = 0
-				return
-			}
-			
-			typeBox.alpha = newValue ? 0 : 0.6
-			typeLabel.alpha = newValue ? 0 : 1
-		}
-		get {
-			typeBox.alpha == 0
-		}
 	}
 	
 	private func bind() {
@@ -379,29 +252,72 @@ class MiniCardView: UIView {
 			.subscribe(onNext: { [weak self] _ in
 				self?.updateCard()
 			}).disposed(by: bag)
+    
+    cardInstance.isCommander
+      .subscribe(onNext: { [weak self] isCommander in
+        
+        if let index = self?.properties?.icons.firstIndex(of: .commander) {
+          self?.properties?.icons.remove(at: index)
+        } else if isCommander && self?.properties?.icons.contains(.commander) != true {
+          self?.properties?.icons.insert(.commander, at: 0)
+        }
+      }).disposed(by: bag)
+    
+    cardInstance.colors
+      .subscribe(onNext: { [weak self] colors in
+        self?.properties?.colors = colors.compactMap { MTGCardView.Color.init(initial: $0.initial) }
+      }).disposed(by: bag)
 		
-		Observable.combineLatest(cardInstance.power, cardInstance.toughness, cardInstance.counters)
-			.map { [weak self] power, toughness, counters in
-				guard let self = self else { return NSAttributedString() }
-				return self.powerToughnessLabelText(power: power, toughness: toughness, counters: counters)
+    Observable.combineLatest(cardInstance.power, cardInstance.toughness, cardInstance.counters, cardInstance.isPowerToughnessVisible)
+      .subscribe(onNext: { [weak self] power, toughness, counters, isPowerToughnessVisible in
+        let powerToughnessString: NSAttributedString? = {
+          guard isPowerToughnessVisible else { return nil }
+          guard let self = self else { return nil }
+          return self.powerToughnessLabelText(power: power, toughness: toughness, counters: counters)
+        }()
+        
+        let loyaltyString: NSAttributedString? = {
+          guard let self = self else { return nil }
+          guard self.card.typeLine?.lowercased().contains("planeswalker") == true else { return nil }
+          
+          let loyaltyCounterCount = counters.reduce(into: 0) { (result, counter) in
+            if counter == .loyalty {
+              result += 1
+            }
+          }
+          
+          if loyaltyCounterCount > 0 {
+            return NSAttributedString(string: "\(loyaltyCounterCount)")
+          } else if let loyalty = self.card.loyalty {
+            if Int(loyalty) == nil {
+              return NSAttributedString(string: loyalty)
+            } else {
+              return NSAttributedString(string: "0")
+            }
+          }
+          return nil
+          
+        }()
+        
+        guard var properties = self?.properties else { return }
+        
+        properties.value = powerToughnessString ?? loyaltyString
+        
+        if let frame = self?.card.card.frame, frame == "1993" || frame == "1997" {
+          properties.borderStyle = .retro
+        } else if powerToughnessString != nil {
+					properties.borderStyle = self?.card.typeLine?.lowercased().contains("legendary") == true ? .legendary : nil
+				} else if loyaltyString != nil {
+					properties.borderStyle = .planeswalker
 				}
-			.bind(to: powerToughnessLabel.rx.attributedText)
-			.disposed(by: bag)
+				
+				self?.properties = properties
+		}).disposed(by: bag)
 		
 		cardInstance.isPowerToughnessVisible
 			.subscribe(onNext: { [weak self] isPowerToughnessVisible in
 				self?.updateTransform(controllerIdentifier: cardInstance.controllerIdentifier.value, isTapped: cardInstance.isTapped.value, animated: true)
 			}).disposed(by: bag)
-		
-		cardInstance.isPowerToughnessVisible
-			.map { !$0 }
-			.bind(to: powerToughnessLabel.rx.isHidden)
-			.disposed(by: bag)
-		
-		cardInstance.isPowerToughnessVisible
-			.map { !$0 }
-			.bind(to: powerToughnessBox.rx.isHidden)
-			.disposed(by: bag)
 		
 //		cardInstance.isSummoningSick
 //			.subscribe(onNext: { [weak self] isSummoningSick in
@@ -412,59 +328,51 @@ class MiniCardView: UIView {
 //				}
 //			}).disposed(by: bag)
 		
-		cardInstance.isFlying
-			.subscribe (onNext: { [weak self] isFlying in
+    Observable.combineLatest(cardInstance.isFlying, cardInstance.isPowerToughnessVisible)
+      .subscribe (onNext: { [weak self] (isFlying, isPowerToughnessVisible) in
 				guard let self = self else { return }
 				
-				if isFlying {
+        // Don't show flying if it's not a creature
+        if isFlying && isPowerToughnessVisible {
 					self.cardView.startWiggle(durationModifier: 24, varianceModifier: 1.2, angleModifier: 2, bounceModifier: 1)
 					self.cardView.transform = CGAffineTransform(scaleX: 1.08, y: 1.08)
 					self.layer.shadowOpacity = 0.75
 					self.layer.shadowRadius = 50
+					self.layer.shadowOffset = .zero
 					//			self.layer.allowsEdgeAntialiasing = true
 					//			self.layer.shadowOffset = CGSize(width: 0, height: 50)
 					self.layer.zPosition = 1
 				} else {
 					self.cardView.stopWiggle()
 					self.cardView.transform = .identity
-					self.layer.shadowOpacity = 0
+					self.layer.shadowOpacity = 0.5
+					self.layer.shadowRadius = 5
+					self.layer.shadowOffset = .zero
 					self.layer.zPosition = 0
 					//				self.layer.allowsEdgeAntialiasing = false
 					return
 				}
 			}).disposed(by: bag)
 		
-		cardInstance.counters
-			.map { counters in
-				counters.reduce(into: 0) { (result, counter) in
-					if counter == .loyalty {
-						result += 1
+		Observable.combineLatest(cardInstance.counters, cardInstance.isPowerToughnessVisible)
+			.map { [weak self] (counters, isPowerToughnessVisible) -> [CounterAndCount] in
+				var countersAndCounts: [CounterAndCount] = []
+				
+				for counter in counters {
+					if (counter == .loyalty && self?.card.typeLine?.lowercased().contains("planeswalker") == true && !isPowerToughnessVisible) { continue }
+					
+					if let index = countersAndCounts.firstIndex(where: { $0.counter == counter }) {
+						countersAndCounts[index].count += 1
+					} else {
+						countersAndCounts.append(CounterAndCount(counter: counter, count: 1))
 					}
 				}
-			}.map { [weak self] loyaltyCounterCount -> String? in
-				guard let self = self else { return nil }
-				if loyaltyCounterCount > 0 {
-					return "\(loyaltyCounterCount)"
-				} else if let loyalty = self.card.loyalty {
-					let loyalty = loyalty.replacingOccurrences(of: "*", with: "★")
-					if Int(loyalty) == nil {
-						return loyalty
-					} else if self.card.typeLine?.lowercased().contains("planeswalker") == true {
-						return "0"
-					}
+				
+				if self?.card.typeLine?.lowercased().contains("planeswalker") == true && isPowerToughnessVisible && !counters.contains(.loyalty) {
+					countersAndCounts.insert(CounterAndCount(counter: .loyalty, count: 0), at: 0)
 				}
-				return nil
-			}
-			.do(onNext: { [weak self] loyalty in
-				self?.loyaltyBox.isHidden = loyalty == nil
-			})
-			.bind(to: loyaltyLabel.rx.text)
-			.disposed(by: bag)
-		
-		cardInstance.counters
-			.map { counters -> [Counter: Int] in
-				let mappedItems = counters.compactMap { $0 == .loyalty ? nil : ($0, 1) }
-				return Dictionary(mappedItems, uniquingKeysWith: +)
+				
+				return countersAndCounts
 			}
 			.subscribe(onNext: { [weak self] countersAndCounts in
 				guard let self = self else { return }
@@ -473,20 +381,26 @@ class MiniCardView: UIView {
 					subview.removeFromSuperview()
 				}
 				
-				for (counter, count) in countersAndCounts {
+				for counterAndCount in countersAndCounts {
+					let (counter, count) = (counterAndCount.counter, counterAndCount.count)
 //					let view = UIView()
 					let image: UIImage? = {
 						switch counter {
-						case .plusOnePlusOne: return #imageLiteral(resourceName: "Plus")
-						case .minusOneMinusOne: return #imageLiteral(resourceName: "Minus")
 						case .loyalty: return #imageLiteral(resourceName: "Loyalty")
-						default: return #imageLiteral(resourceName: "{0}").withRenderingMode(.alwaysTemplate)
+						default: return UIImage(systemName: "circle.fill")
 						}
 					}()
 					let view = UIImageView(image: image)
 					view.contentMode = .scaleAspectFit
 					view.translatesAutoresizingMaskIntoConstraints = false
-					let width: CGFloat = counter == .plusOnePlusOne || counter == .minusOneMinusOne || counter == .loyalty ? 80 : 60
+					let width: CGFloat = {
+						switch counter {
+						case .loyalty:
+							return 100
+						default:
+							return 90
+						}
+					}()
 					view.heightAnchor.constraint(equalToConstant: width).isActive = true
 					view.widthAnchor.constraint(equalToConstant: width).isActive = true
 					view.tintColor = counter.color
@@ -503,7 +417,15 @@ class MiniCardView: UIView {
 					label.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
 					label.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
 					label.font = UIFont(name: "Beleren2016-Bold", size: 45)
-					label.text = String(count)
+					
+					if counter == .lore {
+						label.textColor = .black
+						
+						label.text = romanNumeralFor(count) ?? String(count)
+					} else {
+						label.textColor = .white
+						label.text = String(count)
+					}
 					
 					self.countersStackView.addArrangedSubview(view)
 				}
@@ -516,50 +438,59 @@ class MiniCardView: UIView {
 			}).disposed(by: bag)
 		
 		Observable.combineLatest(cardInstance.doesNotUntapNextTurn, cardInstance.doesNotUntapAutomatically)
-			.do(onNext: { (doesNotUntapNextTurn, doesNotUntapAutomatically) in
-				if doesNotUntapAutomatically {
-					self.chainsImageView.image = #imageLiteral(resourceName: "chains")
-				} else if doesNotUntapNextTurn {
-					self.chainsImageView.image = #imageLiteral(resourceName: "bluechains")
-				}
-			})
+//			.do(onNext: { (doesNotUntapNextTurn, doesNotUntapAutomatically) in
+//				if doesNotUntapAutomatically {
+//					self.chainsImageView.image = #imageLiteral(resourceName: "chains")
+//				} else if doesNotUntapNextTurn {
+//					self.chainsImageView.image = #imageLiteral(resourceName: "bluechains")
+//				}
+//			})
 			.map { !($0 || $1) }
-			.bind(to: chainsImageView.rx.isHidden)
-			.disposed(by: bag)
+			.subscribe(onNext: { [weak self] chainIsHidden in
+				self?.properties?.isChained = !chainIsHidden
+			}).disposed(by: bag)
 	}
+  
+  var updatesTransform = true
 	
-	private func updateTransform(controllerIdentifier: Player.Identifier, isTapped: Bool, animated: Bool) {
-		UIView.animate(withDuration: animated ? 0.3 : 0) { [weak self] in
-			guard let self = self else { return }
-			var transform: CGAffineTransform = .identity
-			
-			if controllerIdentifier == .b {
-				transform = transform.rotated(by: .pi)
-			}
-			
-			if isTapped {
-				transform = transform.rotated(by: .pi/15)
-				self.tappedDarkeningView.alpha = 0.5
-			} else {
-				self.tappedDarkeningView.alpha = 0
-			}
-			
-			if let typeLine = self.card.typeLine?.lowercased(), !self.cardInstance.isPowerToughnessVisible.value && (typeLine.contains("artifact") || typeLine.contains("enchantment") || typeLine.contains("land") || typeLine.contains("emblem")) {
-				let scale: CGFloat = 0.85
-				transform = transform.scaledBy(x: scale, y: scale)
-			}
-			
-			self.transform = transform
-		}
-	}
-	
+  private func updateTransform(controllerIdentifier: Player.Identifier, isTapped: Bool, animated: Bool) {
+    guard updatesTransform else { return }
+    
+    UIView.transition(
+      with: self.cardView,
+      duration: animated ? 0.3 : 0,
+      options: .transitionCrossDissolve,
+      animations: { [weak self] in
+        guard let self = self else { return }
+        var transform: CGAffineTransform = .identity
+        
+        if controllerIdentifier == .b {
+          transform = transform.rotated(by: .pi)
+        }
+        
+        if isTapped {
+          transform = transform.rotated(by: .pi/15)
+        }
+        
+        
+        self.properties?.isTapped = isTapped
+        
+        
+        if let typeLine = self.card.typeLine?.lowercased(), !self.cardInstance.isPowerToughnessVisible.value && (typeLine.contains("artifact") || typeLine.contains("enchantment") || typeLine.contains("land") || typeLine.contains("emblem")) {
+          let scale: CGFloat = 0.85
+          transform = transform.scaledBy(x: scale, y: scale)
+        }
+        
+        self.transform = transform
+      },
+      completion: nil)
+  }
+  
 	private func powerToughnessLabelText(power: String, toughness: String, counters: [Counter]) -> NSAttributedString {
 		let attributedString = NSMutableAttributedString()
-		let normalColor: UIColor = .black
-		let modifiedColor = #colorLiteral(red: 0.2145935893, green: 0.5758153796, blue: 0.8829388022, alpha: 1)
 		
 		func string(for power: String) -> String {
-			var string = power.replacingOccurrences(of: "*", with: "★")
+			var string = power
 			
 			if let value = Int(string) {
 				let counterModifier: Int = counters.reduce(into: 0) { (result, counter) in
@@ -577,16 +508,19 @@ class MiniCardView: UIView {
 		
 		let powerString: String = string(for: power)
 		let toughnessString = string(for: toughness)
+		
+		guard let properties = properties else { return NSAttributedString() }
+		
+		let modifiedColor = properties.isInverted || properties.backgroundStyle == .vehicle ? #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1) : #colorLiteral(red: 0.03035263158, green: 0.3804000616, blue: 1, alpha: 1)
+		let modifiedAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: modifiedColor]
 
-		let powerAttributedString = NSAttributedString(string: powerString, attributes: [.foregroundColor: (powerString == self.cardInstance.representation.power?.replacingOccurrences(of: "*", with: "★") ? normalColor : modifiedColor)])
+		let powerAttributedString = NSAttributedString(string: powerString, attributes: (powerString == self.cardInstance.representation.power) ? [:] : modifiedAttributes)
 		attributedString.append(powerAttributedString)
 
 		attributedString.append(NSAttributedString(string: "/"))
 
-		let toughnessAttributedString = NSAttributedString(string: toughnessString, attributes: [.foregroundColor: (toughnessString == self.cardInstance.representation.toughness?.replacingOccurrences(of: "*", with: "★") ? normalColor : modifiedColor)])
+		let toughnessAttributedString = NSAttributedString(string: toughnessString, attributes: (toughnessString == self.cardInstance.representation.toughness) ? [:] : modifiedAttributes)
 		attributedString.append(toughnessAttributedString)
-
-		attributedString.addAttribute(.font, value: UIFont(name: "Beleren2016-Bold", size: 40)!, range: NSRange(location: 0, length: attributedString.length))
 
 		return attributedString
 	}
@@ -607,44 +541,10 @@ class MiniCardView: UIView {
 		contentView.frame = self.bounds
 		contentView.autoresizingMask = [.flexibleHeight, .flexibleWidth]
 		
-		cardView.layer.cornerRadius = 16
-		cardView.layer.masksToBounds = true
+//		cardView.layer.allowsEdgeAntialiasing = true
 		
-		edgeView.roundCorners(topLeft: 10, topRight: 10, bottomLeft: 50, bottomRight: 50)
-		
-		borderView.layer.cornerRadius = 8
-		borderView.layer.masksToBounds = true
-		borderView.layer.borderWidth = 1
-		borderView.layer.borderColor = UIColor.black.cgColor
-		
-		for box in [titleBox, bottomBox, artImageView, oracleBox] {
-			box?.layer.borderWidth = 1
-			box?.layer.borderColor = UIColor.black.cgColor
-		}
-		
-		titleBox.layer.cornerRadius = 6
-		titleBox.layer.masksToBounds = true
-		
-		bottomBox.layer.cornerRadius = 6
-		bottomBox.layer.masksToBounds = true
-		
-		powerToughnessBox.layer.borderWidth = 1
-		powerToughnessBox.layer.borderColor = UIColor.black.cgColor
-		
-		powerToughnessBox.layer.cornerRadius = 6
-		powerToughnessBox.layer.masksToBounds = true
-		powerToughnessBox.layer.borderColor = UIColor.black.cgColor
-		powerToughnessBox.layer.borderWidth = 4
-		powerToughnessBox.layer.shadowOpacity = 0.3
-		
-		typeBox.layer.cornerRadius = 16
-		typeBox.layer.masksToBounds = true
-		
-		landView.layer.cornerRadius = landView.frame.width / 2
-		landView.layer.masksToBounds = true
-		
-		let gestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tapUnTapGestureRecognized))
-		cardView.addGestureRecognizer(gestureRecognizer)
+//		let gestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tapUnTapGestureRecognized))
+//		cardView.addGestureRecognizer(gestureRecognizer)
 		
 //		let rotateGestureRecognizer = UIRotationGestureRecognizer(target: self, action: #selector(rotated(_:)))
 //		cardView.addGestureRecognizer(rotateGestureRecognizer)
@@ -666,17 +566,17 @@ class MiniCardView: UIView {
 		}
 	}
 	
-	@objc private func tapUnTapGestureRecognized(_ gestureRecognizer: UIGestureRecognizer) {
-		tapUnTap()
-	}
+//	@objc private func tapUnTapGestureRecognized(_ gestureRecognizer: UIGestureRecognizer) {
+//		tapUnTap()
+//	}
+//	
+//	private func tapUnTap() {
+//		cardInstance.isTapped.toggle()
+//		try? GameState.current.save()
+//	}
 	
-	private func tapUnTap() {
-		cardInstance.isTapped.toggle()
-		try? GameState.current.save()
-	}
-	
-	override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-		return cardView.hitTest(point, with: event)
+	override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+		return cardView.point(inside: point, with: event)
 	}
 
 }
@@ -688,4 +588,175 @@ extension MiniCardView: UIGestureRecognizerDelegate {
 //		}
 //		return false
 //	}
+}
+
+
+// MARK: SwiftUI
+
+struct SwiftUICardView: View {
+  let card: CardInstance
+  let isRotationEnabled: Bool
+  
+  @ObservedObject private var isTapped: ObservableBridge<Bool>
+  @ObservedObject private var representation: ObservableBridge<CardRepresentation>
+  @State private var art: UIImage?
+  
+  private static let backFace: UIImage = #imageLiteral(resourceName: "mtg-card-back-png-1")
+  
+  let bag = DisposeBag()
+  
+  init(card: CardInstance, isRotationEnabled: Bool = true) {
+    self.card = card
+    self.isTapped = ObservableBridge(card.isTapped)
+    self.isRotationEnabled = isRotationEnabled
+    
+    let cardDidChangeObservable = card.representedCardDidChange
+      .map { card.representation }
+    self.representation = ObservableBridge(cardDidChangeObservable, initialValue: card.representation)
+  }
+  
+  private var isUndecidedFace: Bool {
+    var representation = self.representation.value
+    
+    while case .tokenCopy(let rep) = representation {
+      representation = rep
+    }
+    
+    if case .alternateFace(_, _) = representation {
+      return false
+    } else if let faces = representation.card.cardFaces, faces.count > 1 {
+      return true
+    } else {
+      return false
+    }
+  }
+  
+  private var isAltFace: Bool {
+    if case .alternateFace(let card, let face) = self.representation.value, let index = card.cardFaces?.firstIndex(of: face) {
+      return index >= 1
+    }
+//      let isAltFace: Bool = {
+//        if card.layout == "meld" {
+//          return card.card.allParts?.contains(where: {
+//            $0.component == .meldResult && $0.scryfallID == card.card.scryfallID
+//          }) == true
+//        }
+//
+//        return (faceIndex ?? 0) >= 1
+//      }()
+    
+    if case .card(let mTGCard) = representation.value, mTGCard.layout == "meld" {
+      return mTGCard.allParts?.contains(where: {
+        $0.component == .meldResult && $0.scryfallID == representation.value.card.scryfallID
+      }) == true
+    }
+    
+    return false
+  }
+  
+  @ViewBuilder
+  private var contents: some View {
+    if case .faceDown(_) = representation.value {
+      Image(uiImage: Self.backFace)
+        .resizable()
+        .aspectRatio(63/88, contentMode: .fit)
+    } else if isUndecidedFace {
+      AsyncImage(
+        card: representation.value.card,
+        type: .normal,
+        placeholder: Image(uiImage: Self.backFace).opacity(0.5),
+        configuration: {
+          $0.resizable()
+          .aspectRatio(63/88, contentMode: .fit)
+        }
+      )
+    } else {
+        Image(uiImage: self.cardImage(for: properties))
+        .resizable()
+        .aspectRatio(480/420, contentMode: .fit)
+        .task {
+          let image = card.representation.image(type: .art)
+          await MainActor.run {
+            self.art = image
+          }
+        }
+    }
+  }
+  
+  private var properties: MTGCardView.CardProperties {
+    var properties = MTGCardView.properties(
+      includedIcons: .permanent,
+      name: representation.value.name,
+      manaCost: representation.value.manaCost,
+      typeLine: representation.value.typeLine,
+      oracleText: representation.value.oracleText,
+      colorInitials: card.colors.value.map { $0.initial },
+      fullArt: representation.value.fullArt,
+      borderColor: representation.value.borderColor.rawValue,
+      frame: representation.value.card.frame,
+      frameEffects: representation.value.frameEffects,
+      power: representation.value.power,
+      toughness: representation.value.toughness,
+      loyalty: representation.value.loyalty,
+      layout: representation.value.layout,
+      flavorName: representation.value.flavorName,
+      isAltFace: isAltFace,
+      keywords: representation.value.keywords,
+      securityStamp: representation.value.card.securityStamp,
+      isCommander: card.isCommander.value
+    )
+    
+    properties.art = self.art
+    
+    return properties
+  }
+  
+  /// Renders the card the same way `MiniCardView` does, then crops away the padding.
+  ///
+  /// `MTGCardView` only lays out correctly when the 8:7 card is letterboxed in a square
+  /// canvas (its xib is designed at 480×480). Rendering straight at 480×420 shifts the
+  /// name below the title bar, so render square and crop to the card itself.
+  private func cardImage(for properties: MTGCardView.CardProperties) -> UIImage {
+    let canvas = CGSize(width: 480, height: 480)
+    let cardRect = CGRect(x: 0, y: (canvas.height - 420) / 2, width: 480, height: 420)
+
+    guard let squareImage = image(for: properties, size: canvas) else { return UIImage() }
+    guard let cgImage = squareImage.cgImage else { return squareImage }
+
+    let scale = squareImage.scale
+    let pixelRect = CGRect(x: cardRect.minX * scale, y: cardRect.minY * scale,
+                           width: cardRect.width * scale, height: cardRect.height * scale)
+    guard let cropped = cgImage.cropping(to: pixelRect) else { return squareImage }
+    return UIImage(cgImage: cropped, scale: scale, orientation: squareImage.imageOrientation)
+  }
+
+  private func image(for properties: MTGCardView.CardProperties, size: CGSize) -> UIImage! {
+    let frame = CGRect(origin: .zero, size: size)
+    let cardView = MTGCardView(frame: frame)
+    cardView.backgroundColor = .clear
+    cardView.properties = properties
+    cardView.layoutIfNeeded()
+    
+    UIGraphicsBeginImageContextWithOptions(cardView.bounds.size, false, 2)
+    defer { UIGraphicsEndImageContext() }
+    guard let context = UIGraphicsGetCurrentContext() else { return nil }
+    cardView.layer.render(in: context)
+    return UIGraphicsGetImageFromCurrentImageContext()
+  }
+  
+  var body: some View {
+//    MiniCardViewWrapper(cardInstance: card, updatesTransform: false)
+//    Text(String(describing: representation.value))
+    contents
+      .drag(card: card)
+      .overlay {
+        if isTapped.value {
+          Color.black.opacity(0.4)
+        }
+      }
+      .rotationEffect(isRotationEnabled && isTapped.value ? .init(radians: .pi/15) : .zero)
+      .animation(.default, value: isTapped.value)
+      .animation(.default, value: representation.value)
+      
+  }
 }
