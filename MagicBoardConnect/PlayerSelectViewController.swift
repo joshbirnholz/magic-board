@@ -42,7 +42,12 @@ class PlayerSelectViewController: UIViewController {
 	func showHand() {
 		guard let viewController = storyboard?.instantiateViewController(identifier: "ContainerViewController") else { return }
 		
-		viewController.modalPresentationStyle = .fullScreen
+        if AppDelegate.shared.supportsEmbeddedCompanion, let navigationController {
+            navigationItem.backButtonTitle = "Players"
+            navigationController.pushViewController(viewController, animated: true)
+            return
+        }
+        viewController.modalPresentationStyle = .fullScreen
 		
 //		navigationController?.setViewControllers([pileViewController], animated: true)
 		present(viewController, animated: true, completion: nil)

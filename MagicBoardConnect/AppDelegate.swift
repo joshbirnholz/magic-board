@@ -15,6 +15,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 	let transceiver = MultipeerTransceiver()
 	
+    var usesPhoneSession: Bool { false }
+    var supportsEmbeddedCompanion: Bool { false }
+    func phoneCardActions(_ card: CardInstance) -> [CardManualAction] { [] }
+    func sendCommand(_ command: Command) { transceiver.broadcast(command) }
 	var role: Role = .player1
 
 	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {

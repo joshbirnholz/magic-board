@@ -827,7 +827,7 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
       insertionIndex: index-1
     ))
     
-    AppDelegate.shared.transceiver.broadcast(command)
+    AppDelegate.shared.sendCommand(command)
   }
   
   @IBAction func rightButtonPressed(_ sender: Any) {
@@ -844,7 +844,7 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
       insertionIndex: index+1
     ))
     
-    AppDelegate.shared.transceiver.broadcast(command)
+    AppDelegate.shared.sendCommand(command)
   }
   
   @IBAction func taxButtonPressed(_ sender: Any) {
@@ -958,110 +958,24 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
 	
 	// Handle buttons
 	
-	@IBAction func playButtonPressed(_ sender: Any) {
-    guard let cardInstance = associatedCardInstance else { return }
-		
-		let isAftermath: Bool = {
-			if cardInstance.representation.layout == "split", let faces = cardInstance.representation.card.cardFaces, faces.count == 2, faces[1].oracleText?.hasPrefix("Aftermath") == true {
-				return true
-			}
-			return false
-		}()
-		
-		if let faces = cardInstance.representation.card.cardFaces, faces.count >= 1 {
-			if cardInstance.representation.layout == "transform" || isAftermath {
-				castSplitFace(faceIndex: 0, cardInstance: cardInstance)
-			} else {
-				let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-				let options = (cardInstance.representation.layout == "adventure" ? Array(faces.enumerated().reversed()) : Array(faces.enumerated()))
-				
-				for (index, face) in options {
-					let action = UIAlertAction(title: face.name, style: .default) { (_) in
-						self.castSplitFace(faceIndex: index, cardInstance: cardInstance)
-					}
-					alert.addAction(action)
-				}
-				
-				if cardInstance.representation.keywords.contains("Fuse") {
-					let action = UIAlertAction(title: "Fuse", style: .default) { (_) in
-						self.castCard(cardInstance: cardInstance)
-					}
-					alert.addAction(action)
-				}
-				
-				let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-				alert.addAction(cancelAction)
-				
-				self.present(alert, animated: true, completion: nil)
-			}
-		} else if cardInstance.representation.keywords.contains("Morph") || cardInstance.representation.keywords.contains("Megamorph") {
-			
-			let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-			
-			let castAction = UIAlertAction(title: cardInstance.representation.name, style: .default) { (_) in
-				self.castCard(cardInstance: cardInstance)
-			}
-			alert.addAction(castAction)
-			
-			let morphAction = UIAlertAction(title: "Morph", style: .default) { (_) in
-				self.castMorphFace(cardInstance: cardInstance)
-			}
-			alert.addAction(morphAction)
-			
-			let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-			alert.addAction(cancelAction)
-			
-			self.present(alert, animated: true, completion: nil)
-    } else if cardInstance.representation.card.prototype != nil {
-      let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-      
-      let castAction = UIAlertAction(title: "Cast", style: .default) { (_) in
-        self.castCard(cardInstance: cardInstance)
-      }
-      alert.addAction(castAction)
-      
-      if cardInstance.representation.keywords.contains("Prototype") {
-        let action = UIAlertAction(title: "Prototype", style: .default) { (_) in
-          let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(
-            cardInstanceID: cardInstance.uuid,
-            mode: .prototype,
-            increaseTax: self.shouldIncreaseCommanderTax,
-            tapped: self.shouldPlayTapped
-          )])
-          AppDelegate.shared.transceiver.broadcast(command)
-          self.shouldIncreaseCommanderTax = true
-          self.shouldPlayTapped = false
+    @IBAction func playButtonPressed(_ sender: Any) {
+        guard let card = associatedCardInstance else { return }
+        let options = Command.PlayCardParameters.options(for: card, tapped: shouldPlayTapped, increaseTax: shouldIncreaseCommanderTax)
+        func play(_ parameters: Command.PlayCardParameters) {
+            AppDelegate.shared.sendCommand(.moveCardsToBattlefield([parameters]))
+            shouldIncreaseCommanderTax = true
+            shouldPlayTapped = false
         }
-        alert.addAction(action)
-      }
-      
-      let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-      alert.addAction(cancelAction)
-      
-      self.present(alert, animated: true, completion: nil)
-      
-    } else {
-//			let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-//
-//			let castAction = UIAlertAction(title: cardInstance.representation.typeLine?.lowercased().contains("land") == true ? "Play" : "Cast", style: .default) { (_) in
-//				self.castCard(cardInstance: cardInstance)
-//			}
-//			alert.addAction(castAction)
-//
-//			let manifestAction = UIAlertAction(title: "Manifest", style: .default) { (_) in
-//				self.manifest(cardInstance: cardInstance)
-//			}
-//			alert.addAction(manifestAction)
-//
-//			let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
-//			alert.addAction(cancelAction)
-//
-//			self.present(alert, animated: true, completion: nil)
-			
-			castCard(cardInstance: cardInstance)
-		}
-	}
-	
+        if options.count == 1 { play(options[0].parameters); return }
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        for option in options {
+            alert.addAction(.init(title: option.title, style: .default) { _ in play(option.parameters) })
+        }
+        alert.addAction(.init(title: "Cancel", style: .cancel))
+        alert.popoverPresentationController?.sourceView = playButton
+        present(alert, animated: true)
+    }
+
 	@IBAction func moreButtonPressed(_ sender: Any) {
     guard let associatedCardInstance else { return }
     showPlayCardMenu(for: associatedCardInstance)
@@ -1074,7 +988,7 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
       increaseTax: shouldIncreaseCommanderTax,
       tapped: shouldPlayTapped
     )])
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
     self.shouldIncreaseCommanderTax = true
     self.shouldPlayTapped = false
 	}
@@ -1082,21 +996,21 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
 	func castSplitFace(faceIndex: Int, cardInstance: CardInstance) {
 		guard let faces = cardInstance.representation.card.cardFaces, faces.count >= 1 else { return }
 		let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: faceIndex, increaseTax: shouldIncreaseCommanderTax, tapped: shouldPlayTapped)])
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
     self.shouldIncreaseCommanderTax = true
     self.shouldPlayTapped = false
 	}
 	
 	func castMorphFace(cardInstance: CardInstance) {
 		let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: faceIndex, mode: .morph, increaseTax: shouldIncreaseCommanderTax, tapped: shouldPlayTapped)])
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
     self.shouldIncreaseCommanderTax = true
     self.shouldPlayTapped = false
 	}
 	
 	func manifest(cardInstance: CardInstance) {
 		let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: faceIndex, mode: .manifest, increaseTax: shouldIncreaseCommanderTax, tapped: shouldPlayTapped)])
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
     self.shouldIncreaseCommanderTax = true
     self.shouldPlayTapped = false
 	}
@@ -1146,7 +1060,7 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
 				)
 				
 				let command = Command.moveCards(params)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 		}
 		

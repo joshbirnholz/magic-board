@@ -236,16 +236,16 @@ class ContainerViewController: UIViewController {
     }
 	
 	@objc func presentSideboardPileViewController(sender: UIBarButtonItem) {
-		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
-		guard let player = sceneDelegate?.player else { return }
+        guard let playerID = AppDelegate.shared.role.playerIdentifier else { return }
+        let player = GameState.current[player: playerID]
 		if let viewController = self.pileViewController(for: player.sideboard, withExtraButton: false, withDoneButton: true) {
 			self.present(viewController, animated: true, completion: nil)
 		}
 	}
 	
 	@objc func presentOpponentExilePileViewController(sender: UIBarButtonItem) {
-		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
-		guard let player = sceneDelegate?.player else { return }
+        guard let playerID = AppDelegate.shared.role.playerIdentifier else { return }
+        let player = GameState.current[player: playerID]
 		let pile = GameState.current[player: (player.identifier == .a ? .b : .a)].exile
 		if let viewController = self.pileViewController(for: pile, withExtraButton: false, withDoneButton: true) {
 			self.present(viewController, animated: true, completion: nil)
@@ -253,8 +253,8 @@ class ContainerViewController: UIViewController {
 	}
 	
 	@objc func presentOpponentGraveyardPileViewController(sender: UIBarButtonItem) {
-		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
-		guard let player = sceneDelegate?.player else { return }
+        guard let playerID = AppDelegate.shared.role.playerIdentifier else { return }
+        let player = GameState.current[player: playerID]
 		let pile = GameState.current[player: (player.identifier == .a ? .b : .a)].graveyard
 		if let viewController = self.pileViewController(for: pile, withExtraButton: false, withDoneButton: true) {
 			self.present(viewController, animated: true, completion: nil)
@@ -302,8 +302,8 @@ class ContainerViewController: UIViewController {
 	
 	private func makeBattlefieldViewController() -> UIViewController? {
 		guard let pileViewController = storyboard?.instantiateViewController(identifier: "PileViewController") as? PileViewController else { return nil }
-		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
-		guard let player = sceneDelegate?.player else { return nil }
+        guard let playerID = AppDelegate.shared.role.playerIdentifier else { return nil }
+        let player = GameState.current[player: playerID]
 		
 		// A list of card items for cards on the battlefield
 		// Each card should only appear once. If there is more than one copy of
@@ -337,8 +337,8 @@ class ContainerViewController: UIViewController {
 	private func initializeHandViewController() {
 		guard !isTabBarControllerInitialized else { return }
 		
-		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
-		guard let player = sceneDelegate?.player else { return }
+        guard let playerID = AppDelegate.shared.role.playerIdentifier else { return }
+        let player = GameState.current[player: playerID]
 
 		guard let handViewController = self.handViewController as? PileDisplaying else { return }
 		handViewController.setPile(player.hand)
@@ -351,8 +351,8 @@ class ContainerViewController: UIViewController {
 		
 		constraint.constant += view.safeAreaInsets.bottom
 		
-		let sceneDelegate = view.window?.windowScene?.delegate as? ConnectSceneDelegate
-		guard let player = sceneDelegate?.player else { return }
+        guard let playerID = AppDelegate.shared.role.playerIdentifier else { return }
+        let player = GameState.current[player: playerID]
 		
 		var viewControllers: [UIViewController] = [player.graveyard, player.exile, player.library].compactMap { pile in
 			pileViewController(for: pile, withExtraButton: true, withDoneButton: false)

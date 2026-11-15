@@ -14,12 +14,6 @@
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_MKSVC._tcp</string>
-	</array>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>View your hand and manipulate cards from your hand.</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
@@ -50,6 +44,12 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_MKSVC._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>View your hand and manipulate cards from your hand.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Beleren2016-Bold.ttf</string>
@@ -110,5 +110,18 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Magic Board Card</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.josh.birnholz.Magic-Board.CardInstance</string>
+		</dict>
+	</array>
 </dict>
 </plist>
