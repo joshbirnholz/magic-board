@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		292BDA8A53AA4E6F8E2A7AA3 /* PhoneGameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C364DE93CB541A29A2C64A7 /* PhoneGameTests.swift */; };
+		51E7BAB92FDF495BA61D38B4 /* PhoneGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB5F5A04F13427BBB1062DB /* PhoneGame.swift */; };
 		5411A9552AE0B53D00697E9F /* UIImageViewAligned.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5411A9542AE0B53D00697E9F /* UIImageViewAligned.swift */; };
 		5411A9582AE0B5F900697E9F /* RxBlocking in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9572AE0B5F900697E9F /* RxBlocking */; };
 		5411A95A2AE0B5F900697E9F /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 5411A9592AE0B5F900697E9F /* RxCocoa */; };
@@ -314,9 +316,25 @@
 		54F8A4762E8B251A00F72BEF /* ReerJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 54F8A4752E8B251A00F72BEF /* ReerJSON */; };
 		54F8A4992E8D8DAA00F72BEF /* JumpInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F8A4972E8D8DA600F72BEF /* JumpInView.swift */; };
 		54F8A49A2E8E16DC00F72BEF /* JumpInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F8A4972E8D8DA600F72BEF /* JumpInView.swift */; };
+		8320A5AB193F43EEA0521F9F /* NearbyGameConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FDF1D8C0BC49A8A862B663 /* NearbyGameConnection.swift */; };
+		A12000000000000000000002 /* OfflineGames in Resources */ = {isa = PBXBuildFile; fileRef = A12000000000000000000001 /* OfflineGames */; };
+		A8B25114B2E84DD19F7FE633 /* PhoneBoardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF98EEE95BA48D98955AB65 /* PhoneBoardUITests.swift */; };
+		DC21135D845A4EA4911BED3D /* PhoneSessionControllers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2442DA5CAF974A3BB3C94020 /* PhoneSessionControllers.swift */; };
+		2D544EC4FBFD86105A4C9363 /* PhoneHandFanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFD86105A4C936308CC102C /* PhoneHandFanView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* StartMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5061728394A5B6C /* StartMenu.swift */; };
+		DD0F1CDF5DF64406BB864FF0 /* PhoneStatePatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D714F266D9B4D29B96DD900 /* PhoneStatePatch.swift */; };
+		FB78177B6E6247E488E2FACD /* PhoneBattlefieldLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7320BC62A78F48F9BD15BD4F /* PhoneBattlefieldLayout.swift */; };
+		FD3484C2C6A0483DA983A3BC /* PhoneGameSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222710FF09A14CD79A0BB052 /* PhoneGameSession.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		2E184A54D4B446028D10C1AE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 54BECD1823F4FA1D00AE82A9;
+			remoteInfo = "Magic Board";
+		};
 		5439CF93246A7D340060A1EA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
@@ -344,6 +362,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 548223D42469F147004D695E;
 			remoteInfo = CardView;
+		};
+		7B153A008A4C4F1FB0E53903 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54BECD1123F4FA1D00AE82A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 54BECD1823F4FA1D00AE82A9;
+			remoteInfo = "Magic Board";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -375,6 +400,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1C364DE93CB541A29A2C64A7 /* PhoneGameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneGameTests.swift; sourceTree = "<group>"; };
+		222710FF09A14CD79A0BB052 /* PhoneGameSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneGameSession.swift; sourceTree = "<group>"; };
+		2442DA5CAF974A3BB3C94020 /* PhoneSessionControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSessionControllers.swift; sourceTree = "<group>"; };
+		FBFD86105A4C936308CC102C /* PhoneHandFanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneHandFanView.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5061728394A5B6C /* StartMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartMenu.swift; sourceTree = "<group>"; };
 		5411A9542AE0B53D00697E9F /* UIImageViewAligned.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImageViewAligned.swift; sourceTree = "<group>"; };
 		54156AFF2ADF106B00F2BBD5 /* LandOrganizerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandOrganizerViewController.swift; sourceTree = "<group>"; };
 		541E0A1723FB9D59008E5E35 /* UIColor+Blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Blended.swift"; sourceTree = "<group>"; };
@@ -573,7 +603,7 @@
 		54B667B324EA5C8F00B66C8D /* Enchanted 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Enchanted 2.txt"; sourceTree = "<group>"; };
 		54B667B424EA5C8F00B66C8D /* Vampires 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Vampires 1.txt"; sourceTree = "<group>"; };
 		54B822352AED97850059998E /* WebServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebServer.swift; sourceTree = "<group>"; };
-		54B934532967BD8D00FA1D32 /* MTGCardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MTGCardView.swift; path = ../../../Documents/Xcode/CardView/Sources/MTGCardView.swift; sourceTree = "<group>"; };
+		54B934532967BD8D00FA1D32 /* MTGCardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MTGCardView.swift; sourceTree = "<group>"; };
 		54BBC2522AD8D7A200565651 /* SmartQuotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartQuotes.swift; sourceTree = "<group>"; };
 		54BBC2542AD8F45300565651 /* LifeTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeTracker.swift; sourceTree = "<group>"; };
 		54BC670C28C28DB8000E971B /* RemoteCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCard.swift; sourceTree = "<group>"; };
@@ -607,9 +637,24 @@
 		54D6AFF02ABA657E000AA867 /* TextBoxTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextBoxTest.swift; sourceTree = "<group>"; };
 		54D9C1EC2472D859007E5B86 /* MTGSymbolName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGSymbolName.swift; sourceTree = "<group>"; };
 		54F8A4972E8D8DA600F72BEF /* JumpInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JumpInView.swift; sourceTree = "<group>"; };
+		59A8A08CC5DD47E58A80888C /* PhoneGameTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PhoneGameTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7320BC62A78F48F9BD15BD4F /* PhoneBattlefieldLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneBattlefieldLayout.swift; sourceTree = "<group>"; };
+		7AF98EEE95BA48D98955AB65 /* PhoneBoardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneBoardUITests.swift; sourceTree = "<group>"; };
+		8D714F266D9B4D29B96DD900 /* PhoneStatePatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneStatePatch.swift; sourceTree = "<group>"; };
+		A12000000000000000000001 /* OfflineGames */ = {isa = PBXFileReference; lastKnownFileType = folder; path = OfflineGames; sourceTree = "<group>"; };
+		C8FDF1D8C0BC49A8A862B663 /* NearbyGameConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyGameConnection.swift; sourceTree = "<group>"; };
+		CAB5F5A04F13427BBB1062DB /* PhoneGame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneGame.swift; sourceTree = "<group>"; };
+		DF815106AC4549AB911603FF /* PhoneBoardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PhoneBoardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		35C5DFF1F1E94F74B534B70A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		542CF68A2415888500D453CA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -656,9 +701,39 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F9ADCC78C46E4275B7CE82AB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2EDA642CD32F4D0EA8308829 /* PhoneGameTests */ = {
+			isa = PBXGroup;
+			children = (
+				1C364DE93CB541A29A2C64A7 /* PhoneGameTests.swift */,
+			);
+			path = PhoneGameTests;
+			sourceTree = "<group>";
+		};
+		4AD8E2DDFB7648EABAF46910 /* PhonePlay */ = {
+			isa = PBXGroup;
+			children = (
+				2442DA5CAF974A3BB3C94020 /* PhoneSessionControllers.swift */,
+				FBFD86105A4C936308CC102C /* PhoneHandFanView.swift */,
+				B1C2D3E4F5061728394A5B6C /* StartMenu.swift */,
+				8D714F266D9B4D29B96DD900 /* PhoneStatePatch.swift */,
+				C8FDF1D8C0BC49A8A862B663 /* NearbyGameConnection.swift */,
+				7320BC62A78F48F9BD15BD4F /* PhoneBattlefieldLayout.swift */,
+				CAB5F5A04F13427BBB1062DB /* PhoneGame.swift */,
+				222710FF09A14CD79A0BB052 /* PhoneGameSession.swift */,
+			);
+			path = PhonePlay;
+			sourceTree = "<group>";
+		};
 		5411A9562AE0B5F800697E9F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -715,6 +790,7 @@
 		544B63172416F8F000FB43AF /* CardService */ = {
 			isa = PBXGroup;
 			children = (
+				A12000000000000000000001 /* OfflineGames */,
 				544DE4AF2425170100BA1977 /* CardService.xcdatamodeld */,
 				5430805224251E2100E98D0B /* Media.xcassets */,
 				54B6673B24EA5C8F00B66C8D /* JumpStart */,
@@ -894,6 +970,8 @@
 		54BECD1023F4FA1D00AE82A9 = {
 			isa = PBXGroup;
 			children = (
+				9CB7F4D1ECA6406080A7C5D5 /* PhoneBoardUITests */,
+				2EDA642CD32F4D0EA8308829 /* PhoneGameTests */,
 				544B63172416F8F000FB43AF /* CardService */,
 				54BECD1B23F4FA1D00AE82A9 /* Magic Board */,
 				542CF68E2415888500D453CA /* MagicBoardConnect */,
@@ -911,6 +989,8 @@
 				542CF68D2415888500D453CA /* Board Connect.app */,
 				544B63162416F8F000FB43AF /* CardService.framework */,
 				548223D52469F147004D695E /* CardView.framework */,
+				DF815106AC4549AB911603FF /* PhoneBoardUITests.xctest */,
+				59A8A08CC5DD47E58A80888C /* PhoneGameTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -918,6 +998,7 @@
 		54BECD1B23F4FA1D00AE82A9 /* Magic Board */ = {
 			isa = PBXGroup;
 			children = (
+				4AD8E2DDFB7648EABAF46910 /* PhonePlay */,
 				54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */,
 				54C15C9323FF034B0012F14C /* OrderedSet.swift */,
 				542CF6DE24159F7200D453CA /* Role.swift */,
@@ -992,6 +1073,14 @@
 				54A0A18124138E2E00A1BBB8 /* CGAffineTransform+Degrees.swift */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		9CB7F4D1ECA6406080A7C5D5 /* PhoneBoardUITests */ = {
+			isa = PBXGroup;
+			children = (
+				7AF98EEE95BA48D98955AB65 /* PhoneBoardUITests.swift */,
+			);
+			path = PhoneBoardUITests;
 			sourceTree = "<group>";
 		};
 		B5A518DDFF07376000251054 /* Pods */ = {
@@ -1119,6 +1208,42 @@
 			productReference = 54BECD1923F4FA1D00AE82A9 /* Magic Board.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D54C399EDC0C431A8FD1C1E2 /* PhoneGameTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A555BA4BD3554EFD84490FEE /* Build configuration list for PBXNativeTarget "PhoneGameTests" */;
+			buildPhases = (
+				C7B880ABA70749748FE5D3DD /* Sources */,
+				F9ADCC78C46E4275B7CE82AB /* Frameworks */,
+				0FF82113826E4EED9B91F341 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B272F06CB50141D2AC64B299 /* PBXTargetDependency */,
+			);
+			name = PhoneGameTests;
+			productName = PhoneGameTests;
+			productReference = 59A8A08CC5DD47E58A80888C /* PhoneGameTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E36FF2CECE9A4F519F02A587 /* PhoneBoardUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 474888B7FFC84B99BF4E7713 /* Build configuration list for PBXNativeTarget "PhoneBoardUITests" */;
+			buildPhases = (
+				DB5ED159FD7C40E0A69A4710 /* Sources */,
+				35C5DFF1F1E94F74B534B70A /* Frameworks */,
+				E74955A913064C6BADBFF30A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C94CD2954FE7410382C129EC /* PBXTargetDependency */,
+			);
+			name = PhoneBoardUITests;
+			productName = PhoneBoardUITests;
+			productReference = DF815106AC4549AB911603FF /* PhoneBoardUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1168,6 +1293,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				E36FF2CECE9A4F519F02A587 /* PhoneBoardUITests */,
+				D54C399EDC0C431A8FD1C1E2 /* PhoneGameTests */,
 				54BECD1823F4FA1D00AE82A9 /* Magic Board */,
 				542CF68C2415888500D453CA /* MagicBoardConnect */,
 				544B63152416F8F000FB43AF /* CardService */,
@@ -1177,6 +1304,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0FF82113826E4EED9B91F341 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		542CF68B2415888500D453CA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1199,6 +1333,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A12000000000000000000002 /* OfflineGames in Resources */,
 				54B667E224EA5C8F00B66C8D /* Rogues 1.txt in Resources */,
 				54B6682624EA5C8F00B66C8D /* Vampires 2.txt in Resources */,
 				54ACE4AB2AB5734D00E7353C /* Dandan.txt in Resources */,
@@ -1353,6 +1488,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E74955A913064C6BADBFF30A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -1462,6 +1604,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DC21135D845A4EA4911BED3D /* PhoneSessionControllers.swift in Sources */,
+				2D544EC4FBFD86105A4C9363 /* PhoneHandFanView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* StartMenu.swift in Sources */,
+				DD0F1CDF5DF64406BB864FF0 /* PhoneStatePatch.swift in Sources */,
+				8320A5AB193F43EEA0521F9F /* NearbyGameConnection.swift in Sources */,
+				FB78177B6E6247E488E2FACD /* PhoneBattlefieldLayout.swift in Sources */,
+				51E7BAB92FDF495BA61D38B4 /* PhoneGame.swift in Sources */,
+				FD3484C2C6A0483DA983A3BC /* PhoneGameSession.swift in Sources */,
 				54C6D80B23F91D0F00AF980D /* BehaviorRelay+PropertyWrapper.swift in Sources */,
 				54A0A18224138E2F00A1BBB8 /* CGAffineTransform+Degrees.swift in Sources */,
 				547CD3D723FA5AAF00AECA85 /* Array+Misc.swift in Sources */,
@@ -1519,6 +1669,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C7B880ABA70749748FE5D3DD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				292BDA8A53AA4E6F8E2A7AA3 /* PhoneGameTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB5ED159FD7C40E0A69A4710 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A8B25114B2E84DD19F7FE633 /* PhoneBoardUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1542,6 +1708,16 @@
 			target = 548223D42469F147004D695E /* CardView */;
 			targetProxy = 548223DA2469F147004D695E /* PBXContainerItemProxy */;
 		};
+		B272F06CB50141D2AC64B299 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 54BECD1823F4FA1D00AE82A9 /* Magic Board */;
+			targetProxy = 7B153A008A4C4F1FB0E53903 /* PBXContainerItemProxy */;
+		};
+		C94CD2954FE7410382C129EC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 54BECD1823F4FA1D00AE82A9 /* Magic Board */;
+			targetProxy = 2E184A54D4B446028D10C1AE /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -1564,6 +1740,35 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		14998994634F416582D0102A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshbirnholz.magicboard.PhoneBoardUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Magic Board";
+			};
+			name = Debug;
+		};
+		44129C9B7B564CD6A1EB4211 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshbirnholz.magicboard.PhoneGameTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Magic Board.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Magic Board";
+			};
+			name = Release;
+		};
 		542CF6A12415888700D453CA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1931,9 +2136,47 @@
 			};
 			name = Release;
 		};
+		A79C4DC6ACB843769914EA6B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshbirnholz.magicboard.PhoneBoardUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Magic Board";
+			};
+			name = Release;
+		};
+		D5CEB497D9244591AFC31B16 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshbirnholz.magicboard.PhoneGameTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Magic Board.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Magic Board";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		474888B7FFC84B99BF4E7713 /* Build configuration list for PBXNativeTarget "PhoneBoardUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				14998994634F416582D0102A /* Debug */,
+				A79C4DC6ACB843769914EA6B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		542CF6A02415888700D453CA /* Build configuration list for PBXNativeTarget "MagicBoardConnect" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1975,6 +2218,15 @@
 			buildConfigurations = (
 				54BECD2E23F4FA1F00AE82A9 /* Debug */,
 				54BECD2F23F4FA1F00AE82A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A555BA4BD3554EFD84490FEE /* Build configuration list for PBXNativeTarget "PhoneGameTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D5CEB497D9244591AFC31B16 /* Debug */,
+				44129C9B7B564CD6A1EB4211 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

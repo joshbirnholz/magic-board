@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CardService
 
 private struct Packet: Decodable {
   let colors: [String]
@@ -20,6 +21,8 @@ private final class JumpInClient {
   static let decoder = JSONDecoder()
   
   func getSupportedSets() async throws -> [String] {
+    let local = OfflineGameLibrary.shared.jumpInSetOptions
+    if !local.isEmpty { return local }
     let url = Self.baseURL.appending(path: "jumpinsets")
     
     let data = try await URLSession.shared.data(from: url).0
@@ -27,6 +30,8 @@ private final class JumpInClient {
   }
   
   func getPackets(setCode: String, pack1Name: String?) async throws -> [Packet] {
+    let local = OfflineGameLibrary.shared.jumpInPackets(set: setCode, first: pack1Name)
+    if !local.isEmpty { return local.map { name in Packet(colors: OfflineGameLibrary.shared.jumpInPacket(set: setCode, choice: name)?.colors ?? [], name: name, setCode: setCode) } }
     var url = Self.baseURL.appendingPathComponent("jumpin/\(setCode)")
     
     if let pack1Name {
@@ -38,6 +43,7 @@ private final class JumpInClient {
   }
   
   func getDeckList(pack1: String, pack2: String, set1: String, set2: String) async throws -> String {
+    if set1 == set2, let list = OfflineGameLibrary.shared.jumpInDeck(set: set1, first: pack1, second: pack2) { return list }
     let url = Self.baseURL.appendingPathComponent("jumpin")
       .appending(queryItems: [
         .init(name: "pack1", value: pack1),
@@ -58,7 +64,8 @@ struct JumpInView: View {
   let playerIdentifier: Player.Identifier
   let dismiss: () -> Void
   
-  @State private var supportedSets: [String]?
+  @State private var supportedSets: [String]? = OfflineGameLibrary.shared.jumpInSetOptions.isEmpty ? nil : OfflineGameLibrary.shared.jumpInSetOptions
+  @State private var errorMessage: String?
   
   private let client = JumpInClient()
   
@@ -69,18 +76,17 @@ struct JumpInView: View {
           NavigationLink {
             JumpInChoosePacketView(playerIdentifier: playerIdentifier, setCode: setCode, pack1Name: nil, dismiss: dismiss)
           } label: {
-            Text(setCode)
+            Text(setCode == "ALL" ? "All Sets" : setCode)
           }
         }
-      } else {
-        ProgressView()
-      }
+      } else if let errorMessage { Text(errorMessage).padding() }
+      else { ProgressView() }
     }.navigationTitle("Jump-In")
       .task {
         do {
-          self.supportedSets = try await client.getSupportedSets()
+          if supportedSets == nil { self.supportedSets = try await client.getSupportedSets() }
         } catch {
-          self.supportedSets = []
+          errorMessage = error.localizedDescription
         }
       }
   }
@@ -94,6 +100,7 @@ private struct JumpInChoosePacketView: View {
   let dismiss: () -> Void
   
   @State private var packets: [Packet]?
+  @State private var errorMessage: String?
   
   private let client = JumpInClient()
   
@@ -112,7 +119,7 @@ private struct JumpInChoosePacketView: View {
           if let pack1Name {
             Button {
               Task {
-                try await finalize(pack1: pack1Name, pack2: packet.name)
+                do { try await finalize(pack1: pack1Name, pack2: packet.name) } catch { errorMessage = error.localizedDescription }
               }
             } label: {
               makePacketView(packet: packet)
@@ -125,15 +132,14 @@ private struct JumpInChoosePacketView: View {
             }
           }
         }
-      } else {
-        ProgressView()
-      }
+      } else if let errorMessage { Text(errorMessage).padding() }
+      else { ProgressView() }
     }.navigationTitle("Choose One")
       .task {
         do {
-          self.packets = try await client.getPackets(setCode: setCode, pack1Name: pack1Name)
+          if packets == nil { self.packets = try await client.getPackets(setCode: setCode, pack1Name: pack1Name) }
         } catch {
-          self.packets = []
+          errorMessage = error.localizedDescription
         }
       }
   }
@@ -143,7 +149,7 @@ private struct JumpInChoosePacketView: View {
     
     await MainActor.run {
       let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: list, source: .decklist, handSmoothing: true))
-      AppDelegate.shared.transceiver.broadcast(command)
+      AppDelegate.shared.sendCommand(command)
       dismiss()
     }
   }

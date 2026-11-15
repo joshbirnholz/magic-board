@@ -14,8 +14,8 @@ struct AsyncImage<Placeholder: View, Configured: View>: View {
     private let placeholder: Placeholder?
     private let configuration: (Image) -> Configured
     
-  init(card: MTGCard, type: ImageType, placeholder: Placeholder? = nil, configuration: @escaping (Image) -> Configured = { $0 }) {
-        loader = ImageLoader(card: card, type: type)
+  init(card: MTGCard, type: ImageType, face: MTGCard.Face? = nil, placeholder: Placeholder? = nil, configuration: @escaping (Image) -> Configured = { $0 }) {
+        loader = ImageLoader(card: card, type: type, face: face)
         self.placeholder = placeholder
         self.configuration = configuration
     }

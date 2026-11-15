@@ -522,6 +522,15 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 		}
 	}
 	
+	/// A token copy of a token is just that token: copying a token (or a copy of one) with no
+	/// differences yields the same thing, so unwrap those layers. A token copy of a nontoken card
+	/// stays a token copy of it.
+	var canonicalToken: CardRepresentation {
+		guard case .tokenCopy(let inner) = self else { return self }
+		let unwrapped = inner.canonicalToken
+		return unwrapped.isToken ? unwrapped : .tokenCopy(unwrapped)
+	}
+	
 	var isToken: Bool {
 		switch self {
 		case .faceDown(_):

@@ -19,11 +19,12 @@ class ObservableBridge<Input: Equatable>: ObservableObject {
 	
 	@Published var value: Input {
 		didSet {
-			guard observable.value != value else { return }
+			guard !receivingModelValue, observable.value != value else { return }
 			observable.accept(value)
 		}
 	}
 	private let observable: BehaviorRelay<Input>
+    private var receivingModelValue = false
 	
 	private let bag = DisposeBag()
 	
@@ -46,8 +47,11 @@ class ObservableBridge<Input: Equatable>: ObservableObject {
 			.observeOn(MainScheduler.instance)
 			.subscribe(onNext: { [weak self] value in
 				guard let self = self else { return }
-				guard self.value != value else { return }
-				self.value = value
+                // Ignore queued emissions that have already been superseded.
+                guard self.observable.value == value, self.value != value else { return }
+                self.receivingModelValue = true
+                self.value = value
+                self.receivingModelValue = false
 		}).disposed(by: bag)
 	}
   
@@ -62,10 +66,51 @@ class ObservableBridge<Input: Equatable>: ObservableObject {
   }
 }
 
+final class PhoneHandPresentation: ObservableObject {
+    @Published var isExpanded = false {
+        didSet { if oldValue != isExpanded { onChange?() } }
+    }
+    var onChange: (() -> Void)?
+    /// The hand card currently picked up (hidden in the fan while the board draws it under the finger).
+    @Published var draggingCardID: UUID?
+    /// While a picked-up card is over the hand: the hand index it would land at. The fan opens a
+    /// gap there, so the other cards visibly move out of the way.
+    @Published var heldIndex: Int?
+    /// Horizontal band (container coordinates) the collapsed hand fits in, between the HUD's
+    /// piles and its untap/life controls.
+    @Published var compactBand: ClosedRange<CGFloat>?
+    /// Reports a hand card drag to the board (window coordinates). The board answers whether the
+    /// finger is over the hand, where the card is reordered rather than played.
+    var onCardDrag: ((CardInstance, PhoneHandDragPhase, CGPoint) -> Bool)?
+
+    /// Puts the picked-up card back into the fan (after it has landed, or the drag was cancelled).
+    func endDrag() {
+        guard draggingCardID != nil || heldIndex != nil else { return }
+        draggingCardID = nil
+        heldIndex = nil
+    }
+}
+
+/// A hand card's on-screen placement: window-coordinate center, unrotated size, rotation (radians).
+struct PhoneHandCardGeometry {
+    var center: CGPoint
+    var size: CGSize
+    var angle: CGFloat
+}
+
+enum PhoneHandDragPhase {
+    /// The card was picked up from this spot in the fan.
+    case began(PhoneHandCardGeometry)
+    case changed
+    /// Released. Over the hand, `index` is where it goes and `slot` is where the fan shows it.
+    case ended(index: Int?, slot: PhoneHandCardGeometry?)
+    case cancelled
+}
+
 struct HandCardView: View {
-	@State var isVisible: Bool
-	@State var card: MTGCard
-	@State var face: MTGCard.Face?
+	let isVisible: Bool
+	let card: MTGCard
+	var face: MTGCard.Face?
 	
 	private static let back = Image("mtg-card-back-png-1").resizable()
   
@@ -77,15 +122,25 @@ struct HandCardView: View {
     }
   }
 	
+  private var offlinePlaceholder: some View {
+    ZStack {
+      Self.back.opacity(0.25)
+      Text(card.name ?? "Card")
+        .font(.custom("Beleren2016-Bold", size: 13))
+        .foregroundColor(.white).multilineTextAlignment(.center).padding(3)
+    }.background(Color.black)
+  }
+
   var body: some View {
     if isVisible {
-      if let image = card.imageIfLoaded(type: type) {
+      if let image = card.imageIfLoaded(type: type, for: face) {
         Image(uiImage: image).resizable()
       } else {
         AsyncImage(
           card: card,
           type: type,
-          placeholder: Self.back.opacity(0.5),
+          face: face,
+          placeholder: offlinePlaceholder,
           configuration: { $0.resizable() }
         )
       }
@@ -124,6 +179,7 @@ extension View {
 }
 
 struct HandView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
 	@ObservedObject var hand: ObservableBridge<OrderedSet<CardInstance>>
   @ObservedObject var commandZone: ObservableBridge<OrderedSet<CardInstance>>
@@ -135,6 +191,7 @@ struct HandView: View {
 	var isCardSelectionEnabled: Bool
 	
 	@ObservedObject var selectedCard: ObservableBridge<CardInstance?>
+    @ObservedObject var phonePresentation: PhoneHandPresentation
 	
 	let highlightColor = Color(#colorLiteral(red: 0.4745098054, green: 0.8392156959, blue: 0.9764705896, alpha: 1))
 	
@@ -158,41 +215,63 @@ struct HandView: View {
 //			}
     
     GeometryReader { proxy in
+      let phoneOverlay = AppDelegate.shared.usesPhoneSession && isLocalHand
+      let expanded = phonePresentation.isExpanded
+      let band = phonePresentation.compactBand
+      let compactWidth = min(proxy.size.width * 0.55, band.map { max(60, $0.upperBound - $0.lowerBound) } ?? .infinity)
+      let size = phoneOverlay
+        ? CGSize(width: expanded ? proxy.size.width : compactWidth, height: proxy.size.height * (expanded ? 1 : 0.7))
+        : proxy.size
+      // Centered when it fits; otherwise slid just far enough to stay between the HUD controls.
+      let compactShift = phoneOverlay && !expanded
+        ? PhoneHandFanView.compactCenter(width: proxy.size.width, compactWidth: compactWidth, band: band) - proxy.size.width / 2 : 0
+      Group {
+        if phoneOverlay {
+          PhoneHandFanView(hand: self.hand.value.contents, commandZone: self.commandZone.value.contents,
+                           size: size, presentation: phonePresentation, onTap: select(_:))
+        } else {
       FannedCardHandView(
-        hand: self.hand.value.contents,
-        commandZone: self.commandZone.value.contents,
-        onTapGesture: select(_:),
-        isVisible: isLocalHand,
-        selectedCard: self.isCardSelectionEnabled ? selectedCard.value : nil,
-        isDragEnabled: isDragEnabled,
-        moveItemFromIndexToIndex: { sourceIndex, destinationIndex in
-          guard isLocalHand else { return }
-          
-          let cardInstance = self.hand.value[sourceIndex]
-          
-          withAnimation {
-            self.hand.value.move(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destinationIndex)
-          }
-          
-          self.debouncedHand.liveValue = self.hand.value.contents
-          
-//          let command = Command.moveCards(Command.MoveCommandParameters(
-//            cardInstanceIDs: [cardInstance.uuid],
-//            destination: .init(
-//              location: .hand,
-//              playerIdentifier: cardInstance.owner
-//            ),
-//            insertionIndex: destinationIndex
-//          ))
-//          
-//          AppDelegate.shared.transceiver.broadcast(command)
+          hand: self.hand.value.contents,
+          commandZone: self.commandZone.value.contents,
+          onTapGesture: select(_:),
+          isVisible: isLocalHand,
+          selectedCard: self.isCardSelectionEnabled ? selectedCard.value : nil,
+          isDragEnabled: isDragEnabled,
+          moveItemFromIndexToIndex: { sourceIndex, destinationIndex in
+            guard isLocalHand else { return }
+            
+            let cardInstance = self.hand.value[sourceIndex]
+            
+            withAnimation {
+              self.hand.value.move(fromOffsets: IndexSet(integer: sourceIndex), toOffset: destinationIndex)
+            }
+            
+            self.debouncedHand.liveValue = self.hand.value.contents
+            
+  //          let command = Command.moveCards(Command.MoveCommandParameters(
+  //            cardInstanceIDs: [cardInstance.uuid],
+  //            destination: .init(
+  //              location: .hand,
+  //              playerIdentifier: cardInstance.owner
+  //            ),
+  //            insertionIndex: destinationIndex
+  //          ))
+  //          
+  //          AppDelegate.shared.sendCommand(command)
+          },
+          layoutSize: phoneOverlay ? size : nil,
+          onExternalDrop: AppDelegate.shared.usesPhoneSession && isLocalHand ? receiveDroppedCards : nil
+        )
         }
-      )
-        .frame(height: proxy.size.height*2)
+      }
+        .frame(width: size.width, height: size.height * (AppDelegate.shared.usesPhoneSession ? 1 : 2))
+        .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
+        .offset(x: compactShift, y: phoneOverlay && !expanded ? proxy.size.height * 0.18 : 0)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: expanded)
         .onChange(of: self.debouncedHand.debouncedValue) { newValue in
           guard isLocalHand, let playerIdentifier = AppDelegate.shared.role.playerIdentifier else { return }
           let command = Command.reorderHand(.init(cardInstanceIDs: newValue.map(\.uuid), playerIdentifier: playerIdentifier))
-          AppDelegate.shared.transceiver.broadcast(command)
+          AppDelegate.shared.sendCommand(command)
         }
       
         .gesture(DragGesture()
@@ -226,8 +305,9 @@ struct HandView: View {
               let cardInstance = allDisplayedCards[index]
               
               self.select(cardInstance)
-          })
+          }, including: AppDelegate.shared.usesPhoneSession ? .subviews : .all)
     }
+    .ignoresSafeArea(.container,edges:AppDelegate.shared.usesPhoneSession ? .bottom : [])
 	}
 	
 	private func overlayView(for card: CardInstance) -> some View {
@@ -245,7 +325,24 @@ struct HandView: View {
 		return isCardSelectionEnabled && card.uuid == self.selectedCard.value?.uuid
 	}
 	
+    fileprivate func receiveDroppedCards(_ providers: [NSItemProvider]) {
+        guard isLocalHand, let player = AppDelegate.shared.role.playerIdentifier else { return }
+        for provider in providers {
+            provider.loadDataRepresentation(forTypeIdentifier: CardInstance.typeIdentifier) { data, _ in
+                guard let data, let text = String(data: data, encoding: .utf8), let id = UUID(uuidString: text) else { return }
+                DispatchQueue.main.async {
+                    AppDelegate.shared.sendCommand(.moveCards(.init(cardInstanceIDs: [id], destination: .init(location: .hand, playerIdentifier: player))))
+                }
+            }
+        }
+    }
+
 	private func select(_ cardInstance: CardInstance) {
+    if AppDelegate.shared.usesPhoneSession && isLocalHand && !phonePresentation.isExpanded {
+        phonePresentation.isExpanded = true
+        return
+    }
+    if AppDelegate.shared.usesPhoneSession { self.selectedCard.value = nil }
     self.selectedCard.value = cardInstance
 	}
   
@@ -325,6 +422,7 @@ class HandViewController: UIHostingController<HandView> {
   }
 	
 	let selectedCard = BehaviorRelay<CardInstance?>(value: nil)
+    let phonePresentation: PhoneHandPresentation
 	
 	var isCardSelectionEnabled: Bool = false {
 		didSet {
@@ -345,7 +443,8 @@ class HandViewController: UIHostingController<HandView> {
       isLocalHand: isLocalHand,
       isDragEnabled: isDragEnabled,
       isCardSelectionEnabled: isCardSelectionEnabled,
-      selectedCard: ObservableBridge(selectedCard)
+      selectedCard: ObservableBridge(selectedCard),
+      phonePresentation: phonePresentation
     )
 		view.backgroundColor = .clear
 		
@@ -387,7 +486,9 @@ class HandViewController: UIHostingController<HandView> {
 //	}
 	
 	@objc required dynamic init?(coder aDecoder: NSCoder) {
-    let handView = HandView(hand: ObservableBridge(BehaviorRelay(value: [])), commandZone: ObservableBridge(BehaviorRelay(value: [])), isLocalHand: false, isDragEnabled: false, isCardSelectionEnabled: false, selectedCard: ObservableBridge(BehaviorRelay(value: nil)))
+    let presentation = PhoneHandPresentation()
+    self.phonePresentation = presentation
+    let handView = HandView(hand: ObservableBridge(BehaviorRelay(value: [])), commandZone: ObservableBridge(BehaviorRelay(value: [])), isLocalHand: false, isDragEnabled: false, isCardSelectionEnabled: false, selectedCard: ObservableBridge(BehaviorRelay(value: nil)), phonePresentation: presentation)
 		super.init(coder: aDecoder, rootView: handView)
 	}
 }
@@ -400,6 +501,7 @@ extension HandViewController: UIDropInteractionDelegate {
 	}
 	
 	func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
+        if AppDelegate.shared.usesPhoneSession { return UIDropProposal(operation: isLocalHand ? .move : .forbidden) }
 		let cardInstances = session.items.compactMap { $0.cardInstance }
 		let destinationPile = hand
 		let allSourcesAndDestinationPilesAreEqual = cardInstances.allSatisfy({ (cardInstance) -> Bool in
@@ -413,6 +515,10 @@ extension HandViewController: UIDropInteractionDelegate {
 	}
 	
 	func dropInteraction(_ interaction: UIDropInteraction, performDrop session: UIDropSession) {
+        if AppDelegate.shared.usesPhoneSession {
+            rootView.receiveDroppedCards(session.items.map(\.itemProvider))
+            return
+        }
 		let destinationPile = hand
 
 		let dropItems = session.items

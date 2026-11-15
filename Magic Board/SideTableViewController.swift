@@ -13,7 +13,15 @@ import SwiftUI
 import RxRelay
 import CardView
 
+struct CardManualAction {
+    let title: String
+    /// Closes the card inspector afterwards (actions whose result shows on the battlefield).
+    var dismisses = false
+    let perform: () -> Void
+}
+
 struct CardControlView: View {
+    @State private var phoneActionRevision = 0
 	let card: CardInstance
 	let dismiss: () -> Void
 	
@@ -36,6 +44,12 @@ struct CardControlView: View {
 	}
 	
 	@ViewBuilder var mainSection: some View {
+        ForEach(Array(AppDelegate.shared.phoneCardActions(card).enumerated()), id: \.offset) { _, action in
+            Button(action.title) {
+                action.perform()
+                if action.dismisses { dismiss() }
+            }
+        }.id(phoneActionRevision)
 		Button("Switch Control") {
 			switch card.controllerIdentifier.value {
 			case .a:
@@ -49,6 +63,7 @@ struct CardControlView: View {
 		Button {
 			card.doesNotUntapAutomatically.accept(!card.doesNotUntapAutomatically.value)
 			doesNotAutoUntapChecked.toggle()
+            try? GameState.current.save()
 		} label: {
 			HStack {
 				Text("Doesn't Auto-Untap")
@@ -62,6 +77,7 @@ struct CardControlView: View {
 		Button {
 			card.doesNotUntapNextTurn.accept(!card.doesNotUntapNextTurn.value)
 			doesNotUntapNextTurnChecked.toggle()
+            try? GameState.current.save()
 		} label: {
 			HStack {
 				Text("Doesn't Untap Next Turn")
@@ -197,7 +213,7 @@ struct CardControlView: View {
 			}
 		}
 		
-		if let parts = card.representation.card.allParts?.filter({ $0.name != card.representation.name }), !parts.isEmpty {
+		if let parts = card.representation.card.allParts?.filter({ $0.name != card.representation.name && $0.isCreatable }), !parts.isEmpty {
 			ForEach(parts, id: \.self) { part in
 				Button(part.name) {
 					DispatchQueue.global(qos: .userInteractive).async {
@@ -331,6 +347,7 @@ struct CardControlView: View {
                 .aspectRatio(1, contentMode: .fit)
                 .opacity(self.colors.contains(MTGColor(rawValue: color.initial.uppercased())!) ? 1 : 0.1)
             }).buttonStyle(.plain)
+            .accessibilityIdentifier("card-color-\(color.initial.lowercased())")
           }
         }
       }
@@ -343,6 +360,7 @@ struct CardControlView: View {
 //    .listStyle(.insetGrouped)
     .navigationTitle(card.representation.name ?? "")
     .navigationBarTitleDisplayMode(.inline)
+    .onReceive(NotificationCenter.default.publisher(for: .phoneGameDidChange)) { _ in phoneActionRevision &+= 1 }
     .bind(commanderCasts, to: card.commanderCasts)
     .bind(colors, to: card.colors)
   }
@@ -356,6 +374,7 @@ extension View {
   ) -> some View where V : Equatable {
     onChange(of: value) { newValue in
       relay.accept(newValue)
+      try? GameState.current.save()
     }
   }
 }
@@ -590,6 +609,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 		
 		switch row {
 		case .card:
+            guard !AppDelegate.shared.usesPhoneSession else { break }
 			UIView.animate(withDuration: 0.2) {
 				let cell = tableView.cellForRow(at: indexPath) as? CardCell
 				cell?.cardImageView.transform = cell!.cardImageView.transform.rotated(by: .pi)
@@ -778,7 +798,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 				alert.addAction(tokenCopyAction)
 			}
 			
-			if let parts = cardInstance.representation.card.allParts?.filter({ $0.name != cardInstance.representation.name }), !parts.isEmpty {
+			if let parts = cardInstance.representation.card.allParts?.filter({ $0.name != cardInstance.representation.name && $0.isCreatable }), !parts.isEmpty {
 				for part in parts {
 					let action = UIAlertAction(title: part.name, style: .default) { _ in
 						DispatchQueue.global(qos: .userInteractive).async {
@@ -979,4 +999,13 @@ public func specializedColor(for card: MTGCard, from cards: [MTGCard]) -> MTGCol
   var set = Set(colors)
   set.remove(sharedColor)
   return set.first
+}
+
+
+extension MTGCard.RelatedCard {
+	/// Only tokens (and emblems) can be created from a card; related cards such as the cards that
+	/// make a token, meld pieces or combo pieces aren't offered.
+	var isCreatable: Bool {
+		component == .token || typeLine.contains("Token") || typeLine.contains("Emblem")
+	}
 }

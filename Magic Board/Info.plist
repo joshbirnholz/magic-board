@@ -54,9 +54,12 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_MKSVC._tcp</string>
+		<string>_MKSVC._udp</string>
+		<string>_magic-phone._tcp</string>
+		<string>_magic-phone._udp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>View your hand and manipulate cards from your hand.</string>
+	<string>Connect nearby devices to share a Magic battlefield or use your phone as a private hand. No internet connection is required.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Beleren2016-Bold.ttf</string>
@@ -104,15 +107,30 @@
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Magic Board Card</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.josh.birnholz.Magic-Board.CardInstance</string>
+		</dict>
+	</array>
 </dict>
 </plist>

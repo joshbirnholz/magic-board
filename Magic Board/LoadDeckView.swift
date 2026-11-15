@@ -19,6 +19,7 @@ struct JumpstartSet: Codable, Identifiable {
 }
 
 struct LoadDeckView: View {
+    var startPacketGame: ((String, String) -> Void)? = nil
 	let playerIdentifier: Player.Identifier
 	let chooseListFile: () -> ()
 	let dismiss: () -> ()
@@ -41,22 +42,37 @@ struct LoadDeckView: View {
 	
 	var body: some View {
 		List {
+            if AppDelegate.shared.usesPhoneSession {
+                Section {
+                    ForEach(OfflineGameLibrary.shared.jumpStartSets, id: \.code) { set in
+                        Button(set.name) { startPacketGame?("JumpStart", set.code) }
+                    }
+                    NavigationLink("Jump In!") {
+                        List(OfflineGameLibrary.shared.jumpInSetOptions, id: \.self) { set in
+                            Button(set == "ALL" ? "All Sets" : set) { startPacketGame?("Jump In", set) }
+                        }.navigationTitle("Jump-In")
+                    }
+                }
+            }
 			Section {
 				Button("Choose deck list file…") {
 					chooseListFile()
 				}
 			}
 			
+            if !AppDelegate.shared.usesPhoneSession {
 			Section {
 				TextField("Enter a deck link…", text: $deckLink, onCommit: {
 					guard let url = URL(string: deckLink) else { return }
 					
 					let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: url.absoluteString, source: .remoteURL))
-					AppDelegate.shared.transceiver.broadcast(command)
+					AppDelegate.shared.sendCommand(command)
 					dismiss()
 				})
 			}
 			
+            }
+            if !AppDelegate.shared.usesPhoneSession {
 			Section {
         ForEach(jumpstartSets) { set in
           NavigationLink {
@@ -66,19 +82,16 @@ struct LoadDeckView: View {
             Text(set.name)
           }
         }
-        NavigationLink {
-          JumpInView(playerIdentifier: playerIdentifier, dismiss: dismiss)
-        } label: {
-          Text("Jump In!")
-        }
+        NavigationLink("Jump In!") { JumpInView(playerIdentifier: playerIdentifier, dismiss: dismiss) }
 			}
 			
+            }
 			if !remoteDecks.isEmpty {
 				NavigationLink {
 					List(remoteDecks) { deck in
 						Button {
 							let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: deck.url.absoluteString, source: .remoteURL))
-							AppDelegate.shared.transceiver.broadcast(command)
+							AppDelegate.shared.sendCommand(command)
 							dismiss()
 						} label: {
 							let scale: CGFloat = 2
@@ -123,6 +136,7 @@ struct LoadDeckView: View {
       }
 		}
 		.listStyle(.insetGrouped)
+
 		.toolbar {
 			ToolbarItem {
 				Button("Cancel") {
@@ -131,9 +145,9 @@ struct LoadDeckView: View {
 			}
 		}
 		.task {
-      await loadRemoteDecks()
+      if !AppDelegate.shared.usesPhoneSession { await loadRemoteDecks() }
     }.task {
-      await loadJumpStartSets()
+      if !AppDelegate.shared.usesPhoneSession { await loadJumpStartSets() }
     }
 	}
   
@@ -151,7 +165,7 @@ struct LoadDeckView: View {
           ToolbarItem(placement: .confirmationAction) {
             Button {
               let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: text, source: .decklist))
-              AppDelegate.shared.transceiver.broadcast(command)
+              AppDelegate.shared.sendCommand(command)
               dismiss()
             } label: {
               Label("Done", systemImage: "checkmark")
@@ -173,7 +187,7 @@ struct LoadDeckView: View {
 //        guard let url = URL(string: deckLink) else { return }
 //        
 //        let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: url.absoluteString, source: .remoteURL))
-//        AppDelegate.shared.transceiver.broadcast(command)
+//        AppDelegate.shared.sendCommand(command)
 //        dismiss()
 //      })
     }

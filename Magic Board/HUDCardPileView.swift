@@ -12,7 +12,11 @@ import RxCocoa
 
 class HUDCardPileView: UIView {
 	
-	private let bag = DisposeBag()
+	private var bag = DisposeBag()
+    private var phonePreviewHeight: NSLayoutConstraint?
+    private var phonePreviewCenter: NSLayoutConstraint?
+    private var phoneTitleGap: NSLayoutConstraint?
+    private var phoneCountInset: NSLayoutConstraint?
 	
 	@IBOutlet weak var numberLabel: UILabel!
 	@IBOutlet weak var topCardImageView: UIImageView!
@@ -24,6 +28,7 @@ class HUDCardPileView: UIView {
 		didSet {
 			self.titleLabel.text = pile.location.rawValue
 			
+            if let previous = oldValue, previous.cards === pile.cards, previous.isTopCardRevealed === pile.isTopCardRevealed { return }
 			bind()
 		}
 	}
@@ -54,7 +59,45 @@ class HUDCardPileView: UIView {
 		topCardImageView.layer.masksToBounds = true
 	}
 	
+    /// Give every pile the same preview geometry, independent of image pixels.
+    func configurePhoneLayout(previewHeight: CGFloat, scale: CGFloat) {
+        if phonePreviewHeight == nil {
+            NSLayoutConstraint.deactivate(contentView.constraints)
+            if let stack = topCardImageView.superview as? UIStackView {
+                let items: [UIView] = [topCardImageView, titleLabel]
+                for item in items {
+                    stack.removeArrangedSubview(item)
+                    item.removeFromSuperview()
+                    contentView.addSubview(item)
+                }
+                stack.removeFromSuperview()
+            }
+            phonePreviewHeight = topCardImageView.heightAnchor.constraint(equalToConstant: previewHeight)
+            phonePreviewCenter = topCardImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+            phoneTitleGap = titleLabel.topAnchor.constraint(equalTo: topCardImageView.bottomAnchor)
+            phoneCountInset = numberLabel.bottomAnchor.constraint(equalTo: topCardImageView.bottomAnchor)
+            NSLayoutConstraint.activate([
+                phonePreviewHeight!, phonePreviewCenter!, phoneTitleGap!, phoneCountInset!,
+                topCardImageView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                titleLabel.widthAnchor.constraint(equalTo: contentView.widthAnchor, constant: -4),
+                numberLabel.centerXAnchor.constraint(equalTo: topCardImageView.centerXAnchor),
+                numberLabel.widthAnchor.constraint(equalTo: topCardImageView.widthAnchor)
+            ])
+            contentView.bringSubviewToFront(numberLabel)
+            numberLabel.adjustsFontSizeToFitWidth = true
+            numberLabel.minimumScaleFactor = 0.5
+        }
+        let gap = 2 * scale
+        phonePreviewHeight?.constant = previewHeight
+        phonePreviewCenter?.constant = -(titleLabel.font.lineHeight + gap) / 2
+        phoneTitleGap?.constant = gap
+        phoneCountInset?.constant = -1.5 * scale
+        topCardImageView.layer.cornerRadius = previewHeight * 63 / 88 * 0.045
+    }
+
 	private func bind() {
+        bag = DisposeBag()
 		pile.cards
 			.observeOn(MainScheduler.instance)
 			.subscribe(onNext: { [weak self] (cards) in

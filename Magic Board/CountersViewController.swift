@@ -144,6 +144,8 @@ class CountersViewController: UITableViewController {
 	private let bag = DisposeBag()
 	
 	@IBOutlet var newCounterButtons: [UIButton]!
+    private var counterPalette: UIView?
+    private var keywordCounterButton: UIButton?
 	
 	var cardInstance: CardInstance! {
 		didSet {
@@ -241,6 +243,33 @@ class CountersViewController: UITableViewController {
 				self?.dataSource.apply(snapshot, animatingDifferences: false)
 			}).disposed(by: bag)
 		
+        let palette = UIView()
+        palette.frame = CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 124)
+        for (index, button) in newCounterButtons.enumerated() {
+            (button.superview as? UIStackView)?.removeArrangedSubview(button)
+            button.removeFromSuperview()
+            NSLayoutConstraint.deactivate(button.constraints)
+            button.translatesAutoresizingMaskIntoConstraints = true
+            button.accessibilityIdentifier = "counter-add-\(index)"
+            palette.addSubview(button)
+        }
+        // Keyword counters (flying, first strike, …) come from a menu on a full-width third row.
+        var keywordConfiguration = UIButton.Configuration.filled()
+        keywordConfiguration.title = "Keyword Counter"
+        keywordConfiguration.image = UIImage(systemName: "plus.circle.fill")
+        keywordConfiguration.imagePadding = 6
+        keywordConfiguration.cornerStyle = .capsule
+        keywordConfiguration.baseBackgroundColor = Counter.flying.color
+        let keywordButton = UIButton(configuration: keywordConfiguration)
+        keywordButton.accessibilityIdentifier = "counter-add-keyword"
+        keywordButton.showsMenuAsPrimaryAction = true
+        keywordButton.menu = UIMenu(title: "Add Keyword Counter", children: Counter.keywordCounters.map { counter in
+            UIAction(title: counter.name, image: counter.keywordMenuImage) { [weak self] _ in self?.add(counter) }
+        })
+        palette.addSubview(keywordButton)
+        keywordCounterButton = keywordButton
+        counterPalette = palette
+        tableView.tableHeaderView = palette
 		for button in newCounterButtons {
 			if button.image(for: .normal) == nil {
 				button.layer.cornerRadius = button.frame.width/2
@@ -253,11 +282,48 @@ class CountersViewController: UITableViewController {
 		newCounterButtons[1].backgroundColor = Counter.minusOneMinusOne.color
 		
 		let genericCounterCount = newCounterButtons.count-3
-		for (button, counter) in zip(newCounterButtons.suffix(genericCounterCount), Counter.allCases.suffix(genericCounterCount)) {
-			button.backgroundColor = counter.color
+		// Same index → counter mapping as newCounterButtonPressed (keyword counters appended later don't shift it).
+		_ = genericCounterCount
+		for (index, button) in newCounterButtons.enumerated() where index > 2 {
+			button.backgroundColor = Counter(rawValue: index + 12)?.color
 		}
 	}
 	
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        guard let palette = counterPalette, newCounterButtons.count >= 4 else { return }
+        let width = tableView.bounds.width
+        let gap: CGFloat = 10
+        let padding: CGFloat = 12
+        let diameter = min(52, max(32, (width - 2 * padding - 4 * gap) / 5))
+        let keywordHeight = max(32, diameter * 0.8)
+        let height = 2 * diameter + 2 * gap + keywordHeight + 2 * padding
+        keywordCounterButton?.frame = CGRect(x: padding, y: padding + 2 * (diameter + gap), width: width - 2 * padding, height: keywordHeight)
+        let rows = [[newCounterButtons[0], newCounterButtons[1], newCounterButtons[2], newCounterButtons.last!], Array(newCounterButtons.dropFirst(3).dropLast())]
+        for (row, buttons) in rows.enumerated() {
+            let widths = buttons.map { $0 === newCounterButtons[2] ? diameter * 1.64 : diameter }
+            let total = widths.reduce(0, +) + CGFloat(max(0, buttons.count - 1)) * gap
+            var x = (width - total) / 2
+            for (button, buttonWidth) in zip(buttons, widths) {
+                button.frame = CGRect(x: x, y: padding + CGFloat(row) * (diameter + gap), width: buttonWidth, height: diameter)
+                button.layer.cornerRadius = button === newCounterButtons[2] ? 0 : diameter / 2
+                // The loyalty shield is black art: a soft white glow keeps it visible on dark sheets.
+                let isLoyalty = button === newCounterButtons[2]
+                button.layer.masksToBounds = !isLoyalty
+                button.layer.shadowColor = UIColor.white.cgColor
+                button.layer.shadowOpacity = isLoyalty ? 0.85 : 0
+                button.layer.shadowRadius = isLoyalty ? 2.5 : 0
+                button.layer.shadowOffset = .zero
+                button.imageView?.contentMode = .scaleAspectFit
+                x += buttonWidth + gap
+            }
+        }
+        if abs(palette.frame.height - height) > 0.5 || abs(palette.frame.width - width) > 0.5 {
+            palette.frame.size = CGSize(width: width, height: height)
+            tableView.tableHeaderView = palette
+        }
+    }
+
 	@objc private func newCounterButtonPressed(_ sender: UIButton) {
 		guard var index = newCounterButtons.firstIndex(of: sender) else { return }
 		

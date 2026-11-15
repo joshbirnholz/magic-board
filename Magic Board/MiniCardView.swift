@@ -34,6 +34,8 @@ func romanNumeralFor(_ n: Int) -> String? {
 class MiniCardView: UIView {
 	
 	private var bag = DisposeBag()
+	/// The frame colors the card itself implies (a land's from the mana it makes), used when no colors are set.
+	private var defaultFrameColors: [MTGCardView.Color] = []
 
 	@IBOutlet var contentView: UIView!
 	@IBOutlet weak var countersStackView: UIStackView!
@@ -46,12 +48,17 @@ class MiniCardView: UIView {
 		static let backFace: Contents = .image(#imageLiteral(resourceName: "mtg-card-back-png-1"))
 	}
 	
+	/// Where the drawn card sits inside the rendered image (fractions of its size), when the image
+	/// is a rendered mini card with padding around it; nil for plain card images.
+	private(set) var renderedCardFraction: CGRect?
+
 	private var contents: Contents = .backFace {
 		didSet {
       guard contents != oldValue else { return }
       
       switch self.contents {
       case .image(let image):
+        renderedCardFraction = nil
         self.cardView.image = image
       case .cardProperties(let properties):
         self.cardView.image = self.image(for: properties, size: self.cardView.bounds.size)
@@ -67,7 +74,12 @@ class MiniCardView: UIView {
 			return nil
 		}
 		set {
-			if let properties = newValue {
+			if var properties = newValue {
+				// Keyword counters show as blue counter tiles after any commander tile, like Arena.
+				properties.icons.removeAll { if case .counter = $0 { return true }; return false }
+				var seen: [MTGCardView.Icon] = []
+				for icon in (cardInstance?.counters.value ?? []).compactMap(\.keywordIcon) where !seen.contains(icon) { seen.append(icon) }
+				properties.icons.insert(contentsOf: seen, at: properties.icons.first == .commander ? 1 : 0)
 				contents = .cardProperties(properties)
 			} else {
 				contents = .backFace
@@ -95,6 +107,7 @@ class MiniCardView: UIView {
 	private func image(for properties: MTGCardView.CardProperties, size: CGSize) -> UIImage! {
 		let frame = CGRect(origin: .zero, size: size)
 		let cardView = MTGCardView(frame: frame)
+        cardView.prefersLargeBattlefieldText = usesPlayerPerspective
 		cardView.backgroundColor = .clear
 		cardView.properties = properties
 		cardView.layoutIfNeeded()
@@ -103,9 +116,34 @@ class MiniCardView: UIView {
 		defer { UIGraphicsEndImageContext() }
 		guard let context = UIGraphicsGetCurrentContext() else { return nil }
 		cardView.layer.render(in: context)
-		return UIGraphicsGetImageFromCurrentImageContext()
+		let image = UIGraphicsGetImageFromCurrentImageContext()
+		renderedCardFraction = image.flatMap(Self.opaqueFraction(of:))
+		return image
 	}
 	
+	/// The bounding box of the image's visible pixels, as fractions of its size: the drawn card
+	/// without the transparent padding around it. Sampled at reduced resolution.
+	static func opaqueFraction(of image: UIImage) -> CGRect? {
+		guard let source = image.cgImage else { return nil }
+		let width = max(1, source.width / 4), height = max(1, source.height / 4)
+		var pixels = [UInt8](repeating: 0, count: width * height)
+		guard let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8,
+									  bytesPerRow: width, space: CGColorSpaceCreateDeviceGray(),
+									  bitmapInfo: CGImageAlphaInfo.alphaOnly.rawValue) else { return nil }
+		context.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
+		var minX = width, minY = height, maxX = -1, maxY = -1
+		for y in 0..<height {
+			for x in 0..<width where pixels[y * width + x] > 40 {
+				minX = min(minX, x); maxX = max(maxX, x)
+				minY = min(minY, y); maxY = max(maxY, y)
+			}
+		}
+		guard maxX >= minX, maxY >= minY else { return nil }
+		// Bitmap rows run top to bottom here (CGContext memory starts at the top row).
+		return CGRect(x: CGFloat(minX) / CGFloat(width), y: CGFloat(minY) / CGFloat(height),
+					  width: CGFloat(maxX - minX + 1) / CGFloat(width), height: CGFloat(maxY - minY + 1) / CGFloat(height))
+	}
+
 	var card: CardRepresentation {
 		return cardInstance!.representation
 	}
@@ -218,6 +256,8 @@ class MiniCardView: UIView {
         securityStamp: card.card.securityStamp,
         isCommander: cardInstance.isCommander.value
       )
+			defaultFrameColors = properties.colors
+			properties.applyFrameColors(cardInstance.colors.value, isLand: card.isLand, defaults: defaultFrameColors)
 			self.properties = properties
 			
 			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
@@ -265,7 +305,9 @@ class MiniCardView: UIView {
     
     cardInstance.colors
       .subscribe(onNext: { [weak self] colors in
-        self?.properties?.colors = colors.compactMap { MTGCardView.Color.init(initial: $0.initial) }
+        guard let self, var properties = self.properties else { return }
+        properties.applyFrameColors(colors, isLand: self.card.isLand, defaults: self.defaultFrameColors)
+        self.properties = properties
       }).disposed(by: bag)
 		
     Observable.combineLatest(cardInstance.power, cardInstance.toughness, cardInstance.counters, cardInstance.isPowerToughnessVisible)
@@ -328,9 +370,20 @@ class MiniCardView: UIView {
 //				}
 //			}).disposed(by: bag)
 		
-    Observable.combineLatest(cardInstance.isFlying, cardInstance.isPowerToughnessVisible)
-      .subscribe (onNext: { [weak self] (isFlying, isPowerToughnessVisible) in
+    // Re-apply keyword counter tiles when counters change.
+    cardInstance.counters
+      .map { $0.filter(\.isKeyword) }
+      .distinctUntilChanged()
+      .subscribe(onNext: { [weak self] _ in
+        guard let self, let properties = self.properties else { return }
+        self.properties = properties
+      }).disposed(by: bag)
+
+    Observable.combineLatest(cardInstance.isFlying, cardInstance.isPowerToughnessVisible, cardInstance.counters.map { $0.contains(.flying) })
+      .subscribe (onNext: { [weak self] (baseFlying, isPowerToughnessVisible, flyingCounter) in
 				guard let self = self else { return }
+				// A flying counter flies the card just like the Flying ability.
+				let isFlying = baseFlying || flyingCounter
 				
         // Don't show flying if it's not a creature
         if isFlying && isPowerToughnessVisible {
@@ -359,6 +412,8 @@ class MiniCardView: UIView {
 				var countersAndCounts: [CounterAndCount] = []
 				
 				for counter in counters {
+					// Keyword counters already show as ability tiles on the card; no round counter for them.
+					if counter.isKeyword { continue }
 					if (counter == .loyalty && self?.card.typeLine?.lowercased().contains("planeswalker") == true && !isPowerToughnessVisible) { continue }
 					
 					if let index = countersAndCounts.firstIndex(where: { $0.counter == counter }) {
@@ -451,10 +506,43 @@ class MiniCardView: UIView {
 			}).disposed(by: bag)
 	}
   
+  override func accessibilityActivate() -> Bool {
+    guard usesPlayerPerspective, let cardInstance else { return super.accessibilityActivate() }
+    cardInstance.isTapped.mutate { $0.toggle() }
+    try? GameState.current.save()
+    return true
+  }
+
   var updatesTransform = true
+  var usesPlayerPerspective = false {
+    didSet {
+      guard oldValue != usesPlayerPerspective else { return }
+      if let cardInstance {
+        updateTransform(controllerIdentifier: cardInstance.controllerIdentifier.value, isTapped: cardInstance.isTapped.value, animated: false)
+        if case .cardProperties(let properties) = contents {
+          cardView.image = image(for: properties, size: cardView.bounds.size)
+        }
+      }
+    }
+  }
 	
+  private lazy var phoneTapArrow: UIImageView = {
+    let arrow = UIImageView(image: UIImage(named: "tap")?.withRenderingMode(.alwaysTemplate))
+    arrow.tintColor = .white
+    arrow.alpha = 0.65
+    arrow.contentMode = .scaleAspectFit
+    arrow.isUserInteractionEnabled = false
+    addSubview(arrow)
+    return arrow
+  }()
+
   private func updateTransform(controllerIdentifier: Player.Identifier, isTapped: Bool, animated: Bool) {
     guard updatesTransform else { return }
+    if usesPlayerPerspective {
+      phoneTapArrow.isHidden = !isTapped
+      phoneTapArrow.frame = bounds.insetBy(dx: bounds.width * 0.27, dy: bounds.height * 0.27)
+      bringSubviewToFront(phoneTapArrow)
+    } else { phoneTapArrow.isHidden = true }
     
     UIView.transition(
       with: self.cardView,
@@ -464,7 +552,7 @@ class MiniCardView: UIView {
         guard let self = self else { return }
         var transform: CGAffineTransform = .identity
         
-        if controllerIdentifier == .b {
+        if controllerIdentifier == .b && !self.usesPlayerPerspective {
           transform = transform.rotated(by: .pi)
         }
         
@@ -599,6 +687,7 @@ struct SwiftUICardView: View {
   
   @ObservedObject private var isTapped: ObservableBridge<Bool>
   @ObservedObject private var representation: ObservableBridge<CardRepresentation>
+  @ObservedObject private var colors: ObservableBridge<[MTGColor]>
   @State private var art: UIImage?
   
   private static let backFace: UIImage = #imageLiteral(resourceName: "mtg-card-back-png-1")
@@ -608,6 +697,7 @@ struct SwiftUICardView: View {
   init(card: CardInstance, isRotationEnabled: Bool = true) {
     self.card = card
     self.isTapped = ObservableBridge(card.isTapped)
+    self.colors = ObservableBridge(card.colors)
     self.isRotationEnabled = isRotationEnabled
     
     let cardDidChangeObservable = card.representedCardDidChange
@@ -671,8 +761,7 @@ struct SwiftUICardView: View {
         }
       )
     } else {
-        Image(uiImage: self.cardImage(for: properties))
-        .resizable()
+        BattlefieldCardThumbnail(properties: properties, usesLargeText: AppDelegate.shared.usesPhoneSession)
         .aspectRatio(480/420, contentMode: .fit)
         .task {
           let image = card.representation.image(type: .art)
@@ -705,53 +794,29 @@ struct SwiftUICardView: View {
       securityStamp: representation.value.card.securityStamp,
       isCommander: card.isCommander.value
     )
+    properties.applyFrameColors(colors.value, isLand: representation.value.isLand, defaults: properties.colors)
     
     properties.art = self.art
     
     return properties
   }
   
-  /// Renders the card the same way `MiniCardView` does, then crops away the padding.
-  ///
-  /// `MTGCardView` only lays out correctly when the 8:7 card is letterboxed in a square
-  /// canvas (its xib is designed at 480×480). Rendering straight at 480×420 shifts the
-  /// name below the title bar, so render square and crop to the card itself.
-  private func cardImage(for properties: MTGCardView.CardProperties) -> UIImage {
-    let canvas = CGSize(width: 480, height: 480)
-    let cardRect = CGRect(x: 0, y: (canvas.height - 420) / 2, width: 480, height: 420)
-
-    guard let squareImage = image(for: properties, size: canvas) else { return UIImage() }
-    guard let cgImage = squareImage.cgImage else { return squareImage }
-
-    let scale = squareImage.scale
-    let pixelRect = CGRect(x: cardRect.minX * scale, y: cardRect.minY * scale,
-                           width: cardRect.width * scale, height: cardRect.height * scale)
-    guard let cropped = cgImage.cropping(to: pixelRect) else { return squareImage }
-    return UIImage(cgImage: cropped, scale: scale, orientation: squareImage.imageOrientation)
-  }
-
-  private func image(for properties: MTGCardView.CardProperties, size: CGSize) -> UIImage! {
-    let frame = CGRect(origin: .zero, size: size)
-    let cardView = MTGCardView(frame: frame)
-    cardView.backgroundColor = .clear
-    cardView.properties = properties
-    cardView.layoutIfNeeded()
-    
-    UIGraphicsBeginImageContextWithOptions(cardView.bounds.size, false, 2)
-    defer { UIGraphicsEndImageContext() }
-    guard let context = UIGraphicsGetCurrentContext() else { return nil }
-    cardView.layer.render(in: context)
-    return UIGraphicsGetImageFromCurrentImageContext()
-  }
-  
   var body: some View {
 //    MiniCardViewWrapper(cardInstance: card, updatesTransform: false)
 //    Text(String(describing: representation.value))
     contents
-      .drag(card: card)
+      .drag(card: AppDelegate.shared.usesPhoneSession ? nil : card)
       .overlay {
         if isTapped.value {
           Color.black.opacity(0.4)
+          if AppDelegate.shared.usesPhoneSession {
+            GeometryReader { proxy in
+              Image("tap").resizable().renderingMode(.template).scaledToFit()
+                .foregroundColor(.white.opacity(0.65))
+                .frame(width: proxy.size.width * 0.46, height: proxy.size.height * 0.46)
+                .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+            }.allowsHitTesting(false)
+          }
         }
       }
       .rotationEffect(isRotationEnabled && isTapped.value ? .init(radians: .pi/15) : .zero)
@@ -759,4 +824,61 @@ struct SwiftUICardView: View {
       .animation(.default, value: representation.value)
       
   }
+}
+
+
+/// Keep UIKit rasterization out of SwiftUI body evaluation. Rebuilding the XIB
+/// while evaluating a body can continually invalidate the hosting view's layout.
+private struct BattlefieldCardThumbnail: UIViewRepresentable {
+    let properties: MTGCardView.CardProperties
+    let usesLargeText: Bool
+
+    final class Coordinator {
+        var properties: MTGCardView.CardProperties?
+        var usesLargeText: Bool?
+        lazy var renderer = MTGCardView(frame: CGRect(x: 0, y: 0, width: 480, height: 480))
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIView(context: Context) -> UIImageView {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        imageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        return imageView
+    }
+
+    func updateUIView(_ imageView: UIImageView, context: Context) {
+        let cache = context.coordinator
+        guard cache.properties != properties || cache.usesLargeText != usesLargeText else { return }
+        cache.properties = properties
+        cache.usesLargeText = usesLargeText
+        let renderer = cache.renderer
+        renderer.prefersLargeBattlefieldText = usesLargeText
+        renderer.backgroundColor = .clear
+        renderer.properties = properties
+        renderer.layoutIfNeeded()
+
+        // The XIB lays out in a square canvas. Crop only after rendering to
+        // preserve the original title, artwork, and power/toughness positions.
+        UIGraphicsBeginImageContextWithOptions(renderer.bounds.size, false, 2)
+        defer { UIGraphicsEndImageContext() }
+        guard let graphics = UIGraphicsGetCurrentContext() else { return }
+        renderer.layer.render(in: graphics)
+        guard let square = UIGraphicsGetImageFromCurrentImageContext(), let pixels = square.cgImage else { return }
+        let crop = CGRect(x: 0, y: 30 * square.scale, width: 480 * square.scale, height: 420 * square.scale)
+        guard let cropped = pixels.cropping(to: crop) else { return }
+        imageView.image = UIImage(cgImage: cropped, scale: square.scale, orientation: square.imageOrientation)
+    }
+}
+
+
+extension MTGCardView.CardProperties {
+    /// Colors set on a card instance override its frame colors. A land with no colors set keeps
+    /// its default frame (from the mana it makes); other cards use their instance colors as before.
+    mutating func applyFrameColors(_ colors: [MTGColor], isLand: Bool, defaults: [MTGCardView.Color]) {
+        let set = colors.compactMap { MTGCardView.Color(initial: $0.initial) }
+        self.colors = isLand && set.isEmpty ? defaults : set
+    }
 }

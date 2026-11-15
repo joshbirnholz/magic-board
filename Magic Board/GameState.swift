@@ -42,6 +42,17 @@ extension BehaviorRelay where Element: AnyObject {
 }
 
 struct GameState: Codable {
+    // Shared controllers can participate in a hosted phone session without
+    // depending on its transport or presentation types.
+    static var sessionSave: ((GameState) -> Void)?
+    static var sessionDraw: ((Player.Identifier, Int, Bool) -> Void)?
+    static var sessionCards: (() -> [CardInstance])?
+    static var sessionPile: ((Player.Identifier, Pile.Location) -> Pile)?
+
+    func effectivePile(_ location: Pile.Location, player: Player.Identifier) -> Pile {
+        Self.sessionPile?(player, location) ?? self[player: player][location]
+    }
+
 	
 	static let currentGameStateURL: URL = {
 		let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -80,6 +91,7 @@ struct GameState: Codable {
 			}
 			return
 		}
+        if let sessionSave = Self.sessionSave { sessionSave(self); return }
 		guard AppDelegate.shared.role.isBoard else { return }
 		AppDelegate.shared.transceiver.broadcast(self)
 		try writeToDisk()
@@ -91,48 +103,40 @@ struct GameState: Codable {
 		try data.write(to: GameState.currentGameStateURL)
 	}
 	
-	func update(withValuesFrom otherGameState: GameState) {
-		for (localPlayer, remotePlayer) in zip(self.allPlayers, otherGameState.allPlayers) {
-			for (localPlayerPile, remotePlayerPile) in zip(localPlayer.allPiles, remotePlayer.allPiles) {
-				localPlayerPile.cards.accept(remotePlayerPile.cards.value)
-        localPlayerPile.isTopCardRevealed.accept(remotePlayerPile.isTopCardRevealed.value)
-			}
-			
-			localPlayer.name.accept(remotePlayer.name.value)
-			localPlayer.life.accept(remotePlayer.life.value)
-		}
-		
-		battlefield.accept(otherGameState.battlefield.value)
-		
-    for (id, cardInstance) in otherGameState.allCards {
-			if let otherCard = otherGameState.allCards[id] {
-				cardInstance.representation = otherCard.representation
-				cardInstance.center.accept(otherCard.center.value)
-				cardInstance.controllerIdentifier.accept(otherCard.controllerIdentifier.value)
-				cardInstance.counters.accept(otherCard.counters.value)
-				cardInstance.doesNotUntapAutomatically.accept(otherCard.doesNotUntapAutomatically.value)
-				cardInstance.isFlying.accept(otherCard.isFlying.value)
-				cardInstance.isPowerToughnessVisible.accept(otherCard.isPowerToughnessVisible.value)
-				cardInstance.isSummoningSick.accept(otherCard.isSummoningSick.value)
-				cardInstance.isTapped.accept(otherCard.isTapped.value)
-				cardInstance.power.accept(otherCard.power.value)
-        cardInstance.colors.accept(otherCard.colors.value)
-        cardInstance.isCommander.accept(otherCard.isCommander.value)
-				cardInstance.toughness.accept(otherCard.toughness.value)
-			} else {
-				cardInstance.remove.onNext(())
-			}
-		}
-		
-		if AppDelegate.shared.role.isBoard {
-			try? writeToDisk()
-		}
-	}
-	
+    /// Keep the objects observed by the storyboard controllers alive across updates.
+    @discardableResult
+    func update(withValuesFrom other: GameState, additionalCards: [CardInstance] = []) -> [UUID: CardInstance] {
+        let local = allCards
+        var incoming = other.cardsInZones
+        for card in additionalCards { incoming[card.uuid] = card }
+        var canonical: [UUID: CardInstance] = [:]
+        for (id, remote) in incoming {
+            let card = local[id] ?? remote
+            if card !== remote { card.applyValues(from: remote) }
+            canonical[id] = card
+        }
+        for (player, remote) in zip(allPlayers, other.allPlayers) {
+            for (pile, remotePile) in zip(player.allPiles, remote.allPiles) {
+                pile.cards.accept(OrderedSet(remotePile.cards.value.compactMap { canonical[$0.uuid] }))
+                pile.isTopCardRevealed.accept(remotePile.isTopCardRevealed.value)
+            }
+            player.name.accept(remote.name.value)
+            player.life.accept(remote.life.value)
+            if player.isHidden != remote.isHidden { player.isHidden = remote.isHidden }
+        }
+        battlefield.accept(OrderedSet(other.battlefield.value.compactMap { canonical[$0.uuid] }))
+        if Self.sessionSave == nil, AppDelegate.shared.role.isBoard { try? writeToDisk() }
+        return canonical
+    }
+
 	var battlefield: BehaviorRelay<OrderedSet<CardInstance>>
 	
 	let player1: Player
 	let player2: Player
+
+	/// Each player's last loaded deck (player raw → location raw → card IDs), for Reset Decks and Life.
+	/// Optional so older saves still decode.
+	var deckLayout: [String: [String: [UUID]]]?
 	
 	var allPlayers: [Player] {
 		[player1, player2]
@@ -150,7 +154,13 @@ struct GameState: Codable {
     return result
 	}
 	
-	var allCards: [UUID: CardInstance] {
+    var allCards: [UUID: CardInstance] {
+        var cards = cardsInZones
+        for card in Self.sessionCards?() ?? [] { cards[card.uuid] = card }
+        return cards
+    }
+
+	var cardsInZones: [UUID: CardInstance] {
 		var cards = Set(allPlayers.map { $0.allPiles }.joined().map { $0.cards.value }.joined())
 		cards.formUnion(battlefield.value)
 		return [UUID: [CardInstance]](grouping: cards, by: { $0.uuid }).compactMapValues { $0.first }
@@ -339,4 +349,9 @@ extension Array {
 		self = array
 		
 	}
+}
+
+
+extension Notification.Name {
+    static let phoneGameDidChange = Notification.Name("MagicBoard.phoneGameDidChange")
 }

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardService
 
 enum Command: Codable {
 	struct MoveCommandParameters: Codable {
@@ -18,7 +19,7 @@ enum Command: Codable {
 			var pile: Pile? {
 				for player in [GameState.current.player1, GameState.current.player2] {
 					guard player.identifier == playerIdentifier else { continue }
-					return player[location]
+					return GameState.current.effectivePile(location, player: player.identifier)
 				}
 				
 				return nil
@@ -126,4 +127,34 @@ enum Command: Codable {
 			throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Could not decode a command"))
 		}
 	}
+}
+
+/// Shared by Board Connect's Play button and Phone Play's sheet/drag action.
+extension Command.PlayCardParameters {
+    struct Option {
+        let title: String
+        let parameters: Command.PlayCardParameters
+    }
+
+    static func options(for instance: CardInstance, tapped: Bool = false, increaseTax: Bool = false) -> [Option] {
+        let card = instance.representation
+        func option(_ title: String, face: Int? = nil, mode: Mode = .default) -> Option {
+            Option(title: title, parameters: .init(cardInstanceID: instance.uuid, faceIndex: face, mode: mode, increaseTax: increaseTax, tapped: tapped))
+        }
+        if let faces = card.card.cardFaces, !faces.isEmpty {
+            let aftermath = card.layout == "split" && faces.count == 2 && faces[1].oracleText?.hasPrefix("Aftermath") == true
+            if card.layout == "transform" || aftermath { return [option(faces[0].name ?? "Play", face: 0)] }
+            let ordered = card.layout == "adventure" ? Array(faces.enumerated().reversed()) : Array(faces.enumerated())
+            var choices = ordered.map { option($0.element.name ?? "Face \($0.offset + 1)", face: $0.offset) }
+            if card.keywords.contains("Fuse") { choices.append(option("Fuse")) }
+            return choices
+        }
+        if card.keywords.contains("Morph") || card.keywords.contains("Megamorph") {
+            return [option(card.name ?? "Play"), option("Morph", mode: .morph)]
+        }
+        if card.card.prototype != nil, card.keywords.contains("Prototype") {
+            return [option("Cast"), option("Prototype", mode: .prototype)]
+        }
+        return [option("Play")]
+    }
 }

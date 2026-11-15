@@ -16,13 +16,15 @@ class ImageLoader: ObservableObject {
     private(set) var isLoading = false
     
 	private let card: MTGCard
+    private let face: MTGCard.Face?
 	
 	private let imageType: ImageType
     private var cancellable: AnyCancellable?
     
     private static let imageProcessingQueue = DispatchQueue(label: "image-processing")
     
-	init(card: MTGCard, type: ImageType) {
+	init(card: MTGCard, type: ImageType, face: MTGCard.Face? = nil) {
+        self.face = face
         self.card = card
 		self.imageType = type
     }
@@ -34,10 +36,10 @@ class ImageLoader: ObservableObject {
     func load() {
         guard !isLoading else { return }
 		
-		let (exists, loadImage) = card.imageLoader(type: imageType)
+		let (exists, loadImage) = card.imageLoader(type: imageType, for: face)
 
 		if exists {
-			self.image = card.image(type: imageType, alwaysUpright: true)
+			self.image = card.image(type: imageType, for: face, alwaysUpright: true)
 			return
 		}
 		

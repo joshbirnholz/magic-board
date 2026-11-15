@@ -15,16 +15,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 	
 	let transceiver = MultipeerTransceiver()
   let webServer = WebServer(port: 8080)
+    var phoneSession: PhoneGameSession?
+    weak var boardController: BoardViewController?
+    var usesPhoneSession: Bool { phoneSession != nil }
+    var supportsEmbeddedCompanion: Bool { true }
+    #if DEBUG
+    var didPresentCompanionFixture = false
+    #endif
+    func sendCommand(_ command: Command) {
+        if let phoneSession { phoneSession.send(command) }
+        else { transceiver.broadcast(command) }
+    }
 	
 	var role: Role = .board
 	
 	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 		// Override point for customization after application launch.
 		
-		_ = CardService.shared
+        #if DEBUG
+        let isolatedPhoneCheck = ProcessInfo.processInfo.arguments.contains { $0 == "--phone-board-fixture" || $0 == "--phone-companion-fixture" || $0.hasPrefix("--phone-network-") }
+        #else
+        let isolatedPhoneCheck = false
+        #endif
+        if !OfflineGameLibrary.shared.games.isEmpty { CardService.shouldInitializeCards = false }
+        if isolatedPhoneCheck || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            CardService.shouldInitializeCards = false
+        } else { _ = CardService.shared }
 		
 		transceiver.resume()
-    webServer.start()
+    if !isolatedPhoneCheck && ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+        webServer.start()
+        // Card artwork isn't bundled; fetch whatever is missing as a step of the content-loading process
+        // (after the card/rulings import when that also runs). Shown in the same progress window.
+        OfflineGameLibrary.shared.downloadMissingArtworkIfNeeded()
+    }
 		UIApplication.shared.isIdleTimerDisabled = true
 		
 		return true
@@ -50,3 +74,54 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
+
+extension AppDelegate {
+    func phoneCardActions(_ card: CardInstance) -> [CardManualAction] {
+        guard let session = phoneSession else { return [] }
+        var actions: [CardManualAction] = []
+        if let item = session.game.stack.first(where: { $0.card?.uuid == card.uuid }) {
+            if session.game.stack.last?.id == item.id { actions.append(.init(title: "Resolve from Stack", perform: { session.send(.resolve(item.id)) })) }
+            actions.append(.init(title: "Counter / Move to Graveyard", perform: { session.send(.counterStack(item.id)) }))
+        } else if session.game.state.battlefield.value.contains(card) {
+            if session.game.attachments[card.uuid] != nil {
+                actions.append(.init(title: "Unattach", perform: { session.send(.attach(card.uuid, nil)) }))
+            }
+            let game = session.game
+            let mine = card.controllerIdentifier.value == session.player
+            if mine, card.isPhoneCreature, game.attachments[card.uuid] == nil {
+                let attacking = game.combat?.attackers.contains(card.uuid) == true
+                if attacking {
+                    actions.append(.init(title: "Remove from Combat", dismisses: true, perform: {
+                        session.send(.attack(card.uuid, tap: !card.hasVigilance))
+                    }))
+                } else if game.attackingPlayer == nil || game.attackingPlayer == session.player {
+                    // Attacking taps the creature unless it has vigilance, and starts combat.
+                    actions.append(.init(title: "Attack", dismisses: true, perform: {
+                        session.send(.attack(card.uuid, tap: !card.hasVigilance))
+                    }))
+                }
+                if game.combat?.blockers[card.uuid] != nil {
+                    actions.append(.init(title: "Stop Blocking", dismisses: true, perform: { session.send(.block(card.uuid, nil)) }))
+                }
+                if game.attackingPlayer == session.player {
+                    // In combat, tapping a creature on the board toggles its attack; this taps it plainly.
+                    actions.append(.init(title: card.isTapped.value ? "Untap" : "Tap", dismisses: true, perform: { session.send(.tap(card.uuid)) }))
+                }
+            }
+        } else if session.game.canUse(card, player: session.player) {
+            actions.append(.init(title: card.representation.isLand ? "Play Land" : "Play onto Stack", perform: {
+                session.send(.play(card.uuid, face: nil, faceDown: false, tapped: false, directly: false))
+            }))
+        }
+        return actions
+    }
+
+    private func presentPhoneController(_ alert: UIViewController) {
+        guard let window = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).flatMap(\.windows).first(where: \.isKeyWindow),
+              var presenter = window.rootViewController else { return }
+        while let next = presenter.presentedViewController { presenter = next }
+        alert.popoverPresentationController?.sourceView = presenter.view
+        alert.popoverPresentationController?.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1, height: 1)
+        presenter.present(alert, animated: true)
+    }
+}

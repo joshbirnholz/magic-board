@@ -30,6 +30,9 @@ class LifeTrackerViewController: UIHostingController<LifeTracker> {
   private func bindValue() {
     rootView = LifeTracker(life: value)
     view.backgroundColor = .clear
+    if #available(iOS 16.4, *), AppDelegate.shared.usesPhoneSession {
+      safeAreaRegions = []
+    }
   }
   
 }
@@ -43,6 +46,11 @@ extension HUDCardPileView: PileViewProtocol {
 }
 
 class HandViewControllerContainerView: UIView, PileViewProtocol, UIDropInteractionDelegate {
+    var phoneContentFrame: CGRect?
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        if let phoneContentFrame { return phoneContentFrame.contains(point) }
+        return super.point(inside: point, with: event)
+    }
 	
 	
 }
@@ -57,6 +65,17 @@ extension BottomBarViewControllerDelegate {
 }
 
 class BottomBarViewController: UIViewController {
+
+    override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
+        addPhoneCloseButtonIfNeeded(to: viewControllerToPresent)
+        super.present(viewControllerToPresent, animated: flag, completion: completion)
+    }
+    private var phoneHUDConstraints: [NSLayoutConstraint] = []
+    private var phoneHUDHeights: [NSLayoutConstraint] = []
+    private var phoneHUDBottoms: [NSLayoutConstraint] = []
+
+    private var phoneLifeWidth: NSLayoutConstraint?
+    private var phonePileWidths: [NSLayoutConstraint] = []
 	
 	private let bag = DisposeBag()
 	
@@ -70,6 +89,8 @@ class BottomBarViewController: UIViewController {
 	@IBOutlet weak var handContainerView: HandViewControllerContainerView!
 	
   @IBOutlet weak var untapButton: UIButton!
+  /// The storyboard's untap symbol, restored after combat.
+  var phoneUntapImage: UIImage?
   
   weak var handViewController: HandViewController!
 	
@@ -80,8 +101,8 @@ class BottomBarViewController: UIViewController {
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		
-		setupPile(player.library, view: libraryPileView)
-		setupPile(player.graveyard, view: graveyardPileView)
+		setupPile(GameState.current.effectivePile(.library, player: player.identifier), view: libraryPileView)
+		setupPile(GameState.current.effectivePile(.graveyard, player: player.identifier), view: graveyardPileView)
 		setupPile(player.exile, view: exilePileView)
 		
 		lifeStepper.transform = .init(rotationAngleDegrees: -90)
@@ -110,7 +131,7 @@ class BottomBarViewController: UIViewController {
             self?.focusOn?(nil)
             return
           }
-          if cardInstance.revealedPlayers.value.contains(cardInstance.ownerIdentifier == .a ? .b : .a) || cardInstance.pile?.location == .command {
+          if AppDelegate.shared.usesPhoneSession && self?.player.identifier == AppDelegate.shared.role.playerIdentifier || cardInstance.revealedPlayers.value.contains(cardInstance.ownerIdentifier == .a ? .b : .a) || cardInstance.pile?.location == .command {
             self?.focusOn?(cardInstance)
           }
         }.disposed(by: bag)
@@ -161,18 +182,20 @@ class BottomBarViewController: UIViewController {
 	}
 	
 	@objc func drawCard(_ sender: UIGestureRecognizer) {
-		guard let last: CardInstance = player.library.cards.value.last else { return }
+        if let draw = GameState.sessionDraw { draw(player.identifier, 1, false); return }
+		guard let last: CardInstance = GameState.current.effectivePile(.library, player: player.identifier).cards.value.last else { return }
 		GameState.current.move(cardInstances: [last], to: player.hand)
 	}
 	
 	fileprivate func drawOpeningHand() {
+        if let draw = GameState.sessionDraw { draw(player.identifier, 7, true); return }
     if !player.hand.cards.value.contents.isEmpty {
-      GameState.current.move(cardInstances: player.hand.cards.value.contents, to: player.library)
-      player.library.cards.mutate {
+      GameState.current.move(cardInstances: player.hand.cards.value.contents, to: GameState.current.effectivePile(.library, player: player.identifier))
+      GameState.current.effectivePile(.library, player: player.identifier).cards.mutate {
         $0 = OrderedSet($0.contents.shuffled())
       }
     }
-    let newHand = Array(player.library.cards.value.suffix(7))
+    let newHand = Array(GameState.current.effectivePile(.library, player: player.identifier).cards.value.suffix(7))
 		
 		GameState.current.move(cardInstances: newHand, to: player.hand)
     
@@ -208,10 +231,16 @@ class BottomBarViewController: UIViewController {
 	}
 	
 	fileprivate var openingHandIsAvailable: Bool {
-		return GameState.current.battlefield.value.isEmpty && player.graveyard.cards.value.isEmpty && player.exile.cards.value.isEmpty
+		return GameState.current.battlefield.value.isEmpty && GameState.current.effectivePile(.graveyard, player: player.identifier).cards.value.isEmpty && player.exile.cards.value.isEmpty
 	}
 	
 	@IBAction func untapButtonPressed(_ sender: Any) {
+        if let session = AppDelegate.shared.phoneSession, session.game.attackingPlayer == session.player,
+           player.identifier == session.player {
+            // In combat the button reads End Combat: it clears every attacker and blocker.
+            session.send(.endCombat)
+            return
+        }
 		if openingHandIsAvailable {
 			drawOpeningHand()
 		} else {
@@ -249,7 +278,7 @@ class BottomBarViewController: UIViewController {
 		
 		if pile.location == .library {
 			let shuffleAction = Action(title: "Shuffle", style: .default) {
-				self.player.library.cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
+				GameState.current.effectivePile(.library, player: self.player.identifier).cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
 			}
 			actions.append(shuffleAction)
 		}
@@ -276,7 +305,7 @@ class BottomBarViewController: UIViewController {
 		alert.popoverPresentationController?.sourceView = sender.view
 		alert.popoverPresentationController?.permittedArrowDirections = [.up, .down]
 		
-		if pile.playerIdentifier == .b {
+		if pile.playerIdentifier == .b && !AppDelegate.shared.usesPhoneSession {
 			alert.view.transform = CGAffineTransform(rotationAngle: .pi)
 		}
 		
@@ -290,13 +319,15 @@ class BottomBarViewController: UIViewController {
 		guard let pileViewController = self.storyboard?.instantiateViewController(identifier: "PileViewController") as? PileViewController else { return }
 		pileViewController.setPile(pile)
 		
-		let navigationController = UINavigationController(rootViewController: pileViewController)
-		navigationController.modalPresentationStyle = .popover
+		// Compact-width phones get a full-screen sheet; wide displays (e.g. iPhone Duo's inner display) keep the popover.
+		let phoneSheet = AppDelegate.shared.usesPhoneSession && traitCollection.userInterfaceIdiom == .phone && traitCollection.horizontalSizeClass == .compact
+		let navigationController = phoneSheet ? PhonePortraitNavigationController(rootViewController: pileViewController) : UINavigationController(rootViewController: pileViewController)
+		navigationController.modalPresentationStyle = phoneSheet ? .fullScreen : .popover
 		navigationController.popoverPresentationController?.permittedArrowDirections = [.up, .down]
 		navigationController.popoverPresentationController?.sourceView = pileView
 		navigationController.popoverPresentationController?.passthroughViews = delegate?.bottomBarViewController(self, passthroughViewsFor: navigationController)
 		
-		if pile.playerIdentifier == .b {
+		if pile.playerIdentifier == .b && !AppDelegate.shared.usesPhoneSession {
 			navigationController.view.transform = CGAffineTransform(rotationAngle: .pi)
 		}
 		
@@ -454,4 +485,210 @@ extension BottomBarViewController: UIContextMenuInteractionDelegate {
 			return UIMenu(title: "", children: menuElements)
 		}
 	}
+}
+
+extension BottomBarViewController {
+    /// Height the local hand rises above the bottom HUD row.
+    static func phoneHandLift(expanded: Bool, sceneHeight: CGFloat) -> CGFloat {
+        expanded ? min(310, max(116, sceneHeight * 0.32)) : max(12, min(35, sceneHeight * 0.035))
+    }
+
+    /// Compact the same pile/hand/life controls instead of introducing another HUD.
+    func refreshForPhoneSession() {
+        guard AppDelegate.shared.usesPhoneSession, isViewLoaded else { return }
+        libraryPileView.pile = GameState.current.effectivePile(.library, player: player.identifier)
+        graveyardPileView.pile = GameState.current.effectivePile(.graveyard, player: player.identifier)
+        let isLocal = player.identifier == AppDelegate.shared.role.playerIdentifier
+        libraryPileView.isAccessibilityElement = true
+        libraryPileView.accessibilityIdentifier = "phone-library-" + player.identifier.rawValue
+        libraryPileView.accessibilityLabel = "Library"
+        libraryPileView.accessibilityValue = String(libraryPileView.pile.cards.value.count)
+        libraryPileView.accessibilityTraits = .button
+        graveyardPileView.isAccessibilityElement = true
+        graveyardPileView.accessibilityIdentifier = "phone-graveyard-" + player.identifier.rawValue
+        graveyardPileView.accessibilityLabel = "Graveyard"
+        graveyardPileView.accessibilityValue = String(graveyardPileView.pile.cards.value.count)
+        graveyardPileView.accessibilityTraits = .button
+        let sceneSize = parent?.view.bounds.size ?? view.window?.bounds.size ?? CGSize(width: 667, height: 375)
+        let shortSide = min(sceneSize.width, sceneSize.height)
+        let uiScale = min(2.4, max(1, shortSide / 375))
+        handContainerView.transform = isLocal ? .identity : CGAffineTransform(rotationAngle: .pi)
+        let hudHeight = min(124, max(52, shortSide * 0.12))
+        let bottomSafe = isLocal ? (parent?.view.safeAreaInsets.bottom ?? 0) : 0
+        lifeLabel.isHidden = true
+        lifeStepper.isHidden = true
+        for constraint in view.constraints where constraint.firstItem as? UIView === lifeLabel || constraint.secondItem as? UIView === lifeLabel || constraint.firstItem as? UIView === lifeStepper || constraint.secondItem as? UIView === lifeStepper { constraint.isActive = false }
+        let titleFont = UIFont.systemFont(ofSize: 8 * uiScale)
+        let piles = [libraryPileView,graveyardPileView,exilePileView].compactMap { $0 }
+        func width(for pile: HUDCardPileView) -> CGFloat {
+            max(28 * uiScale,ceil(((pile.titleLabel.text ?? "") as NSString).size(withAttributes:[.font:titleFont]).width)+10*uiScale)
+        }
+        let pileBand = piles.reduce(CGFloat(16)) { $0 + width(for:$1) }
+        if phonePileWidths.isEmpty {
+            for pile in [libraryPileView,graveyardPileView,exilePileView].compactMap({ $0 }) {
+                for constraint in pile.constraints where constraint.firstAttribute == .width && constraint.secondAttribute == .height { constraint.isActive = false }
+                let width = pile.widthAnchor.constraint(equalToConstant:width(for:pile))
+                width.isActive = true;phonePileWidths.append(width)
+            }
+        }
+        for (constraint,pile) in zip(phonePileWidths,piles) { constraint.constant = width(for:pile) }
+        let lifeContainer = children.first(where: { $0 is LifeTrackerViewController })?.view.superview
+        lifeContainer?.accessibilityIdentifier = isLocal ? "phone-life-local" : "phone-life-opponent"
+        if phoneHUDConstraints.isEmpty, let lifeContainer {
+            let fixedViews: [UIView] = piles + [lifeContainer, untapButton]
+            // Each HUD control fits inside the fixed bar with equal vertical padding.
+            for constraint in view.constraints {
+                let first = constraint.firstItem as? UIView
+                let second = constraint.secondItem as? UIView
+                let vertical: [NSLayoutConstraint.Attribute] = [.top, .topMargin, .bottom, .bottomMargin, .centerY]
+                if (fixedViews.contains(where: { $0 === first }) && vertical.contains(constraint.firstAttribute)) ||
+                   (fixedViews.contains(where: { $0 === second }) && vertical.contains(constraint.secondAttribute)) ||
+                   (first === untapButton && constraint.firstAttribute == .leading) ||
+                   (first === lifeContainer && constraint.firstAttribute == .trailing) ||
+                   (second === lifeContainer && constraint.secondAttribute == .trailing) {
+                    constraint.isActive = false
+                }
+            }
+            for item in fixedViews {
+                let bottom = item.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+                let height = item.heightAnchor.constraint(equalToConstant: hudHeight)
+                phoneHUDBottoms.append(bottom); phoneHUDHeights.append(height)
+            }
+            phoneHUDConstraints = phoneHUDBottoms + phoneHUDHeights + [
+                // Safe area: on a folded iPhone Duo the camera side can be the right edge.
+                lifeContainer.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -4),
+                untapButton.trailingAnchor.constraint(equalTo: lifeContainer.leadingAnchor, constant: -8)
+            ]
+            NSLayoutConstraint.activate(phoneHUDConstraints)
+        }
+        // One metric for both bars: every control gets the same height and the same top/bottom padding.
+        let rowHeight = hudHeight
+        let hudPadding = (5 * uiScale).rounded()
+        let controlHeight = rowHeight - 2 * hudPadding
+        for constraint in phoneHUDHeights { constraint.constant = controlHeight }
+        for constraint in phoneHUDBottoms { constraint.constant = -hudPadding }
+        untapButton.contentHorizontalAlignment = .fill
+        untapButton.contentVerticalAlignment = .fill
+        untapButton.imageView?.contentMode = .scaleAspectFit
+        for pile in [libraryPileView, graveyardPileView, exilePileView].compactMap({ $0 }) {
+            for drag in pile.interactions.compactMap({ $0 as? UIDragInteraction }) { drag.isEnabled = true }
+            pile.numberLabel.font = .systemFont(ofSize: 12 * uiScale)
+            pile.titleLabel.font = titleFont
+            pile.titleLabel.adjustsFontSizeToFitWidth = false
+            let previewHeight = max(14, min(28 * uiScale, controlHeight - titleFont.lineHeight - 2 * uiScale))
+            pile.configurePhoneLayout(previewHeight: previewHeight, scale: uiScale)
+
+        }
+        untapButton.isEnabled = isLocal
+        untapButton.isHidden = !isLocal
+        let inCombat = isLocal && AppDelegate.shared.phoneSession?.game.attackingPlayer == player.identifier
+        configureUntapButton(combat: inCombat, height: controlHeight)
+        untapButton.accessibilityIdentifier = isLocal ? "phone-untap-local" : "phone-untap-opponent"
+        let expanded = isLocal && handViewController?.phonePresentation.isExpanded == true
+        // The local hand always draws above the static HUD controls; it never pushes them around.
+        if isLocal, handContainerView.superview === view {
+            view.bringSubviewToFront(handContainerView)
+        } else if !isLocal, let lifeContainer, lifeContainer.superview === view, handContainerView.superview === view {
+            // Only reorder within this bar: insertSubview would also pull a hand the board has
+            // adopted back into the bar.
+            view.insertSubview(handContainerView, belowSubview: lifeContainer)
+        }
+        handContainerView.accessibilityIdentifier = isLocal ? "phone-local-hand" : "phone-opponent-hand"
+        handContainerView.accessibilityValue = expanded ? "Expanded" : "Compact"
+        if phoneLifeWidth == nil, let lifeView = children.first(where: { $0 is LifeTrackerViewController })?.view {
+            for constraint in view.constraints where constraint.firstItem as? UIView === untapButton && constraint.secondItem as? UIView === handContainerView { constraint.isActive = false }
+            phoneLifeWidth = lifeView.superview?.widthAnchor.constraint(equalToConstant: 85)
+            phoneLifeWidth?.isActive = true
+        }
+        phoneLifeWidth?.constant = min(170, max(70, shortSide * 0.19))
+        lifeStepper?.isEnabled = isLocal
+        for child in children where child is LifeTrackerViewController {
+            child.view.isUserInteractionEnabled = isLocal
+            if #available(iOS 16.4, *), let tracker = child as? LifeTrackerViewController { tracker.safeAreaRegions = [] }
+        }
+        guard handContainerView.superview === view else { return }
+        // Reduce the original fixed side allowance as the existing piles shrink.
+        for constraint in view.constraints where constraint.firstItem as? UIView === handContainerView && constraint.firstAttribute == .width {
+            let rightBand = (phoneLifeWidth?.constant ?? 70) + max(20,hudHeight-20) + 12
+            // Leave room for the outer cards' rotation and rounded screen corners.
+            let safe = parent?.view.safeAreaInsets ?? .zero
+            let handMargin = max(36 * uiScale, max(safe.left, safe.right) + 12)
+            constraint.constant = isLocal ? (expanded ? sceneSize.width - 2 * handMargin - view.bounds.width : -max(220,pileBand+rightBand+30)) : -max(310, shortSide * 0.85)
+        }
+        for constraint in view.constraints where constraint.firstItem as? UIView === handContainerView && constraint.firstAttribute == .centerX {
+            let safe = parent?.view.safeAreaInsets ?? .zero
+            constraint.constant = isLocal ? -(safe.left-safe.right)/2 : 0
+        }
+        for constraint in handContainerView.constraints where constraint.firstAttribute == .height && constraint.secondItem == nil {
+            let screenHeight = shortSide
+            constraint.constant = isLocal ? (expanded ? min(360, max(150, screenHeight * 0.40)) + bottomSafe : min(270, max(105, screenHeight * 0.28))) : min(125, max(60, screenHeight * 0.16))
+        }
+        for constraint in view.constraints where constraint.firstItem as? UIView === handContainerView && constraint.firstAttribute == .top {
+            let overflow = BottomBarViewController.phoneHandLift(expanded: true, sceneHeight: sceneSize.height)
+                - BottomBarViewController.phoneHandLift(expanded: false, sceneHeight: sceneSize.height)
+            constraint.constant = isLocal ? (expanded ? -overflow : 0) : -min(48, shortSide * 0.06)
+        }
+        for constraint in view.constraints where constraint.firstItem as? UIView === untapButton && constraint.firstAttribute == .leading {
+            constraint.constant = 10
+        }
+    }
+}
+
+/// Forward touches for the opponent hand where it extends beyond its bar.
+class PlayerBarHitAreaView: UIView {
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        if super.point(inside: point, with: event) { return true }
+        guard AppDelegate.shared.usesPhoneSession, !isHidden, alpha > 0.01 else { return false }
+        for child in subviews where child is PlayerBarHitAreaView || child is HandViewControllerContainerView {
+            if !child.isHidden, child.point(inside: convert(point, to: child), with: event) { return true }
+        }
+        return false
+    }
+}
+
+
+extension BottomBarViewController {
+    /// During the local player's combat, the untap button turns orange and reads "End Combat"
+    /// in Beleren (Arena); otherwise it shows its untap symbol.
+    func configureUntapButton(combat: Bool, height: CGFloat) {
+        if phoneUntapImage == nil { phoneUntapImage = untapButton.image(for: .normal) }
+        untapButton.accessibilityValue = combat ? "Combat" : nil
+        guard combat else {
+            untapButton.setAttributedTitle(nil, for: .normal)
+            untapButton.setImage(phoneUntapImage, for: .normal)
+            untapButton.backgroundColor = .clear
+            untapButton.layer.shadowOpacity = 0
+            untapButton.accessibilityLabel = "Untap"
+            return
+        }
+        untapButton.setImage(nil, for: .normal)
+        let size = max(8, height * 0.24)
+        let font = UIFont(name: "Beleren2016-Bold", size: size) ?? .boldSystemFont(ofSize: size)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.lineHeightMultiple = 0.9
+        untapButton.setAttributedTitle(NSAttributedString(string: "End\nCombat", attributes: [
+            .font: font, .foregroundColor: UIColor.white, .paragraphStyle: paragraph
+        ]), for: .normal)
+        untapButton.titleLabel?.numberOfLines = 2
+        untapButton.titleLabel?.adjustsFontSizeToFitWidth = true
+        untapButton.titleLabel?.minimumScaleFactor = 0.5
+        untapButton.titleLabel?.textAlignment = .center
+        untapButton.backgroundColor = .systemOrange
+        untapButton.layer.cornerRadius = height * 0.2
+        untapButton.layer.shadowColor = UIColor.systemOrange.cgColor
+        untapButton.layer.shadowRadius = 6
+        untapButton.layer.shadowOpacity = 0.8
+        untapButton.layer.shadowOffset = .zero
+        untapButton.accessibilityLabel = "End Combat"
+    }
+
+    /// The HUD controls the collapsed hand must stay clear of: the piles on the left,
+    /// the untap button and life total on the right.
+    var phoneHUDSideControls: (left: [UIView], right: [UIView]) {
+        let piles: [UIView] = [graveyardPileView, libraryPileView, exilePileView].compactMap { $0 }
+        let life = children.first(where: { $0 is LifeTrackerViewController })?.view.superview
+        let right: [UIView] = [untapButton, life].compactMap { $0 }.filter { !$0.isHidden }
+        return (piles.filter { !$0.isHidden }, right)
+    }
 }

@@ -65,7 +65,7 @@ final class CardInstance: NSObject, Codable {
 		}
 	}
 	
-	let ownerIdentifier: Player.Identifier
+	var ownerIdentifier: Player.Identifier
 	let controllerIdentifier: BehaviorRelay<Player.Identifier>
   
   let isCommander: BehaviorRelay<Bool>
@@ -237,4 +237,29 @@ final class CardInstance: NSObject, Codable {
 		self.previouslyViewedFocusIndex = 0
 	}
 	
+}
+
+
+extension CardInstance {
+    /// Fields omitted from `fields` are preserved when merging simultaneous edits.
+    func applyValues(from other: CardInstance, fields: Set<String>? = nil) {
+        func includes(_ key: String) -> Bool { fields == nil || fields!.contains(key) }
+        if includes("ownerIdentifier") { ownerIdentifier = other.ownerIdentifier }
+        if includes("representation"), representation != other.representation { representation = other.representation }
+        if includes("center") { center.accept(other.center.value) }
+        if includes("controllerIdentifier") { controllerIdentifier.accept(other.controllerIdentifier.value) }
+        if includes("counters") { counters.accept(other.counters.value) }
+        if includes("doesNotUntapAutomatically") { doesNotUntapAutomatically.accept(other.doesNotUntapAutomatically.value) }
+        if includes("doesNotUntapNextTurn") { doesNotUntapNextTurn.accept(other.doesNotUntapNextTurn.value) }
+        if includes("isFlying") { isFlying.accept(other.isFlying.value) }
+        if includes("isPowerToughnessVisible") { isPowerToughnessVisible.accept(other.isPowerToughnessVisible.value) }
+        if includes("isSummoningSick") { isSummoningSick.accept(other.isSummoningSick.value) }
+        if includes("isTapped") { isTapped.accept(other.isTapped.value) }
+        if includes("power") { power.accept(other.power.value) }
+        if includes("toughness") { toughness.accept(other.toughness.value) }
+        if includes("colors") { colors.accept(other.colors.value) }
+        if includes("isCommander") { isCommander.accept(other.isCommander.value) }
+        if includes("commanderCasts") { commanderCasts.accept(other.commanderCasts.value) }
+        if includes("revealedPlayers") { revealedPlayers.accept(other.revealedPlayers.value) }
+    }
 }

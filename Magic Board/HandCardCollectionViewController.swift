@@ -334,13 +334,13 @@ class HandCardCollectionViewController: UICollectionViewController, HFCardCollec
 	
 	func castCard(cardInstance: CardInstance) {
 		let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: nil)])
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
 	}
 	
 	func castSplitFace(faceIndex: Int, cardInstance: CardInstance) {
 		guard let faces = cardInstance.representation.card.cardFaces, faces.count >= 1 else { return }
 		let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: faceIndex)])
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
 	}
 	
 	@IBAction func moreButtonPressed(sender: UIBarButtonItem) {
@@ -426,7 +426,7 @@ class HandCardCollectionViewController: UICollectionViewController, HFCardCollec
 		let destinationPileIdentifier = Command.MoveCommandParameters.PileIdentifier(location: .hand, playerIdentifier: pile.playerIdentifier)
 		let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: destinationPileIdentifier, insertionIndex: destinationIndexPath.row)
 		let command = Command.moveCards(parameters)
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
 	}
 	
 	func cardCollectionViewLayout(_ collectionViewLayout: HFCardCollectionViewLayout, willRevealCardAtIndex index: Int) {

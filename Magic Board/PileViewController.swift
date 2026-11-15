@@ -79,7 +79,7 @@ extension PileDisplaying {
 						guard let self = self else { return }
 						//					let cardItem = CardItem(sourcePileLocation: self.pile.location, playerIdentifier: self.pile.playerIdentifier, sourceIndex: index)
 						let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: faceIndex)])
-						AppDelegate.shared.transceiver.broadcast(command)
+						AppDelegate.shared.sendCommand(command)
 					}
 					actions.append(playAction)
 				}
@@ -91,27 +91,27 @@ extension PileDisplaying {
 				guard let self = self else { return }
 				//			let cardItem = CardItem(sourcePileLocation: self.pile.location, playerIdentifier: self.pile.playerIdentifier, sourceIndex: index)
 				let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, faceIndex: nil)])
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(playAction)
 		}
 		
 		let manifestAction = Action(title: "Manifest", style: .default) { _ in
 			let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .manifest)])
-			AppDelegate.shared.transceiver.broadcast(command)
+			AppDelegate.shared.sendCommand(command)
 		}
 		actions.append(manifestAction)
 		
 		let foretellAction = Action(title: "Foretell", style: .default) { _ in
 			let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .foretell)])
-			AppDelegate.shared.transceiver.broadcast(command)
+			AppDelegate.shared.sendCommand(command)
 		}
 		actions.append(foretellAction)		
 		
 		if cardInstance.representation.keywords.contains("Morph") || cardInstance.representation.keywords.contains("Megamorph") {
 			let playMorphAction = Action(title: "Morph", style: .default) { _ in
 				let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .morph)])
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(playMorphAction)
 		}
@@ -119,7 +119,7 @@ extension PileDisplaying {
     if card.prototype != nil {
       let prototypeAction = Action(title: "Prototype", style: .default) { _ in
         let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .prototype)])
-        AppDelegate.shared.transceiver.broadcast(command)
+        AppDelegate.shared.sendCommand(command)
       }
       actions.append(prototypeAction)
     }
@@ -130,7 +130,7 @@ extension PileDisplaying {
 				
 				let parameters = Command.RevealCardsToPlayerParameters(cardInstanceIDs: [cardInstance.uuid], playerIdentifier: self.ownerIdentifier == .a ? .b : .a)
 				let command = Command.revealCardsToPlayer(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(revealAction)
 		}
@@ -140,7 +140,7 @@ extension PileDisplaying {
 				guard let self = self else { return }
 				let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .hand, playerIdentifier: self.ownerIdentifier))
 				let command = Command.moveCards(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(discardAction)
 		}
@@ -150,14 +150,14 @@ extension PileDisplaying {
         guard let self = self else { return }
         let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .library, playerIdentifier: self.ownerIdentifier)) // TODO: Figure out why 0 isn't working here.
         let command = Command.moveCards(parameters)
-        AppDelegate.shared.transceiver.broadcast(command)
+        AppDelegate.shared.sendCommand(command)
       }
       actions.append(moveToTopAction)
 			let moveToBottomAction = Action(title: "Move to Bottom of Library", style: .default) { [weak self] _ in
 				guard let self = self else { return }
 				let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .library, playerIdentifier: self.ownerIdentifier), insertionIndex: -1) // TODO: Figure out why 0 isn't working here.
 				let command = Command.moveCards(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(moveToBottomAction)
 		}
@@ -167,7 +167,7 @@ extension PileDisplaying {
         guard let self = self else { return }
         let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .sideboard, playerIdentifier: self.ownerIdentifier)) // TODO: Figure out why 0 isn't working here.
         let command = Command.moveCards(parameters)
-        AppDelegate.shared.transceiver.broadcast(command)
+        AppDelegate.shared.sendCommand(command)
       }
       actions.append(moveToSideboardAction)
     }
@@ -177,7 +177,7 @@ extension PileDisplaying {
 				guard let self = self else { return }
 				let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .graveyard, playerIdentifier: self.ownerIdentifier))
 				let command = Command.moveCards(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(discardAction)
 			
@@ -185,7 +185,7 @@ extension PileDisplaying {
 				guard let self = self else { return }
 				let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .exile, playerIdentifier: self.ownerIdentifier))
 				let command = Command.moveCards(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(exileAction)
 		} else if contentType == .revealedCards {
@@ -193,7 +193,7 @@ extension PileDisplaying {
 				guard let self = self else { return }
 				let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .graveyard, playerIdentifier: self.ownerIdentifier))
 				let command = Command.moveCards(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(discardAction)
 			
@@ -201,7 +201,7 @@ extension PileDisplaying {
 				guard let self = self else { return }
 				let parameters = Command.MoveCommandParameters(cardInstanceIDs: [cardInstance.uuid], destination: Command.MoveCommandParameters.PileIdentifier(location: .exile, playerIdentifier: self.ownerIdentifier))
 				let command = Command.moveCards(parameters)
-				AppDelegate.shared.transceiver.broadcast(command)
+				AppDelegate.shared.sendCommand(command)
 			}
 			actions.append(exileAction)
 		}
@@ -220,6 +220,11 @@ extension PileDisplaying {
 }
 
 class PileViewController: UITableViewController, PileDisplaying {
+
+    override func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
+        addPhoneCloseButtonIfNeeded(to: viewControllerToPresent)
+        super.present(viewControllerToPresent, animated: flag, completion: completion)
+    }
 	
 	private func alphabetize<S: Sequence>(_ cardInstances: S) -> [CardInstance] where S.Element == CardInstance {
 		return cardInstances.sorted(by: { (first, second) -> Bool in
@@ -562,6 +567,7 @@ class PileViewController: UITableViewController, PileDisplaying {
 	}
 	
 	private func updateButtonItems(animated: Bool) {
+		defer { addPhoneSheetCloseIfNeeded() }
 		if case .revealedCards = contentType, isLocalPhone {
 			navigationItem.setLeftBarButton(dismissSavedViewControllerButtonItem, animated: animated)
 			navigationItem.setRightBarButton(nil, animated: animated)
@@ -575,7 +581,16 @@ class PileViewController: UITableViewController, PileDisplaying {
 			}
 			
 			if !cardsAreVisible && !isLocalPhone {
-				navigationItem.setRightBarButton(revealButtonItem, animated: animated)
+				if AppDelegate.shared.usesPhoneSession, pileLocation == .library, isOwned {
+					// Your own library: Search shows it all to you; Reveal picks cards to show a player.
+					let search = UIBarButtonItem(title: "Search", primaryAction: UIAction { [weak self] _ in self?.tutorButtonPressed(self as Any) })
+					search.accessibilityIdentifier = "pile-search"
+					navigationItem.setRightBarButtonItems([search, revealButtonItem], animated: animated)
+				} else {
+					navigationItem.setRightBarButton(revealButtonItem, animated: animated)
+				}
+			} else if AppDelegate.shared.usesPhoneSession, cardsAreVisible, pileLocation == .library {
+				navigationItem.setRightBarButtonItems([], animated: animated)
 			}
 			
 			if pileLocation == .library {
@@ -623,7 +638,11 @@ class PileViewController: UITableViewController, PileDisplaying {
     mill(count: 1)
   }
   
-  private func draw(count: Int) {
+  func draw(count: Int) {
+    if let draw = GameState.sessionDraw, let player = AppDelegate.shared.role.playerIdentifier {
+      draw(player, count, false)
+      return
+    }
     guard AppDelegate.shared.role.isBoard else { return }
     
 //    let insertionIndex = self.indexOfCard(forRowAt: destinationIndexPath)
@@ -812,6 +831,14 @@ class PileViewController: UITableViewController, PileDisplaying {
 	}
 	
 	@IBAction func tutorButtonPressed(_ sender: Any) {
+		if AppDelegate.shared.usesPhoneSession {
+			// Searching your own library: show every card to you, face up, right here.
+			cardsAreVisible = true
+			navigationItem.searchController = searchController
+			setEditing(false, animated: true)
+			updateButtonItems(animated: true)
+			return
+		}
 		let cards = self.cardInstances.value.contents
 		let player = GameState.current[player: self.ownerIdentifier]
 		
@@ -1191,11 +1218,13 @@ class PileViewController: UITableViewController, PileDisplaying {
 	private func revealCards(_ cardInstances: [CardInstance], to player: Player) {
 		for cardInstance in cardInstances {
 			cardInstance.revealedPlayers.mutate {
-				$0.insert(ownerIdentifier)
+				$0.insert(player.identifier)
 			}
 		}
 		
 		try? GameState.current.save()
+		// Revealed state isn't part of the observed card list; redraw the rows now.
+		tableView.reloadData()
 	}
 	
 	private func revealCardsForSelectedRows(to player: Player) {
@@ -1340,24 +1369,10 @@ class PileViewController: UITableViewController, PileDisplaying {
 			guard let self = self else { return nil }
 			let cardInstance = self.cardInstance(for: indexPath)
 //			let tempImage = (tableView.cellForRow(at: indexPath) as? CardTableViewCell)?.imageView?.image
-			let viewController = UIViewController()
-			
-			let imageView = UIImageView(image: nil)
-			imageView.backgroundColor = .black
-			imageView.contentMode = .scaleAspectFill
-			viewController.view = imageView
-			// TODO: Make this load async
-			let scale: CGFloat = 45
-			viewController.preferredContentSize = CGSize(width: 63*scale, height: 88*scale)
-			
-			DispatchQueue.global(qos: .userInteractive).async { [weak viewController] in
-				guard viewController != nil else { return }
-				let image = cardInstance.representation.image(type: .large)
-				DispatchQueue.main.async { [weak imageView] in
-					imageView?.image = image
-				}
-			}
-			
+            guard let viewController = self.storyboard?.instantiateViewController(identifier: "CardImageViewController") as? CardImageViewController else { return nil }
+            viewController.cardInstance = cardInstance
+            viewController.preferredContentSize = CGSize(width: 315, height: 440)
+
 			return viewController
 		}, actionProvider: { [weak self] suggestedActions in
 			guard let self = self else { return nil }
@@ -1574,7 +1589,7 @@ extension PileViewController: UITableViewDropDelegate {
 			let destinationPileIdentifier = Command.MoveCommandParameters.PileIdentifier(location: pile.location, playerIdentifier: pile.playerIdentifier)
 			let parameters = Command.MoveCommandParameters(cardInstanceIDs: cardInstances.map { $0.uuid }, destination: destinationPileIdentifier, insertionIndex: insertionIndex)
 			let command = Command.moveCards(parameters)
-			AppDelegate.shared.transceiver.broadcast(command)
+			AppDelegate.shared.sendCommand(command)
 		}
 		
 	}
@@ -1590,7 +1605,7 @@ extension PileViewController: UIDocumentPickerDelegate {
 						return
 					}
 					let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: string, source: .decklist))
-					AppDelegate.shared.transceiver.broadcast(command)
+					AppDelegate.shared.sendCommand(command)
 				}
 			} catch {
 				DispatchQueue.main.async {
@@ -1621,7 +1636,7 @@ extension PileViewController: ContainerViewControllerDelegate {
 				}
 			}
 			let command = Command.removeAllRevealedCards(ownerIdentifier)
-			AppDelegate.shared.transceiver.broadcast(command)
+			AppDelegate.shared.sendCommand(command)
 		}
 	}
 }
@@ -1644,5 +1659,21 @@ fileprivate class DragAllDelegate: NSObject, UIDragInteractionDelegate {
 extension PileViewController: UISearchBarDelegate {
 	func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
 		searchBar.text = nil
+	}
+}
+
+
+extension PileViewController: PhoneSheetProvidesClose {
+	/// Full-screen phone pile sheets can't be swiped away: keep an explicit ✕ at the leading end,
+	/// whatever the bar items are switched to (Search, Reveal, Shuffle…).
+	fileprivate func addPhoneSheetCloseIfNeeded() {
+		guard AppDelegate.shared.usesPhoneSession, let navigation = navigationController,
+			  navigation.viewControllers.first === self, navigation.modalPresentationStyle == .fullScreen else { return }
+		var items = navigationItem.leftBarButtonItems ?? []
+		guard !items.contains(where: { $0.accessibilityIdentifier == "phone-sheet-close" }) else { return }
+		let close = UIBarButtonItem(systemItem: .close, primaryAction: UIAction { [weak self] _ in self?.dismiss(animated: true) })
+		close.accessibilityIdentifier = "phone-sheet-close"
+		items.insert(close, at: 0)
+		navigationItem.leftBarButtonItems = items
 	}
 }

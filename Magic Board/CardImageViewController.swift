@@ -14,6 +14,7 @@ import RxSwift
 class CardImageViewController: UIViewController {
 	
 	private let bag = DisposeBag()
+    private let cardCornerMask = CAShapeLayer()
 	
 	var temporaryImage: UIImage?
 	
@@ -47,14 +48,14 @@ class CardImageViewController: UIViewController {
 		cardImageView.addInteraction(interaction)
 		cardImageView.isUserInteractionEnabled = true
 		
-		if AppDelegate.shared.role.isBoard {
+		if AppDelegate.shared.role.isBoard && !AppDelegate.shared.usesPhoneSession {
 			let gesture = UITapGestureRecognizer(target: self, action: #selector(cardImageDoubleTapped(sender:)))
 //			gesture.numberOfTapsRequired = 2
 			cardImageView.addGestureRecognizer(gesture)
 		}
 		
 		cardImageView.layer.masksToBounds = true
-		cardImageView.layer.cornerRadius = cardImageView.frame.width/15
+		cardImageView.layer.mask = cardCornerMask
 		
 		updateCardImage()
 		
@@ -62,6 +63,27 @@ class CardImageViewController: UIViewController {
 //		cardImageView.addGestureRecognizer(rotateGestureRecognizer)
 	}
 	
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateCardCorners()
+    }
+
+    private func updateCardCorners() {
+        guard let image = cardImageView.image, image.size.width > 0, image.size.height > 0 else { return }
+        // Aspect-fit images can be narrower than their UIImageView. Round the
+        // visible card itself, rather than the surrounding letterbox bounds.
+        let bounds = cardImageView.bounds
+        let scale = min(bounds.width / image.size.width, bounds.height / image.size.height)
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let rect = CGRect(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2,
+                          width: size.width, height: size.height)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        cardCornerMask.frame = bounds
+        cardCornerMask.path = UIBezierPath(roundedRect: rect, cornerRadius: size.width * 0.045).cgPath
+        CATransaction.commit()
+    }
+
 	@objc private func rotated(_ gestureRecognizer: UIRotationGestureRecognizer) {
 		// user's two fingers. This creates a more natural looking rotation.
 		guard let view = gestureRecognizer.view else { return }
@@ -83,6 +105,7 @@ class CardImageViewController: UIViewController {
 	}
 		
 	@objc private func cardImageDoubleTapped(sender: Any) {
+        guard !AppDelegate.shared.usesPhoneSession else { return }
 			rotateClockwise()
 	}
 	
@@ -104,11 +127,13 @@ class CardImageViewController: UIViewController {
 	private func updateCardImage() {
 		guard let card = cardInstance?.representation else {
 			cardImageView.image = #imageLiteral(resourceName: "mtg-card-back-png-1")
+            updateCardCorners()
 			return
 		}
 		
 		if case .faceDown(_) = card {
 			cardImageView.image = #imageLiteral(resourceName: "mtg-card-back-png-1")
+            updateCardCorners()
 			return
 		}
 		
@@ -123,11 +148,13 @@ class CardImageViewController: UIViewController {
 				options: .transitionCrossDissolve,
 				animations: {
 					self.cardImageView.image = image
+                    self.updateCardCorners()
 				},
 				completion: nil)
 			}
 		}
 		
+        view.setNeedsLayout()
 		updateCardText()
 	}
 	

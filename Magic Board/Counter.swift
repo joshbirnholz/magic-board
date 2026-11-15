@@ -34,6 +34,17 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 	case yellow
   
   case stun
+
+  // Keyword counters added later: keep them after `stun` so stored raw values never change.
+  case decayed
+  case exalted
+  case haste
+  case shadow
+
+  /// Every keyword counter (CR 122.1b), in the order the counter menu lists them.
+  static let keywordCounters: [Counter] = [.flying, .firststrike, .doublestrike, .deathtouch, .decayed, .exalted, .haste,
+                                           .hexproof, .indestructible, .lifelink, .menace, .reach, .shadow, .trample, .vigilance]
+  var isKeyword: Bool { Counter.keywordCounters.contains(self) }
 	
 	var color: UIColor {
 		switch self {
@@ -79,6 +90,8 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 			return #colorLiteral(red: 0.002303533489, green: 0.4835820198, blue: 0.2841368616, alpha: 1)
     case .stun:
       return #colorLiteral(red: 0.001011309098, green: 0.32381019, blue: 0.5295761228, alpha: 1)
+    case .decayed, .exalted, .haste, .shadow:
+      return #colorLiteral(red: 0.001011309098, green: 0.32381019, blue: 0.5295761228, alpha: 1)
 		}
 	}
 	
@@ -118,6 +131,10 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 			return "Lore"
     case .stun:
       return "Stun"
+    case .decayed: return "Decayed"
+    case .exalted: return "Exalted"
+    case .haste: return "Haste"
+    case .shadow: return "Shadow"
 		}
 	}
 	
@@ -156,4 +173,42 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 //			throw DecodingError.dataCorruptedError(in: container, debugDescription: "Could not decode counter")
 //		}
 //	}
+}
+
+import CardView
+
+extension Counter {
+    /// The ability tile a keyword counter adds to the card (drawn on the blue counter plate).
+    var keywordIcon: MTGCardView.Icon? {
+        let icon: MTGCardView.Icon
+        switch self {
+        case .flying: icon = .flying
+        case .firststrike: icon = .firststrike
+        case .doublestrike: icon = .doublestrike
+        case .deathtouch: icon = .deathtouch
+        case .decayed: icon = .decayed
+        case .haste: icon = .haste
+        case .hexproof: icon = .hexproof
+        case .indestructible: icon = .indestructible
+        case .lifelink: icon = .lifelink
+        case .menace: icon = .menace
+        case .reach: icon = .reach
+        case .trample: icon = .trample
+        case .vigilance: icon = .vigilance
+        case .shadow, .exalted:
+            let symbol = self == .shadow ? "moon.fill" : "arrow.up.circle.fill"
+            guard let image = UIImage(systemName: symbol)?.withRenderingMode(.alwaysTemplate) else { return nil }
+            icon = .custom(image, name: name, isPermanent: true)
+        default: return nil
+        }
+        return .counter(icon)
+    }
+}
+
+extension Counter {
+    /// The keyword's ability icon for menus (template, so it follows the menu's text color).
+    var keywordMenuImage: UIImage? {
+        guard case .counter(let icon)? = keywordIcon else { return nil }
+        return icon.image?.withRenderingMode(.alwaysTemplate)
+    }
 }

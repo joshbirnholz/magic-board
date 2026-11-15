@@ -498,7 +498,7 @@
                                     <outlet property="delegate" destination="BYZ-38-t0r" id="zVQ-Qu-dbj"/>
                                 </connections>
                             </scrollView>
-                            <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iE3-Iy-h90">
+                            <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iE3-Iy-h90" customClass="PlayerBarHitAreaView" customModule="Board_Connect" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="668" width="1024" height="100"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="100" id="a97-Y2-iL7"/>
@@ -507,7 +507,7 @@
                                     <segue destination="lv1-bQ-D2I" kind="embed" identifier="EmbedPlayer1Bar" id="AA3-Yp-Kce"/>
                                 </connections>
                             </containerView>
-                            <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="c3g-4l-COl">
+                            <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="c3g-4l-COl" customClass="PlayerBarHitAreaView" customModule="Board_Connect" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="0.0" width="1024" height="100"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="100" id="EJA-kb-QVN"/>
@@ -516,7 +516,7 @@
                                     <segue destination="lv1-bQ-D2I" kind="embed" identifier="EmbedPlayer2Bar" id="D1f-s7-crJ"/>
                                 </connections>
                             </containerView>
-                            <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kBo-Re-17i">
+                            <containerView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kBo-Re-17i" customClass="PhoneLandContainerView" customModule="Board_Connect" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="540" width="1024" height="128"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
@@ -862,7 +862,7 @@ Draw a card at the beginning of the next turn’s upkeep.</string>
         <scene sceneID="SYl-fA-PqS">
             <objects>
                 <viewController id="lv1-bQ-D2I" customClass="BottomBarViewController" customModule="Board_Connect" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="6ET-ee-pWt">
+                    <view key="view" contentMode="scaleToFill" id="6ET-ee-pWt" customClass="PlayerBarHitAreaView" customModule="Board_Connect" customModuleProvider="target">
                         <rect key="frame" x="0.0" y="0.0" width="1024" height="100"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>

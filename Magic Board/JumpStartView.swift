@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CardService
 
 struct JumpStartView: View {
 	let set: String
@@ -15,23 +16,17 @@ struct JumpStartView: View {
 	let playerIdentifier: Player.Identifier
 	let dismiss: () -> ()
 	
-	@ViewBuilder private func makeView(_ pack: [RemoteCard]) -> some View {
-		if let frontCard = pack.first(where: { $0.set.count > 3 && $0.set.lowercased().hasPrefix("f") }) {
-			if #available(iOS 15.0, *) {
-				let scale: CGFloat = 2
-				SwiftUI.AsyncImage(url: frontCard.imageURL) { image in
-					image.resizable()
-				} placeholder: {
-					ProgressView()
-				}
-				.frame(width: 63*scale, height: 88*scale)
-				.cornerRadius(6)
-			} else {
-				Text(frontCard.name)
-			}
-		}
-	}
-	
+    @ViewBuilder private func makeView(_ pack: [RemoteCard]) -> some View {
+        if let first = pack.first {
+            let name = first.packetName ?? first.name
+            VStack(alignment: .leading, spacing: 5) {
+                Text(name).font(.headline)
+                Text(OfflineGameLibrary.shared.packetColorNames(kind: "JumpStart", set: set, name: name))
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+    }
+
 	var body: some View {
 		List {
 			if let current = current {
@@ -60,6 +55,14 @@ struct JumpStartView: View {
 		.listStyle(.insetGrouped)
 		.onAppear {
 			Task {
+                guard current == nil else { return }
+                let names = OfflineGameLibrary.shared.jumpStartOffers(set: set, excluding: previous?.first?.packetName)
+                if !names.isEmpty {
+                    var packs: [[RemoteCard]] = []
+                    for name in names { packs.append(try await RemoteCard.loadPack(set: set, packetName: name)) }
+                    self.current = packs
+                    return
+                }
 				async let pack0 = try RemoteCard.loadPack(set: set)
 				async let pack1 = try RemoteCard.loadPack(set: set)
 				async let pack2 = try RemoteCard.loadPack(set: set)
@@ -88,7 +91,7 @@ struct JumpStartView: View {
 		}.joined(separator: "\n")
 		
 		let command = Command.loadDeck(Command.LoadDeckParameters(playerIdentifier: playerIdentifier, deckList: string, source: .decklist, handSmoothing: true))
-		AppDelegate.shared.transceiver.broadcast(command)
+		AppDelegate.shared.sendCommand(command)
 		dismiss()
 	}
 }
