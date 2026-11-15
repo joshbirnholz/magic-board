@@ -29,6 +29,63 @@ public struct CardLoadingProgress {
 	public let message: String
 }
 
+/// Runs the downloadable-content steps (card database + rulings, offline artwork) one after
+/// another on a serial queue, as a single loading process with one overall progress bar and
+/// one set of begin/progress/end notifications. Main thread only, except inside step bodies.
+public final class ContentLoader {
+	public static let shared = ContentLoader()
+	/// A step's body runs on the loader's queue. Report fractions 0...1 for that step only.
+	public typealias Step = (_ report: @escaping (CardLoadingProgress) -> Void) throws -> Void
+
+	private let queue = DispatchQueue(label: "com.josh.birnholz.Magic-Board.ContentLoader", qos: .userInitiated)
+	private var queuedSteps = 0
+	private var finishedSteps = 0
+	private var firstError: Error?
+	private var lastReport: (fraction: Double, message: String, date: Date)?
+	/// The progress of the loading process, or `nil` when nothing is running.
+	public private(set) var currentProgress: CardLoadingProgress?
+	public var isRunning: Bool { queuedSteps > 0 }
+
+	public func enqueue(_ step: @escaping Step) {
+		dispatchPrecondition(condition: .onQueue(.main))
+		if queuedSteps == 0 {
+			finishedSteps = 0; firstError = nil; lastReport = nil
+			NotificationCenter.default.post(Notification(name: .cardServiceDidBeginInitialization))
+		}
+		queuedSteps += 1
+		queue.async {
+			var failure: Error?
+			do { try step { progress in DispatchQueue.main.async { self.publish(progress) } } }
+			catch { failure = error }
+			DispatchQueue.main.async { self.stepFinished(error: failure) }
+		}
+	}
+
+	private func publish(_ step: CardLoadingProgress) {
+		guard queuedSteps > 0 else { return }
+		let overall = (Double(finishedSteps) + min(1, max(0, step.fractionCompleted))) / Double(queuedSteps)
+		// Throttle: the artwork step reports once per image.
+		if let last = lastReport, last.message == step.message, abs(overall - last.fraction) < 0.002,
+		   Date().timeIntervalSince(last.date) < 0.25 { return }
+		lastReport = (overall, step.message, Date())
+		let progress = CardLoadingProgress(fractionCompleted: overall, message: step.message)
+		currentProgress = progress
+		NotificationCenter.default.post(name: .cardServiceInitializationProgressDidChange, object: nil, userInfo: ["progress": progress])
+	}
+
+	private func stepFinished(error: Error?) {
+		finishedSteps += 1
+		if firstError == nil { firstError = error }
+		guard finishedSteps == queuedSteps else { return }
+		queuedSteps = 0; finishedSteps = 0; currentProgress = nil
+		if let firstError {
+			NotificationCenter.default.post(Notification(name: .cardServiceInitializationDidFail, object: nil, userInfo: ["error": firstError]))
+		} else {
+			NotificationCenter.default.post(Notification(name: .cardServiceDidEndInitialization))
+		}
+	}
+}
+
 extension Card {
 	func decodedMTGCard() -> MTGCard {
 		let cardFaces: [MTGCard.Face]? = faces?.compactMap { cardFace in
@@ -179,15 +236,11 @@ class CoreDataManager: NSObject {
 	}
 	// MARK: - Initialization
 	
-	/// The progress of the current initialization, or `nil` if none is running. Main thread only.
-	private(set) var currentProgress: CardLoadingProgress?
-	
 	/// Main thread only.
 	private var isInitializing = false
 	
-	private let importQueue = DispatchQueue(label: "com.josh.birnholz.Magic-Board.CardImport", qos: .userInitiated)
-	
-	/// Downloads all cards and rulings from Scryfall and replaces the database with them.
+	/// Downloads all cards and rulings from Scryfall and replaces the database with them, as a step
+	/// of the shared `ContentLoader` process (followed by the offline artwork step when images are missing).
 	/// Returns immediately; the work happens on a background queue. Does nothing if already running.
 	func initialize() {
 		DispatchQueue.main.async {
@@ -195,20 +248,17 @@ class CoreDataManager: NSObject {
 			self.isInitializing = true
 			// Create the lazy context on the main thread before the import queue touches it.
 			_ = self.privateContext
-			
-			NotificationCenter.default.post(Notification(name: .cardServiceDidBeginInitialization))
-			self.publish(CardLoadingProgress(fractionCompleted: 0, message: "Preparing card database…"))
-			
-			self.importQueue.async {
-				self.runImport()
+			ContentLoader.shared.enqueue { report in
+				report(CardLoadingProgress(fractionCompleted: 0, message: "Preparing card database…"))
+				defer { DispatchQueue.main.async { self.isInitializing = false } }
+				try self.runImport(report: report)
 			}
+			OfflineGameLibrary.shared.downloadMissingArtworkIfNeeded()
 		}
 	}
 	
-	private func runImport() {
-		let reporter = ProgressReporter { [weak self] progress in
-			DispatchQueue.main.async { self?.publish(progress) }
-		}
+	private func runImport(report: @escaping (CardLoadingProgress) -> Void) throws {
+		let reporter = ProgressReporter(send: report)
 		
 		do {
 			print("Clearing database")
@@ -244,31 +294,11 @@ class CoreDataManager: NSObject {
 			saveContext()
 			
 			print("Done, elapsed time: \(Date().timeIntervalSince(startDate)) sec")
-			finishInitialization(error: nil)
 		} catch {
 			print(error)
 			saveContext()
-			finishInitialization(error: error)
+			throw error
 		}
-	}
-	
-	private func finishInitialization(error: Error?) {
-		DispatchQueue.main.async {
-			self.isInitializing = false
-			self.currentProgress = nil
-			if let error {
-				NotificationCenter.default.post(Notification(name: .cardServiceInitializationDidFail, object: nil, userInfo: ["error": error]))
-			} else {
-				NotificationCenter.default.post(Notification(name: .cardServiceDidEndInitialization))
-			}
-		}
-	}
-	
-	/// Main thread only.
-	private func publish(_ progress: CardLoadingProgress) {
-		guard isInitializing else { return }
-		currentProgress = progress
-		NotificationCenter.default.post(name: .cardServiceInitializationProgressDidChange, object: nil, userInfo: ["progress": progress])
 	}
 	
 	/// Maps the stages of the bulk downloads onto one overall fraction, and throttles updates

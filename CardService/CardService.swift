@@ -9,6 +9,7 @@
 import Foundation
 import SDWebImage
 import Network
+import ReerJSON
 // https://stackoverflow.com/questions/65816559/using-reachability-library-to-swiftui-based-app-to-notify-when-network-is-lost
 
 class Monitor: ObservableObject {
@@ -66,8 +67,7 @@ public struct CardService {
 	/// The progress of the card database load currently running, or `nil` if none is.
 	/// Main thread only. Observe `.cardServiceInitializationProgressDidChange` for updates.
 	public var initializationProgress: CardLoadingProgress? {
-		guard CardService.shouldInitializeCards else { return nil }
-		return CoreDataManager.shared.currentProgress
+		ContentLoader.shared.currentProgress
 	}
 
 	public enum CardServiceError: Error {
@@ -95,6 +95,7 @@ public struct CardService {
 	}
 	
 	public func getCard(name: String) throws -> MTGCard {
+    if let card = OfflineGameLibrary.shared.card(for: .name(name)) { return card }
     if Monitor.shared.isConnected {
       do {
         let scryfallCard = try Swiftfall.getCard(exact: name)
@@ -118,6 +119,7 @@ public struct CardService {
 	}
 	
 	public func getCard(scryfallID: UUID) throws -> MTGCard {
+    if let card = OfflineGameLibrary.shared.card(for: .id(scryfallID)) { return card }
     if Monitor.shared.isConnected {
       do {
         let scryfallCard = try Swiftfall.getCard(id: scryfallID.uuidString)
@@ -239,6 +241,7 @@ public struct CardService {
 	}
 	
 	public func getCard(code: String, number: String) throws -> MTGCard {
+    if let card = OfflineGameLibrary.shared.card(for: .collectorNumberSet(collectorNumber: number, set: code, name: nil)) { return card }
     if Monitor.shared.isConnected {
       do {
         let scryfallCard = try Swiftfall.getCard(code: code, number: number)
@@ -300,6 +303,26 @@ public struct CardService {
     }
 	}
 	
+	/// Bundled packets are available without the remote pack service.
+	public func localJumpstartPackets() -> [(name: String, decklist: String)] {
+		(Bundle(for: CoreDataManager.self).urls(forResourcesWithExtension: "txt", subdirectory: nil) ?? [])
+			.filter { $0.deletingPathExtension().lastPathComponent != "Dandan" }
+			.compactMap { url in
+				guard let list = try? String(contentsOf: url) else { return nil }
+				return (url.deletingPathExtension().lastPathComponent, list)
+			}.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+	}
+
+	/// Local-first lookup for nearby games. Never makes a network request.
+	public func localCard(for identifier: MTGCardIdentifier) -> MTGCard? {
+        if let card = OfflineGameLibrary.shared.card(for: identifier) { return card }
+		var result: MTGCard?
+		CoreDataManager.shared.persistentContainer.viewContext.performAndWait {
+			result = CoreDataManager.shared.card(for: identifier)?.decodedMTGCard()
+		}
+		return result
+	}
+
 	public func getJumpstartDecklist() throws -> (decklist: String, packName: String) {
 		guard let url = Bundle(for: CoreDataManager.self).urls(forResourcesWithExtension: "txt", subdirectory: nil)?.randomElement() else {
 			throw PackError.unsupported
@@ -388,7 +411,8 @@ public struct CardService {
 	}
 	
 	public func updateDatabase() {
-		CoreDataManager.shared.initialize()
+        CardService.shouldInitializeCards = true
+		CoreDataManager.shared.initialize() // also queues the artwork step when images are missing
 	}
 	
 }
@@ -473,4 +497,326 @@ extension MTGCard {
           securityStamp: scryfallCard.securityStamp,
 				  imageUris: scryfallCard.imageUris)
 	}
+}
+
+
+/// Immutable card records shipped with the app (catalog.json), plus their artwork, which is
+/// NOT bundled: it's downloaded once into Application Support (see `downloadMissingArtworkIfNeeded`)
+/// and survives cache purges, so preloaded games work offline.
+public final class OfflineGameLibrary {
+    public static let shared = OfflineGameLibrary()
+    public struct Entry: Decodable { public let key: String; public let count: Int }
+    public struct Game: Decodable { public let name: String; public let kind: String; public let entries: [Entry]; public let setCode: String?; public let pack1: String?; public let pack2: String? }
+    private struct Catalog: Decodable {
+        let games: [Game]
+        let cards: [String: Swiftfall.Card]
+        let images: [String: String]
+        let jumpInPackets: [JumpInPacket]?
+        let frontCards: [String: [String: String]]?
+    }
+    public let games: [Game]
+    public let jumpInPacketPool: [JumpInPacket]
+    private let records: [String: MTGCard]
+    private let images: [String: String]
+    /// JumpStart packet theme cards: set code -> theme name -> normal image URL (Scripts/add_front_cards.py).
+    private let frontCards: [String: [String: String]]
+    private let directory: URL?
+    /// Where downloaded artwork lives. Not a cache: iOS must not purge it.
+    public static let artworkDirectory: URL = {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        var url = base.appendingPathComponent("OfflineArtwork", isDirectory: true)
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        var values = URLResourceValues(); values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
+        return url
+    }()
+    private init() {
+        directory = Bundle(for: OfflineGameLibrary.self).url(forResource: "OfflineGames", withExtension: nil)
+        let decoder = ReerJSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        if let url = directory?.appendingPathComponent("catalog.json"),
+           let data = try? Data(contentsOf: url), let catalog = try? decoder.decode(Catalog.self, from: data) {
+            jumpInPacketPool = catalog.jumpInPackets ?? []
+            games = catalog.games
+            records = catalog.cards.mapValues { MTGCard($0) }
+            images = catalog.images
+            frontCards = catalog.frontCards ?? [:]
+        } else { games = []; records = [:]; images = [:]; jumpInPacketPool = []; frontCards = [:] }
+    }
+    public struct JumpInSlotCard: Decodable { public let name: String; public let probability: Double }
+    public struct JumpInPacket: Decodable {
+        public let name: String
+        public let setCode: String
+        public let colors: [String]
+        public let randomSlots: [[JumpInSlotCard]]
+        public let fixedCards: [String]
+    }
+    public func packetColorNames(kind: String, set: String, name: String) -> String {
+        let colors: [MTGColor]
+        if kind == "Jump In", let packet = jumpInPacket(set: set, choice: name) {
+            colors = packet.colors.compactMap(MTGColor.init(rawValue:))
+        } else if let game = games.first(where: { $0.setCode == set.uppercased() && ($0.name == name || $0.name == set.uppercased() + " · " + name) }) {
+            colors = Array(Set(game.entries.compactMap { records[$0.key] }.flatMap { $0.colors ?? [] }))
+        } else { colors = [] }
+        return colors.isEmpty ? "Colorless" : colors.ordered.map { $0.name.capitalized }.joined(separator: " · ")
+    }
+    /// The packet's JumpStart front card image (downloaded file if present, else remote), or nil
+    /// when the set has no front cards (Jump In, SuperJump): those picks stay a mystery.
+    public func packetFrontCardURL(kind: String, set: String, name: String) -> URL? {
+        func normalized(_ text: String) -> String { text.lowercased().filter { $0.isLetter || $0.isNumber } }
+        guard kind != "Jump In",
+              let game = games.first(where: { $0.kind == kind && ($0.name == name || $0.name.hasSuffix(" · " + name)) })
+                ?? games.first(where: { $0.setCode == set.uppercased() && ($0.name == name || $0.name == set.uppercased() + " · " + name) }),
+              let themes = game.setCode.flatMap({ frontCards[$0] }) else { return nil }
+        let key = normalized(Self.packetDisplayName(game.name.components(separatedBy: " · ").last ?? game.name))
+        let match = themes.first { normalized($0.key) == key } ?? themes.first { normalized($0.key).hasPrefix(key) }
+        guard let remote = match.flatMap({ URL(string: $0.value) }) else { return nil }
+        return artworkURL(for: remote) ?? remote
+    }
+
+    /// "Vampires 4" -> "Vampires" (variant numbers aren't shown in packet pickers).
+    public static func packetDisplayName(_ name: String) -> String {
+        // Only the theme: no set prefix ("SuperJump · Zombies" → "Zombies") and no variant number.
+        let theme = name.components(separatedBy: " · ").last ?? name
+        return theme.replacingOccurrences(of: #"\s+\d+$"#, with: "", options: .regularExpression)
+    }
+
+    /// The packet's colors as mana symbols, e.g. "{W}{U}"; "{C}" when colorless.
+    public func packetColorSymbols(kind: String, set: String, name: String) -> String {
+        let colors: [MTGColor]
+        if kind == "Jump In", let packet = jumpInPacket(set: set, choice: name) {
+            colors = packet.colors.compactMap(MTGColor.init(rawValue:))
+        } else if let game = games.first(where: { $0.kind == kind && ($0.name == name || $0.name.hasSuffix(" · " + name)) })
+                    ?? games.first(where: { $0.setCode == set.uppercased() && ($0.name == name || $0.name == set.uppercased() + " · " + name) }) {
+            colors = Array(Set(game.entries.compactMap { records[$0.key] }.flatMap { $0.colors ?? [] }))
+        } else { colors = [] }
+        let mana = colors.ordered.filter { ["W", "U", "B", "R", "G"].contains($0.rawValue) }
+        return mana.isEmpty ? "{C}" : mana.map { "{\($0.rawValue)}" }.joined()
+    }
+    private func card(named name: String) -> MTGCard? {
+        records.first { $0.key.components(separatedBy: "|").first == name.lowercased() }?.value
+    }
+    public var jumpInSets: [String] { Array(Set(jumpInPacketPool.map(\.setCode))).sorted() }
+    public var jumpInSetOptions: [String] { jumpInSets.isEmpty ? [] : ["ALL"] + jumpInSets }
+    /// All-set choices carry their set code so identically named packets remain distinct.
+    public func jumpInPacket(set: String, choice: String) -> JumpInPacket? {
+        jumpInPacketPool.first {
+            set.uppercased() == "ALL" ? $0.setCode + " · " + $0.name == choice
+                : $0.setCode == set.uppercased() && $0.name == choice
+        }
+    }
+    /// Same color constraints as the packet server, sampling without replacement.
+    public func jumpInPackets(set: String, first: String?) -> [String] {
+        let allSets = set.uppercased() == "ALL"
+        func choice(_ packet: JumpInPacket) -> String { allSets ? packet.setCode + " · " + packet.name : packet.name }
+        let eligible = jumpInPacketPool.filter { (allSets || $0.setCode == set.uppercased()) && choice($0) != first }
+        var remaining = eligible
+        let chosen = first.flatMap { jumpInPacket(set: set, choice: $0) }
+        var result: [JumpInPacket] = []
+        func take(_ predicate: (JumpInPacket) -> Bool) -> JumpInPacket? {
+            guard let index = remaining.indices.filter({ predicate(remaining[$0]) }).randomElement() else { return nil }
+            return remaining.remove(at: index)
+        }
+        if let chosen, chosen.colors.count == 1 {
+            if let mono = take({ $0.colors.count == 1 }) { result.append(mono) }
+            if let multi = take({ $0.colors.count > 1 && $0.colors.contains(chosen.colors[0]) }) { result.append(multi) }
+            if let other = take({ $0.colors.count == 1 || $0.colors.contains(chosen.colors[0]) }) { result.append(other) }
+        } else if let chosen, chosen.colors.count == 2 {
+            for color in chosen.colors { if let mono = take({ $0.colors == [color] }) { result.append(mono) } }
+            if let other = take({ $0.colors.count == 1 || Set($0.colors) == Set(chosen.colors) || ($0.colors.count == 3 && Set(chosen.colors).isSubset(of: Set($0.colors))) }) { result.append(other) }
+        } else if let chosen, chosen.colors.count == 3 {
+            if let mono = take({ $0.colors.count == 1 && chosen.colors.contains($0.colors[0]) }) { result.append(mono) }
+            if let mono = take({ $0.colors.count == 1 && chosen.colors.contains($0.colors[0]) && $0.colors != result.first?.colors }) { result.append(mono) }
+            if let other = take({ $0.colors.count == 1 || Set($0.colors).isSubset(of: Set(chosen.colors)) }) { result.append(other) }
+        } else {
+            if let mono = take({ $0.colors.count == 1 }) { result.append(mono) }
+            if let multi = take({ $0.colors.count > 1 && Set($0.colors) != Set(result.first?.colors ?? []) }) { result.append(multi) }
+            if let other = take({ candidate in !result.contains { Set($0.colors) == Set(candidate.colors) } }) { result.append(other) }
+        }
+        // A small set may lack one of the preferred color categories.
+        while result.count < min(3, eligible.count), let next = take({ _ in true }) { result.append(next) }
+        return result.shuffled().map(choice)
+    }
+    public func jumpInDeck(set: String, first: String, second: String) -> String? {
+        guard first != second, let a = jumpInPacket(set: set, choice: first),
+              let b = jumpInPacket(set: set, choice: second) else { return nil }
+        var deck: [MTGCard] = []
+        for packet in [a, b] {
+            var names = packet.fixedCards
+            for slot in packet.randomSlots {
+                let total = slot.reduce(0) { $0 + $1.probability }
+                guard total > 0 else { return nil }
+                var pick = Double.random(in: 0..<total)
+                for option in slot {
+                    pick -= option.probability
+                    if pick < 0 { names.append(option.name); break }
+                }
+            }
+            for name in names {
+                guard let card = card(for: .nameSet(name: name, set: packet.setCode)) ?? card(for: .name(name)) else { return nil }
+                deck.append(card)
+            }
+        }
+        let ca = Set(a.colors), cb = Set(b.colors), colors = ca.union(cb).sorted()
+        var duals: [Set<String>: Int] = [:]
+        func addDuals(_ colors: Set<String>) {
+            let c = colors.sorted()
+            for i in c.indices { for j in c.indices where j > i { duals[Set([c[i],c[j]]), default: 0] += c.count == 2 ? 2 : 1 } }
+        }
+        if ca.count == 1 && cb.count == 1 && ca != cb { addDuals(ca.union(cb)) }
+        for c in [ca, cb] where c.count > 1 { addDuals(c) }
+        if ca.count == 1 && cb.count == 2 && ca.isDisjoint(with: cb) { for c in cb { duals[ca.union([c]), default: 0] += 1 } }
+        if cb.count == 1 && ca.count == 2 && cb.isDisjoint(with: ca) { for c in ca { duals[cb.union([c]), default: 0] += 1 } }
+        let fixing = games.first { $0.kind == "Mana fixing" }?.entries.compactMap { card(forKey: $0.key) } ?? []
+        for (pair, count) in duals.sorted(by: { $0.key.sorted().joined() < $1.key.sorted().joined() }) {
+            let land = fixing.first { Set(($0.producedMana ?? []).map(\.rawValue)) == pair && ($0.typeLine ?? "").contains("Land") }
+                ?? fixing.first { $0.name == "Evolving Wilds" }
+            if let land { for _ in 0..<min(count, max(0,40-deck.count)) { deck.append(land) } }
+        }
+        var weights: [String: Int] = [:]
+        for card in deck {
+            for text in [card.manaCost ?? "", card.oracleText ?? ""] {
+                for symbol in text.components(separatedBy: CharacterSet(charactersIn: "{}")) where colors.contains(symbol) { weights[symbol, default: 0] += 1 }
+            }
+        }
+        let basics = ["W":"Plains", "U":"Island", "B":"Swamp", "R":"Mountain", "G":"Forest"]
+        let slots = max(0,40-deck.count), total = max(1,weights.values.reduce(0,+))
+        var allocations = Dictionary(uniqueKeysWithValues: colors.map { ($0, Int((Double(weights[$0,default: 0])/Double(total)*Double(slots)).rounded())) })
+        if colors.count == 2 { for c in colors { allocations[c] = max(5,allocations[c,default: 0]) } }
+        while allocations.values.reduce(0,+) > slots {
+            guard let c = colors.max(by: { allocations[$0,default: 0] < allocations[$1,default: 0] }) else { return nil }
+            allocations[c,default: 0] -= 1
+        }
+        var index = 0
+        while allocations.values.reduce(0,+) < slots {
+            guard !colors.isEmpty else { return nil }
+            allocations[colors[index % colors.count],default: 0] += 1; index += 1
+        }
+        for color in colors {
+            guard let name = basics[color], let land = fixing.first(where: { $0.name == name }) else { return nil }
+            for _ in 0..<allocations[color,default: 0] { deck.append(land) }
+        }
+        guard deck.count == 40 else { return nil }
+        return deck.compactMap { card in card.name.map { "1 \($0) (\(card.set)) \(card.collectorNumber)" } }.joined(separator: "\n")
+    }
+    public var jumpStartSets: [(code: String, name: String)] {
+        [("JMP","JumpStart (2020)"),("J22","JumpStart 2022"),("J25","Foundations JumpStart"),("TLA","Avatar: The Last Airbender JumpStart"),("MSH","Marvel Super Heroes JumpStart"),("SJM","SuperJump")]
+            .filter { set in games.contains { $0.kind == "JumpStart" && ($0.setCode ?? "JMP") == set.0 } }
+    }
+    public func jumpStartOffers(set: String, excluding: String? = nil) -> [String] {
+        Array(games.filter { $0.kind == "JumpStart" && ($0.setCode ?? "JMP") == set && $0.name != excluding }.shuffled().prefix(3)).map(\.name)
+    }
+    public func jumpStartDeck(first: String, second: String) -> String? {
+        guard let a = games.first(where: { $0.kind == "JumpStart" && $0.name == first }),
+              let b = games.first(where: { $0.kind == "JumpStart" && $0.name == second }) else { return nil }
+        return (a.entries+b.entries).compactMap { entry in
+            guard let card = card(forKey: entry.key), let name = card.name else { return nil }
+            return "\(entry.count) \(name) (\(card.set)) \(card.collectorNumber)"
+        }.joined(separator: "\n")
+    }
+    public func card(forKey key: String) -> MTGCard? { records[key] }
+    public func card(for identifier: MTGCardIdentifier) -> MTGCard? {
+        switch identifier {
+        case .id(let id), .idName(let id, _): return records.values.first { $0.scryfallID == id }
+        case .name(let name): return records.first { $0.key.components(separatedBy: "|").first == name.lowercased() }?.value ?? records.values.first { $0.name?.lowercased() == name.lowercased() }
+        case .nameSet(let name, let set):
+            return records[name.lowercased() + "|" + set.lowercased() + "|"] ?? records.values.first { $0.name?.lowercased() == name.lowercased() && $0.set.lowercased() == set.lowercased() }
+        case .collectorNumberSet(let number, let set, let name):
+            if let name, let card = records[name.lowercased() + "|" + set.lowercased() + "|" + number] { return card }
+            return records.values.first { $0.collectorNumber == number && $0.set.lowercased() == set.lowercased() }
+        default: return nil
+        }
+    }
+    public func artworkURL(for remoteURL: URL) -> URL? {
+        guard let name = images[remoteURL.absoluteString] else { return nil }
+        let file = Self.artworkDirectory.appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: file.path) ? file : nil
+    }
+    /// How many of the card's normal/art-crop images are downloaded and available offline.
+    public func artworkCount(for card: MTGCard) -> Int {
+        [ImageType.normal, .art].filter { card.imageURL(type: $0)?.isFileURL == true }.count
+    }
+    /// How many of the card's normal/art-crop images the catalog knows how to provide offline.
+    public func catalogArtworkCount(for card: MTGCard) -> Int {
+        [ImageType.normal, .art].filter { type in
+            guard let url = card.imageURL(type: type) else { return false }
+            let remote = url.isFileURL ? nil : url.absoluteString
+            return url.isFileURL || remote.map { images[$0] != nil } == true
+        }.count
+    }
+
+    // MARK: - Artwork download
+
+    /// One remote source per local file. Several catalog URLs (small/large/png) share the normal
+    /// image's file; download each file from the URL whose path matches its kind.
+    public lazy var artworkSources: [(file: String, url: URL)] = {
+        var sources: [String: URL] = [:]
+        for (remote, file) in images {
+            guard let url = URL(string: remote) else { continue }
+            let kind = file.contains("-art_crop-") ? "art_crop" : "normal"
+            if url.pathComponents.dropFirst().first == kind || sources[file] == nil { sources[file] = url }
+        }
+        return sources.map { ($0.key, $0.value) }.sorted { $0.file < $1.file }
+    }()
+
+    public func missingArtwork() -> [(file: String, url: URL)] {
+        artworkSources.filter { !FileManager.default.fileExists(atPath: Self.artworkDirectory.appendingPathComponent($0.file).path) }
+    }
+
+    public struct ArtworkDownloadError: LocalizedError {
+        public let failed: Int
+        public var errorDescription: String? { "\(failed) card images couldn't be downloaded. They'll be retried next launch." }
+    }
+
+    private var artworkStepQueued = false
+
+    /// Queues the "Downloading artwork" step of the content-loading process when any catalog image
+    /// is missing. Main thread only. Safe to call repeatedly.
+    public func downloadMissingArtworkIfNeeded() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard !artworkStepQueued, !images.isEmpty else { return }
+        artworkStepQueued = true
+        ContentLoader.shared.enqueue { [self] report in
+            defer { DispatchQueue.main.async { self.artworkStepQueued = false } }
+            let missing = missingArtwork()
+            guard !missing.isEmpty else { return }
+            try downloadArtwork(missing, report: report)
+        }
+    }
+
+    /// Synchronous; runs on the loader's queue with a few parallel requests.
+    private func downloadArtwork(_ items: [(file: String, url: URL)], report: @escaping (CardLoadingProgress) -> Void) throws {
+        let total = items.count
+        let lock = NSLock()
+        var done = 0, failed = 0, consecutiveFailures = 0
+        let slots = DispatchSemaphore(value: 6)
+        let group = DispatchGroup()
+        let formatter = NumberFormatter(); formatter.numberStyle = .decimal
+        func label(_ n: Int) -> String { formatter.string(from: NSNumber(value: n)) ?? String(n) }
+        report(CardLoadingProgress(fractionCompleted: 0, message: "Downloading artwork…"))
+        for item in items {
+            lock.lock(); let offline = consecutiveFailures >= 25; lock.unlock()
+            if offline { break } // no connection: stop early and retry next launch
+            slots.wait(); group.enter()
+            URLSession.shared.downloadTask(with: item.url) { temporary, response, _ in
+                var ok = false
+                if let temporary, (response as? HTTPURLResponse)?.statusCode == 200 {
+                    let target = Self.artworkDirectory.appendingPathComponent(item.file)
+                    try? FileManager.default.removeItem(at: target)
+                    ok = (try? FileManager.default.moveItem(at: temporary, to: target)) != nil
+                }
+                lock.lock()
+                done += 1
+                if ok { consecutiveFailures = 0 } else { failed += 1; consecutiveFailures += 1 }
+                let n = done
+                lock.unlock()
+                report(CardLoadingProgress(fractionCompleted: Double(n) / Double(total),
+                                           message: "Downloading artwork… \(label(n)) of \(label(total))"))
+                slots.signal(); group.leave()
+            }.resume()
+        }
+        group.wait()
+        let notAttempted = total - done
+        if failed + notAttempted > 0 { throw ArtworkDownloadError(failed: failed + notAttempted) }
+    }
 }

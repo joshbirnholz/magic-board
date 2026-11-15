@@ -15,14 +15,17 @@ fileprivate func UIImage(named name: String) -> UIImage? {
 }
 
 public class MTGCardView: UIView {
-	
-	public struct CardProperties {
+    /// Strengthen the existing typography for compact battlefield rendering.
+    public var prefersLargeBattlefieldText = false { didSet { setNeedsLayout() } }
+
+
+	public struct CardProperties: Equatable {
 		public var name: String?
 		public var flavorName: String?
 		public var typeLine: String?
 		public var oracleText: String?
 		public var art: UIImage?
-		
+
 		public var colors: [MTGCardView.Color] = [] {
 			didSet {
 				switch Set(colors) {
@@ -45,14 +48,27 @@ public class MTGCardView: UIView {
 		public var borderColor: BorderColor = .black
 		public var isHybrid: Bool = false
 		public var objectType: Object = .card
-		public var backgroundStyle: MTGCardView.BackgroundStyle?
-		public var overlay: MTGCardView.OverlayStyle?
+		public var backgroundStyle: BackgroundStyle?
+		public var overlay: OverlayStyle?
 		public var value: NSAttributedString? = nil
 		public var manaCost: String?
 		public var isFullArt = false
 		public var isInverted = false
-		
-		public init(name: String? = nil, flavorName: String? = nil, typeLine: String? = nil, oracleText: String? = nil, art: UIImage? = nil, colors: [MTGCardView.Color] = [], icons: [MTGCardView.Icon] = [], borderStyle: MTGCardView.BorderStyle? = nil, borderColor: MTGCardView.BorderColor = .black, isHybrid: Bool = false, objectType: MTGCardView.Object = .card, backgroundStyle: MTGCardView.BackgroundStyle? = nil, overlay: MTGCardView.OverlayStyle? = nil, value: NSAttributedString? = NSAttributedString(string: "4/3"), manaCost: String? = nil, isFullArt: Bool = false, isInverted: Bool = false) {
+		public var dfcIcon: DFCIcon?
+    public var isCommander = false
+
+    public var isRetro: Bool {
+      if objectType != .card {
+        return false
+      }
+
+      return borderStyle == .retro
+    }
+
+		public var isTapped = false
+		public var isChained = false
+
+    public init(name: String? = nil, flavorName: String? = nil, typeLine: String? = nil, oracleText: String? = nil, art: UIImage? = nil, colors: [MTGCardView.Color] = [], icons: [MTGCardView.Icon] = [], borderStyle: MTGCardView.BorderStyle? = nil, borderColor: MTGCardView.BorderColor = .black, isHybrid: Bool = false, objectType: MTGCardView.Object = .card, backgroundStyle: MTGCardView.BackgroundStyle? = nil, overlay: MTGCardView.OverlayStyle? = nil, value: NSAttributedString? = NSAttributedString(string: "4/3"), manaCost: String? = nil, isFullArt: Bool = false, isInverted: Bool = false, dfcIcon: DFCIcon? = nil, isCommander: Bool = false) {
 			self.name = name
 			self.flavorName = flavorName
 			self.typeLine = typeLine
@@ -70,57 +86,23 @@ public class MTGCardView: UIView {
 			self.manaCost = manaCost
 			self.isFullArt = isFullArt
 			self.isInverted = isInverted
+			self.dfcIcon = dfcIcon
+      self.isCommander = isCommander
 		}
 	}
-	
-	public var cardImage: UIImage? {
+
+	public var properties: CardProperties = CardProperties() {
 		didSet {
-			cardImageView.image = cardImage
-			setCardViewHidden(true)
+			updateBackground()
 		}
 	}
-	
-	public var properties: CardProperties? {
-		didSet {
-			if properties != nil {
-				updateBackground()
-				setCardViewHidden(false)
-			} else {
-				setCardViewHidden(true)
-			}
-		}
-	}
-	
-	private func setCardViewHidden(_ cardViewIsHidden: Bool) {
-		let cardImageIsHidden = !cardViewIsHidden
-		
-		cardView.isHidden = cardViewIsHidden
-		manaCostLabel.isHidden = cardViewIsHidden
-		
-		cardImageView.isHidden = cardImageIsHidden
-	}
-	
-	@IBInspectable public var areIconsHidden: Bool {
-		get {
-			iconStackView.isHidden
-		}
-		set {
-			iconStackView.isHidden = newValue
-		}
-	}
-	
-	@IBInspectable public var isManaCostHidden: Bool {
-		get {
-			manaCostLabel.isHidden
-		}
-		set {
-			manaCostLabel.isHidden = newValue
-		}
-	}
-	
+
 	@IBOutlet private var contentView: UIView!
 	@IBOutlet private weak var cardView: UIView!
-	
+
+	/// The drawn card itself (inside this view's padding), in this view's coordinates.
+	public var cardFrame: CGRect { cardView.convert(cardView.bounds, to: self) }
+
 	@IBOutlet private weak var valueLabel: UILabel!
 	@IBOutlet private weak var loyaltyLabel: UILabel!
 	@IBOutlet private weak var textLabel: UILabel!
@@ -130,94 +112,107 @@ public class MTGCardView: UIView {
 	@IBOutlet private weak var overlayImageView: UIImageView!
 	@IBOutlet private weak var crownImageView: UIImageView!
 	@IBOutlet private weak var backgroundImageView: UIImageView!
-	@IBOutlet private(set) weak var artImageView: UIImageViewAligned!
+	@IBOutlet private(set) public weak var artImageView: UIImageView!
 	@IBOutlet private weak var ptImageView: UIImageView!
 	@IBOutlet private weak var manaCostLabel: UILabel!
 	@IBOutlet private weak var typeLineLabel: UILabel!
 	@IBOutlet private weak var realNameLabel: UILabel!
+	@IBOutlet weak var bottomBlock: UIImageView!
 	@IBOutlet private weak var iconStackView: UIStackView!
-	@IBOutlet private weak var cardImageView: UIImageView!
-	
+	@IBOutlet weak var dfcImageView: UIImageView!
+
+  @IBOutlet weak var dfcIconImageView: UIImageView!
 	@IBOutlet private var iconPlates: [UIImageView]!
+	@IBOutlet weak var dfcSpacerView: UIView!
 	@IBOutlet private var iconImageViews: [UIImageView]!
-	
+
 	@IBOutlet private weak var artViewWidthConstraint: NSLayoutConstraint!
-	@IBOutlet private weak var artViewCenterYConstraint: NSLayoutConstraint!
-	
-	override init(frame: CGRect) {
+	@IBOutlet private var artViewCenterYConstraint: NSLayoutConstraint!
+	@IBOutlet private weak var tappedDarkeningView: UIImageView!
+
+  @IBOutlet var valueYConstraint: NSLayoutConstraint!
+  @IBOutlet var titleStackYConstraint: NSLayoutConstraint!
+  @IBOutlet weak var titleStack: UIStackView!
+
+	override public init(frame: CGRect) {
 		super.init(frame: frame)
 		commonInit()
 	}
-	
+
 	required init?(coder: NSCoder) {
 		super.init(coder: coder)
 		commonInit()
 	}
-	
+
 	private func commonInit() {
 		let bundle = Bundle(for: Self.self)
 		bundle.loadNibNamed("MTGCardView", owner: self, options: nil)
 		addSubview(contentView)
 		contentView.frame = self.bounds
 		contentView.autoresizingMask = [.flexibleHeight, .flexibleWidth]
+//		artImageView.alignment = UIImageViewAlignmentMaskTop
+
+
 		updateBackground()
 	}
-	
+
 	public override func layoutSubviews() {
+
+
 		super.layoutSubviews()
 		updateFontSize()
 		updateValueFontSize()
 		updateRealNameFontSize()
-		if let cost = properties?.manaCost, !cost.isEmpty {
+		if let cost = properties.manaCost, !cost.isEmpty {
 			updateManaCost()
 		}
-		
+
 //		artImageView.alignment = UIImageViewAlignmentMaskTop
-		
+
 		cardView.layer.masksToBounds = true
 //		cardView.mask = cardMask
-		cardView.layer.cornerRadius = cardView.frame.width * 0.02275
+		cardView.layer.cornerRadius = self.frame.width * 0.0455
 	}
-	
+
 	private func updateFontSize() {
 		let descriptor = textLabel.font.fontDescriptor
 		let font = UIFont(descriptor: descriptor, size: frame.width * 0.063445)
-		
+
 		textLabel.font = font
 		typeLineLabel.font = font
 	}
-	
+
 	private func updateRealNameFontSize() {
 		let descriptor = realNameLabel.font.fontDescriptor
 		let font = UIFont(descriptor: descriptor, size: frame.width * 0.04166666667)
-		
+
 		realNameLabel.font = font
 	}
-	
+
 	private func updateValueFontSize() {
 		let descriptor = valueLabel.font.fontDescriptor
 		let loyaltyFont = UIFont(descriptor: descriptor, size: frame.width * 0.09)
 		loyaltyLabel.font = loyaltyFont
-		
+
 		let ptFont = UIFont(descriptor: descriptor, size: frame.width * 0.11)
 		valueLabel.font = ptFont
-		
+
 	}
-	
+
 	public enum Object {
 		case card
 		case token
 		case emblem
 	}
-	
+
 	public enum Color: String, Comparable, CaseIterable, Equatable {
 		public static func < (lhs: MTGCardView.Color, rhs: MTGCardView.Color) -> Bool {
 			return lhs.value < rhs.value
 		}
-		
+
 		case white, blue, black, red, green
-		
-		var initial: String {
+
+		public var initial: String {
 			switch self {
 			case .white: return "W"
 			case .blue: return "U"
@@ -226,7 +221,17 @@ public class MTGCardView: UIView {
 			case .green: return "G"
 			}
 		}
-		
+
+    public var name: String {
+      switch self {
+      case .white: return "White"
+      case .blue: return "Blue"
+      case .black: return "Black"
+      case .red: return "Red"
+      case .green: return "Green"
+      }
+    }
+
 		var value: Int {
 			switch self {
 			case .white: return 0
@@ -236,8 +241,8 @@ public class MTGCardView: UIView {
 			case .green: return 4
 			}
 		}
-		
-		init?(initial: String) {
+
+		public init?(initial: String) {
 			let initial = initial.uppercased()
 			for color in Color.allCases {
 				if color.initial == initial {
@@ -247,9 +252,37 @@ public class MTGCardView: UIView {
 			}
 			return nil
 		}
-		
+
 	}
-	
+
+	public enum DFCIcon: String {
+		case sun
+		case moon
+
+		case compass
+		case land
+
+		case origins
+		case planeswalker
+
+		case eldrazi
+		case fullmoon
+
+		case lesson
+
+		case closedfan
+		case openfan
+
+		case arrow
+    case arrowDown
+
+		case specialize
+
+		var image: UIImage? {
+			UIImage(named: "dfc-icon-" + rawValue)
+		}
+	}
+
 	public enum BackgroundStyle {
 		case artifact
 		case vehicle
@@ -257,59 +290,105 @@ public class MTGCardView: UIView {
 		case planeswalker
 		case nyxtouched
 		case nyxtouchedArtifact
+    case nyxtouchedUniversesBeyond
+    case nyxtouchedUniversesBeyondArtifact
+		case snow
+		case snowArtifact
+		case snowLand
+    case universesBeyond
+    case universesBeyondLand
+    case universesBeyondArtifact
+    case universesBeyondVehicle
+
+    public var isArtifact: Bool {
+      if isVehicle {
+        return true
+      }
+      return [.artifact, .snowArtifact, .nyxtouchedArtifact, .universesBeyondArtifact, .nyxtouchedUniversesBeyondArtifact].contains(self)
+    }
+
+    public var isVehicle: Bool {
+      [.vehicle, .universesBeyondVehicle].contains(self)
+    }
+
+    public var isLand: Bool {
+      [.land, .snowLand, .universesBeyondLand].contains(self)
+    }
+
+    public var isSnow: Bool {
+      [.snow, .snowLand, .snowArtifact].contains(self)
+    }
+
+    public var isUniversesBeyond: Bool {
+      [.universesBeyond, .universesBeyondLand, .universesBeyondVehicle, .universesBeyondArtifact, .nyxtouchedUniversesBeyond, .nyxtouchedUniversesBeyondArtifact].contains(self)
+    }
+
+    public var isNyxtouched: Bool {
+      [.nyxtouched, .nyxtouchedArtifact, .nyxtouchedUniversesBeyond, .nyxtouchedUniversesBeyondArtifact].contains(self)
+    }
 	}
-	
+
 	public enum BorderStyle {
 		case legendary
 		case planeswalker
+    case retro
 	}
-	
+
 	public enum BorderColor: String {
 		case black
 		case borderless
 		case gold
 		case silver
 		case white
-		
+
 		fileprivate var color: UIColor {
-			switch self {
-			case .black, .borderless: return .black
-			case .white: return .white
-			case .gold: return #colorLiteral(red: 0.6519989967, green: 0.529964149, blue: 0.2993342876, alpha: 1)
-			case .silver: return #colorLiteral(red: 0.6432507038, green: 0.6843975186, blue: 0.719160378, alpha: 1)
-			}
+			return #colorLiteral(red: 0.08844196051, green: 0.07416503876, blue: 0.05679614097, alpha: 1)
+//			return #colorLiteral(red: 0.09286607057, green: 0.09286607057, blue: 0.09286607057, alpha: 1)
+//			switch self {
+//			case .black, .borderless: return #colorLiteral(red: 0.09286607057, green: 0.09286607057, blue: 0.09286607057, alpha: 1)
+//			case .white: return .white
+//			case .gold: return #colorLiteral(red: 0.6519989967, green: 0.529964149, blue: 0.2993342876, alpha: 1)
+//			case .silver: return #colorLiteral(red: 0.6432507038, green: 0.6843975186, blue: 0.719160378, alpha: 1)
+//			}
 		}
 	}
-	
+
 	public enum OverlayStyle {
 		case companion
 		case nyxtouched
 	}
-	
+
 	private var topBarImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
+    if properties.isRetro {
+      return nil
+    }
+
 		let suffix: String = {
 			var result = ""
-			
-			if properties.isInverted {
-				result += "-inverted"
-			}
-			
+
 			if properties.borderStyle == .planeswalker {
 				result += "-planeswalker"
 			}
-			
+
+			if properties.isInverted {
+				result += "-inverted"
+			}
+
 			// TODO: Add inverted bars for planeswalkers
-			
+
 			return result
 		}()
-		
+
 		if properties.objectType == .token || properties.objectType == .emblem {
-			return UIImage(named: "bar-token")
-		} else if (properties.colors.isEmpty || properties.colors.count == 2) && properties.backgroundStyle == .land {
+			if properties.borderStyle == .planeswalker {
+				return UIImage(named: "bar-token-planeswalker")
+			} else {
+				return UIImage(named: "bar-token")
+			}
+    } else if (properties.colors.isEmpty || properties.colors.count == 2) && (properties.backgroundStyle?.isLand == true) {
 			return UIImage(named: "bar-land\(suffix)")
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .artifact {
+    } else if properties.colors.isEmpty && (properties.backgroundStyle?.isArtifact == true || properties.backgroundStyle?.isVehicle == true) {
 			return UIImage(named: "bar-artifact\(suffix)")
 		} else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "bar-\(color.rawValue)\(suffix)")
@@ -321,82 +400,136 @@ public class MTGCardView: UIView {
 			return UIImage(named: "bar-colorless\(suffix)")
 		}
 	}
-	
+
 	private var bottomBarImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
 		let suffix: String = {
 			var result = ""
-			
+
 			if properties.isInverted {
 				result += "-inverted"
 			}
-			
+
 			return result
 		}()
-		
+
 		if properties.isFullArt || properties.borderStyle == .planeswalker {
 			return nil
-		} else if (properties.colors.isEmpty || properties.colors.count == 2) && properties.backgroundStyle == .land {
+    } else if (properties.colors.isEmpty || properties.colors.count == 2) && (properties.backgroundStyle?.isLand == true) {
 			return UIImage(named: "bar-land\(suffix)")
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .artifact {
+		} else if properties.colors.isEmpty && (properties.backgroundStyle == .artifact || properties.backgroundStyle == .snowArtifact) {
 			return UIImage(named: "bar-artifact\(suffix)")
 		} else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "bar-\(color.rawValue)\(suffix)")
 		} else if properties.colors.count >= 2 && !((properties.isHybrid || properties.objectType == .token) && properties.colors.count == 2) {
 			return UIImage(named: "bar-gold\(suffix)")
-		} else if properties.isHybrid || properties.objectType == .token {
+		} else if properties.isHybrid || (properties.objectType == .token && !properties.colors.isEmpty) {
 			return UIImage(named: "bar-land\(suffix)")
 		} else {
 			return UIImage(named: "bar-colorless\(suffix)")
 		}
 	}
-	
+
+	func maskImage(_ image: UIImage?, withMask maskImage: UIImage?) -> UIImage? {
+		guard let maskRef = maskImage?.cgImage, let provider = maskRef.dataProvider else {
+			return nil
+		}
+
+		let mask = CGImage(
+			maskWidth: maskRef.width,
+			   height: maskRef.height,
+			   bitsPerComponent: maskRef.bitsPerComponent,
+			   bitsPerPixel: maskRef.bitsPerPixel,
+			   bytesPerRow: maskRef.bytesPerRow,
+			   provider: provider,
+			   decode: nil,
+			   shouldInterpolate: false)
+
+		if let mask = mask, let maskedImageRef = image?.cgImage?.masking(mask) {
+			return UIImage(cgImage: maskedImageRef)
+		}
+
+		return nil
+	}
+
+	private func mergeImages(left: UIImage?, right: UIImage?, maskName: String?) -> UIImage? {
+		guard let left, var right else {
+			return left ?? right
+		}
+
+    let size = left.size
+
+    if let maskName, let mask = UIImage(named: maskName), let rightMasked = maskImage(right, withMask: mask) {
+      right = rightMasked
+//      size = mask.size
+    }
+
+		UIGraphicsBeginImageContext(size)
+
+    let areaSize = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+		left.draw(in: areaSize)
+
+		right.draw(in: areaSize)
+
+		let mergedImage = UIGraphicsGetImageFromCurrentImageContext()!
+		UIGraphicsEndImageContext()
+		return mergedImage
+	}
+
+	private func mergedImage(left: String, right: String, maskName: String?) -> UIImage? {
+		let left = UIImage(named: left)
+		let right = UIImage(named: right)
+
+		return mergeImages(left: left, right: right, maskName: maskName)
+	}
+
 	private var overlayImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
 		guard let overlay = properties.overlay else { return nil }
-		
+
 		let suffix: String = {
 			switch overlay {
 			case .companion: return "-companion"
 			case .nyxtouched: return "-nyx"
 			}
 		}()
-		
+
 		if properties.colors.isEmpty || properties.backgroundStyle == .nyxtouchedArtifact {
 			return UIImage(named: "overlay-colorless\(suffix)")
 		} else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "overlay-\(color.rawValue)\(suffix)")
 		} else if properties.isHybrid || properties.objectType == .token {
-			return UIImage(named: "overlay-\(properties.colors[0].rawValue)-\(properties.colors[1].rawValue)\(suffix)")
+      return mergedImage(left: "overlay-\(properties.colors[0].rawValue)\(suffix)", right: "overlay-\(properties.colors[1].rawValue)\(suffix)", maskName: "mask")
 		} else {
 			return UIImage(named: "overlay-gold\(suffix)")
 		}
 	}
-	
+
 	private var valueImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
+    if properties.isRetro {
+      return nil
+    }
+
 		guard let value = properties.value, value.length > 0 else { return nil }
-		
+
 		let suffix: String = {
-			var result = ""
-			
-			if properties.isInverted {
-				result += "-inverted"
+      if properties.borderColor == .borderless {
+        return "-borderless"
+      } else if properties.isInverted {
+				return "-inverted"
 			}
-			
-			return result
+
+      return ""
 		}()
-		
-		if properties.backgroundStyle == .vehicle {
+
+    if properties.backgroundStyle == .vehicle || properties.backgroundStyle == .universesBeyondVehicle {
 			return UIImage(named: "pt-vehicle")
 		} else if properties.borderStyle == .planeswalker {
 			return UIImage(named: "pt-loyalty")
-		} else if (properties.colors.isEmpty || properties.colors.count == 2) && properties.backgroundStyle == .land {
+		} else if (properties.colors.isEmpty || properties.colors.count == 2) && (properties.backgroundStyle == .land || properties.backgroundStyle == .snowLand) {
 			return UIImage(named: "pt-land\(suffix)")
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .artifact {
+		} else if properties.colors.isEmpty && (properties.backgroundStyle == .artifact || properties.backgroundStyle == .snowArtifact) {
 			return UIImage(named: "pt-artifact\(suffix)")
 		} else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "pt-\(color.rawValue)\(suffix)")
@@ -408,13 +541,43 @@ public class MTGCardView: UIView {
 			return UIImage(named: "pt-colorless\(suffix)")
 		}
 	}
-	
+
 	private var borderImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
+    if properties.isRetro {
+      if properties.isFullArt && properties.borderStyle == .legendary {
+        return nil
+      } else if properties.backgroundStyle?.isLand == true {
+        if properties.colors.isEmpty || properties.colors.count > 2 {
+          return UIImage(named: "border-land-gold-retro")
+        } else if properties.colors.count == 1, let color = properties.colors.first {
+          return UIImage(named: "border-land-\(color.rawValue)-retro")
+        } else {
+          let maskName = "mask"
+
+          let base = mergedImage(left: "border-land-\(properties.colors[0].rawValue)-retro", right: "border-land-\(properties.colors[1].rawValue)-retro", maskName: maskName)
+
+          return base
+//          return mergeImages(left: base, right: UIImage(named: "border-land-gold-retro-pinline"), maskName: nil)
+        }
+      } else if properties.colors.isEmpty && (properties.backgroundStyle?.isArtifact == true || properties.backgroundStyle?.isVehicle == true) {
+        return UIImage(named: "border-artifact-retro")
+      } else if properties.colors.count == 1, let color = properties.colors.first {
+        return UIImage(named: "border-\(color.rawValue)-retro")
+      } else if properties.colors.count == 2 && properties.isHybrid {
+        let maskName = "mask"
+
+        return mergedImage(left: "border-\(properties.colors[0].rawValue)-retro", right: "border-\(properties.colors[1].rawValue)-retro", maskName: maskName)
+      } else if properties.colors.count >= 2 {
+        return UIImage(named: "border-gold-retro")
+      } else {
+        return UIImage(named: "border-colorless-retro")
+      }
+    }
+
 		let suffix: String = {
 			var result = ""
-			
+
 			if properties.flavorName != nil {
 				result += "-flavor"
 			} else if properties.borderStyle == .legendary {
@@ -422,34 +585,57 @@ public class MTGCardView: UIView {
 			} else if properties.borderStyle == .planeswalker {
 				result += "-planeswalker"
 			}
-			
+
 			if properties.isFullArt {
 				result += "-full"
 			}
-			
+
 			return result
 		}()
-		
+
 		if properties.isFullArt && properties.borderStyle == .legendary {
 			return nil
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .land {
+    } else if properties.colors.isEmpty && (properties.backgroundStyle?.isLand == true) {
 			return UIImage(named: "border-land\(suffix)")
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .artifact {
+    } else if properties.colors.isEmpty && (properties.backgroundStyle?.isArtifact == true || properties.backgroundStyle?.isVehicle == true) {
 			return UIImage(named: "border-artifact\(suffix)")
 		} else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "border-\(color.rawValue)\(suffix)")
 		} else if properties.colors.count > 2 {
 			return UIImage(named: "border-gold\(suffix)")
 		} else if properties.colors.count == 2 {
-			return UIImage(named: "border-\(properties.colors[0].rawValue)-\(properties.colors[1].rawValue)\(suffix)")
+			let maskName = "mask"
+
+			return mergedImage(left: "border-\(properties.colors[0].rawValue)\(suffix)", right: "border-\(properties.colors[1].rawValue)\(suffix)", maskName: maskName)
 		} else {
 			return UIImage(named: "border-colorless\(suffix)")
 		}
 	}
-	
+
+	private var dfcMaskImage: UIImage? {
+    if properties.objectType == .token && properties.borderStyle == .legendary {
+      return UIImage(named: "dfc-gold")
+    } else if properties.isFullArt && properties.borderStyle == .legendary {
+			return nil
+		} else if properties.colors.isEmpty && (properties.backgroundStyle == .land || properties.backgroundStyle == .snowLand) {
+			return UIImage(named: "dfc-land")
+		} else if properties.colors.isEmpty && (properties.backgroundStyle == .artifact || properties.backgroundStyle == .snowArtifact) {
+			return UIImage(named: "dfc-artifact")
+		} else if properties.colors.count > 2 {
+			return UIImage(named: "dfc-gold")
+		} else if let color = properties.colors.first {
+			return UIImage(named: "dfc-\(color.rawValue)")
+		} else {
+			return UIImage(named: "dfc-colorless")
+		}
+	}
+
 	private var crownImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
+    if properties.isRetro {
+      return nil
+    }
+
 		let suffix: String = {
 			if properties.flavorName != nil {
 				return "-flavor"
@@ -457,64 +643,81 @@ public class MTGCardView: UIView {
 				return ""
 			}
 		}()
-		
+
 		guard properties.borderStyle == .legendary else {
 			return nil
 		}
-		
+
 		if properties.objectType == .token {
 			return UIImage(named: "crown-gold\(suffix)")
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .land {
+		} else if properties.colors.isEmpty && (properties.backgroundStyle == .land || properties.backgroundStyle == .snowLand) {
 			return UIImage(named: "crown-land\(suffix)")
-		} else if properties.colors.isEmpty && properties.backgroundStyle == .artifact {
+		} else if properties.colors.isEmpty && (properties.backgroundStyle == .artifact || properties.backgroundStyle == .snowArtifact) {
 			return UIImage(named: "crown-artifact\(suffix)")
 		} else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "crown-\(color.rawValue)\(suffix)")
 		} else if properties.colors.count > 2 {
 			return UIImage(named: "crown-gold\(suffix)")
 		} else if properties.colors.count == 2 {
-			return UIImage(named: "crown-\(properties.colors[0].rawValue)-\(properties.colors[1].rawValue)\(suffix)")
+      return mergedImage(left: "crown-\(properties.colors[0].rawValue)\(suffix)", right: "crown-\(properties.colors[1].rawValue)\(suffix)", maskName: "mask")
 		} else {
 			return UIImage(named: "crown-colorless\(suffix)")
 		}
 	}
-	
+
 	private var backgroundImage: UIImage? {
-		guard let properties = properties else { return nil }
-		
+
+    if properties.isRetro {
+      return nil
+    }
+
 		let suffix: String = {
-			if properties.backgroundStyle == .planeswalker {
+      if properties.backgroundStyle?.isUniversesBeyond == true {
+        return "-ub"
+      } else if properties.backgroundStyle == .planeswalker {
 				return "-planeswalker"
-			} else if properties.backgroundStyle == .nyxtouched || properties.backgroundStyle == .nyxtouchedArtifact {
+			} else if properties.backgroundStyle == .snow || properties.backgroundStyle == .snowArtifact {
+				return "-snow"
+      } else if properties.backgroundStyle?.isNyxtouched == true {
 				return "-nyx"
 			} else {
 				return ""
 			}
 		}()
-		
+
 		if properties.isFullArt {
 			return UIImage(named: "bg-full")
 		} else if properties.backgroundStyle == .nyxtouchedArtifact {
 			return UIImage(named: "bg-colorless-nyx")
-		} else if properties.backgroundStyle == .land {
+		} else if properties.backgroundStyle == .snowArtifact {
+			return UIImage(named: "bg-artifact-snow")
+		} else if properties.backgroundStyle == .snowLand {
+			return UIImage(named: "bg-land-snow")
+		} else if properties.backgroundStyle == .universesBeyondArtifact {
+      return UIImage(named: "bg-artifact-ub")
+    } else if properties.backgroundStyle == .universesBeyondLand {
+      return UIImage(named: "bg-land-ub")
+    } else if properties.backgroundStyle == .land {
 			return UIImage(named: "bg-land")
 		} else if properties.backgroundStyle == .artifact {
 			return UIImage(named: "bg-artifact")
 		} else if properties.backgroundStyle == .vehicle {
 			return UIImage(named: "bg-vehicle")
-		} else if properties.colors.count == 1, let color = properties.colors.first {
+		} else if properties.backgroundStyle == .universesBeyondVehicle {
+      return UIImage(named: "bg-vehicle-ub")
+    } else if properties.colors.count == 1, let color = properties.colors.first {
 			return UIImage(named: "bg-\(color.rawValue)\(suffix)")
 		} else if properties.colors.count > 2 {
 			return UIImage(named: "bg-gold\(suffix)")
 		} else if properties.colors.isEmpty {
 			return UIImage(named: "bg-colorless\(suffix)")
 		} else if properties.isHybrid || properties.objectType == .token {
-			return UIImage(named: "bg-\(properties.colors[0].rawValue)-\(properties.colors[1].rawValue)\(suffix)")
+      return mergedImage(left: "bg-\(properties.colors[0].rawValue)\(suffix)", right: "bg-\(properties.colors[1].rawValue)\(suffix)", maskName: "mask")
 		} else {
 			return UIImage(named: "bg-gold\(suffix)")
 		}
 	}
-	
+
 	public indirect enum Icon: Equatable, CaseIterable, Hashable {
 		case deathtouch
 		case defender
@@ -581,6 +784,7 @@ public class MTGCardView: UIView {
 		case evolve
 		case hellbent
 		case adventure
+    case omen
 		case graft
 		case battalion
 		case madness
@@ -593,6 +797,8 @@ public class MTGCardView: UIView {
 		case cantbecountered
 		case affinity
 		case adamant
+    case paradox
+    case magecraft
 		case detain
 		case bloodthirst
 		case bloodrush
@@ -605,6 +811,8 @@ public class MTGCardView: UIView {
 		case exploit
 		case outlast
 		case formidable
+		case superiority
+		case upload
 		case fight
 		case delve
 		case proliferate
@@ -617,10 +825,34 @@ public class MTGCardView: UIView {
 		case transform
 		case sorcery
 		case enchantment
+		case party
+		case encore
+		case foretell
+		case boast
+		case learn
+		case disturb
+		case ward
+		case coven
+		case decayed
+		case training
+		case cleave
+		case reconfigure
+		case connive
+		case casualty
+		case blitz
+		case specialize
 		case custom(UIImage, name: String? = nil, styles: Set<Icon.Style> = [], isInherent: Bool = false, isPermanent: Bool = false)
 		case gained(Icon)
 		case counter(Icon)
-		
+    case commander
+
+    case enlist
+    case readAhead
+    case cascade
+    case squad
+    case prototype
+    case livingMetal
+
 		public var name: String? {
 			switch self {
 			case .doublestrike: return "Double strike"
@@ -634,6 +866,8 @@ public class MTGCardView: UIView {
 			case .cantbecountered: return "Can't be countered"
 			case .whenthiscreaturemutates: return "When this creature mutates"
 			case .jumpstart: return "Jump-Start"
+      case .readAhead: return "Read Ahead"
+      case .livingMetal: return "Living Metal"
 			case .tombstone: return nil
 			case .custom: return nil
 			case .tap: return nil
@@ -642,7 +876,7 @@ public class MTGCardView: UIView {
 			default: return String(describing: self).capitalized
 			}
 		}
-		
+
 		public enum Style {
 			/// Like "Protection from red"
 			case from
@@ -669,18 +903,18 @@ public class MTGCardView: UIView {
 			/// Like "Afterlife 3"
 			case keywordNumber
 		}
-		
+
 		public func has(style: Style) -> Bool {
 			if case .gained(let icon) = self {
 				return icon.has(style: style)
 			} else if case .counter(let icon) = self {
 				return icon.has(style: style)
 			}
-			
+
 			if case .custom(_, _, let styles,_ , _) = self {
 				return styles.contains(style)
 			}
-			
+
 			let styles: [Style: Set<Icon>] = [
 				.from:
 					[.hexproof,
@@ -689,10 +923,16 @@ public class MTGCardView: UIView {
 					[.escape,
 					 .morph,
 					 .megamorph,
-					 .forecast],
+					 .forecast,
+					 .foretell,
+					 .disturb,
+					 .boast],
 				.abilityWord:
 					[.constellation,
 					 .adamant,
+           .paradox,
+           .magecraft,
+					 .superiority,
 					 .addendum,
 					 .hellbent,
 					 .bloodrush,
@@ -701,7 +941,8 @@ public class MTGCardView: UIView {
 					 .ferocious,
 					 .radiance,
 					 .raid,
-					 .battalion],
+					 .battalion,
+					 .coven],
 				.requirement:
 					[.companion],
 				.cost:
@@ -723,19 +964,30 @@ public class MTGCardView: UIView {
 					 .spectacle,
 					 .scavenge,
 					 .replicate,
-					 .overload],
+					 .overload,
+					 .cleave,
+					 .reconfigure,
+					 .casualty,
+					 .blitz,
+					 .specialize,
+           .squad,
+           .prototype,
+          ],
 				.mention:
 					[.devotion,
 					 .haunt,
 					 .surveil,
 					 .populate,
+					 .upload,
 					 .bolster,
 					 .scry,
 					 .fight,
 					 .exploit,
 					 .proliferate,
 					 .detain,
-					 .adapt],
+					 .adapt,
+					 .party,
+					 .connive],
 				.creatureNameText:
 					[.noblock,
 					 .noattackorblock,
@@ -756,31 +1008,31 @@ public class MTGCardView: UIView {
 					 .dredge,
 					 .graft]
 			]
-			
+
 			if style == .keyword {
 				if self == .hexproof {
 					return true
 				}
 				return !styles.values.joined().contains(self)
 			}
-			
+
 			if self == .transform {
 				return false
 			}
-			
+
 			return styles[style]?.contains(self) ?? false
 		}
-		
+
 		public typealias AllCases = [Icon]
-		
+
 		public static var allCases: [Icon] {
-			[.deathtouch, .defender, .doublestrike, .firststrike, .flying, .haste, .hexproof, .indestructible, .lifelink, .menace, .protection, .reach, .trample, .vigilance, .flash, .noblock, .noattackorblock, .cantbeblocked, .fear, .shroud, .intimidate, .escape, .devotion, .mutate, .companion, .constellation, .embalm, .ingest, .devoid, .skulk, .mustattack, .castingcostmodifier, .whenyoucastthisspell, .cantbecountered, .cycling, .whenyoucycle, .equip, .adamant, .echo, .horsemanship, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .haunt, .addendum, .afterlife, .extort, .surveil, .cipher, .transmute, .spectacle, .unleash, .hellbent, .bloodthirst, .bloodrush, .riot, .convoke, .populate, .forecast, .detain, .dredge, .scavenge, .undergrowth, .graft, .evolve, .adapt, .replicate, .overload, .jumpstart, .radiance, .battalion, .mentor, .raid, .formidable, .ferocious, .dash, .delve, .exploit, .prowess, .outlast, .bolster, .proliferate, .scry, .fight]
+      [.deathtouch, .defender, .doublestrike, .firststrike, .flying, .haste, .hexproof, .indestructible, .lifelink, .menace, .protection, .reach, .trample, .vigilance, .flash, .noblock, .noattackorblock, .cantbeblocked, .fear, .shroud, .intimidate, .escape, .devotion, .mutate, .companion, .constellation, .embalm, .ingest, .devoid, .skulk, .mustattack, .castingcostmodifier, .whenyoucastthisspell, .cantbecountered, .cycling, .whenyoucycle, .equip, .adamant, .echo, .horsemanship, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .haunt, .addendum, .afterlife, .extort, .surveil, .cipher, .transmute, .spectacle, .unleash, .hellbent, .bloodthirst, .bloodrush, .riot, .convoke, .populate, .forecast, .detain, .dredge, .scavenge, .undergrowth, .graft, .evolve, .adapt, .replicate, .overload, .jumpstart, .radiance, .battalion, .mentor, .raid, .formidable, .ferocious, .dash, .delve, .exploit, .prowess, .outlast, .bolster, .proliferate, .scry, .fight, .superiority, .upload, .party, .encore, .foretell, .boast, .learn, .disturb, .ward, .coven, .decayed, .cleave, .reconfigure, .training, .connive, .casualty, .blitz, .specialize, .enlist, .readAhead, .cascade, .squad, .prototype, .magecraft, .paradox, livingMetal]
 		}
-		
+
 		// True for inherent properties of cards, like alt layouts.
 		public var isInherent: Bool {
 			switch self {
-			case .adventure, .transform:
+      case .adventure, .transform, .commander, .omen:
 				return true
 			case .custom(_, _, _, let isInherent, _):
 				return isInherent
@@ -788,11 +1040,11 @@ public class MTGCardView: UIView {
 				return false
 			}
 		}
-		
+
 		// True for icons representing effects that don't apply after the spell has been resolved, e.e. flash, haste.
 		public var isPermanentEffect: Bool {
 			switch self {
-			case .flash, .haste, .entersthebattlefield, .castingcostmodifier, .additionalcastingcost, .whenyoucastthisspell, .companion, .mutate, .cantbecountered, .adventure, .whenyoucycle, .cycling, .adamant, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .addendum, .transmute, .spectacle, .unleash, .bloodthirst, .bloodrush, .riot, .convoke, .forecast, .scavenge, .undergrowth, .replicate, .overload, .dash, .delve:
+      case .flash, .haste, .entersthebattlefield, .castingcostmodifier, .additionalcastingcost, .whenyoucastthisspell, .companion, .mutate, .cantbecountered, .adventure, .whenyoucycle, .cycling, .adamant, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .addendum, .transmute, .spectacle, .unleash, .bloodthirst, .bloodrush, .riot, .convoke, .forecast, .scavenge, .undergrowth, .replicate, .overload, .dash, .delve, .foretell, .casualty, .readAhead, .cascade, .squad:
 				return false
 			case .custom(_, _, _, _, let isPermanent):
 				return isPermanent
@@ -802,7 +1054,7 @@ public class MTGCardView: UIView {
 				return true
 			}
 		}
-		
+
 		fileprivate var isGold: Bool {
 			switch self {
 			case .cantbeblocked:
@@ -811,7 +1063,7 @@ public class MTGCardView: UIView {
 				return !isPermanentEffect || isInherent || has(style: .mention) || has(style: .abilityWord)
 			}
 		}
-		
+
 		public var image: UIImage? {
 			switch self {
 			case .custom(let image, _, _, _, _): return image
@@ -821,14 +1073,18 @@ public class MTGCardView: UIView {
 				return UIImage(named: "Icon_Orzhov")
 			case .addendum, .forecast, .detain:
 				return UIImage(named: "Icon_Azorius")
-			case .surveil, .cipher, .transmute:
+			case .cipher, .transmute:
 				return UIImage(named: "Icon_Dimir")
+      case .surveil:
+        return UIImage(named: "Icon_Surveil")
 			case .spectacle, .unleash, .hellbent:
 				return UIImage(named: "Icon_Rakdos")
 			case .bloodthirst, .bloodrush, .riot:
 				return UIImage(named: "Icon_Gruul")
-			case .convoke, .populate:
+			case .populate:
 				return UIImage(named: "Icon_Selesnya")
+      case .convoke:
+        return UIImage(named: "Icon_Convoke")
 			case .dredge, .scavenge, .undergrowth:
 				return UIImage(named: "Icon_Golgari")
 			case .graft, .evolve, .adapt:
@@ -847,14 +1103,16 @@ public class MTGCardView: UIView {
 				return UIImage(named: "Icon_Kolaghan")
 			case .delve:
 				return UIImage(named: "Icon_Sultai")
-			case .exploit:
-				return UIImage(named: "Icon_Silumgar")
+//			case .exploit:
+//				return UIImage(named: "Icon_Silumgar")
 			case .prowess:
 				return UIImage(named: "Icon_Jeskai")
 			case .outlast:
 				return UIImage(named: "Icon_Abzan")
 			case .bolster:
 				return UIImage(named: "Icon_Dromoka")
+			case .superiority:
+				return UIImage(named: "Icon_NET")
 			case .multikicker:
 				return Icon.kicker.image
 			case .megamorph:
@@ -862,7 +1120,7 @@ public class MTGCardView: UIView {
 			default: return UIImage(named: "Icon_\(String(describing: self).capitalized)")
 			}
 		}
-		
+
 		public var reminderText: String? {
 			switch self {
 			case .deathtouch:
@@ -912,7 +1170,7 @@ public class MTGCardView: UIView {
 			case .proliferate:
 				return "Choose any number of permanents and/or players, then give each another counter of each kind already there."
 			case .constellation:
-				return "This ability triggers when an enchantment enters the battlefield under your control."
+				return "This ability triggers when an enchantment you control enters."
 			case .companion:
 				return "If your starting deck meets the companion's restriction you may choose it to be your companion and cast it once from outside the game."
 			case .scry:
@@ -980,7 +1238,7 @@ public class MTGCardView: UIView {
 			case .adapt:
 				return "If this creature has no +1/+1 counters on it, put N +1/+1 counter(s) on it."
 			case .evolve:
-				return "Whenever a creature enters the battlefield under your control, if that creature has greater power or toughness than this creature, put a +1/+1 counter on this creature."
+				return "Whenever a creature you control enters, if that creature has greater power or toughness than this creature, put a +1/+1 counter on this creature."
 			case .haunt:
 				return "When this creature dies, exile it haunting target creature."
 			case .afterlife:
@@ -1079,68 +1337,61 @@ public class MTGCardView: UIView {
 			}
 		}
 	}
-	
+
 	fileprivate func updateManaCost() {
-		guard let properties = properties else {
-			manaCostLabel.text = nil
-			return
-		}
-		
 		manaCostLabel.layer.shadowColor = UIColor.black.cgColor
 		manaCostLabel.layer.shadowRadius = 0
 		manaCostLabel.layer.masksToBounds = false
 		manaCostLabel.layer.shadowOpacity = 1
 		manaCostLabel.layer.shadowOffset = CGSize(width: manaCostLabel.frame.height * -0.04,
 												  height: manaCostLabel.frame.height * 0.05)
-		
+
 		guard let cost = properties.manaCost?.replacingOccurrences(of: "}{", with: "} {") else {
 			manaCostLabel.text = nil
 			return
 		}
-		
+
 		let attributedString = NSMutableAttributedString(string: cost, attributes: [.kern: manaCostLabel.frame.height * -0.07])
-		
+
 		for symbol in MTGSymbolName.allCases {
 			let attachment = NSTextAttachment()
 			attachment.image = symbol.image
 			attachment.setImageHeight(height: manaCostLabel.frame.height * 0.8)
 			attachment.bounds = attachment.bounds.offsetBy(dx: 0, dy: -(manaCostLabel.frame.height * 0.15))
 			let attachmentString = NSAttributedString(attachment: attachment)
-			
+
 			while let range = attributedString.string.range(of: symbol.rawValue) {
 				attributedString.replaceCharacters(in: NSRange(range, in: attributedString.string), with: attachmentString)
 			}
 		}
-		
+
 		let fontDescriptor = manaCostLabel.font.fontDescriptor
 		manaCostLabel.font = UIFont(descriptor: fontDescriptor, size: contentView.frame.width * 0.0825)
 		manaCostLabel.attributedText = attributedString
 	}
-	
+
 	fileprivate func updateIcons() {
-		guard let properties = properties else { return }
-		
 		iconImageViews.forEach { $0.isHidden = true }
 		iconPlates.forEach {
 			$0.isHidden = true
 			$0.toolTip = nil
 		}
-		
+
 		var visibleIcons = properties.icons.filter { $0.image != nil }
-		
+
 		let maxIcons = properties.borderStyle == .planeswalker ? 2 : 4
-		
+
 		if visibleIcons.count > maxIcons {
 			visibleIcons.removeAll { $0 == .more }
 			visibleIcons = Array(visibleIcons.prefix(maxIcons-1))
 			visibleIcons.append(.more)
 		}
-		
+
 		for (index, icon) in visibleIcons.prefix(maxIcons).enumerated() {
 			iconImageViews[index].isHidden = false
 			iconPlates[index].isHidden = false
 			iconImageViews[index].image = icon.image
-			
+
 			let plate: UIImage? = {
 				if icon.isGold {
 					return UIImage(named: "icon-reminder")
@@ -1152,27 +1403,28 @@ public class MTGCardView: UIView {
 					return UIImage(named: "icon")
 				}
 			}()
-			
+
 			if case .counter = icon {
 				iconImageViews[index].tintColor = .white
 			} else {
 				iconImageViews[index].tintColor = .black
 			}
-			
+
 			iconPlates[index].image = plate
 			iconPlates[index].isUserInteractionEnabled = true
-			
+
 			iconPlates[index].toolTip = icon.name
 		}
 	}
-	
+
 	private func updateBackground() {
-		guard let properties = properties else { return }
-		
 		let artViewWidthMultiplier: CGFloat = {
-			if properties.isFullArt {
+      if properties.isRetro {
+//        return 0.78 // True value
+        return 0.85 // Scaled up slightly because of incorrectly cropped Scryfall cards (BRC decks, etc)
+      } else if properties.isFullArt {
 				return 1.015
-			} else if properties.colors.isEmpty && properties.backgroundStyle != .artifact {
+      } else if properties.colors.isEmpty && properties.backgroundStyle != .artifact && properties.backgroundStyle != .snowArtifact && properties.backgroundStyle != .vehicle && properties.backgroundStyle != .universesBeyondVehicle && properties.backgroundStyle != .universesBeyondArtifact && (properties.backgroundStyle != .land && properties.backgroundStyle != .universesBeyondLand && properties.backgroundStyle != .snowLand) && properties.objectType != .emblem {
 				return 0.931
 			} else if properties.borderStyle == .planeswalker {
 				return 0.88
@@ -1180,68 +1432,113 @@ public class MTGCardView: UIView {
 				return 0.848
 			}
 		}()
-		
+
 		let artViewCenterYMultiplier: CGFloat = {
-			if properties.isFullArt {
+      if properties.isRetro {
+        return 0.93
+      } else if properties.isFullArt {
 				return 1.137
 			} else {
 				return 1
 			}
 		}()
-		
+
 		if artViewWidthConstraint.multiplier != artViewWidthMultiplier {
 			artViewWidthConstraint.isActive = false
 			artViewWidthConstraint = artImageView.widthAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: artViewWidthMultiplier)
 			artViewWidthConstraint.isActive = true
 		}
-		
+
 		if artViewCenterYConstraint.multiplier != artViewCenterYMultiplier {
 			artViewCenterYConstraint.isActive = false
-			artViewCenterYConstraint = NSLayoutConstraint(item: artImageView, attribute: .centerY, relatedBy: .equal, toItem: contentView, attribute: .centerY, multiplier: artViewCenterYMultiplier, constant: 1)
+			artViewCenterYConstraint = NSLayoutConstraint(item: artImageView!, attribute: .centerY, relatedBy: .equal, toItem: contentView, attribute: .centerY, multiplier: artViewCenterYMultiplier, constant: 1)
 			artViewCenterYConstraint.isActive = true
 		}
-		
-		if properties.borderStyle == .planeswalker {
+
+
+    let titleStackYMultiplier = properties.isRetro ? 0.275 : 0.295
+
+    if titleStackYConstraint.multiplier != titleStackYMultiplier {
+      titleStackYConstraint.isActive = false
+      titleStackYConstraint = NSLayoutConstraint(item: titleStack!, attribute: .centerY, relatedBy: .equal, toItem: contentView, attribute: .centerY, multiplier: titleStackYMultiplier, constant: 1)
+      titleStackYConstraint.isActive = true
+    }
+
+    let valueYMultiplier = properties.isRetro ? 1.62 : 1.72
+
+    if valueYConstraint.multiplier != valueYMultiplier {
+      valueYConstraint.isActive = false
+      valueYConstraint = NSLayoutConstraint(item: valueLabel!, attribute: .centerY, relatedBy: .equal, toItem: contentView, attribute: .centerY, multiplier: valueYMultiplier, constant: 1)
+      valueYConstraint.isActive = true
+    }
+
+    if properties.borderStyle == .planeswalker && !properties.isFullArt && !properties.isRetro {
 			artImageView.layer.masksToBounds = true
 			artImageView.layer.cornerRadius = cardView.frame.width * 0.061
 		} else {
 			artImageView.layer.cornerRadius = 0
 		}
-		
+
 		topBarImageView.image = topBarImage
 		bottomBarImageView.image = bottomBarImage
-		borderImageView.image = borderImage
+
+    borderImageView.image = borderImage
+    borderImageView.contentMode = properties.isRetro ? .scaleAspectFill : .scaleAspectFit
+
 		overlayImageView.image = overlayImage
 		backgroundImageView.image = backgroundImage
 		crownImageView.image = crownImage
 		ptImageView.image = valueImage
-		
+
+		tappedDarkeningView.backgroundColor = properties.isTapped ? #colorLiteral(red: 0, green: 0, blue: 0, alpha: 0.4) : .clear
+		tappedDarkeningView.image = properties.isChained ? UIImage(named: "chains") : nil
+
 		cardView.backgroundColor = properties.borderColor.color
-		
+    bottomBlock.isHidden = properties.isFullArt || (properties.backgroundStyle == .planeswalker && properties.objectType != .emblem) || properties.isRetro
+		bottomBlock.tintColor = properties.borderColor.color
+
 		if let title = properties.flavorName ?? properties.name, !title.isEmpty {
-			textLabel.text = title
+      textLabel.text = title.withSmartQuotes
 		} else {
 			textLabel.text = nil
 		}
-		
+
+    for label in [textLabel!, valueLabel!] {
+      if properties.isRetro {
+        label.layer.shadowColor = UIColor.black.cgColor
+        label.layer.shadowRadius = 0
+        label.layer.masksToBounds = false
+        label.layer.shadowOpacity = 1
+        label.layer.shadowOffset = CGSize(
+          width: 2 * label.frame.height * 0.04,
+          height: 2 * label.frame.height * 0.05
+        )
+      } else {
+        label.layer.shadowColor = UIColor.clear.cgColor
+        label.layer.shadowOpacity = 0
+      }
+    }
+
 		if properties.flavorName != nil {
-			realNameLabel.text = properties.name
+      realNameLabel.text = properties.name?.withSmartQuotes
 			realNameLabel.isHidden = false
 		} else {
 			realNameLabel.text = nil
 			realNameLabel.isHidden = true
 		}
-		
+
 		if let typeLine = properties.typeLine, !typeLine.isEmpty {
 			typeLineLabel.text = typeLine
 		} else {
 			typeLineLabel.text = nil
 		}
-		
+
 		let textLabelColor: UIColor = {
 			if properties.objectType == .token {
 				return #colorLiteral(red: 0.8666666667, green: 0.7607843137, blue: 0.4039215686, alpha: 1)
-			} else if properties.objectType == .emblem {
+      } else if properties.isRetro {
+        return .white
+      } else if properties.objectType == .emblem {
 				return #colorLiteral(red: 0.8980834926, green: 0.9056943696, blue: 0.9056943696, alpha: 1)
 			} else if properties.isInverted {
 				return .white
@@ -1249,21 +1546,21 @@ public class MTGCardView: UIView {
 				return .black
 			}
 		}()
-		
+
 		textLabel.textColor = textLabelColor
 		typeLineLabel.textColor = properties.isInverted ? .white : .black
-		
+
 		let fontName = properties.objectType == .card ? "Beleren2016" : "Beleren Small Caps"
 		textLabel.font = UIFont(name: fontName, size: textLabel.font.pointSize)
-		
+
 		textLabel.textAlignment = properties.objectType == .card ? .left : .center
-		
-		if properties.isInverted || properties.backgroundStyle == .vehicle {
+
+    if properties.isInverted || properties.backgroundStyle == .vehicle || properties.backgroundStyle == .universesBeyondVehicle || properties.isRetro {
 			valueLabel.textColor = .white
 		} else {
 			valueLabel.textColor = .black
 		}
-		
+
 		if let value = properties.value, value.length > 0 {
 			if properties.borderStyle == .planeswalker {
 				loyaltyLabel.text = value.string
@@ -1276,12 +1573,26 @@ public class MTGCardView: UIView {
 			valueLabel.attributedText = nil
 			loyaltyLabel.text = nil
 		}
-		
+
+		if let dfcIcon = properties.dfcIcon, let image = dfcIcon.image {
+			dfcImageView.isHidden = false
+			dfcIconImageView.isHidden = false
+			dfcImageView.image = dfcMaskImage
+			dfcIconImageView.image = image
+			dfcSpacerView.isHidden = false
+		} else {
+			dfcImageView.isHidden = true
+			dfcIconImageView.isHidden = true
+			dfcImageView.image = nil
+			dfcIconImageView.image = nil
+			dfcSpacerView.isHidden = true
+		}
+
 		artImageView.image = properties.art
-		
+
 		updateIcons()
-		
+
 		updateManaCost()
 	}
-	
+
 }

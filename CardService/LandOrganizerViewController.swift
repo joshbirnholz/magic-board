@@ -130,55 +130,78 @@ private func colorSortKey(for colors: [MTGColor]) -> (Int, Int, Int) {
 
 // MARK: - LandOrganizer
 
+private struct LandCardFramesKey: PreferenceKey {
+  static var defaultValue: [UUID: CGRect] = [:]
+  static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+    value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+  }
+}
+
 struct LandOrganizer: View {
   
   struct LandStack: View {
     let cardInstances: OrderedSet<CardInstance>
     let onLongPress: (CardInstance) -> Void
+    let height: CGFloat
+    let draggedCardID: UUID?
+    var attachedCards: [CardInstance] = []
     
     private var showsCountTile: Bool {
       cardInstances.count > 3
     }
     
     @ViewBuilder
-    private var countTile: some View {
+    private func countTile(height: CGFloat) -> some View {
       Text("x\(cardInstances.count)")
-        .font(.custom("Beleren2016-Bold", size: 22))
+        .font(.custom("Beleren2016-Bold", size: AppDelegate.shared.usesPhoneSession ? max(14, height * 0.22) : 22))
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
         .background {
           RoundedRectangle(cornerRadius: 4)
             .foregroundColor(.black.opacity(0.82))
         }
-        .position(CGPoint(x: 24, y: 40))
+
     }
     
     var body: some View {
-      OverlayedGeometryReader { proxy in
-        HStack(spacing: -proxy.size.height * (showsCountTile ? 1.07 : 0.97)) {
-          ForEach(Array(cardInstances.enumerated()), id: \.element.uuid) { (index, card) in
-            SwiftUICardView(card: card)
-              .shadow(radius: 5)
-          }
-        }.padding(.leading, showsCountTile ? 10 : 0)
-          .overlay {
-            if showsCountTile {
-              countTile
-            }
-          }
+      // The row supplies height. Measuring this stack to size its own overlap
+      // feeds image intrinsic-size changes back into SwiftUI layout.
+      HStack(spacing: -height * (showsCountTile ? 1.07 : 0.97)) {
+        ForEach(Array((attachedCards + cardInstances.contents).enumerated()), id: \.element.uuid) { (_, card) in
+          SwiftUICardView(card: card, isRotationEnabled: true)
+            .frame(width: height * 480 / 420, height: height)
+            .opacity(card.uuid == draggedCardID ? 0 : 1)
+            .shadow(radius: 5)
+        }
+      }
+      .padding(.leading, showsCountTile ? 10 : 0)
+      .frame(height: height)
+      .overlay {
+        if showsCountTile {
+          countTile(height: height).position(x: 24, y: max(12, min(40, height - 12)))
+        }
       }
     }
   }
   
+
+  @GestureState private var draggedCardID: UUID? = nil
   @ObservedObject var cardInstances: ObservableBridge<OrderedSet<CardInstance>>
   @ObservedObject var tappedIDs: ObservableBridge<[UUID]>
   let onLongPress: (CardInstance) -> Void
+  var isOpponentRow = false
+  var showsBackground = true
+  var onDragChanged: ((CardInstance, CGPoint, CGSize) -> Void)?
+  var onDragEnded: ((CardInstance, CGPoint) -> Void)?
+  var onDragCancelled: (() -> Void)?
+  var attachmentsByLand: [UUID: [CardInstance]] = [:]
+  var onLandFramesChanged: (([UUID: CGRect]) -> Void)?
   
   private var stacks: [[CardInstance]] {
     // 1. Group by oracle ID (same card type stacks together)
     let groups: [UUID: [CardInstance]] = .init(
       grouping: cardInstances.value,
-      by: \.representation.card.oracleID!
+      by: { $0.representation.card.oracleID ?? $0.representation.card.scryfallID }
     )
     
     // 2. Preserve original battlefield order within each oracle group
@@ -223,27 +246,59 @@ struct LandOrganizer: View {
     return sorted
   }
   
-  var body: some View {
+  @ViewBuilder private func landCards(height: CGFloat) -> some View {
     HStack(spacing: 6) {
       ForEach(stacks, id: \.first?.uuid) { stack in
-        LandStack(cardInstances: OrderedSet(stack), onLongPress: onLongPress)
-          .onTapGesture {
+        LandStack(cardInstances: OrderedSet(stack), onLongPress: onLongPress, height: max(1, height), draggedCardID: draggedCardID,
+                  attachedCards: stack.flatMap { attachmentsByLand[$0.uuid] ?? [] })
+          .background(GeometryReader { geometry in
+            Color.clear.preference(key: LandCardFramesKey.self,
+                                   value: stack.last.map { [$0.uuid: geometry.frame(in: .global)] } ?? [:])
+          })
+          .contentShape(Rectangle())
+          .accessibilityElement(children: .combine)
+          .accessibilityLabel("\(stack.first?.representation.name ?? "Land"), \(stack.count)\(stack.first?.isTapped.value == true ? ", tapped" : ", untapped")")
+          // A hold opens the inspector only if the finger stays put; moving starts a drag instead.
+          .simultaneousGesture(LongPressGesture(minimumDuration: 0.65, maximumDistance: 8).onEnded { _ in
+            if let card = stack.last { onLongPress(card) }
+          })
+          .simultaneousGesture(DragGesture(minimumDistance: 10, coordinateSpace: .global)
+            .updating($draggedCardID) { _, state, _ in state = stack.last?.uuid }
+            .onChanged { value in if let card = stack.last { onDragChanged?(card, value.location, CGSize(width: max(1, height) * 480 / 420, height: max(1, height))) } }
+            .onEnded { value in
+              if let card = stack.last { onDragEnded?(card, value.location) }
+            }, including: AppDelegate.shared.usesPhoneSession ? .all : .subviews)
+          .simultaneousGesture(TapGesture().onEnded {
+            guard !isOpponentRow else {
+              if let card = stack.last { onLongPress(card) }
+              return
+            }
             stack.last?.isTapped.mutate {
               $0.toggle()
             }
             try? GameState.current.save()
-          }
+          })
           .padding(.horizontal, 4)
       }
       Spacer()
+    }
+  }
+
+  var body: some View {
+    GeometryReader { proxy in
+      landCards(height: proxy.size.height)
     }.padding(.vertical, 4)
       .padding(.horizontal, 4)
       .background {
-        RoundedRectangle(cornerRadius: 12)
-          .foregroundColor(.white.opacity(0.05))
+        if showsBackground {
+          RoundedRectangle(cornerRadius: 12)
+            .foregroundColor(.white.opacity(0.05))
+        }
       }
       .padding(.bottom, 8)
       .padding(.horizontal, 4)
+      .onPreferenceChange(LandCardFramesKey.self) { onLandFramesChanged?($0) }
+      .onChange(of: draggedCardID) { if $0 == nil { onDragCancelled?() } }
       .animation(.default, value: cardInstances.value)
       .animation(.easeInOut(duration: 0.2), value: tappedIDs.value)
   }
@@ -254,6 +309,9 @@ struct LandOrganizer: View {
 class LandOrganizerViewController: UIHostingController<LandOrganizer> {
   
   var onLongPress: (CardInstance) -> Void = { _ in }
+  var onDragChanged: ((CardInstance, CGPoint, CGSize) -> Void)?
+  var onDragEnded: ((CardInstance, CGPoint) -> Void)?
+  var onDragCancelled: (() -> Void)?
   
   var playerIdentifier: Player.Identifier = .a {
     didSet {
@@ -261,7 +319,29 @@ class LandOrganizerViewController: UIHostingController<LandOrganizer> {
     }
   }
   
-  private let bag = DisposeBag()
+  private var bag = DisposeBag()
+  private var landCardFrames: [UUID: CGRect] = [:] { didSet { if landCardFrames != oldValue { onLandContentChanged?() } } }
+  /// Window-coordinate frames of the land stacks currently drawn (Phone Play lays the battlefield beside them).
+  public var landContentFrames: [CGRect] { Array(landCardFrames.values) }
+  public var onLandContentChanged: (() -> Void)?
+  func card(at windowPoint: CGPoint, excluding ids: Set<UUID>) -> CardInstance? {
+    rootView.cardInstances.value.contents.reversed().first {
+      !ids.contains($0.uuid) && landCardFrames[$0.uuid]?.contains(windowPoint) == true
+    }
+  }
+  /// Window-coordinate frame of a drawn land, if visible.
+  func landFrame(for id: UUID) -> CGRect? { landCardFrames[id] }
+  func updateAttachments(_ attachments: [UUID: [CardInstance]]) {
+    if rootView.attachmentsByLand != attachments { rootView.attachmentsByLand = attachments }
+  }
+  var isOpponentRow = false { didSet { bindPlayer() } }
+
+  init(playerIdentifier: Player.Identifier, isOpponentRow: Bool) {
+    self.playerIdentifier = playerIdentifier
+    self.isOpponentRow = isOpponentRow
+    super.init(rootView: LandOrganizer(cardInstances: .init(.init(value: [])), tappedIDs: .init(.init(value: [])), onLongPress: { _ in }))
+    bindPlayer()
+  }
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -283,12 +363,18 @@ class LandOrganizerViewController: UIHostingController<LandOrganizer> {
   }
   
   func shouldIncludeCard(_ cardInstance: CardInstance) -> Bool {
-    cardInstance.ownerIdentifier == self.playerIdentifier &&
+    (AppDelegate.shared.usesPhoneSession ? cardInstance.controllerIdentifier.value : cardInstance.ownerIdentifier) == self.playerIdentifier &&
     cardInstance.representation.typeLine?.lowercased().contains("land") == true &&
     !cardInstance.isPowerToughnessVisible.value
   }
   
+  func hideOrganizerBackground() {
+    if rootView.showsBackground { rootView.showsBackground = false }
+    view.backgroundColor = .clear
+  }
+
   private func bindPlayer() {
+    bag = DisposeBag()
     let relay: BehaviorRelay<OrderedSet<CardInstance>> = BehaviorRelay(value: [])
     
     GameState.current.battlefield
@@ -318,7 +404,13 @@ class LandOrganizerViewController: UIHostingController<LandOrganizer> {
     rootView = LandOrganizer(
       cardInstances: ObservableBridge(relay),
       tappedIDs: ObservableBridge(tappedIDsRelay),
-      onLongPress: onLongPress
+      onLongPress: { [weak self] card in self?.onLongPress(card) },
+      isOpponentRow: isOpponentRow,
+      showsBackground: !AppDelegate.shared.usesPhoneSession,
+      onDragChanged: { [weak self] card, point, size in self?.onDragChanged?(card, point, size) },
+      onDragEnded: { [weak self] card, point in self?.onDragEnded?(card, point) },
+      onDragCancelled: { [weak self] in self?.onDragCancelled?() },
+      onLandFramesChanged: { [weak self] in self?.landCardFrames = $0 }
     )
   }
 }

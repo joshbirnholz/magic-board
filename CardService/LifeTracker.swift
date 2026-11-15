@@ -46,6 +46,7 @@ struct HoldButton: View {
         })
       })
       .buttonStyle(HoldButtonStyle(color: color))
+      .onDisappear { timer?.invalidate(); timer = nil; isLongPressing = false }
     }
   }
 }
@@ -57,25 +58,44 @@ struct LifeTracker: View {
   
   var body: some View {
     ZStack {
-      VStack(spacing: 0) {
-        HoldButton(color: Color(white: 0.2)) { life.value += 1 }
+      HStack(spacing: 0) {
         HoldButton(color: Color(white: 0.2)) { life.value -= 1 }
+          .accessibilityLabel("Decrease life")
+        HoldButton(color: Color(white: 0.2)) { life.value += 1 }
+          .accessibilityLabel("Increase life")
       }
       
       GeometryReader { proxy in
         Text("\(life.value)")
-          .font(.custom("Beleren2016-Bold", size: proxy.size.width * 0.5))
+          .font(.custom("Beleren2016-Bold", size: AppDelegate.shared.usesPhoneSession ? min(proxy.size.height * 0.82, proxy.size.width * 0.46) : proxy.size.width * 0.5))
           .minimumScaleFactor(0.01)
           .lineLimit(1)
 //          .padding()
+          .allowsHitTesting(false)
           .foregroundColor(.white)
-          .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+          .frame(width:proxy.size.width,height:proxy.size.height,alignment:.center)
+          .transaction { $0.animation = nil }
+        // Subtle − / + marks at the ends show that each half is a button.
+        let mark = max(7, min(proxy.size.height * 0.2, proxy.size.width * 0.09))
+        HStack {
+          Image(systemName: "minus")
+          Spacer(minLength: 0)
+          Image(systemName: "plus")
+        }
+        .font(.system(size: mark, weight: .semibold))
+        .foregroundColor(.white.opacity(0.35))
+        .padding(.horizontal, max(4, proxy.size.width * 0.05))
+        .frame(width: proxy.size.width, height: proxy.size.height)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
       }
     }
 //    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
     
     .cornerRadius(15)
-    .ignoresSafeArea()
+    // Phone Play positions the tracker explicitly; fill that frame exactly on every device.
+     .transaction { if AppDelegate.shared.usesPhoneSession { $0.animation = nil } }
+
   }
 }
 

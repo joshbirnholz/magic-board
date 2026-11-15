@@ -40,13 +40,14 @@ public enum ImageType: String, CaseIterable {
 
 public extension MTGCard {
 	fileprivate func urlToLoad(type: ImageType, face: Face? = nil, alwaysUpright: Bool = false) -> URL? {
-		return (face?.imageUris ?? imageUris ?? cardFaces?.first?.imageUris)?[type.rawValue]
+		guard let url = (face?.imageUris ?? imageUris ?? cardFaces?.first?.imageUris)?[type.rawValue] else { return nil }
+        return OfflineGameLibrary.shared.artworkURL(for: url) ?? url
 	}
 	
 	func imageLoader(type: ImageType, for face: Face? = nil, alwaysUpright: Bool = false) -> (imageExistsInCache: Bool, loader: AnyPublisher<UIImage?, Never>) {
 		guard let url = urlToLoad(type: type, face: face) else { return (false, AnyPublisher(Just<UIImage?>(nil))) }
 		
-		let imageExists = SDImageCache.shared.diskImageDataExists(withKey: url.absoluteString)
+		let imageExists = url.isFileURL || SDImageCache.shared.diskImageDataExists(withKey: url.absoluteString)
 		
 		let loader: AnyPublisher<UIImage?, Never> = {
 			
@@ -67,6 +68,9 @@ public extension MTGCard {
 				return image
 			}
 			
+            if url.isFileURL, let image = UIImage(contentsOfFile: url.path) {
+                return AnyPublisher(Just<UIImage?>(process(image)))
+            }
 			if imageExists, let image = SDImageCache.shared.imageFromCache(forKey: url.absoluteString) {
 				return AnyPublisher(Just<UIImage?>(process(image)))
 			}
@@ -119,7 +123,7 @@ public extension MTGCard {
 	
 	func isImageInCache(type: ImageType, for face: Face? = nil) -> Bool {
 		guard let url = urlToLoad(type: type, face: face) else { return false }
-		return SDImageCache.shared.diskImageDataExists(withKey: url.absoluteString)
+		return url.isFileURL || SDImageCache.shared.diskImageDataExists(withKey: url.absoluteString)
 	}
 	
 	func imageIfLoaded(type: ImageType, for face: Face? = nil, alwaysUpright: Bool = false) -> UIImage? {
