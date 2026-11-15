@@ -2,3 +2,9 @@
 # Large Scryfall bulk data (download at runtime instead)
 Media.xcassets/default-cards.dataset/
 Media.xcassets/scryfall-default-cards.dataset/
+
+# Offline artwork source images (downloaded at runtime by the app, not bundled)
+CardService/OfflineArtworkSource/
+
+# Python caches from Scripts/
+__pycache__/
