@@ -6,7 +6,7 @@
 1 Lena, Selfless Champion (JMP)
 1 Makeshift Battalion (M21) 26
 1 Mentor of the Meek (JMP) 121
-7 Plains (JMP) 38
+7 Plains (FDN) 272
 1 Raise the Alarm (JMP)
 1 Selfless Savior (M21) 36
 1 Siege Striker (M21) 37

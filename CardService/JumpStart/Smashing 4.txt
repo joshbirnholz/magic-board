@@ -8,7 +8,7 @@
 1 Furor of the Bitten (M21) 145
 1 Heartfire Immolator (M21) 150
 1 Hungry Flames (JMP) 336
-7 Mountain (JMP) 67
+7 Mountain (FDN) 278
 1 Onakke Ogre (M21)
 1 Thriving Bluff (JMP) 33
 1 Turret Ogre (M21) 169

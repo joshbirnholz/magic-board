@@ -6,7 +6,7 @@
 1 Dragonspeaker Shaman (JMP) 312
 1 Hellkite Punisher (M21) 151
 1 Lightning Shrieker (JMP) 345
-8 Mountain (JMP) 62
+8 Mountain (FDN) 278
 1 Rapacious Dragon (JMP)
 1 Terror of the Peaks (M21) 164
 1 Thrill of Possibility (M21) 165

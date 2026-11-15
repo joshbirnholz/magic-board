@@ -10,5 +10,5 @@
 1 Liliana's Devotee (M21) 109
 1 Malefic Scythe (M21) 112
 1 Ogre Slumlord (JMP)
-7 Swamp (JMP) 61
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37

@@ -1,6 +1,6 @@
 1 Aegis Turtle (JMP)
 1 Cryptic Serpent (JMP)
-8 Island (JMP) 46
+8 Island (FDN) 274
 1 Octoprophet (JMP)
 1 Pursued Whale (M21) 60
 1 Sigiled Starfish (JMP)

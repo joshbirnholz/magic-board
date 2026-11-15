@@ -3,7 +3,7 @@
 1 Havoc Jester (M21) 149
 1 Heartfire (JMP)
 1 Hobblefiend (M21) 152
-7 Mountain (JMP) 63
+7 Mountain (FDN) 278
 1 Pitchburn Devils (M21) 156
 1 Spiteful Prankster (JMP) 26
 1 Thriving Bluff (JMP) 33

@@ -10,5 +10,5 @@
 1 Malefic Scythe (M21) 112
 1 Plagued Rusalka (JMP)
 1 Sanitarium Skeleton (JMP)
-7 Swamp (JMP) 61
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37

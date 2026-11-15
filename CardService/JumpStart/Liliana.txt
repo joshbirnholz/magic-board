@@ -9,6 +9,6 @@
 1 Liliana, Waker of the Dead (M21) 108
 1 Rise Again (M21) 119
 1 Settle the Score (JMP) 276
-7 Swamp (M21) 311
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37
 1 Wailing Ghoul (JMP) 286

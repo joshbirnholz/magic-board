@@ -9,6 +9,6 @@
 1 Oona's Blackguard (JMP)
 1 Rogue's Gloves (JMP)
 1 Stab Wound (JMP)
-7 Swamp (JMP) 57
+7 Swamp (FDN) 276
 1 Thieves' Guild Enforcer (M21) 125
 1 Thriving Moor (JMP) 37

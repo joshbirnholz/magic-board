@@ -5,7 +5,7 @@
 1 Fanatical Firebrand (JMP) 315
 1 Flames of the Firebrand (JMP) 357
 1 Hungry Flames (JMP) 336
-7 Mountain (M21) 312
+7 Mountain (FDN) 278
 1 Pillar of Flame (JMP) 355
 1 Pyroclastic Elemental (JMP) 356
 1 Thrill of Possibility (M21) 165

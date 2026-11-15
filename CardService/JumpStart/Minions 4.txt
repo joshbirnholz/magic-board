@@ -8,7 +8,7 @@
 1 Liliana's Devotee (M21) 109
 1 Nocturnal Feeder (JMP) 16
 1 Shambling Goblin (JMP) 277
-7 Swamp (JMP) 54
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37
 1 Village Rites (M21) 126
 1 Witch's Cauldron (M21) 129

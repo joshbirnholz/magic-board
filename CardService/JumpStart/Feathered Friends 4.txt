@@ -8,7 +8,7 @@
 1 Falconer Adept (M21) 18
 1 Gale Swooper (M21) 20
 1 Healer's Hawk (JMP)
-7 Plains (JMP) 44
+7 Plains (FDN) 272
 1 Sky Tether (JMP)
 1 Thriving Heath (JMP) 35
 1 Warded Battlements (M21) 44

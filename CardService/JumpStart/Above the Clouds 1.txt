@@ -1,6 +1,6 @@
 1 Capture Sphere (M21) 47
 1 Inniaz, the Gale Force (JMP) 12
-7 Island (JMP) 48
+7 Island (FDN) 274
 1 Keen Glidemaster (M21) 54
 1 Lofty Denial (M21) 56
 1 Mistral Singer (M21) 58

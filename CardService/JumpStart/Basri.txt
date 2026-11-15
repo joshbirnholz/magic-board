@@ -7,7 +7,7 @@
 1 Feat of Resistance (M21) 19
 1 Knight of the Tusk (JMP) 114
 1 Legion's Judgment (M21) 24
-7 Plains (M21) 309
+7 Plains (FDN) 272
 1 Siege Striker (M21) 37
 1 Staunch Shieldmate (M21) 39
 1 Tempered Veteran (M21) 41

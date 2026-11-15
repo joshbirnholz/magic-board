@@ -1,7 +1,7 @@
 1 Brindle Shoat (JMP) 380
 1 Crushing Canopy (JMP) 386
 1 Dawntreader Elk (JMP) 387
-7 Forest (JMP) 76
+7 Forest (FDN) 280
 1 Fungal Rebirth (M21) 182
 1 Irresistible Prey (JMP) 406
 1 Marauder's Axe (JMP) 473

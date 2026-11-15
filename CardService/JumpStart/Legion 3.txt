@@ -5,7 +5,7 @@
 1 Glorious Anthem (M21) 21
 1 Legion's Judgment (M21) 24
 1 Makeshift Battalion (M21) 26
-7 Plains (JMP) 38
+7 Plains (FDN) 272
 1 Raise the Alarm (JMP)
 1 Release the Dogs (JMP) 4
 1 Siege Striker (M21) 37

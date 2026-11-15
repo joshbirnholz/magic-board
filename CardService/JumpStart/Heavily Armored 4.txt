@@ -5,7 +5,7 @@
 1 Lightwalker (JMP) 118
 1 Long Road Home (JMP)
 1 Makeshift Battalion (M21) 26
-7 Plains (JMP) 43
+7 Plains (FDN) 272
 1 Siege Striker (M21) 37
 1 Supply Runners (JMP) 7
 1 Swift Response (M21) 40

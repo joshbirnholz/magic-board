@@ -6,7 +6,7 @@
 1 Magmaquake (JMP) 347
 1 Mana Geode (JMP)
 1 Molten Ravager (JMP) 351
-7 Mountain (JMP) 64
+7 Mountain (FDN) 278
 1 Seismic Elemental (JMP) 362
 1 Spitting Earth (JMP) 364
 1 Thriving Bluff (JMP) 33

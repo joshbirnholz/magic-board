@@ -6,7 +6,7 @@
 1 Hamletback Goliath (JMP)
 1 Heartfire Immolator (M21) 150
 1 Inferno Hellion (JMP)
-7 Mountain (JMP) 67
+7 Mountain (FDN) 278
 1 Onakke Ogre (M21)
 1 Sarkhan's Unsealing (JMP)
 1 Thriving Bluff (JMP) 33

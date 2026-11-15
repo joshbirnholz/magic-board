@@ -9,6 +9,6 @@
 1 Gristle Grinner (JMP)
 1 Liliana's Standard Bearer (M21) 110
 1 Malefic Scythe (M21) 112
-7 Swamp (JMP) 61
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37
 1 Village Rites (M21) 126

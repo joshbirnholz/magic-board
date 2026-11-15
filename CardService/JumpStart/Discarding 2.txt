@@ -8,6 +8,6 @@
 1 Phyrexian Rager (JMP) 266
 1 Ravenous Chupacabra (JMP) 269
 1 Slate Street Ruffian (JMP)
-7 Swamp (JMP) 55
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37
 2 Wight of Precinct Six (JMP) 287

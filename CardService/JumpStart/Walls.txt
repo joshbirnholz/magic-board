@@ -1,7 +1,7 @@
 1 Assault Formation (JMP) 378
 1 Carven Caryatid (JMP) 382
 1 Crushing Canopy (JMP) 386
-7 Forest (JMP) 75
+7 Forest (FDN) 280
 1 Gargoyle Sentinel (JMP) 465
 1 Grave Bramble (JMP) 401
 1 Overgrown Battlement (JMP) 417

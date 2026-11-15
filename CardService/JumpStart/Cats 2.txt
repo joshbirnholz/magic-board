@@ -4,7 +4,7 @@
 1 Feline Sovereign (M21) 180
 1 Feral Invocation (JMP)
 1 Feral Prowler (JMP)
-7 Forest (JMP) 74
+7 Forest (FDN) 280
 1 Initiate's Companion (JMP)
 1 Keeper of Fables (JMP)
 1 Lurking Predators (JMP) 410

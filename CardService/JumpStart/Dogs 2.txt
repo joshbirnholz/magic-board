@@ -5,7 +5,7 @@
 1 Isamaru, Hound of Konda (JMP) 113
 1 Pacifism (JMP) 125
 1 Pack Leader (M21) 29
-7 Plains (JMP) 45
+7 Plains (FDN) 272
 1 Rambunctious Mutt (M21) 30
 1 Release the Dogs (JMP) 4
 1 Secure the Scene (M21) 35

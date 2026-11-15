@@ -4,7 +4,7 @@
 1 Cultivate (M21) 177
 1 Drover of the Mighty (JMP) 388
 1 Drowsing Tyrannodon (M21) 178
-7 Forest (JMP) 73
+7 Forest (FDN) 280
 1 Ghalta, Primal Hunger (JMP) 399
 1 Orazca Frillback (JMP) 416
 1 Ornery Dilophosaur (M21) 194

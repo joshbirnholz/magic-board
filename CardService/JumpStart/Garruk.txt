@@ -1,7 +1,7 @@
 1 Affectionate Indrik (JMP) 373
 1 Brushstrider (JMP) 381
 1 Drowsing Tyrannodon (M21) 178
-7 Forest (M21) 313
+7 Forest (FDN) 280
 1 Garruk's Gorehorn (M21) 184
 1 Garruk's Harbinger (M21) 185
 1 Garruk's Uprising (M21) 186

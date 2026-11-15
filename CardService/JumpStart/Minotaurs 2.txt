@@ -4,7 +4,7 @@
 1 Lightning Visionary (JMP) 22
 1 Minotaur Skullcleaver (JMP)
 1 Minotaur Sureshot (JMP)
-7 Mountain (JMP) 69
+7 Mountain (FDN) 278
 1 Rageblood Shaman (JMP) 357
 1 Sethron, Hurloon General (JMP) 25
 1 Soul Sear (M21) 160

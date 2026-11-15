@@ -7,7 +7,7 @@
 1 Kiln Fiend (JMP)
 1 Kinetic Augur (M21) 154
 1 Lightning Visionary (JMP) 22
-7 Mountain (JMP) 66
+7 Mountain (FDN) 278
 1 Shock (M21) 159
 1 Thermo-Alchemist (JMP)
 1 Thrill of Possibility (M21) 165

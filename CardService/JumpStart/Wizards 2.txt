@@ -1,6 +1,6 @@
 1 Crookclaw Transmuter (JMP) 145
 1 Exclusion Mage (JMP) 153
-6 Island (JMP) 47
+6 Island (FDN) 274
 1 Opt (M21) 59
 1 Read the Tides (M21) 62
 1 Riptide Laboratory (JMP) 494

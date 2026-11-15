@@ -1,5 +1,5 @@
 1 Capture Sphere (M21) 47
-7 Island (JMP) 48
+7 Island (FDN) 274
 1 Keen Glidemaster (M21) 54
 1 Kira, Great Glass-Spinner (JMP) 154
 1 Lofty Denial (M21) 56

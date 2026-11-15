@@ -5,7 +5,7 @@
 1 Fa'adiyah Seer (JMP) 394
 1 Feral Hydra (JMP) 395
 1 Fertilid (JMP) 398
-7 Forest (JMP) 71
+7 Forest (FDN) 280
 1 Sylvan Ranger (JMP) 435
 1 Thriving Grove (JMP) 34
 1 Ulvenwald Hydra (JMP) 439

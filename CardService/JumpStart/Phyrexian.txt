@@ -10,5 +10,5 @@
 1 Phyrexian Rager (JMP) 266
 1 Phyrexian Reclamation (JMP)
 1 Sheoldred, Whispering One (JMP) 278
-7 Swamp (JMP) 58
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37

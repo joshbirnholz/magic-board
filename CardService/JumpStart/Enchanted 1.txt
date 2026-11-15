@@ -8,7 +8,7 @@
 1 Knight of the Tusk (JMP) 114
 1 Knightly Valor (JMP)
 1 Kor Spiritdancer (JMP) 116
-7 Plains (JMP) 42
+7 Plains (FDN) 272
 1 Stone Haven Pilgrim (JMP) 6
 1 Thriving Heath (JMP) 35
 1 Trusty Retriever (JMP) 8

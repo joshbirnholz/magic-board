@@ -4,7 +4,7 @@
 1 Departed Deckhand (JMP) 149
 1 Essence Flux (JMP)
 1 Frost Breath (M21) 51
-7 Island (JMP) 51
+7 Island (FDN) 274
 1 Murmuring Phantasm (JMP)
 1 Nebelgast Herald (JMP)
 1 Roaming Ghostlight (M21) 65

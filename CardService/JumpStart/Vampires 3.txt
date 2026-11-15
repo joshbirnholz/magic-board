@@ -9,6 +9,6 @@
 1 Sanguine Indulgence (M21) 121
 1 Sengir Vampire (JMP) 275
 1 Silversmote Ghoul (M21) 122
-7 Swamp (JMP) 60
+7 Swamp (FDN) 276
 1 Thriving Moor (JMP) 37
 1 Vampire Neonate (JMP) 285

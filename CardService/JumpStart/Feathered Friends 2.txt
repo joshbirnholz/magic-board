@@ -5,7 +5,7 @@
 1 Falconer Adept (M21) 18
 1 Gale Swooper (M21) 20
 1 Healer's Hawk (JMP)
-7 Plains (JMP) 44
+7 Plains (FDN) 272
 1 Sky Tether (JMP)
 1 Steel-Plume Marshal (JMP)
 1 Swift Response (M21) 40

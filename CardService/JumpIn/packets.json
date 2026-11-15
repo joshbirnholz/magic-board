@@ -1,0 +1,8712 @@
+[
+  {
+    "name": "ABZAN",
+    "setCode": "TDM",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Betor, Kin to All",
+          "probability": 20.0
+        },
+        {
+          "name": "Yathan Roadwatcher",
+          "probability": 40.0
+        },
+        {
+          "name": "Felothar, Dawn of the Abzan",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Krumar Initiate",
+          "probability": 50.0
+        },
+        {
+          "name": "Yathan Tombguard",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Duty Beyond Death",
+          "probability": 50.0
+        },
+        {
+          "name": "Wail of War",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Kin-Tree Nurturer",
+          "probability": 50.0
+        },
+        {
+          "name": "Sandskitter Outrider",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dragon's Prey",
+          "probability": 50.0
+        },
+        {
+          "name": "Stormplain Detainment",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Armament Dragon",
+      "Fortress Kin-Guard",
+      "Dusyut Earthcarver",
+      "Unburied Earthcarver",
+      "Kin-Tree Severance",
+      "Knockout Maneuver",
+      "Abzan Monument",
+      "Sandsteppe Citadel"
+    ]
+  },
+  {
+    "name": "APPRENTICE",
+    "setCode": "WOE",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ingenious Prodigy",
+          "probability": 50.0
+        },
+        {
+          "name": "Horned Loch-Whale",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Picklock Prankster",
+          "probability": 50.0
+        },
+        {
+          "name": "Tenacious Tomeseeker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Splashy Spellcaster",
+          "probability": 50.0
+        },
+        {
+          "name": "Chancellor of Tales",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Water Wings",
+          "probability": 50.0
+        },
+        {
+          "name": "Johann's Stopgap",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Aquatic Alchemist",
+      "Mocking Sprite",
+      "Vantress Transmuter",
+      "Beluna's Gatekeeper",
+      "Succumb to the Cold",
+      "Quick Study",
+      "Gadwick's First Duel",
+      "The Surgical Bay"
+    ]
+  },
+  {
+    "name": "ARTIFACTS",
+    "setCode": "DFT",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Salvation Engine",
+          "probability": 20.0
+        },
+        {
+          "name": "Voyager Glidecar",
+          "probability": 40.0
+        },
+        {
+          "name": "Mendicant Core, Guidelight",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Nesting Bot",
+          "probability": 50.0
+        },
+        {
+          "name": "Aether Syphon",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Spectral Interference",
+          "probability": 50.0
+        },
+        {
+          "name": "Stall Out",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Guidelight Synergist",
+      "Memory Guardian",
+      "Voyager Quickwelder",
+      "Gearseeker Serpent",
+      "Ride's End",
+      "Lightshield Parry",
+      "Voyage Home",
+      "Guidelight Pathmaker",
+      "Midnight Mangler"
+    ]
+  },
+  {
+    "name": "ARTIFACTS",
+    "setCode": "FIN",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Edgar, King of Figaro",
+          "probability": 50.0
+        },
+        {
+          "name": "The Lunar Whale",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Eject",
+          "probability": 50.0
+        },
+        {
+          "name": "Relm's Sketching",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sage's Nouliths",
+          "probability": 50.0
+        },
+        {
+          "name": "Scorpion Sentinel",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Valkyrie Aerial Unit",
+      "Rook Turret",
+      "Ice Flan",
+      "Retrieve the Esper",
+      "Sleep Magic",
+      "Stuck in Summoner's Sanctum",
+      "Cargo Ship",
+      "Thief's Knife",
+      "Lunatic Pandora",
+      "Capital City"
+    ]
+  },
+  {
+    "name": "BATS",
+    "setCode": "BLB",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Zoraline, Cosmos Caller",
+          "probability": 50.0
+        },
+        {
+          "name": "Lunar Convocation",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Star Charter",
+          "probability": 50.0
+        },
+        {
+          "name": "Glidedive Duo",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sinister Monolith",
+          "probability": 50.0
+        },
+        {
+          "name": "Stargaze",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lifecreed Duo",
+          "probability": 50.0
+        },
+        {
+          "name": "Agate-Blade Assassin",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Starseer Mentor",
+      "Moonstone Harbinger",
+      "Moonrise Cleric",
+      "Starlit Soothsayer",
+      "Wax-Wane Witness",
+      "Three Tree Mascot",
+      "Sonar Strike",
+      "Nocturnal Hunger"
+    ]
+  },
+  {
+    "name": "BATTALION",
+    "setCode": "MKM",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Agrus Kos, Spirit of Justice",
+          "probability": 20.0
+        },
+        {
+          "name": "Warleader's Call",
+          "probability": 40.0
+        },
+        {
+          "name": "Aurelia, the Law Above",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Karlov Watchdog",
+          "probability": 50.0
+        },
+        {
+          "name": "Harried Dronesmith",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Wrench",
+          "probability": 50.0
+        },
+        {
+          "name": "Case of the Gateway Express",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Innocent Bystander",
+          "probability": 50.0
+        },
+        {
+          "name": "Red Herring",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Frantic Scapegoat",
+      "Meddling Youths",
+      "Dog Walker",
+      "Seasoned Consultant",
+      "Inside Source",
+      "Defenestrated Phantom",
+      "Lightning Helix",
+      "Felonious Rage"
+    ]
+  },
+  {
+    "name": "BITTERSWEET",
+    "setCode": "WOE",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Virtue of Persistence",
+          "probability": 20.0
+        },
+        {
+          "name": "Gumdrop Poisoner",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Conceited Witch",
+          "probability": 50.0
+        },
+        {
+          "name": "Voracious Vermin",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stingblade Assassin",
+          "probability": 50.0
+        },
+        {
+          "name": "Scream Puff",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Candy Grapple",
+          "probability": 50.0
+        },
+        {
+          "name": "Rowan's Grim Search",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "High Fae Negotiator",
+      "Mintstrosity",
+      "Mintstrosity",
+      "Sweettooth Witch",
+      "Taken by Nightmares",
+      "Back for Seconds",
+      "The Witch's Vanity",
+      "The Dross Pits"
+    ]
+  },
+  {
+    "name": "BOLD",
+    "setCode": "FIN",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Coral Sword",
+          "probability": 50.0
+        },
+        {
+          "name": "Samurai's Katana",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Self-Destruct",
+          "probability": 50.0
+        },
+        {
+          "name": "Lion Heart",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Suplex",
+          "probability": 50.0
+        },
+        {
+          "name": "Thunder Magic",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Haste Magic",
+          "probability": 50.0
+        },
+        {
+          "name": "Laughing Mad",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Raubahn, Bull of Ala Mhigo",
+      "Barret Wallace",
+      "Freya Crescent",
+      "Item Shopkeep",
+      "Hill Gigas",
+      "Sidequest: Play Blitzball",
+      "Red Mage's Rapier",
+      "Warrior's Sword",
+      "Capital City"
+    ]
+  },
+  {
+    "name": "CASTING",
+    "setCode": "OTJ",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Geralf, the Fleshwright",
+          "probability": 20.0
+        },
+        {
+          "name": "Archmage's Newt",
+          "probability": 40.0
+        },
+        {
+          "name": "The Key to the Vault",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Spring Splasher",
+          "probability": 50.0
+        },
+        {
+          "name": "Sterling Hound",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Failed Fording",
+          "probability": 50.0
+        },
+        {
+          "name": "Phantom Interference",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Take the Fall",
+          "probability": 50.0
+        },
+        {
+          "name": "Jailbreak Scheme",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Shackle Slinger",
+      "Outlaw Stitcher",
+      "Slickshot Lockpicker",
+      "Visage Bandit",
+      "Razzle-Dazzler",
+      "Loan Shark",
+      "This Town Ain't Big Enough",
+      "Out Cold"
+    ]
+  },
+  {
+    "name": "CATS",
+    "setCode": "FDN",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Arahbo, the First Fang",
+          "probability": 50.0
+        },
+        {
+          "name": "Regal Caracal",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Prayer of Binding",
+          "probability": 50.0
+        },
+        {
+          "name": "Valorous Stance",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Joust Through",
+          "probability": 50.0
+        },
+        {
+          "name": "Deadly Riposte",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Helpful Hunter",
+          "probability": 50.0
+        },
+        {
+          "name": "Felidar Cub",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Ingenious Leonin",
+      "Dawnwing Marshal",
+      "Savannah Lions",
+      "Ajani's Pridemate",
+      "Prideful Parent",
+      "Felidar Savior",
+      "Claws Out",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "CATS",
+    "setCode": "DFT",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Basri, Tomorrow's Champion",
+          "probability": 50.0
+        },
+        {
+          "name": "Lifecraft Engine",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Gallant Strike",
+          "probability": 50.0
+        },
+        {
+          "name": "Detention Chariot",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Roadside Assistance",
+          "probability": 50.0
+        },
+        {
+          "name": "Cloudspire Captain",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Air Response Unit",
+          "probability": 50.0
+        },
+        {
+          "name": "Patchwork Banner",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lotusguard Disciple",
+          "probability": 50.0
+        },
+        {
+          "name": "Daring Mechanic",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Gloryheath Lynx",
+      "Pride of the Road",
+      "Leonin Surveyor",
+      "Walking Sarcophagus",
+      "Brightfield Mustang",
+      "Spotcycle Scouter",
+      "Skybox Ferry"
+    ]
+  },
+  {
+    "name": "CELEBRATION",
+    "setCode": "WOE",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Raging Battle Mouse",
+          "probability": 50.0
+        },
+        {
+          "name": "Goddric, Cloaked Reveler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ratcatcher Trainee",
+          "probability": 50.0
+        },
+        {
+          "name": "Skewer Slinger",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Redcap Thief",
+          "probability": 50.0
+        },
+        {
+          "name": "Merry Bards",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Frantic Firebolt",
+          "probability": 50.0
+        },
+        {
+          "name": "Cut In",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Embereth Veteran",
+      "Belligerent of the Ball",
+      "Grand Ball Guest",
+      "Edgewall Pack",
+      "Torch the Tower",
+      "Korvold and the Noble Thief",
+      "Bespoke Battlegarb",
+      "The Autonomous Furnace"
+    ]
+  },
+  {
+    "name": "CHARMED",
+    "setCode": "WOE",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Virtue of Loyalty",
+          "probability": 20.0
+        },
+        {
+          "name": "Spellbook Vendor",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Rimefur Reindeer",
+          "probability": 50.0
+        },
+        {
+          "name": "Besotted Knight",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Break the Spell",
+          "probability": 50.0
+        },
+        {
+          "name": "Return Triumphant",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Archon's Glory",
+          "probability": 50.0
+        },
+        {
+          "name": "Kellan's Lightblades",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Cursed Courtier",
+      "Knight of Doves",
+      "Dutiful Griffin",
+      "Slumbering Keepguard",
+      "The Princess Takes Flight",
+      "Hopeful Vigil",
+      "Cooped Up",
+      "The Fair Basilica"
+    ]
+  },
+  {
+    "name": "CHOCOBO",
+    "setCode": "FIN",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Traveling Chocobo",
+          "probability": 20.0
+        },
+        {
+          "name": "Sazh Katzroy",
+          "probability": 40.0
+        },
+        {
+          "name": "Bartz and Boko",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Reach the Horizon",
+          "probability": 50.0
+        },
+        {
+          "name": "Summon: Fenrir",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Commune with Beavers",
+          "probability": 50.0
+        },
+        {
+          "name": "Town Greeter",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sazh's Chocobo",
+      "Summon: Fat Chocobo",
+      "Balamb T-Rexaur",
+      "Prishe's Wanderings",
+      "Gysahl Greens",
+      "Chocobo Kick",
+      "Sidequest: Raise a Chocobo",
+      "Ride the Shoopuf",
+      "Chocobo Racetrack",
+      "Capital City"
+    ]
+  },
+  {
+    "name": "CRAFTING",
+    "setCode": "LCI",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ojer Taq, Deepest Foundation",
+          "probability": 20.0
+        },
+        {
+          "name": "Unstable Glyphbridge",
+          "probability": 40.0
+        },
+        {
+          "name": "Threefold Thunderhulk",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Kinjalli's Dawnrunner",
+          "probability": 50.0
+        },
+        {
+          "name": "Mischievous Pup",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Adaptive Gemguard",
+          "probability": 50.0
+        },
+        {
+          "name": "Oltec Archaeologists",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Oteclan Landmark",
+          "probability": 50.0
+        },
+        {
+          "name": "Deconstruction Hammer",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Market Gnome",
+      "Attentive Sunscribe",
+      "Oltec Cloud Guard",
+      "Petrify",
+      "Clay-Fired Bricks",
+      "Spring-Loaded Sawblades",
+      "Tinker's Tote",
+      "Hidden Courtyard"
+    ]
+  },
+  {
+    "name": "CRIMES",
+    "setCode": "OTJ",
+    "colors": [
+      "B",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Gisa, the Hellraiser",
+          "probability": 20.0
+        },
+        {
+          "name": "Duelist of the Mind",
+          "probability": 40.0
+        },
+        {
+          "name": "Vadmir, New Blood",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Spring Splasher",
+          "probability": 50.0
+        },
+        {
+          "name": "Desperate Bloodseeker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Raven of Fell Omens",
+          "probability": 50.0
+        },
+        {
+          "name": "Slickshot Vault-Buster",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Skulduggery",
+          "probability": 50.0
+        },
+        {
+          "name": "Desert's Due",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Lazav, Familiar Stranger",
+      "Blood Hustler",
+      "Marauding Sphinx",
+      "Rattleback Apothecary",
+      "Harrier Strix",
+      "Consuming Ashes",
+      "Intimidation Campaign",
+      "Soured Springs"
+    ]
+  },
+  {
+    "name": "DELIRIUM",
+    "setCode": "DSK",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "The Rollercrusher Ride",
+          "probability": 20.0
+        },
+        {
+          "name": "Fear of Missing Out",
+          "probability": 40.0
+        },
+        {
+          "name": "Enduring Courage",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Irreverent Gremlin",
+          "probability": 50.0
+        },
+        {
+          "name": "Piggy Bank",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Glassworks // Shattered Yard",
+          "probability": 50.0
+        },
+        {
+          "name": "Grab the Prize",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Scorching Dragonfire",
+          "probability": 50.0
+        },
+        {
+          "name": "Bear Trap",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Fear of Burning Alive",
+      "Fear of Being Hunted",
+      "Hand That Feeds",
+      "Ripchain Razorkin",
+      "Bedhead Beastie",
+      "Violent Urge",
+      "Impossible Inferno",
+      "Vengeful Possession"
+    ]
+  },
+  {
+    "name": "DEPTHS",
+    "setCode": "LCI",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Aclazotz, Deepest Betrayal",
+          "probability": 20.0
+        },
+        {
+          "name": "Starving Revenant",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Deep-Cavern Bat",
+          "probability": 50.0
+        },
+        {
+          "name": "Soulcoil Viper",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bloodthorn Flail",
+          "probability": 50.0
+        },
+        {
+          "name": "Canonized in Blood",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dead Weight",
+          "probability": 50.0
+        },
+        {
+          "name": "Tithing Blade",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Stinging Cave Crawler",
+      "Echo of Dusk",
+      "Deathcap Marionette",
+      "Screaming Phantom",
+      "Primordial Gnawer",
+      "Rampaging Spiketail",
+      "Bitter Triumph",
+      "Hidden Necropolis"
+    ]
+  },
+  {
+    "name": "DESCENT",
+    "setCode": "LCI",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "The Mycotyrant",
+          "probability": 20.0
+        },
+        {
+          "name": "Corpses of the Lost",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Visage of Dread",
+          "probability": 50.0
+        },
+        {
+          "name": "Jade Seedstones",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Deathcap Marionette",
+          "probability": 50.0
+        },
+        {
+          "name": "Screaming Phantom",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Another Chance",
+          "probability": 50.0
+        },
+        {
+          "name": "In the Presence of Ages",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hidden Necropolis",
+          "probability": 50.0
+        },
+        {
+          "name": "Hidden Nursery",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Cenote Scout",
+      "Akawalli, the Seething Tower",
+      "Chupacabra Echo",
+      "Basking Capybara",
+      "Mineshaft Spider",
+      "Malamet Veteran",
+      "Dead Weight"
+    ]
+  },
+  {
+    "name": "DETECTIVES",
+    "setCode": "MKM",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Alquist Proft, Master Sleuth",
+          "probability": 20.0
+        },
+        {
+          "name": "Ezrim, Agency Chief",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Projektor Inspector",
+          "probability": 50.0
+        },
+        {
+          "name": "Inside Source",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Griffnaut Tracker",
+          "probability": 50.0
+        },
+        {
+          "name": "Cold Case Cracker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Auspicious Arrival",
+          "probability": 50.0
+        },
+        {
+          "name": "Out Cold",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Perimeter Enforcer",
+      "Exit Specialist",
+      "Private Eye",
+      "Novice Inspector",
+      "Granite Witness",
+      "No More Lies",
+      "Burden of Proof",
+      "Thinking Cap"
+    ]
+  },
+  {
+    "name": "DEVIOUS",
+    "setCode": "FIN",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ardyn, the Usurper",
+          "probability": 50.0
+        },
+        {
+          "name": "Ninja's Blades",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Reno and Rude",
+          "probability": 50.0
+        },
+        {
+          "name": "Tonberry",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hecteyes",
+          "probability": 50.0
+        },
+        {
+          "name": "Undercity Dire Rat",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Cornered by Black Mages",
+          "probability": 50.0
+        },
+        {
+          "name": "Sephiroth's Intervention",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Fang, Fearless l'Cie",
+      "Shambling Cie'th",
+      "Shinra Reinforcements",
+      "Malboro",
+      "Fight On!",
+      "Poison the Waters",
+      "Resentful Revelation",
+      "Sidequest: Hunt the Mark",
+      "Capital City"
+    ]
+  },
+  {
+    "name": "DINOSAURS",
+    "setCode": "LCI",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Bonehoard Dracosaur",
+          "probability": 20.0
+        },
+        {
+          "name": "Trumpeting Carnosaur",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Triumphant Chomp",
+          "probability": 50.0
+        },
+        {
+          "name": "Dreadmaw's Ire",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hotfoot Gnome",
+          "probability": 50.0
+        },
+        {
+          "name": "Plundering Pirate",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Etali's Favor",
+          "probability": 50.0
+        },
+        {
+          "name": "Daring Discovery",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Belligerent Yearling",
+      "Scytheclaw Raptor",
+      "Burning Sun Cavalry",
+      "Dinotomaton",
+      "Seismic Monstrosaur",
+      "Rumbling Rockslide",
+      "Saheeli's Lattice",
+      "Hidden Volcano"
+    ]
+  },
+  {
+    "name": "DISCARD",
+    "setCode": "TDM",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Stormscale Scion",
+          "probability": 20.0
+        },
+        {
+          "name": "Cori-Steel Cutter",
+          "probability": 40.0
+        },
+        {
+          "name": "Stadium Headliner",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Equilibrium Adept",
+          "probability": 50.0
+        },
+        {
+          "name": "Zurgo's Vanguard",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Breaching Dragonstorm",
+          "probability": 50.0
+        },
+        {
+          "name": "Iridescent Tiger",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Devoted Duelist",
+          "probability": 50.0
+        },
+        {
+          "name": "Jeskai Devotee",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Shock Brigade",
+          "probability": 50.0
+        },
+        {
+          "name": "Underfoot Underdogs",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Unsparing Boltcaster",
+      "Sunset Strikemaster",
+      "Stormshriek Feral",
+      "Rescue Leopard",
+      "Meticulous Artisan",
+      "Molten Exhale",
+      "War Effort",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "DISGUISED",
+    "setCode": "MKM",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Anzrag, the Quake-Mole",
+          "probability": 20.0
+        },
+        {
+          "name": "Pyrotechnic Performer",
+          "probability": 40.0
+        },
+        {
+          "name": "Yarus, Roar of the Old Gods",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Culvert Ambusher",
+          "probability": 50.0
+        },
+        {
+          "name": "Bolrac-Clan Basher",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Vengeful Creeper",
+          "probability": 50.0
+        },
+        {
+          "name": "Offender at Large",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Pick Your Poison",
+          "probability": 50.0
+        },
+        {
+          "name": "Fanatical Strength",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Tin Street Gossip",
+      "Goblin Maskmaker",
+      "Nervous Gardener",
+      "Tunnel Tipster",
+      "Riftburst Hellion",
+      "Hard-Hitting Question",
+      "Break Out",
+      "Torch the Witness"
+    ]
+  },
+  {
+    "name": "DRAWING",
+    "setCode": "FDN",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Homunculus Horde",
+          "probability": 50.0
+        },
+        {
+          "name": "Arcanis the Omnipotent",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Storm Fleet Spy",
+          "probability": 50.0
+        },
+        {
+          "name": "Skyship Buccaneer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Refute",
+          "probability": 50.0
+        },
+        {
+          "name": "Into the Roil",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Think Twice",
+          "probability": 50.0
+        },
+        {
+          "name": "Quick Study",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Spectral Sailor",
+      "Mischievous Mystic",
+      "Clinquant Skymage",
+      "Erudite Wizard",
+      "Strix Lookout",
+      "Arcane Epiphany",
+      "Eaten by Piranhas",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "DRESS-UP",
+    "setCode": "WOE",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Yenna, Redtooth Regent",
+          "probability": 50.0
+        },
+        {
+          "name": "Archon of the Wild Rose",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Woodland Acolyte",
+          "probability": 50.0
+        },
+        {
+          "name": "Tanglespan Lookout",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Troublemaker Ouphe",
+          "probability": 50.0
+        },
+        {
+          "name": "Armory Mice",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Tuinvale Guide",
+          "probability": 50.0
+        },
+        {
+          "name": "Besotted Knight",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "The Hunter Maze",
+          "probability": 50.0
+        },
+        {
+          "name": "The Fair Basilica",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Syr Armont, the Redeemer",
+      "Toadstool Admirer",
+      "Unassuming Sage",
+      "Redtooth Genealogist",
+      "Royal Treatment",
+      "Graceful Takedown",
+      "Cooped Up"
+    ]
+  },
+  {
+    "name": "EERIE",
+    "setCode": "DSK",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Mirror Room // Fractured Realm",
+          "probability": 20.0
+        },
+        {
+          "name": "Enduring Curiosity",
+          "probability": 40.0
+        },
+        {
+          "name": "Entity Tracker",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Fear of Impostors",
+          "probability": 50.0
+        },
+        {
+          "name": "Fear of Failed Tests",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stalked Researcher",
+          "probability": 50.0
+        },
+        {
+          "name": "Creeping Peeper",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Tunnel Surveyor",
+          "probability": 50.0
+        },
+        {
+          "name": "Underwater Tunnel // Slimy Aquarium",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Unwilling Vessel",
+      "Fear of Falling",
+      "Fear of Isolation",
+      "Clammy Prowler",
+      "Erratic Apparition",
+      "Daggermaw Megalodon",
+      "Bottomless Pool // Locker Room",
+      "Underwater Tunnel // Slimy Aquarium"
+    ]
+  },
+  {
+    "name": "ELUSIVE",
+    "setCode": "MKM",
+    "colors": [
+      "B",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Lazav, Wearer of Faces",
+          "probability": 50.0
+        },
+        {
+          "name": "Drag the Canal",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Furtive Courier",
+          "probability": 50.0
+        },
+        {
+          "name": "Undercity Eliminator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Curious Cadaver",
+          "probability": 50.0
+        },
+        {
+          "name": "Sudden Setback",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Jaded Analyst",
+          "probability": 50.0
+        },
+        {
+          "name": "Unscrupulous Agent",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Mistway Spy",
+      "Faerie Snoop",
+      "Hotshot Investigators",
+      "Reasonable Doubt",
+      "Deduce",
+      "Murder",
+      "Curious Inquiry",
+      "Coerced to Kill"
+    ]
+  },
+  {
+    "name": "ELVES",
+    "setCode": "FDN",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Elvish Archdruid",
+          "probability": 50.0
+        },
+        {
+          "name": "Preposterous Proportions",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dwynen, Gilt-Leaf Daen",
+          "probability": 50.0
+        },
+        {
+          "name": "Imperious Perfect",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Beast-Kin Ranger",
+          "probability": 50.0
+        },
+        {
+          "name": "Wildheart Invoker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Elfsworn Giant",
+          "probability": 50.0
+        },
+        {
+          "name": "Tajuru Pathwarden",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Reclamation Sage",
+      "Dwynen's Elite",
+      "Llanowar Elves",
+      "Druid of the Cowl",
+      "Thornweald Archer",
+      "Snakeskin Veil",
+      "Bite Down",
+      "Felling Blow"
+    ]
+  },
+  {
+    "name": "ENCOUNTER",
+    "setCode": "TDM",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Warden of the Grove",
+          "probability": 50.0
+        },
+        {
+          "name": "Lasyd Prowler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Inspirited Vanguard",
+          "probability": 50.0
+        },
+        {
+          "name": "Rainveil Rejuvenator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sagu Pummeler",
+          "probability": 50.0
+        },
+        {
+          "name": "Dusyut Earthcarver",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Undergrowth Leopard",
+          "probability": 50.0
+        },
+        {
+          "name": "Ainok Wayfarer",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sage of the Fang",
+      "Formation Breaker",
+      "Trade Route Envoy",
+      "Champion of Dusan",
+      "Sagu Wildling",
+      "Snakeskin Veil",
+      "Synchronized Charge",
+      "Knockout Maneuver",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "ENTERING",
+    "setCode": "OTJ",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Another Round",
+          "probability": 50.0
+        },
+        {
+          "name": "Fortune, Loyal Steed",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sterling Supplier",
+          "probability": 50.0
+        },
+        {
+          "name": "Stagecoach Security",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Holy Cow",
+          "probability": 50.0
+        },
+        {
+          "name": "Vengeful Townsfolk",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Oasis Gardener",
+          "probability": 50.0
+        },
+        {
+          "name": "Silver Deputy",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Prosperity Tycoon",
+      "Sheriff of Safe Passage",
+      "Nurturing Pixie",
+      "Armored Armadillo",
+      "Celebrity Fencer",
+      "Getaway Glamer",
+      "Take Up the Shield",
+      "Lassoed by the Law"
+    ]
+  },
+  {
+    "name": "EVIDENCE",
+    "setCode": "MKM",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Steamcore Scholar",
+          "probability": 50.0
+        },
+        {
+          "name": "Doppelgang",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Forensic Researcher",
+          "probability": 50.0
+        },
+        {
+          "name": "Sample Collector",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Candlestick",
+          "probability": 50.0
+        },
+        {
+          "name": "Flotsam // Jetsam",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Crimestopper Sprite",
+          "probability": 50.0
+        },
+        {
+          "name": "Loxodon Eavesdropper",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Evidence Examiner",
+      "Surveillance Monitor",
+      "Vitu-Ghazi Inspector",
+      "Topiary Panther",
+      "Undercover Crocodelf",
+      "Repulsive Mutation",
+      "Unauthorized Exit",
+      "Bite Down on Crime"
+    ]
+  },
+  {
+    "name": "EXHAUSTED",
+    "setCode": "DFT",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Afterburner Expert",
+          "probability": 50.0
+        },
+        {
+          "name": "Sita Varma, Masked Racer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Sabotage Strategist",
+          "probability": 50.0
+        },
+        {
+          "name": "Greenbelt Guardian",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Skystreak Engineer",
+          "probability": 50.0
+        },
+        {
+          "name": "Stampeding Scurryfoot",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Camera Launcher",
+          "probability": 50.0
+        },
+        {
+          "name": "Hazard of the Dunes",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Skyserpent Seeker",
+      "Elvish Refueler",
+      "Keen Buccaneer",
+      "Trip Up",
+      "Run Over",
+      "Bestow Greatness",
+      "Rangers' Aetherhive",
+      "Rangers' Refueler"
+    ]
+  },
+  {
+    "name": "EXPLORERS",
+    "setCode": "LCI",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Deepfathom Echo",
+          "probability": 50.0
+        },
+        {
+          "name": "Jadelight Spelunker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Merfolk Cave-Diver",
+          "probability": 50.0
+        },
+        {
+          "name": "Self-Reflection",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Glowcap Lantern",
+          "probability": 50.0
+        },
+        {
+          "name": "Explorer's Cache",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Over the Edge",
+          "probability": 50.0
+        },
+        {
+          "name": "Brackish Blunder",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hidden Nursery",
+          "probability": 50.0
+        },
+        {
+          "name": "Hidden Cataract",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Nicanzil, Current Conductor",
+      "Seeker of Sunlight",
+      "River Herald Scout",
+      "Waterwind Scout",
+      "Pathfinding Axejaw",
+      "Huatli's Final Strike",
+      "Twists and Turns"
+    ]
+  },
+  {
+    "name": "EXPLORING",
+    "setCode": "BLB",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Lumra, Bellow of the Woods",
+          "probability": 20.0
+        },
+        {
+          "name": "Tender Wildguide",
+          "probability": 40.0
+        },
+        {
+          "name": "Fecund Greenshell",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Clifftop Lookout",
+          "probability": 50.0
+        },
+        {
+          "name": "Brambleguard Veteran",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stickytongue Sentinel",
+          "probability": 50.0
+        },
+        {
+          "name": "Bakersbane Duo",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rust-Shield Rampager",
+          "probability": 50.0
+        },
+        {
+          "name": "Treeguard Duo",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Galewind Moose",
+      "Hivespine Wolverine",
+      "Bark-Knuckle Boxer",
+      "Three Tree Rootweaver",
+      "Pawpatch Formation",
+      "Peerless Recycling",
+      "Hunter's Talent",
+      "Heaped Harvest"
+    ]
+  },
+  {
+    "name": "FAERIES",
+    "setCode": "WOE",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Talion, the Kindly Lord",
+          "probability": 20.0
+        },
+        {
+          "name": "Talion's Messenger",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Faerie Dreamthief",
+          "probability": 50.0
+        },
+        {
+          "name": "Picklock Prankster",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Spellscorn Coven",
+          "probability": 50.0
+        },
+        {
+          "name": "Dream Spoilers",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Feed the Cauldron",
+          "probability": 50.0
+        },
+        {
+          "name": "Misleading Motes",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "The Surgical Bay",
+          "probability": 50.0
+        },
+        {
+          "name": "The Dross Pits",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Obyra, Dreaming Duelist",
+      "Barrow Naughty",
+      "Mocking Sprite",
+      "Obyra's Attendants",
+      "Faerie Fencing",
+      "Spell Stutter",
+      "Into the Fae Court"
+    ]
+  },
+  {
+    "name": "FLYERS",
+    "setCode": "FDN",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Valkyrie's Call",
+          "probability": 20.0
+        },
+        {
+          "name": "High Fae Trickster",
+          "probability": 40.0
+        },
+        {
+          "name": "Celestial Armor",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Skyship Buccaneer",
+          "probability": 50.0
+        },
+        {
+          "name": "Clinquant Skymage",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Kitesail Corsair",
+          "probability": 50.0
+        },
+        {
+          "name": "Strix Lookout",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Luminous Rebuke",
+          "probability": 50.0
+        },
+        {
+          "name": "Pacifism",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Empyrean Eagle",
+      "Cloudblazer",
+      "Leonin Skyhunter",
+      "Spectral Sailor",
+      "Inspiring Overseer",
+      "Faebloom Trick",
+      "Fleeting Flight",
+      "Azorius Guildgate"
+    ]
+  },
+  {
+    "name": "FORENSICS",
+    "setCode": "MKM",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Festerleech",
+          "probability": 50.0
+        },
+        {
+          "name": "Polygraph Orb",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Chalk Outline",
+          "probability": 50.0
+        },
+        {
+          "name": "Soul Enervation",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Topiary Panther",
+          "probability": 50.0
+        },
+        {
+          "name": "Basilica Stalker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Extract a Confession",
+          "probability": 50.0
+        },
+        {
+          "name": "Macabre Reconstruction",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Izoni, Center of the Web",
+      "Kraul Whipcracker",
+      "Leering Onlooker",
+      "Rubblebelt Maverick",
+      "Rakish Scoundrel",
+      "Rot Farm Mortipede",
+      "Bite Down on Crime",
+      "Insidious Roots"
+    ]
+  },
+  {
+    "name": "FREEZING",
+    "setCode": "WOE",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Hylda of the Icy Crown",
+          "probability": 20.0
+        },
+        {
+          "name": "Hylda's Crown of Winter",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Bitter Chill",
+          "probability": 50.0
+        },
+        {
+          "name": "Threadbind Clique",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Protective Parents",
+          "probability": 50.0
+        },
+        {
+          "name": "Stockpiling Celebrant",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Plunge into Winter",
+          "probability": 50.0
+        },
+        {
+          "name": "Freeze in Place",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "The Fair Basilica",
+          "probability": 50.0
+        },
+        {
+          "name": "The Surgical Bay",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Icewrought Sentry",
+      "Sharae of Numbing Depths",
+      "Snaremaster Sprite",
+      "Frostbridge Guard",
+      "Living Lectern",
+      "Charmed Clothier",
+      "Solitary Sanctuary"
+    ]
+  },
+  {
+    "name": "FROGS",
+    "setCode": "BLB",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Clement, the Worrywort",
+          "probability": 50.0
+        },
+        {
+          "name": "Dreamdew Entrancer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Splash Lasher",
+          "probability": 50.0
+        },
+        {
+          "name": "Run Away Together",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bellowing Crier",
+          "probability": 50.0
+        },
+        {
+          "name": "Waterspout Warden",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Skyskipper Duo",
+          "probability": 50.0
+        },
+        {
+          "name": "Treeguard Duo",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Lilysplash Mentor",
+      "Long River Lurker",
+      "Three Tree Scribe",
+      "Pond Prophet",
+      "Sunshower Druid",
+      "Stickytongue Sentinel",
+      "High Stride",
+      "Polliwallop"
+    ]
+  },
+  {
+    "name": "FRONTIER",
+    "setCode": "OTJ",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Bristly Bill, Spine Sower",
+          "probability": 20.0
+        },
+        {
+          "name": "Ornery Tumblewagg",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Outcaster Greenblade",
+          "probability": 50.0
+        },
+        {
+          "name": "Map the Frontier",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ankle Biter",
+          "probability": 50.0
+        },
+        {
+          "name": "Voracious Varmint",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Cactarantula",
+          "probability": 50.0
+        },
+        {
+          "name": "Dance of the Tumbleweeds",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Raucous Entertainer",
+      "Aloe Alchemist",
+      "Giant Beaver",
+      "Freestrider Commando",
+      "Spinewoods Paladin",
+      "Trash the Town",
+      "Betrayal at the Vault",
+      "Throw from the Saddle"
+    ]
+  },
+  {
+    "name": "FUELED-UP",
+    "setCode": "DFT",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Thopter Fabricator",
+          "probability": 50.0
+        },
+        {
+          "name": "Vnwxt, Verbose Host",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Scrounging Skyray",
+          "probability": 50.0
+        },
+        {
+          "name": "Slick Imitator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Trip Up",
+          "probability": 50.0
+        },
+        {
+          "name": "Flood the Engine",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Nimble Thopterist",
+          "probability": 50.0
+        },
+        {
+          "name": "Glitch Ghost Surveyor",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Guidelight Optimizer",
+          "probability": 50.0
+        },
+        {
+          "name": "Skystreak Engineer",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Caelorna, Coral Tyrant",
+      "Diversion Unit",
+      "Howler's Heavy",
+      "Keen Buccaneer",
+      "Glitch Ghost Surveyor",
+      "Aether Syphon",
+      "Hulldrifter"
+    ]
+  },
+  {
+    "name": "GADGETS",
+    "setCode": "MKM",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Forensic Gadgeteer",
+          "probability": 50.0
+        },
+        {
+          "name": "Krenko, Baron of Tin Street",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Reckless Detective",
+          "probability": 50.0
+        },
+        {
+          "name": "Crime Novelist",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Case of the Filched Falcon",
+          "probability": 50.0
+        },
+        {
+          "name": "Knife",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bubble Smuggler",
+          "probability": 50.0
+        },
+        {
+          "name": "Gearbane Orangutan",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Gleaming Geardrake",
+      "Red Herring",
+      "Gadget Technician",
+      "Benthic Criminologists",
+      "Galvanize",
+      "Suspicious Detonation",
+      "Dramatic Accusation",
+      "Detective's Satchel"
+    ]
+  },
+  {
+    "name": "GOBLIN",
+    "setCode": "FDN",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Dropkick Bomber",
+          "probability": 50.0
+        },
+        {
+          "name": "Krenko, Mob Boss",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Obliterating Bolt",
+          "probability": 50.0
+        },
+        {
+          "name": "Abrade",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Goblin Smuggler",
+          "probability": 50.0
+        },
+        {
+          "name": "Raging Redcap",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sure Strike",
+          "probability": 50.0
+        },
+        {
+          "name": "Fanatical Firebrand",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Volley Veteran",
+      "Fiery Annihilation",
+      "Goblin Surprise",
+      "Goblin Negotiation",
+      "Dragon Fodder",
+      "Goblin Oriflamme",
+      "Impact Tremors",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "GRAVEYARD",
+    "setCode": "OTJ",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Tinybones, the Pickpocket",
+          "probability": 20.0
+        },
+        {
+          "name": "Kaervek, the Punisher",
+          "probability": 40.0
+        },
+        {
+          "name": "Pitiless Carnage",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Boneyard Desecrator",
+          "probability": 50.0
+        },
+        {
+          "name": "Blacksnag Buzzard",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Vault Plunderer",
+          "probability": 50.0
+        },
+        {
+          "name": "Corrupted Conviction",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Fake Your Own Death",
+          "probability": 50.0
+        },
+        {
+          "name": "Doomed Dissenter",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Hollow Marauder",
+      "Unscrupulous Contractor",
+      "Rictus Robber",
+      "Forsaken Miner",
+      "Nezumi Linkbreaker",
+      "Unfortunate Accident",
+      "Desert's Due",
+      "Mourner's Surprise"
+    ]
+  },
+  {
+    "name": "GRAVEYARD",
+    "setCode": "DFT",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Bloodghast",
+          "probability": 50.0
+        },
+        {
+          "name": "Aatchik, Emerald Radian",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Wretched Doll",
+          "probability": 50.0
+        },
+        {
+          "name": "Carrion Cruiser",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Migrating Ketradon",
+          "probability": 50.0
+        },
+        {
+          "name": "Spin Out",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Run Over",
+          "probability": 50.0
+        },
+        {
+          "name": "Grim Bauble",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Wickerfolk Indomitable",
+      "Ooze Patrol",
+      "Deathless Pilot",
+      "Chitin Gravestalker",
+      "Wreckage Wickerfolk",
+      "Pothole Mole",
+      "Broodheart Engine",
+      "Thundering Broodwagon"
+    ]
+  },
+  {
+    "name": "GRAVEYARD",
+    "setCode": "TDM",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Sidisi, Regent of the Mire",
+          "probability": 50.0
+        },
+        {
+          "name": "Avenger of the Fallen",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Wail of War",
+          "probability": 50.0
+        },
+        {
+          "name": "Desperate Measures",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Strategic Betrayal",
+          "probability": 50.0
+        },
+        {
+          "name": "Salt Road Skirmish",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Feral Deathgorger",
+          "probability": 50.0
+        },
+        {
+          "name": "Adorned Crocodile",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Cruel Truths",
+          "probability": 50.0
+        },
+        {
+          "name": "Aggressive Negotiations",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Gurmag Rakshasa",
+      "Unrooted Ancestor",
+      "Hundred-Battle Veteran",
+      "Alchemist's Assistant",
+      "Unburied Earthcarver",
+      "Abzan Devotee",
+      "Worthy Cost",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "GROWTH",
+    "setCode": "FDN",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Sylvan Scavenging",
+          "probability": 33.0
+        },
+        {
+          "name": "Flamewake Phoenix",
+          "probability": 33.0
+        },
+        {
+          "name": "Halana and Alena, Partners",
+          "probability": 34.0
+        }
+      ],
+      [
+        {
+          "name": "Bolt Bend",
+          "probability": 50.0
+        },
+        {
+          "name": "Bulk Up",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Treetop Snarespinner",
+          "probability": 50.0
+        },
+        {
+          "name": "Ambush Wolf",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sure Strike",
+          "probability": 50.0
+        },
+        {
+          "name": "Giant Growth",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Ruby, Daring Tracker",
+      "Elvish Regrower",
+      "Nessian Hornbeetle",
+      "Battle-Rattle Shaman",
+      "Courageous Goblin",
+      "Gnarlid Colony",
+      "Obliterating Bolt",
+      "Gruul Guildgate"
+    ]
+  },
+  {
+    "name": "HARES",
+    "setCode": "FDN",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Raise the Past",
+          "probability": 50.0
+        },
+        {
+          "name": "Make Your Move",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Skyknight Squire",
+          "probability": 50.0
+        },
+        {
+          "name": "Banishing Light",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Syr Alin, the Lion's Claw",
+          "probability": 50.0
+        },
+        {
+          "name": "Mischievous Pup",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Crusader of Odric",
+          "probability": 50.0
+        },
+        {
+          "name": "Squad Rallier",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Dauntless Veteran",
+      "Hare Apparent",
+      "Hare Apparent",
+      "Hare Apparent",
+      "Hare Apparent",
+      "Hare Apparent",
+      "Hare Apparent",
+      "Hare Apparent",
+      "Make a Stand"
+    ]
+  },
+  {
+    "name": "HUNGRY",
+    "setCode": "WOE",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Bramble Familiar",
+          "probability": 50.0
+        },
+        {
+          "name": "Elvish Archivist",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Skybeast Tracker",
+          "probability": 50.0
+        },
+        {
+          "name": "Beanstalk Wurm",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Leaping Ambush",
+          "probability": 50.0
+        },
+        {
+          "name": "Titanic Growth",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Brave the Wilds",
+          "probability": 50.0
+        },
+        {
+          "name": "Return from the Wilds",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Tough Cookie",
+      "Agatha's Champion",
+      "Hollow Scavenger",
+      "Hamlet Glutton",
+      "Curse of the Werefox",
+      "Welcome to Sweettooth",
+      "Night of the Sweets' Revenge",
+      "The Hunter Maze"
+    ]
+  },
+  {
+    "name": "JESKAI",
+    "setCode": "TDM",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Shiko, Paragon of the Way",
+          "probability": 20.0
+        },
+        {
+          "name": "Narset, Jeskai Waymaster",
+          "probability": 40.0
+        },
+        {
+          "name": "Flamehold Grappler",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Overwhelming Surge",
+          "probability": 50.0
+        },
+        {
+          "name": "Fresh Start",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Wayspeaker Bodyguard",
+          "probability": 50.0
+        },
+        {
+          "name": "Equilibrium Adept",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ringing Strike Mastery",
+          "probability": 50.0
+        },
+        {
+          "name": "Stormplain Detainment",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Humbling Elder",
+          "probability": 50.0
+        },
+        {
+          "name": "Lightfoot Technique",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Cori Mountain Stalwart",
+      "Fleeting Effigy",
+      "Devoted Duelist",
+      "Narset's Rebuke",
+      "Riverwheel Sweep",
+      "Wingspan Stride",
+      "Jeskai Monument",
+      "Mystic Monastery"
+    ]
+  },
+  {
+    "name": "LIFE",
+    "setCode": "DSK",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Meathook Massacre II",
+          "probability": 20.0
+        },
+        {
+          "name": "Enduring Tenacity",
+          "probability": 40.0
+        },
+        {
+          "name": "Unholy Annex // Ritual Chamber",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Let's Play a Game",
+          "probability": 50.0
+        },
+        {
+          "name": "Killer's Mask",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Winter's Intervention",
+          "probability": 50.0
+        },
+        {
+          "name": "Give In to Violence",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Fanatic of the Harrowing",
+          "probability": 50.0
+        },
+        {
+          "name": "Cracked Skull",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Dashing Bloodsucker",
+      "Osseous Sticktwister",
+      "Balemurk Leech",
+      "Fear of Lost Teeth",
+      "Spectral Snatcher",
+      "Withering Torment",
+      "Commune with Evil",
+      "Derelict Attic // Widow's Walk"
+    ]
+  },
+  {
+    "name": "LIZARDS",
+    "setCode": "BLB",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Dragonhawk, Fate's Tempest",
+          "probability": 20.0
+        },
+        {
+          "name": "Hearthborn Battler",
+          "probability": 40.0
+        },
+        {
+          "name": "Valley Flamecaller",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Quaketusk Boar",
+          "probability": 50.0
+        },
+        {
+          "name": "Teapot Slinger",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Blooming Blast",
+          "probability": 50.0
+        },
+        {
+          "name": "Playful Shove",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Raccoon Rallier",
+          "probability": 50.0
+        },
+        {
+          "name": "Steampath Charger",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Reptilian Recruiter",
+      "Flamecache Gecko",
+      "Alania's Pathmaker",
+      "Roughshod Duo",
+      "Frilled Sparkshooter",
+      "Rabid Gnaw",
+      "Sazacap's Brew",
+      "Hoarder's Overflow"
+    ]
+  },
+  {
+    "name": "LOOTED",
+    "setCode": "LCI",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Breeches, Eager Pillager",
+          "probability": 50.0
+        },
+        {
+          "name": "The Belligerent",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Shipwreck Sentry",
+          "probability": 50.0
+        },
+        {
+          "name": "Oaken Siren",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Brazen Blademaster",
+          "probability": 50.0
+        },
+        {
+          "name": "Plundering Pirate",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Unlucky Drop",
+          "probability": 50.0
+        },
+        {
+          "name": "Rumbling Rockslide",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hidden Cataract",
+          "probability": 50.0
+        },
+        {
+          "name": "Hidden Volcano",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Spyglass Siren",
+      "Captain Storm, Cosmium Raider",
+      "Staunch Crewmate",
+      "Waylaying Pirates",
+      "Dowsing Device",
+      "Pirate Hat",
+      "Idol of the Deep King"
+    ]
+  },
+  {
+    "name": "MAGE",
+    "setCode": "FIN",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Vivi Ornitier",
+          "probability": 20.0
+        },
+        {
+          "name": "Tellah, Great Sage",
+          "probability": 40.0
+        },
+        {
+          "name": "Memories Returning",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Sorceress's Schemes",
+          "probability": 50.0
+        },
+        {
+          "name": "The Prima Vista",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Relm's Sketching",
+          "probability": 50.0
+        },
+        {
+          "name": "Laughing Mad",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Syncopate",
+          "probability": 50.0
+        },
+        {
+          "name": "Light of Judgment",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Retrieve the Esper",
+          "probability": 50.0
+        },
+        {
+          "name": "Call the Mountain Chocobo",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Shantotto, Tactician Magician",
+      "The Emperor of Palamecia",
+      "Ultros, Obnoxious Octopus",
+      "Prompto Argentum",
+      "Sahagin",
+      "Dreams of Laguna",
+      "Ice Magic",
+      "Baron, Airship Kingdom"
+    ]
+  },
+  {
+    "name": "MANIFEST",
+    "setCode": "DSK",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Hauntwoods Shrieker",
+          "probability": 20.0
+        },
+        {
+          "name": "Valgavoth's Onslaught",
+          "probability": 40.0
+        },
+        {
+          "name": "Hedge Shredder",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Paranormal Analyst",
+          "probability": 50.0
+        },
+        {
+          "name": "Threats Around Every Corner",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Creeping Peeper",
+          "probability": 50.0
+        },
+        {
+          "name": "Manifest Dread",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Moldering Gym // Weight Room",
+          "probability": 50.0
+        },
+        {
+          "name": "Twist Reality",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Oblivious Bookworm",
+      "Bashful Beastie",
+      "Cryptid Inspector",
+      "Growing Dread",
+      "Stay Hidden, Stay Silent",
+      "Underwater Tunnel // Slimy Aquarium",
+      "Cursed Windbreaker",
+      "Lakeside Shack"
+    ]
+  },
+  {
+    "name": "MARDU",
+    "setCode": "TDM",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Neriv, Heart of the Storm",
+          "probability": 20.0
+        },
+        {
+          "name": "Zurgo, Thunder's Decree",
+          "probability": 40.0
+        },
+        {
+          "name": "Mardu Siegebreaker",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Zurgo's Vanguard",
+          "probability": 50.0
+        },
+        {
+          "name": "War Effort",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Nightblade Brigade",
+          "probability": 50.0
+        },
+        {
+          "name": "Shock Brigade",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Reigning Victor",
+          "probability": 50.0
+        },
+        {
+          "name": "Underfoot Underdogs",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dragon's Prey",
+          "probability": 50.0
+        },
+        {
+          "name": "Coordinated Maneuver",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Bone-Cairn Butcher",
+      "Starry-Eyed Skyrider",
+      "Bearer of Glory",
+      "Riling Dawnbreaker",
+      "Defibrillating Current",
+      "Mardu Monument",
+      "Mardu Monument",
+      "Nomad Outpost"
+    ]
+  },
+  {
+    "name": "MERCILESS",
+    "setCode": "FIN",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Sephiroth, Fabled SOLDIER",
+          "probability": 20.0
+        },
+        {
+          "name": "Vincent Valentine",
+          "probability": 40.0
+        },
+        {
+          "name": "Summon: Primal Odin",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Judge Magister Gabranth",
+          "probability": 50.0
+        },
+        {
+          "name": "Al Bhed Salvagers",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Summon: Primal Garuda",
+          "probability": 50.0
+        },
+        {
+          "name": "Gaius van Baelsar",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sephiroth's Intervention",
+          "probability": 50.0
+        },
+        {
+          "name": "White Auracite",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "G'raha Tia",
+      "Rufus Shinra",
+      "Ahriman",
+      "Undercity Dire Rat",
+      "Namazu Trader",
+      "Dwarven Castle Guard",
+      "Vayne's Treachery",
+      "Phantom Train",
+      "Insomnia, Crown City"
+    ]
+  },
+  {
+    "name": "MICE",
+    "setCode": "BLB",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Mabel, Heir to Cragflame",
+          "probability": 50.0
+        },
+        {
+          "name": "Manifold Mouse",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Feather of Flight",
+          "probability": 50.0
+        },
+        {
+          "name": "War Squeak",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Short Bow",
+          "probability": 50.0
+        },
+        {
+          "name": "Blacksmith's Talent",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Whiskerquill Scribe",
+          "probability": 50.0
+        },
+        {
+          "name": "Thistledown Players",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Seedglaive Mentor",
+      "Brambleguard Captain",
+      "Flowerfoot Swordmaster",
+      "Heartfire Hero",
+      "Veteran Guardmouse",
+      "Brave-Kin Duo",
+      "Three Tree Mascot",
+      "Mabel's Mettle"
+    ]
+  },
+  {
+    "name": "MILITIA",
+    "setCode": "LCI",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Quintorius Kand",
+          "probability": 20.0
+        },
+        {
+          "name": "Thousand Moons Smithy",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Attentive Sunscribe",
+          "probability": 50.0
+        },
+        {
+          "name": "Volatile Wanderglyph",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Thousand Moons Infantry",
+          "probability": 50.0
+        },
+        {
+          "name": "Tinker's Tote",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ancestors' Aid",
+          "probability": 50.0
+        },
+        {
+          "name": "Quicksand Whirlpool",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hidden Volcano",
+          "probability": 50.0
+        },
+        {
+          "name": "Hidden Courtyard",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Caparocti Sunborn",
+      "Goldfury Strider",
+      "Guardian of the Great Door",
+      "Miner's Guidewing",
+      "Sunshot Militia",
+      "Abrade",
+      "Diamond Pick-Axe"
+    ]
+  },
+  {
+    "name": "MILL",
+    "setCode": "TDM",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Stillness in Motion",
+          "probability": 50.0
+        },
+        {
+          "name": "Marang River Regent",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Fresh Start",
+          "probability": 50.0
+        },
+        {
+          "name": "Ureni's Rebuff",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dirgur Island Dragon",
+          "probability": 50.0
+        },
+        {
+          "name": "Iceridge Serpent",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Unending Whisper",
+          "probability": 50.0
+        },
+        {
+          "name": "Focus the Mind",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Kishla Trawlers",
+      "Veteran Ice Climber",
+      "Dragonstorm Forecaster",
+      "Watcher of the Wayside",
+      "Boulderborn Dragon",
+      "Ringing Strike Mastery",
+      "Essence Anchor",
+      "Dragonstorm Globe",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "MONSTERS",
+    "setCode": "WOE",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Realm-Scorcher Hellkite",
+          "probability": 20.0
+        },
+        {
+          "name": "The Huntsman's Redemption",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Picnic Ruiner",
+          "probability": 50.0
+        },
+        {
+          "name": "Boundary Lands Ranger",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Minecart Daredevil",
+          "probability": 50.0
+        },
+        {
+          "name": "Verdant Outrider",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bestial Bloodline",
+          "probability": 50.0
+        },
+        {
+          "name": "Witch's Mark",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "The Autonomous Furnace",
+          "probability": 50.0
+        },
+        {
+          "name": "The Hunter Maze",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Ruby, Daring Tracker",
+      "Stormkeld Vanguard",
+      "Territorial Witchstalker",
+      "Ferocious Werefox",
+      "Beanstalk Wurm",
+      "Monstrous Rage",
+      "Curse of the Werefox"
+    ]
+  },
+  {
+    "name": "MOUNTS",
+    "setCode": "OTJ",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Seraphic Steed",
+          "probability": 50.0
+        },
+        {
+          "name": "Wylie Duke, Atiin Hero",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bridled Bighorn",
+          "probability": 50.0
+        },
+        {
+          "name": "Wanted Griffin",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Trained Arynx",
+          "probability": 50.0
+        },
+        {
+          "name": "Drover Grizzly",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Throw from the Saddle",
+          "probability": 50.0
+        },
+        {
+          "name": "Eriette's Lullaby",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Miriam, Herd Whisperer",
+      "Congregation Gryff",
+      "Intrepid Stablemaster",
+      "Shepherd of the Clouds",
+      "Frontier Seeker",
+      "Sterling Keykeeper",
+      "Steer Clear",
+      "Creosote Heath"
+    ]
+  },
+  {
+    "name": "OFFERINGS",
+    "setCode": "LCI",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Vito, Fanatic of Aclazotz",
+          "probability": 20.0
+        },
+        {
+          "name": "Sanguine Evangelist",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Greedy Freebooter",
+          "probability": 50.0
+        },
+        {
+          "name": "Miner's Guidewing",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Acolyte of Aclazotz",
+          "probability": 50.0
+        },
+        {
+          "name": "Glorifier of Suffering",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Fanatical Offering",
+          "probability": 50.0
+        },
+        {
+          "name": "Cosmium Blast",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hidden Courtyard",
+          "probability": 50.0
+        },
+        {
+          "name": "Hidden Necropolis",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Bartolomé del Presidio",
+      "Synapse Necromage",
+      "Abyssal Gorestalker",
+      "Skullcap Snail",
+      "Vito's Inquisitor",
+      "Dusk Rose Reliquary",
+      "Mephitic Draught"
+    ]
+  },
+  {
+    "name": "OTTERS",
+    "setCode": "BLB",
+    "colors": [
+      "R",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ral, Crackling Wit",
+          "probability": 20.0
+        },
+        {
+          "name": "Alania, Divergent Storm",
+          "probability": 40.0
+        },
+        {
+          "name": "Festival of Embers",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Daring Waverider",
+          "probability": 50.0
+        },
+        {
+          "name": "Eddymurk Crab",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Kindlespark Duo",
+          "probability": 50.0
+        },
+        {
+          "name": "Tempest Angler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Agate Assault",
+          "probability": 50.0
+        },
+        {
+          "name": "Dazzling Denial",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Stormcatch Mentor",
+      "Coruscation Mage",
+      "Harnesser of Storms",
+      "Three Tree Mascot",
+      "Valley Rally",
+      "Conduct Electricity",
+      "Otterball Antics",
+      "Wildfire Howl"
+    ]
+  },
+  {
+    "name": "OUTLAWS",
+    "setCode": "OTJ",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Laughing Jasper Flint",
+          "probability": 50.0
+        },
+        {
+          "name": "Hellspur Posse Boss",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Shoot the Sheriff",
+          "probability": 50.0
+        },
+        {
+          "name": "Caught in the Crossfire",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Deadeye Duelist",
+          "probability": 50.0
+        },
+        {
+          "name": "Prickly Pair",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rodeo Pyromancers",
+          "probability": 50.0
+        },
+        {
+          "name": "Boneyard Desecrator",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Vial Smasher, Gleeful Grenadier",
+      "Hellspur Brute",
+      "Discerning Peddler",
+      "Vault Plunderer",
+      "Outlaws' Fury",
+      "At Knifepoint",
+      "Rakish Crew",
+      "Jagged Barrens"
+    ]
+  },
+  {
+    "name": "PATIENCE",
+    "setCode": "OTJ",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Stoic Sphinx",
+          "probability": 50.0
+        },
+        {
+          "name": "Fblthp, Lost on the Range",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Inventive Wingsmith",
+          "probability": 50.0
+        },
+        {
+          "name": "Holy Cow",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Geyser Drake",
+          "probability": 50.0
+        },
+        {
+          "name": "Chrome Prowler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Djinn of Fool's Fall",
+          "probability": 50.0
+        },
+        {
+          "name": "Daring Thunder-Thief",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Jem Lightfoote, Sky Explorer",
+      "Wrangler of the Damned",
+      "Prairie Dog",
+      "Canyon Crab",
+      "Failed Fording",
+      "Emergent Haunting",
+      "Mystical Tether",
+      "Lonely Arroyo"
+    ]
+  },
+  {
+    "name": "POWER",
+    "setCode": "OTJ",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Terror of the Peaks",
+          "probability": 20.0
+        },
+        {
+          "name": "Outcaster Trailblazer",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Hardbristle Bandit",
+          "probability": 50.0
+        },
+        {
+          "name": "Voracious Varmint",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Quick Draw",
+          "probability": 50.0
+        },
+        {
+          "name": "Reach for the Sky",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Explosive Derailment",
+          "probability": 50.0
+        },
+        {
+          "name": "Throw from the Saddle",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Jolene, Plundering Pugilist",
+      "Cactusfolk Sureshot",
+      "Scalestorm Summoner",
+      "Beastbond Outcaster",
+      "Bristlepack Sentry",
+      "Tumbleweed Rising",
+      "Ferocification",
+      "Bristling Backwoods"
+    ]
+  },
+  {
+    "name": "PREHISTORIC",
+    "setCode": "LCI",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ghalta, Stampede Tyrant",
+          "probability": 20.0
+        },
+        {
+          "name": "Intrepid Paleontologist",
+          "probability": 40.0
+        },
+        {
+          "name": "Hulking Raptor",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Thrashing Brontodon",
+          "probability": 50.0
+        },
+        {
+          "name": "Colossadactyl",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Pathfinding Axejaw",
+          "probability": 50.0
+        },
+        {
+          "name": "Cavern Stomper",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Staggering Size",
+          "probability": 50.0
+        },
+        {
+          "name": "Disturbed Slumber",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Ixalli's Lorekeeper",
+      "Earthshaker Dreadmaw",
+      "Poison Dart Frog",
+      "Armored Kincaller",
+      "Nurturing Bristleback",
+      "Malamet Battle Glyph",
+      "Walk with the Ancestors",
+      "Hidden Nursery"
+    ]
+  },
+  {
+    "name": "PRIMORDIAL",
+    "setCode": "DFT",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Thunderous Velocipede",
+          "probability": 20.0
+        },
+        {
+          "name": "Agonasaur Rex",
+          "probability": 40.0
+        },
+        {
+          "name": "Oviya, Automech Artisan",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Fang Guardian",
+          "probability": 50.0
+        },
+        {
+          "name": "Autarch Mammoth",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Thundering Broodwagon",
+          "probability": 50.0
+        },
+        {
+          "name": "Stampeding Scurryfoot",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Alacrian Jaguar",
+          "probability": 50.0
+        },
+        {
+          "name": "Migrating Ketradon",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Loxodon Surveyor",
+          "probability": 50.0
+        },
+        {
+          "name": "Silken Strength",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Terrian, World Tyrant",
+      "Fang-Druid Summoner",
+      "Jibbirik Omnivore",
+      "Beastrider Vanguard",
+      "Run Over",
+      "Rise from the Wreck",
+      "Plow Through"
+    ]
+  },
+  {
+    "name": "RABBITS",
+    "setCode": "BLB",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Warren Warleader",
+          "probability": 20.0
+        },
+        {
+          "name": "Valley Questcaller",
+          "probability": 40.0
+        },
+        {
+          "name": "Caretaker's Talent",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Seasoned Warrenguard",
+          "probability": 50.0
+        },
+        {
+          "name": "Lifecreed Duo",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Shrike Force",
+          "probability": 50.0
+        },
+        {
+          "name": "Intrepid Rabbit",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Driftgloom Coyote",
+          "probability": 50.0
+        },
+        {
+          "name": "Repel Calamity",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Harvestrite Host",
+      "Warren Elder",
+      "Rabbit Response",
+      "Hop to It",
+      "Builder's Talent",
+      "Banishing Light",
+      "Patchwork Banner",
+      "Carrot Cake"
+    ]
+  },
+  {
+    "name": "RAIDERS",
+    "setCode": "FDN",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Alesha, Who Laughs at Fate",
+          "probability": 50.0
+        },
+        {
+          "name": "Immersturm Predator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Frenzied Goblin",
+          "probability": 50.0
+        },
+        {
+          "name": "Brazen Scourge",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Vengeful Bloodwitch",
+          "probability": 50.0
+        },
+        {
+          "name": "Heartfire Immolator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Burst Lightning",
+          "probability": 50.0
+        },
+        {
+          "name": "Scorching Dragonfire",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Perforating Artist",
+      "Garna, Bloodfist of Keld",
+      "Strongbox Raider",
+      "Sower of Chaos",
+      "Sanguine Syphoner",
+      "Goblin Smuggler",
+      "Feed the Swarm",
+      "Rakdos Guildgate"
+    ]
+  },
+  {
+    "name": "RATS",
+    "setCode": "BLB",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Rottenmouth Viper",
+          "probability": 20.0
+        },
+        {
+          "name": "Cruelclaw's Heist",
+          "probability": 40.0
+        },
+        {
+          "name": "Coiling Rebirth",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Consumed by Greed",
+          "probability": 50.0
+        },
+        {
+          "name": "Polygraph Orb",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Agate-Blade Assassin",
+          "probability": 50.0
+        },
+        {
+          "name": "Bonebind Orator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ravine Raider",
+          "probability": 50.0
+        },
+        {
+          "name": "Nezumi Informant",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Thought-Stalker Warlock",
+      "Huskburster Swarm",
+      "Thornplate Intimidator",
+      "Scales of Shale",
+      "Fell",
+      "Ruthless Negotiation",
+      "Psychic Whorl",
+      "Bandit's Talent"
+    ]
+  },
+  {
+    "name": "RATS",
+    "setCode": "WOE",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Lord Skitter, Sewer King",
+          "probability": 50.0
+        },
+        {
+          "name": "Redcap Gutter-Dweller",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Tattered Ratter",
+          "probability": 50.0
+        },
+        {
+          "name": "Callous Sell-Sword",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stingblade Assassin",
+          "probability": 50.0
+        },
+        {
+          "name": "Edgewall Pack",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Torch the Tower",
+          "probability": 50.0
+        },
+        {
+          "name": "Candy Grapple",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "The Dross Pits",
+          "probability": 50.0
+        },
+        {
+          "name": "The Autonomous Furnace",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Totentanz, Swarm Piper",
+      "Twisted Sewer-Witch",
+      "Lord Skitter's Butcher",
+      "Harried Spearguard",
+      "Ratcatcher Trainee",
+      "Rat Out",
+      "Gnawing Crescendo"
+    ]
+  },
+  {
+    "name": "REVIVES",
+    "setCode": "DSK",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Funeral Room // Awakening Hall",
+          "probability": 20.0
+        },
+        {
+          "name": "Unstoppable Slasher",
+          "probability": 40.0
+        },
+        {
+          "name": "Come Back Wrong",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Appendage Amalgam",
+          "probability": 50.0
+        },
+        {
+          "name": "Fear of Surveillance",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Murder",
+          "probability": 50.0
+        },
+        {
+          "name": "Final Vengeance",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Shroudstomper",
+      "Valgavoth's Faithful",
+      "Savior of the Small",
+      "Innocuous Rat",
+      "Possessed Goat",
+      "Spectral Snatcher",
+      "Live or Die",
+      "Rite of the Moth",
+      "Defiled Crypt // Cadaver Lab"
+    ]
+  },
+  {
+    "name": "ROAD RAGE",
+    "setCode": "DFT",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Valor's Flagship",
+          "probability": 20.0
+        },
+        {
+          "name": "Skyseer's Chariot",
+          "probability": 40.0
+        },
+        {
+          "name": "Kolodin, Triumph Caster",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Air Response Unit",
+          "probability": 50.0
+        },
+        {
+          "name": "Alacrian Armory",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lightning Strike",
+          "probability": 50.0
+        },
+        {
+          "name": "Ride's End",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Daring Mechanic",
+          "probability": 50.0
+        },
+        {
+          "name": "Interface Ace",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Cloudspire Coordinator",
+      "Canyon Vaulter",
+      "Cloudspire Captain",
+      "Endrider Catalyzer",
+      "Dynamite Diver",
+      "Collision Course",
+      "Cloudspire Skycycle",
+      "Spotcycle Scouter"
+    ]
+  },
+  {
+    "name": "ROOM",
+    "setCode": "DSK",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Roaring Furnace // Steaming Sauna",
+          "probability": 50.0
+        },
+        {
+          "name": "Entity Tracker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Fear of Impostors",
+          "probability": 50.0
+        },
+        {
+          "name": "Stay Hidden, Stay Silent",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stalked Researcher",
+          "probability": 50.0
+        },
+        {
+          "name": "Erratic Apparition",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ticket Booth // Tunnel of Hate",
+          "probability": 50.0
+        },
+        {
+          "name": "Underwater Tunnel // Slimy Aquarium",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Intruding Soulrager",
+      "Infernal Phantom",
+      "Ghostly Keybearer",
+      "Rampaging Soulrager",
+      "Smoky Lounge // Misty Salon",
+      "Glassworks // Shattered Yard",
+      "Keys to the House",
+      "Peculiar Lighthouse"
+    ]
+  },
+  {
+    "name": "SACRIFICE",
+    "setCode": "DSK",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Grievous Wound",
+          "probability": 50.0
+        },
+        {
+          "name": "Enduring Courage",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sporogenic Infection",
+          "probability": 50.0
+        },
+        {
+          "name": "Derelict Attic // Widow's Walk",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Final Vengeance",
+          "probability": 50.0
+        },
+        {
+          "name": "Murder",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Give In to Violence",
+          "probability": 50.0
+        },
+        {
+          "name": "Winter's Intervention",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sawblade Skinripper",
+      "Diversion Specialist",
+      "Popular Egotist",
+      "Piggy Bank",
+      "Fear of Lost Teeth",
+      "Boilerbilges Ripper",
+      "Disturbing Mirth",
+      "Razortrap Gorge"
+    ]
+  },
+  {
+    "name": "SCHEMING",
+    "setCode": "FIN",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Emet-Selch, Unsundered",
+          "probability": 20.0
+        },
+        {
+          "name": "Jecht, Reluctant Guardian",
+          "probability": 40.0
+        },
+        {
+          "name": "Jill, Shiva's Dominant",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Swallowed by Leviathan",
+          "probability": 50.0
+        },
+        {
+          "name": "Sleep Magic",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Malboro",
+          "probability": 50.0
+        },
+        {
+          "name": "Ice Flan",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Ice Magic",
+          "probability": 50.0
+        },
+        {
+          "name": "Stuck in Summoner's Sanctum",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Syncopate",
+          "probability": 50.0
+        },
+        {
+          "name": "Hecteyes",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Ultimecia, Time Sorceress",
+      "Locke Cole",
+      "Il Mheg Pixie",
+      "Dreams of Laguna",
+      "The Final Days",
+      "Retrieve the Esper",
+      "Resentful Revelation",
+      "Treno, Dark City"
+    ]
+  },
+  {
+    "name": "SCRAPPY",
+    "setCode": "MKM",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Delney, Streetwise Lookout",
+          "probability": 20.0
+        },
+        {
+          "name": "Teysa, Opulent Oligarch",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Forum Familiar",
+          "probability": 50.0
+        },
+        {
+          "name": "Slimy Dualleech",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Unscrupulous Agent",
+          "probability": 50.0
+        },
+        {
+          "name": "Marketwatch Phantom",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Toxin Analysis",
+          "probability": 50.0
+        },
+        {
+          "name": "Slice from the Shadows",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Neighborhood Guardian",
+      "Wispdrinker Vampire",
+      "Snarling Gorehound",
+      "Sanguine Savior",
+      "Haazda Vigilante",
+      "Long Goodbye",
+      "Soul Search",
+      "Makeshift Binding"
+    ]
+  },
+  {
+    "name": "SECRETS",
+    "setCode": "LCI",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "The Everflowing Well",
+          "probability": 60.0
+        },
+        {
+          "name": "Matzalantli, the Great Door",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Hermitic Nautilus",
+          "probability": 50.0
+        },
+        {
+          "name": "Digsite Conservator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Waterlogged Hulk",
+          "probability": 50.0
+        },
+        {
+          "name": "Lodestone Needle",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Eaten by Piranhas",
+          "probability": 50.0
+        },
+        {
+          "name": "Confounding Riddle",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Council of Echoes",
+      "River Herald Scout",
+      "Sage of Days",
+      "Frilled Cave-Wurm",
+      "Didact Echo",
+      "Song of Stupefaction",
+      "Orazca Puzzle-Door",
+      "Hidden Cataract"
+    ]
+  },
+  {
+    "name": "SLIME AGAINST HUMANITY",
+    "setCode": "MKM",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Commercial District",
+          "probability": 25.0
+        },
+        {
+          "name": "Lush Portico",
+          "probability": 25.0
+        },
+        {
+          "name": "Underground Mortuary",
+          "probability": 25.0
+        },
+        {
+          "name": "Hedge Maze",
+          "probability": 25.0
+        }
+      ],
+      [
+        {
+          "name": "Hard-Hitting Question",
+          "probability": 50.0
+        },
+        {
+          "name": "Rope",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Hedge Whisperer",
+      "Get a Leg Up",
+      "Hard-Hitting Question",
+      "Slime Against Humanity",
+      "Slime Against Humanity",
+      "Slime Against Humanity",
+      "Slime Against Humanity",
+      "Slime Against Humanity",
+      "Slime Against Humanity",
+      "Slime Against Humanity",
+      "Case of the Trampled Garden"
+    ]
+  },
+  {
+    "name": "SPELUNKING",
+    "setCode": "LCI",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Chimil, the Inner Sun",
+          "probability": 50.0
+        },
+        {
+          "name": "Cosmium Confluence",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Scampering Surveyor",
+      "Sinuous Benthisaur",
+      "Gargantuan Leech",
+      "Compass Gnome",
+      "Calamitous Cave-In",
+      "Bat Colony",
+      "Spelunking",
+      "Sunbird Standard",
+      "Buried Treasure",
+      "Kaslem's Stonetree",
+      "Forgotten Monument",
+      "Cavernous Maw",
+      "Promising Vein",
+      "Captivating Cave",
+      "Hidden Courtyard",
+      "Hidden Cataract",
+      "Hidden Necropolis",
+      "Hidden Volcano",
+      "Hidden Nursery"
+    ]
+  },
+  {
+    "name": "SQUIRRELS",
+    "setCode": "BLB",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ygra, Eater of All",
+          "probability": 20.0
+        },
+        {
+          "name": "Camellia, the Seedmiser",
+          "probability": 40.0
+        },
+        {
+          "name": "Osteomancer Adept",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Wick's Patrol",
+          "probability": 50.0
+        },
+        {
+          "name": "Downwind Ambusher",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bushy Bodyguard",
+          "probability": 50.0
+        },
+        {
+          "name": "Curious Forager",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bonebind Orator",
+          "probability": 50.0
+        },
+        {
+          "name": "Daggerfang Duo",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Vinereap Mentor",
+      "Bonecache Overseer",
+      "Honored Dreyleader",
+      "Corpseberry Cultivator",
+      "Treetop Sentries",
+      "Three Tree Mascot",
+      "Feed the Cycle",
+      "Cache Grab"
+    ]
+  },
+  {
+    "name": "STRONG",
+    "setCode": "FDN",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Quilled Greatwurm",
+          "probability": 20.0
+        },
+        {
+          "name": "Mossborn Hydra",
+          "probability": 40.0
+        },
+        {
+          "name": "Felidar Retreat",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Ordeal of Nylea",
+          "probability": 50.0
+        },
+        {
+          "name": "Ingenious Leonin",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bite Down",
+          "probability": 50.0
+        },
+        {
+          "name": "Deadly Riposte",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bushwhack",
+          "probability": 50.0
+        },
+        {
+          "name": "Pacifism",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Good-Fortune Unicorn",
+      "Wildwood Scourge",
+      "Mild-Mannered Librarian",
+      "Treetop Snarespinner",
+      "Gnarlid Colony",
+      "Felidar Savior",
+      "Inspiring Call",
+      "Selesnya Guildgate"
+    ]
+  },
+  {
+    "name": "SULTAI",
+    "setCode": "TDM",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Teval, Arbiter of Virtue",
+          "probability": 20.0
+        },
+        {
+          "name": "Kotis, the Fangkeeper",
+          "probability": 40.0
+        },
+        {
+          "name": "Fangkeeper's Familiar",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Alchemist's Assistant",
+          "probability": 50.0
+        },
+        {
+          "name": "Sage of the Fang",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Constrictor Sage",
+          "probability": 50.0
+        },
+        {
+          "name": "Knockout Maneuver",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Worthy Cost",
+          "probability": 50.0
+        },
+        {
+          "name": "Dragon's Prey",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sagu Wildling",
+          "probability": 50.0
+        },
+        {
+          "name": "Feral Deathgorger",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Kheru Goldkeeper",
+      "Kishla Skimmer",
+      "Sagu Pummeler",
+      "Agent of Kotis",
+      "Ainok Wayfarer",
+      "Lie in Wait",
+      "Sultai Monument",
+      "Opulent Palace"
+    ]
+  },
+  {
+    "name": "SUMMONED",
+    "setCode": "DSK",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Overlord of the Hauntwoods",
+          "probability": 20.0
+        },
+        {
+          "name": "Enduring Vitality",
+          "probability": 40.0
+        },
+        {
+          "name": "Twitching Doll",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Cathartic Parting",
+          "probability": 50.0
+        },
+        {
+          "name": "Break Down the Door",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Moldering Gym // Weight Room",
+          "probability": 50.0
+        },
+        {
+          "name": "Spineseeker Centipede",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bashful Beastie",
+          "probability": 50.0
+        },
+        {
+          "name": "Slavering Branchsnapper",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Altanak, the Thrice-Called",
+      "House Cartographer",
+      "Patchwork Beastie",
+      "Wary Watchdog",
+      "Under the Skin",
+      "Say Its Name",
+      "Say Its Name",
+      "Say Its Name"
+    ]
+  },
+  {
+    "name": "SURVIVAL",
+    "setCode": "DSK",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Tyvar, the Pummeler",
+          "probability": 20.0
+        },
+        {
+          "name": "Rip, Spawn Hunter",
+          "probability": 40.0
+        },
+        {
+          "name": "Dazzling Theater // Prop Room",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Orphans of the Wheat",
+          "probability": 50.0
+        },
+        {
+          "name": "Fear of Exposure",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Horrid Vigor",
+          "probability": 50.0
+        },
+        {
+          "name": "Jump Scare",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Cautious Survivor",
+          "probability": 50.0
+        },
+        {
+          "name": "Friendly Ghost",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Shrewd Storyteller",
+      "Savior of the Small",
+      "Flesh Burrower",
+      "Hardened Escort",
+      "Grasping Longneck",
+      "Sheltered by Ghosts",
+      "Baseball Bat",
+      "Etched Cornfield"
+    ]
+  },
+  {
+    "name": "SUSPECTS",
+    "setCode": "MKM",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Case of the Stashed Skeleton",
+          "probability": 50.0
+        },
+        {
+          "name": "Barbed Servitor",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lead Pipe",
+          "probability": 50.0
+        },
+        {
+          "name": "Concealed Weapon",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Alley Assailant",
+          "probability": 50.0
+        },
+        {
+          "name": "Gearbane Orangutan",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Agency Coroner",
+          "probability": 50.0
+        },
+        {
+          "name": "Rubblebelt Braggart",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Rune-Brand Juggler",
+      "Clandestine Meddler",
+      "Repeat Offender",
+      "Person of Interest",
+      "Shady Informant",
+      "Presumed Dead",
+      "Shock",
+      "Deadly Complication"
+    ]
+  },
+  {
+    "name": "TEENY",
+    "setCode": "DSK",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Overlord of the Mistmoors",
+          "probability": 20.0
+        },
+        {
+          "name": "Enduring Innocence",
+          "probability": 40.0
+        },
+        {
+          "name": "Toby, Beastie Befriender",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Exorcise",
+          "probability": 50.0
+        },
+        {
+          "name": "Unwanted Remake",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Jump Scare",
+          "probability": 50.0
+        },
+        {
+          "name": "Bear Trap",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Lionheart Glimmer",
+      "Glimmer Seeker",
+      "Patched Plaything",
+      "Unsettling Twins",
+      "Living Phone",
+      "Hardened Escort",
+      "Shepherding Spirits",
+      "Surgical Suite // Hospital Room",
+      "Trapped in the Screen"
+    ]
+  },
+  {
+    "name": "TEMUR",
+    "setCode": "TDM",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Dragonback Assault",
+          "probability": 20.0
+        },
+        {
+          "name": "Songcrafter Mage",
+          "probability": 40.0
+        },
+        {
+          "name": "Temur Battlecrier",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Channeled Dragonfire",
+          "probability": 50.0
+        },
+        {
+          "name": "Ureni's Rebuff",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Unending Whisper",
+          "probability": 50.0
+        },
+        {
+          "name": "Wild Ride",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rescue Leopard",
+          "probability": 50.0
+        },
+        {
+          "name": "Snowmelt Stag",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dirgur Island Dragon",
+          "probability": 50.0
+        },
+        {
+          "name": "Temur Tawnyback",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Snakeskin Veil",
+      "Dragonclaw Strike",
+      "Mammoth Bellow",
+      "Synchronized Charge",
+      "Roamer's Routine",
+      "Temur Monument",
+      "Temur Monument",
+      "Frontier Bivouac"
+    ]
+  },
+  {
+    "name": "THRESHOLD",
+    "setCode": "BLB",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Kitsa, Otterball Elite",
+          "probability": 20.0
+        },
+        {
+          "name": "Portent of Calamity",
+          "probability": 40.0
+        },
+        {
+          "name": "Azure Beastbinder",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Spellgyre",
+          "probability": 50.0
+        },
+        {
+          "name": "Long River's Pull",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Plumecreed Escort",
+          "probability": 50.0
+        },
+        {
+          "name": "Dire Downdraft",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sterling Hound",
+          "probability": 50.0
+        },
+        {
+          "name": "Ephara's Dispersal",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Mindwhisker",
+      "Shoreline Looter",
+      "Nightwhorl Hermit",
+      "Bellowing Crier",
+      "Thought Shucker",
+      "Lightshell Duo",
+      "Shore Up",
+      "Sugar Coat"
+    ]
+  },
+  {
+    "name": "THRESHOLD",
+    "setCode": "FDN",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Kiora, the Rising Tide",
+          "probability": 50.0
+        },
+        {
+          "name": "Dread Summons",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Chart a Course",
+          "probability": 50.0
+        },
+        {
+          "name": "Inspiration from Beyond",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Eaten by Piranhas",
+          "probability": 50.0
+        },
+        {
+          "name": "Imprisoned in the Moon",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Quick Study",
+          "probability": 50.0
+        },
+        {
+          "name": "Think Twice",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Dreadwing Scavenger",
+      "Cephalid Inkmage",
+      "Billowing Shriekmass",
+      "Rune-Sealed Wall",
+      "Strix Lookout",
+      "Uncharted Voyage",
+      "Refute",
+      "Dimir Guildgate"
+    ]
+  },
+  {
+    "name": "TOKENS",
+    "setCode": "TDM",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Elspeth, Storm Slayer",
+          "probability": 20.0
+        },
+        {
+          "name": "Sage of the Skies",
+          "probability": 40.0
+        },
+        {
+          "name": "Anafenza, Unyielding Lineage",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Starry-Eyed Skyrider",
+          "probability": 50.0
+        },
+        {
+          "name": "Dalkovan Packbeasts",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Sunpearl Kirin",
+          "probability": 50.0
+        },
+        {
+          "name": "Descendant of Storms",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Salt Road Packbeast",
+          "probability": 50.0
+        },
+        {
+          "name": "Bearer of Glory",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Riling Dawnbreaker",
+      "Fortress Kin-Guard",
+      "Dragonback Lancer",
+      "Rally the Monastery",
+      "Coordinated Maneuver",
+      "Osseous Exhale",
+      "Static Snare",
+      "Teeming Dragonstorm",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "TOP SPEED",
+    "setCode": "DFT",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Hazoret, Godseeker",
+          "probability": 20.0
+        },
+        {
+          "name": "Gas Guzzler",
+          "probability": 40.0
+        },
+        {
+          "name": "Burnout Bashtronaut",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Kalakscion, Hunger Tyrant",
+          "probability": 50.0
+        },
+        {
+          "name": "Tyrox, Saurid Tyrant",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Endrider Catalyzer",
+          "probability": 50.0
+        },
+        {
+          "name": "Grim Javelineer",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Gastal Thrillseeker",
+      "Endrider Spikespitter",
+      "Mutant Surveyor",
+      "Prowcatcher Specialist",
+      "Spin Out",
+      "Lightning Strike",
+      "Momentum Breaker",
+      "Apocalypse Runner",
+      "Burner Rocket"
+    ]
+  },
+  {
+    "name": "TREASURED",
+    "setCode": "OTJ",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Magda, the Hoardmaster",
+          "probability": 50.0
+        },
+        {
+          "name": "Hell to Pay",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Redrock Sentinel",
+          "probability": 50.0
+        },
+        {
+          "name": "Gold Pan",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rodeo Pyromancers",
+          "probability": 50.0
+        },
+        {
+          "name": "Irascible Wolverine",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Trick Shot",
+          "probability": 50.0
+        },
+        {
+          "name": "Thunder Salvo",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Gila Courser",
+      "Resilient Roadrunner",
+      "Iron-Fist Pulverizer",
+      "Reckless Lackey",
+      "Mine Raider",
+      "Return the Favor",
+      "Scorching Shot",
+      "Luxurious Locomotive"
+    ]
+  },
+  {
+    "name": "UNDERCOVER",
+    "setCode": "MKM",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Trostani, Three Whispers",
+          "probability": 20.0
+        },
+        {
+          "name": "Hide in Plain Sight",
+          "probability": 40.0
+        },
+        {
+          "name": "Tolsimir, Midnight's Light",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Tunnel Tipster",
+          "probability": 50.0
+        },
+        {
+          "name": "Marketwatch Phantom",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Museum Nightwatch",
+          "probability": 50.0
+        },
+        {
+          "name": "Defenestrated Phantom",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Make Your Move",
+          "probability": 50.0
+        },
+        {
+          "name": "On the Job",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sumala Sentry",
+      "Greenbelt Radical",
+      "Nervous Gardener",
+      "Crowd-Control Warden",
+      "Not on My Watch",
+      "A Killer Among Us",
+      "Buried in the Garden",
+      "Airtight Alibi"
+    ]
+  },
+  {
+    "name": "VALIANT",
+    "setCode": "FIN",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Summon: Knights of Round",
+          "probability": 20.0
+        },
+        {
+          "name": "Moogles' Valor",
+          "probability": 40.0
+        },
+        {
+          "name": "Dion, Bahamut's Dominant",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Snow Villiers",
+          "probability": 50.0
+        },
+        {
+          "name": "Auron's Inspiration",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "You're Not Alone",
+          "probability": 50.0
+        },
+        {
+          "name": "Slash of Light",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Balamb T-Rexaur",
+          "probability": 50.0
+        },
+        {
+          "name": "Cloudbound Moogle",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Garnet, Princess of Alexandria",
+      "Rinoa Heartilly",
+      "Quina, Qu Gourmet",
+      "Dwarven Castle Guard",
+      "Summon: Fat Chocobo",
+      "Summon: Choco/Mog",
+      "Aerith Rescue Mission",
+      "Magitek Armor",
+      "Windurst, Federation Center"
+    ]
+  },
+  {
+    "name": "WEAPONS",
+    "setCode": "FIN",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Cloud, Midgar Mercenary",
+          "probability": 20.0
+        },
+        {
+          "name": "Genji Glove",
+          "probability": 40.0
+        },
+        {
+          "name": "Machinist's Arsenal",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Sidequest: Catch a Fish",
+          "probability": 50.0
+        },
+        {
+          "name": "Weapons Vendor",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Paladin's Arms",
+          "probability": 50.0
+        },
+        {
+          "name": "White Mage's Staff",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Monk's Fist",
+          "probability": 50.0
+        },
+        {
+          "name": "Gaelicat",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Zack Fair",
+      "Ashe, Princess of Dalmasca",
+      "Adelbert Steiner",
+      "Cloudbound Moogle",
+      "Slash of Light",
+      "Dragoon's Lance",
+      "Lion Heart",
+      "White Auracite",
+      "Capital City"
+    ]
+  },
+  {
+    "name": "WILD",
+    "setCode": "FIN",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Traveling Chocobo",
+          "probability": 20.0
+        },
+        {
+          "name": "Tifa Lockhart",
+          "probability": 40.0
+        },
+        {
+          "name": "Zell Dincht",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Sazh's Chocobo",
+          "probability": 50.0
+        },
+        {
+          "name": "Ride the Shoopuf",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hill Gigas",
+          "probability": 50.0
+        },
+        {
+          "name": "Balamb T-Rexaur",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Gysahl Greens",
+          "probability": 50.0
+        },
+        {
+          "name": "Call the Mountain Chocobo",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Rydia, Summoner of Mist",
+      "Summon: Fenrir",
+      "Sabotender",
+      "Town Greeter",
+      "Prishe's Wanderings",
+      "Reach the Horizon",
+      "Chocobo Kick",
+      "Chocobo Racetrack",
+      "Gongaga, Reactor Town"
+    ]
+  },
+  {
+    "name": "WRECKED",
+    "setCode": "DFT",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Gastal Thrillroller",
+          "probability": 50.0
+        },
+        {
+          "name": "Monument to Endurance",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Endrider Spikespitter",
+          "probability": 50.0
+        },
+        {
+          "name": "Tyrox, Saurid Tyrant",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Clamorous Ironclad",
+          "probability": 50.0
+        },
+        {
+          "name": "Gilded Ghoda",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lightning Strike",
+          "probability": 50.0
+        },
+        {
+          "name": "Pedal to the Metal",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Marauding Mako",
+      "Greasewrench Goblin",
+      "Pacesetter Paragon",
+      "Thunderhead Gunner",
+      "Magmakin Artillerist",
+      "Fuel the Flames",
+      "Crash and Burn",
+      "Kickoff Celebrations"
+    ]
+  },
+  {
+    "name": "ZOMBIE",
+    "setCode": "FDN",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Liliana, Dreadhorde General",
+          "probability": 20.0
+        },
+        {
+          "name": "Zul Ashur, Lich Lord",
+          "probability": 40.0
+        },
+        {
+          "name": "Midnight Reaper",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Deadly Plot",
+          "probability": 50.0
+        },
+        {
+          "name": "Hero's Downfall",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Soul-Shackled Zombie",
+          "probability": 50.0
+        },
+        {
+          "name": "Crypt Feaster",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Moment of Craving",
+          "probability": 50.0
+        },
+        {
+          "name": "Fake Your Own Death",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Maalfeld Twins",
+      "Diregraf Ghoul",
+      "Knight of Malice",
+      "Vampire Gourmand",
+      "Crow of Dark Tidings",
+      "Hungry Ghoul",
+      "Vampiric Rites",
+      "Evolving Wilds"
+    ]
+  },
+  {
+    "name": "ZOMBIES",
+    "setCode": "DFT",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Radiant Lotus",
+          "probability": 20.0
+        },
+        {
+          "name": "Cursecloth Wrappings",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Muraganda Raceway",
+          "probability": 10.0
+        },
+        {
+          "name": "Amonkhet Raceway",
+          "probability": 30.0
+        },
+        {
+          "name": "Avishkar Raceway",
+          "probability": 60.0
+        }
+      ],
+      [
+        {
+          "name": "Intimidation Tactics",
+          "probability": 50.0
+        },
+        {
+          "name": "Locust Spray",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Risky Shortcut",
+          "probability": 50.0
+        },
+        {
+          "name": "Ripclaw Wrangler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Maximum Overdrive",
+          "probability": 50.0
+        },
+        {
+          "name": "Syphon Fuel",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Risen Necroregent",
+      "Shefet Archfiend",
+      "Kalakscion, Hunger Tyrant",
+      "Deathless Pilot",
+      "Engine Rat",
+      "Walking Sarcophagus",
+      "Spin Out",
+      "Hour of Victory"
+    ]
+  },
+  {
+    "name": "AESTHETIC",
+    "setCode": "SOS",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Mathemagics",
+          "probability": 20.0
+        },
+        {
+          "name": "Skycoach Conductor",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Muse Seeker",
+          "probability": 50.0
+        },
+        {
+          "name": "Tester of the Tangential",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Campus Composer",
+          "probability": 50.0
+        },
+        {
+          "name": "Spellbook Seeker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Divergent Equation",
+          "probability": 50.0
+        },
+        {
+          "name": "Fractalize",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Landscape Painter",
+          "probability": 50.0
+        },
+        {
+          "name": "Hydro-Channeler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Deluge Virtuoso",
+          "probability": 50.0
+        },
+        {
+          "name": "Textbook Tabulator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Banishing Betrayal",
+          "probability": 50.0
+        },
+        {
+          "name": "Procrastinate",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Matterbending Mage",
+      "Orysa, Tide Choreographer",
+      "Homesickness",
+      "Essence Scatter",
+      "Run Behind"
+    ]
+  },
+  {
+    "name": "ARTIFACTS",
+    "setCode": "EOE",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Devastating Onslaught",
+          "probability": 20.0
+        },
+        {
+          "name": "Warmaker Gunship",
+          "probability": 40.0
+        },
+        {
+          "name": "Rust Harvester",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Kavaron Harrier",
+          "probability": 50.0
+        },
+        {
+          "name": "Slagdrill Scrapper",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Memorial Team Leader",
+          "probability": 50.0
+        },
+        {
+          "name": "Molecular Modifier",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Invasive Maneuvers",
+          "probability": 50.0
+        },
+        {
+          "name": "Cut Propulsion",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Kav Landseeker",
+          "probability": 50.0
+        },
+        {
+          "name": "Red Tiger Mechan",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Weftstalker Ardent",
+      "Oreplate Pangolin",
+      "Zookeeper Mechan",
+      "Kavaron Turbodrone",
+      "Plasma Bolt",
+      "Debris Field Crusher",
+      "Melded Moxite",
+      "Kavaron, Memorial World"
+    ]
+  },
+  {
+    "name": "BLIGHTED",
+    "setCode": "ECL",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Moonshadow",
+          "probability": 20.0
+        },
+        {
+          "name": "Dawnhand Dissident",
+          "probability": 40.0
+        },
+        {
+          "name": "Shadow Urchin",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Graveshifter",
+          "probability": 50.0
+        },
+        {
+          "name": "Dream Seizer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Moonglove Extractor",
+          "probability": 50.0
+        },
+        {
+          "name": "Heirloom Auntie",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Changeling Wayfinder",
+          "probability": 50.0
+        },
+        {
+          "name": "Prideful Feastling",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Scarblade's Malice",
+          "probability": 50.0
+        },
+        {
+          "name": "Barbed Bloodletter",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Iron-Shield Elf",
+      "Gnarlbark Elm",
+      "Reaping Willow",
+      "Scarblade Scout",
+      "Blighted Blackthorn",
+      "Requiting Hex",
+      "Blight Rot",
+      "Swamp",
+      "Swamp",
+      "Swamp",
+      "Swamp",
+      "Swamp",
+      "Swamp"
+    ]
+  },
+  {
+    "name": "BURDENED",
+    "setCode": "ECL",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ajani, Outland Chaperone",
+          "probability": 20.0
+        },
+        {
+          "name": "Rhys, the Evermore",
+          "probability": 40.0
+        },
+        {
+          "name": "Slumbering Walker",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Meanders Guide",
+          "probability": 50.0
+        },
+        {
+          "name": "Moonlit Lamenter",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Spiral into Solitude",
+          "probability": 50.0
+        },
+        {
+          "name": "Wanderbrine Preacher",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Shore Lurker",
+          "probability": 50.0
+        },
+        {
+          "name": "Merrow Skyswimmer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Keep Out",
+          "probability": 50.0
+        },
+        {
+          "name": "Riverguard's Reflexes",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Burdened Stoneback",
+      "Encumbered Reejerey",
+      "Tributary Vaulter",
+      "Sun-Dappled Celebrant",
+      "Pyrrhic Strike",
+      "Evershrike's Gift",
+      "Liminal Hold",
+      "Plains",
+      "Plains",
+      "Plains",
+      "Plains",
+      "Plains",
+      "Plains"
+    ]
+  },
+  {
+    "name": "COSMIC",
+    "setCode": "EOE",
+    "colors": [
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Quantum Riddler",
+          "probability": 20.0
+        },
+        {
+          "name": "Starwinder",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Mechan Navigator",
+          "probability": 50.0
+        },
+        {
+          "name": "Codecracker Hound",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Uthros Scanship",
+          "probability": 50.0
+        },
+        {
+          "name": "Gigastorm Titan",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Divert Disaster",
+          "probability": 50.0
+        },
+        {
+          "name": "Lost in Space",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Illvoi Infiltrator",
+      "Uthros Psionicist",
+      "Illvoi Galeblade",
+      "Illvoi Operative",
+      "Starbreach Whale",
+      "Mental Modulation",
+      "Tractor Beam",
+      "Cryoshatter"
+    ]
+  },
+  {
+    "name": "ELEMENTAL",
+    "setCode": "ECL",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Sunderflock",
+          "probability": 50.0
+        },
+        {
+          "name": "Ashling's Command",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Giantfall",
+          "probability": 50.0
+        },
+        {
+          "name": "Sear",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Enraged Flamecaster",
+          "probability": 50.0
+        },
+        {
+          "name": "Kulrath Mystic",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Kulrath Zealot",
+          "probability": 50.0
+        },
+        {
+          "name": "Stratosoarer",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Flamebraider",
+      "Eclipsed Flamekin",
+      "Tanufel Rimespeaker",
+      "Twinflame Travelers",
+      "Summit Sentinel",
+      "Flaring Cinder",
+      "Feed the Flames",
+      "Temporal Cleansing",
+      "Steam Vents",
+      "Island",
+      "Island",
+      "Island",
+      "Mountain",
+      "Mountain",
+      "Mountain"
+    ]
+  },
+  {
+    "name": "ELVES",
+    "setCode": "ECL",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "High Perfect Morcant",
+          "probability": 20.0
+        },
+        {
+          "name": "Trystan's Command",
+          "probability": 40.0
+        },
+        {
+          "name": "Gloom Ripper",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Morcant's Eyes",
+          "probability": 50.0
+        },
+        {
+          "name": "Creakwood Safewright",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Blossoming Defense",
+          "probability": 50.0
+        },
+        {
+          "name": "Nameless Inversion",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lys Alana Informant",
+          "probability": 50.0
+        },
+        {
+          "name": "Scarblade Scout",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dawnhand Eulogist",
+          "probability": 50.0
+        },
+        {
+          "name": "Safewright Cavalry",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Lys Alana Dignitary",
+      "Eclipsed Elf",
+      "Morcant's Loyalist",
+      "Dawn's Light Archer",
+      "Stoic Grove-Guide",
+      "Midnight Tilling",
+      "Assert Perfection",
+      "Overgrown Tomb",
+      "Swamp",
+      "Swamp",
+      "Swamp",
+      "Forest",
+      "Forest",
+      "Forest"
+    ]
+  },
+  {
+    "name": "FIELD TRIP",
+    "setCode": "SOS",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Emeritus of Abundance",
+          "probability": 20.0
+        },
+        {
+          "name": "Vastlands Scavenger",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Infirmary Healer",
+          "probability": 50.0
+        },
+        {
+          "name": "Environmental Scientist",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Pestbrood Sloth",
+          "probability": 50.0
+        },
+        {
+          "name": "Aberrant Manawurm",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Zimone's Experiment",
+          "probability": 50.0
+        },
+        {
+          "name": "Additive Evolution",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Noxious Newt",
+          "probability": 50.0
+        },
+        {
+          "name": "Mindful Biomancer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Glorious Decay",
+          "probability": 50.0
+        },
+        {
+          "name": "Oracle's Restoration",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Emil, Vastlands Roamer",
+      "Studious First-Year",
+      "Hungry Graffalon",
+      "Burrog Barrage",
+      "Chelonian Tackle",
+      "Wild Hypothesis"
+    ]
+  },
+  {
+    "name": "FLASHY",
+    "setCode": "ECL",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Loch Mare",
+          "probability": 20.0
+        },
+        {
+          "name": "Flitterwing Nuisance",
+          "probability": 40.0
+        },
+        {
+          "name": "Glen Elendra Guardian",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Rimekin Recluse",
+          "probability": 50.0
+        },
+        {
+          "name": "Unwelcome Sprite",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Noggle the Mind",
+          "probability": 50.0
+        },
+        {
+          "name": "Swat Away",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Run Away Together",
+          "probability": 50.0
+        },
+        {
+          "name": "Aquitect's Defenses",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Glamer Gifter",
+      "Voracious Tome-Skimmer",
+      "Illusion Spinners",
+      "Mischievous Sneakling",
+      "Glamermite",
+      "Wild Unraveling",
+      "Unexpected Assistance",
+      "Blossombind",
+      "Island",
+      "Island",
+      "Island",
+      "Island",
+      "Island",
+      "Island"
+    ]
+  },
+  {
+    "name": "GIANT",
+    "setCode": "ECL",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Spinerock Tyrant",
+          "probability": 20.0
+        },
+        {
+          "name": "Goliath Daydreamer",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Impolite Entrance",
+          "probability": 50.0
+        },
+        {
+          "name": "Goatnap",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Boulder Dash",
+          "probability": 50.0
+        },
+        {
+          "name": "Giantfall",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stalactite Dagger",
+          "probability": 50.0
+        },
+        {
+          "name": "Flame-Chain Mauler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Flamekin Gildweaver",
+          "probability": 50.0
+        },
+        {
+          "name": "Feed the Flames",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sizzling Changeling",
+      "Hovel Hurler",
+      "Boldwyr Aggressor",
+      "Feisty Spikeling",
+      "Brambleback Brute",
+      "Tweeze",
+      "Burning Curiosity",
+      "Mountain",
+      "Mountain",
+      "Mountain",
+      "Mountain",
+      "Mountain",
+      "Mountain"
+    ]
+  },
+  {
+    "name": "GOBLINS",
+    "setCode": "ECL",
+    "colors": [
+      "R",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Scuzzback Scrounger",
+          "probability": 50.0
+        },
+        {
+          "name": "Grub's Command",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Retched Wretch",
+          "probability": 50.0
+        },
+        {
+          "name": "Boggart Mischief",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Boggart Prankster",
+          "probability": 50.0
+        },
+        {
+          "name": "Gristle Glutton",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Elder Auntie",
+          "probability": 50.0
+        },
+        {
+          "name": "Chaos Spewer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Cinder Strike",
+          "probability": 50.0
+        },
+        {
+          "name": "Auntie's Sentence",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Boggart Cursecrafter",
+      "Eclipsed Boggart",
+      "Sourbread Auntie",
+      "Bile-Vial Boggart",
+      "Unbury",
+      "Bogslither's Embrace",
+      "Burning Curiosity",
+      "Blood Crypt",
+      "Swamp",
+      "Swamp",
+      "Swamp",
+      "Mountain",
+      "Mountain",
+      "Mountain"
+    ]
+  },
+  {
+    "name": "GRAVE",
+    "setCode": "SOS",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ral Zarek, Guest Lecturer",
+          "probability": 20.0
+        },
+        {
+          "name": "Grave Researcher",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Lecturing Scornmage",
+          "probability": 50.0
+        },
+        {
+          "name": "Burrog Banemaker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Eternal Student",
+          "probability": 50.0
+        },
+        {
+          "name": "Cheerful Osteomancer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dissection Practice",
+          "probability": 50.0
+        },
+        {
+          "name": "Rabid Attack",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Melancholic Poet",
+          "probability": 50.0
+        },
+        {
+          "name": "Send in the Pest",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Cost of Brilliance",
+          "probability": 50.0
+        },
+        {
+          "name": "Pull from the Grave",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Leech Collector",
+      "Forum Necroscribe",
+      "Adventurous Eater",
+      "Sneering Shadewriter",
+      "Last Gasp",
+      "Wander Off"
+    ]
+  },
+  {
+    "name": "GREENHOUSE",
+    "setCode": "EOE",
+    "colors": [
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Ouroboroid",
+          "probability": 20.0
+        },
+        {
+          "name": "Terrasymbiosis",
+          "probability": 40.0
+        },
+        {
+          "name": "Loading Zone",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Hemosymbic Mite",
+          "probability": 50.0
+        },
+        {
+          "name": "Blooming Stinger",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Skystinger",
+          "probability": 50.0
+        },
+        {
+          "name": "Thawbringer",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Meltstrider Eulogist",
+      "Seedship Agrarian",
+      "Lashwhip Predator",
+      "Broodguard Elite",
+      "Intrepid Tenderfoot",
+      "Drix Fatemaker",
+      "Biosynthic Burst",
+      "Diplomatic Relations",
+      "Atmospheric Greenhouse",
+      "Evendo, Waking Haven"
+    ]
+  },
+  {
+    "name": "KITHKIN",
+    "setCode": "ECL",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Brigid's Command",
+          "probability": 50.0
+        },
+        {
+          "name": "Figure of Fable",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Kinsbaile Aspirant",
+          "probability": 50.0
+        },
+        {
+          "name": "Goldmeadow Nomad",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Surly Farrier",
+          "probability": 50.0
+        },
+        {
+          "name": "Timid Shieldbearer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Wary Farmer",
+          "probability": 50.0
+        },
+        {
+          "name": "Crossroads Watcher",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Thoughtweft Lieutenant",
+      "Eclipsed Kithkin",
+      "Thoughtweft Imbuer",
+      "Mistmeadow Council",
+      "Thoughtweft Charge",
+      "Keep Out",
+      "Clachan Festival",
+      "Spiral into Solitude",
+      "Temple Garden",
+      "Plains",
+      "Plains",
+      "Plains",
+      "Forest",
+      "Forest",
+      "Forest"
+    ]
+  },
+  {
+    "name": "LOREHOLD",
+    "setCode": "SOS",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Lorehold, the Historian",
+          "probability": 20.0
+        },
+        {
+          "name": "Hardened Academic",
+          "probability": 40.0
+        },
+        {
+          "name": "Ark of Hunger",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Garrison Excavator",
+          "probability": 50.0
+        },
+        {
+          "name": "Startled Relic Sloth",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Colossus of the Blood Age",
+          "probability": 50.0
+        },
+        {
+          "name": "Molten Note",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stone Docent",
+          "probability": 50.0
+        },
+        {
+          "name": "Owlin Historian",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Strife Scholar",
+          "probability": 50.0
+        },
+        {
+          "name": "Rubble Rouser",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Dig Site Inventory",
+          "probability": 50.0
+        },
+        {
+          "name": "Tome Blast",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Kirol, History Buff",
+      "Practiced Scrollsmith",
+      "Spirit Mascot",
+      "Lorehold Charm",
+      "Wilt in the Heat",
+      "Pursue the Past",
+      "Fields of Strife"
+    ]
+  },
+  {
+    "name": "LUMINARIES",
+    "setCode": "EOE",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Cosmogrand Zenith",
+          "probability": 20.0
+        },
+        {
+          "name": "Lumen-Class Frigate",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Dual-Sun Adepts",
+          "probability": 50.0
+        },
+        {
+          "name": "All-Fates Stalker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Reroute Systems",
+          "probability": 50.0
+        },
+        {
+          "name": "Focus Fire",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Rayblade Trooper",
+      "Starport Security",
+      "Dockworker Drone",
+      "Knight Luminary",
+      "Weftblade Enhancer",
+      "Dual-Sun Technique",
+      "Honor",
+      "Banishing Light",
+      "Auxiliary Boosters",
+      "Adagia, Windswept Bastion"
+    ]
+  },
+  {
+    "name": "MERFOLK",
+    "setCode": "ECL",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Deepway Navigator",
+          "probability": 50.0
+        },
+        {
+          "name": "Sygg's Command",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Silvergill Mentor",
+          "probability": 50.0
+        },
+        {
+          "name": "Encumbered Reejerey",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Pestered Wellguard",
+          "probability": 50.0
+        },
+        {
+          "name": "Shore Lurker",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Silvergill Peddler",
+          "probability": 50.0
+        },
+        {
+          "name": "Tributary Vaulter",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Appeal to Eirdu",
+          "probability": 50.0
+        },
+        {
+          "name": "Riverguard's Reflexes",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Wanderbrine Trapper",
+      "Deepchannel Duelist",
+      "Eclipsed Merrow",
+      "Gravelgill Scoundrel",
+      "Merrow Skyswimmer",
+      "Wanderwine Farewell",
+      "Liminal Hold",
+      "Hallowed Fountain",
+      "Plains",
+      "Plains",
+      "Plains",
+      "Island",
+      "Island",
+      "Island"
+    ]
+  },
+  {
+    "name": "PRISMARI",
+    "setCode": "SOS",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Prismari, the Inspiration",
+          "probability": 20.0
+        },
+        {
+          "name": "Traumatic Critique",
+          "probability": 40.0
+        },
+        {
+          "name": "Colorstorm Stallion",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Blazing Firesinger",
+          "probability": 50.0
+        },
+        {
+          "name": "Abstract Paintmage",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rapturous Moment",
+          "probability": 50.0
+        },
+        {
+          "name": "Stress Dream",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Deluge Virtuoso",
+          "probability": 50.0
+        },
+        {
+          "name": "Elemental Mascot",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Muse's Encouragement",
+          "probability": 50.0
+        },
+        {
+          "name": "Stadium Tidalmage",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Unsubtle Mockery",
+          "probability": 50.0
+        },
+        {
+          "name": "Procrastinate",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sanar, Unfinished Genius",
+      "Spectacular Skywhale",
+      "Landscape Painter",
+      "Vibrant Outburst",
+      "Prismari Charm",
+      "Visionary's Dance",
+      "Spectacle Summit"
+    ]
+  },
+  {
+    "name": "PYRRHIC",
+    "setCode": "EOE",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Syr Vondam, Sunstar Exemplar",
+          "probability": 50.0
+        },
+        {
+          "name": "Elegy Acolyte",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Timeline Culler",
+          "probability": 50.0
+        },
+        {
+          "name": "Susurian Voidborn",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Virus Beetle",
+          "probability": 50.0
+        },
+        {
+          "name": "Beamsaw Prospector",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Gravpack Monoist",
+          "probability": 50.0
+        },
+        {
+          "name": "Exosuit Savior",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Zealous Display",
+          "probability": 50.0
+        },
+        {
+          "name": "Squire's Lightblade",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Honored Knight-Captain",
+      "Syr Vondam, the Lucent",
+      "Knight Luminary",
+      "Vote Out",
+      "Embrace Oblivion",
+      "Dubious Delicacy",
+      "Auxiliary Boosters",
+      "Scoured Barrens"
+    ]
+  },
+  {
+    "name": "QUANDRIX",
+    "setCode": "SOS",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Quandrix, the Proof",
+          "probability": 20.0
+        },
+        {
+          "name": "Applied Geometry",
+          "probability": 40.0
+        },
+        {
+          "name": "Mind into Matter",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Tester of the Tangential",
+          "probability": 50.0
+        },
+        {
+          "name": "Infirmary Healer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Matterbending Mage",
+          "probability": 50.0
+        },
+        {
+          "name": "Topiary Lecturer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Fractal Tender",
+          "probability": 50.0
+        },
+        {
+          "name": "Fractal Mascot",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Cuboid Colony",
+      "Paradox Surveyor",
+      "Tam, Observant Sequencer",
+      "Pterafractyl",
+      "Quandrix Charm",
+      "Proctor's Gaze",
+      "Embrace the Paradox",
+      "Procrastinate",
+      "Paradox Gardens"
+    ]
+  },
+  {
+    "name": "SCRIBE",
+    "setCode": "SOS",
+    "colors": [
+      "W"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Emeritus of Truce",
+          "probability": 20.0
+        },
+        {
+          "name": "Antiquities on the Loose",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Group Project",
+          "probability": 50.0
+        },
+        {
+          "name": "Soaring Stoneglider",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Daydream",
+          "probability": 50.0
+        },
+        {
+          "name": "Primary Research",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Stone Docent",
+          "probability": 50.0
+        },
+        {
+          "name": "Shattered Acolyte",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rapier Wit",
+          "probability": 50.0
+        },
+        {
+          "name": "Interjection",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Ennis, Debate Moderator",
+      "Spiritcall Enthusiast",
+      "Elite Interceptor",
+      "Eager Glyphmage",
+      "Ascendant Dustspeaker",
+      "Ajani's Response",
+      "Dig Site Inventory"
+    ]
+  },
+  {
+    "name": "SILVERQUILL",
+    "setCode": "SOS",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Silverquill, the Disputant",
+          "probability": 20.0
+        },
+        {
+          "name": "Stirring Hopesinger",
+          "probability": 40.0
+        },
+        {
+          "name": "Conciliator's Duelist",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Snooping Page",
+          "probability": 50.0
+        },
+        {
+          "name": "Melancholic Poet",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Killian's Confidence",
+          "probability": 50.0
+        },
+        {
+          "name": "Render Speechless",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rehearsed Debater",
+          "probability": 50.0
+        },
+        {
+          "name": "Imperious Inkmage",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Interjection",
+          "probability": 50.0
+        },
+        {
+          "name": "Masterful Flourish",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Scolding Administrator",
+      "Abigale, Poet Laureate",
+      "Stirring Honormancer",
+      "Elite Interceptor",
+      "Inkling Mascot",
+      "Silverquill Charm",
+      "Social Snub",
+      "Forum of Amity"
+    ]
+  },
+  {
+    "name": "SPELLCRAFT",
+    "setCode": "SOS",
+    "colors": [
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Improvisation Capstone",
+          "probability": 20.0
+        },
+        {
+          "name": "Steal the Show",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Garrison Excavator",
+          "probability": 50.0
+        },
+        {
+          "name": "Tackle Artist",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Expressive Firedancer",
+          "probability": 50.0
+        },
+        {
+          "name": "Goblin Glasswright",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Rubble Rouser",
+          "probability": 50.0
+        },
+        {
+          "name": "Strife Scholar",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Tome Blast",
+          "probability": 50.0
+        },
+        {
+          "name": "Heated Argument",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Charging Strifeknight",
+      "Pigment Wrangler",
+      "Zealous Lorecaster",
+      "Unsubtle Mockery",
+      "Impractical Joke",
+      "Artistic Process",
+      "Living History"
+    ]
+  },
+  {
+    "name": "STATIONS",
+    "setCode": "EOE",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Dawnsire, Sunstar Dreadnought",
+          "probability": 20.0
+        },
+        {
+          "name": "Sunstar Chaplain",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Vaultguard Trooper",
+          "probability": 50.0
+        },
+        {
+          "name": "Rescue Skiff",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Frontline War-Rager",
+          "probability": 50.0
+        },
+        {
+          "name": "Flight-Deck Coordinator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Squire's Lightblade",
+          "probability": 50.0
+        },
+        {
+          "name": "Rig for War",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Drill Too Deep",
+          "probability": 50.0
+        },
+        {
+          "name": "Melded Moxite",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Sami, Ship's Engineer",
+      "Dawnstrike Vanguard",
+      "Starfighter Pilot",
+      "Zookeeper Mechan",
+      "Orbital Plunge",
+      "Wedgelight Rammer",
+      "Wind-Scarred Crag"
+    ]
+  },
+  {
+    "name": "SYNTHESIZED",
+    "setCode": "EOE",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Requiem Monolith",
+          "probability": 50.0
+        },
+        {
+          "name": "Synthesizer Labship",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Umbral Collar Zealot",
+          "probability": 50.0
+        },
+        {
+          "name": "Steelswarm Operator",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Hullcarver",
+          "probability": 50.0
+        },
+        {
+          "name": "Virus Beetle",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Selfcraft Mechan",
+          "probability": 50.0
+        },
+        {
+          "name": "Gravblade Heavy",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Alpharael, Dreaming Acolyte",
+      "Mechan Assembler",
+      "Monoist Circuit-Feeder",
+      "Mechan Shieldmate",
+      "Cloudsculpt Technician",
+      "Dubious Delicacy",
+      "Nutrient Block",
+      "Cryogen Relic",
+      "Uthros, Titanic Godcore",
+      "Dismal Backwater"
+    ]
+  },
+  {
+    "name": "TERRAFORMING",
+    "setCode": "EOE",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Genemorph Imago",
+          "probability": 50.0
+        },
+        {
+          "name": "Extinguisher Battleship",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Mouth of the Storm",
+          "probability": 50.0
+        },
+        {
+          "name": "Glacier Godmaw",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Close Encounter",
+          "probability": 50.0
+        },
+        {
+          "name": "Meltstrider's Resolve",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Biomechan Engineer",
+      "Eumidian Terrabotanist",
+      "Gene Pollinator",
+      "Galactic Wayfarer",
+      "Mechanozoa",
+      "Lost in Space",
+      "Sami's Curiosity",
+      "Eusocial Engineering",
+      "Thornwood Falls"
+    ]
+  },
+  {
+    "name": "VIVID",
+    "setCode": "ECL",
+    "colors": [
+      "W",
+      "U",
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Aurora Awakener",
+          "probability": 20.0
+        },
+        {
+          "name": "Tam, Mindful First-Year",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Gangly Stompling",
+          "probability": 50.0
+        },
+        {
+          "name": "Wary Farmer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Unforgiving Aim",
+          "probability": 50.0
+        },
+        {
+          "name": "Gilt-Leaf's Embrace",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Noggle Robber",
+      "Luminollusk",
+      "Glister Bairn",
+      "Prismabasher",
+      "Great Forest Druid",
+      "Wildvine Pummeler",
+      "Assert Perfection",
+      "Shimmerwilds Growth",
+      "Pitiless Fists",
+      "Forest",
+      "Forest",
+      "Forest",
+      "Forest",
+      "Forest",
+      "Forest"
+    ]
+  },
+  {
+    "name": "VOID",
+    "setCode": "EOE",
+    "colors": [
+      "B"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Sothera, the Supervoid",
+          "probability": 20.0
+        },
+        {
+          "name": "Xu-Ifit, Osteoharmonist",
+          "probability": 80.0
+        }
+      ],
+      [
+        {
+          "name": "Susurian Dirgecraft",
+          "probability": 50.0
+        },
+        {
+          "name": "Fell Gravship",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Virus Beetle",
+          "probability": 50.0
+        },
+        {
+          "name": "Beamsaw Prospector",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Perigee Beckoner",
+          "probability": 50.0
+        },
+        {
+          "name": "Comet Crawler",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Temporal Intervention",
+          "probability": 50.0
+        },
+        {
+          "name": "Decode Transmissions",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Lightless Evangel",
+      "Umbral Collar Zealot",
+      "Gravpack Monoist",
+      "Insatiable Skittermaw",
+      "Swarm Culler",
+      "Gravkill",
+      "Tragic Trajectory",
+      "Susur Secundi, Void Altar"
+    ]
+  },
+  {
+    "name": "WAYFARING",
+    "setCode": "EOE",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Biotech Specialist",
+          "probability": 50.0
+        },
+        {
+          "name": "Mightform Harmonizer",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Terrapact Intimidator",
+          "probability": 50.0
+        },
+        {
+          "name": "Remnant Elemental",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Territorial Bruntar",
+          "probability": 50.0
+        },
+        {
+          "name": "Nebula Dragon",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Lithobraking",
+          "probability": 50.0
+        },
+        {
+          "name": "Seedship Impact",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Bombard",
+          "probability": 50.0
+        },
+        {
+          "name": "Biosynthic Burst",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Tannuk, Memorial Ensign",
+      "Slagdrill Scrapper",
+      "Galactic Wayfarer",
+      "Icecave Crasher",
+      "Orbital Plunge",
+      "Larval Scoutlander",
+      "Rugged Highlands"
+    ]
+  },
+  {
+    "name": "WITHERBLOOM",
+    "setCode": "SOS",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "randomSlots": [
+      [
+        {
+          "name": "Witherbloom, the Balancer",
+          "probability": 20.0
+        },
+        {
+          "name": "Blech, Loafing Pest",
+          "probability": 40.0
+        },
+        {
+          "name": "Cauldron of Essence",
+          "probability": 40.0
+        }
+      ],
+      [
+        {
+          "name": "Essenceknit Scholar",
+          "probability": 50.0
+        },
+        {
+          "name": "Poisoner's Apprentice",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Old-Growth Educator",
+          "probability": 50.0
+        },
+        {
+          "name": "Pestbrood Sloth",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Root Manipulation",
+          "probability": 50.0
+        },
+        {
+          "name": "Mind Roots",
+          "probability": 50.0
+        }
+      ],
+      [
+        {
+          "name": "Send in the Pest",
+          "probability": 50.0
+        },
+        {
+          "name": "Burrog Banemaker",
+          "probability": 50.0
+        }
+      ]
+    ],
+    "fixedCards": [
+      "Teacher's Pest",
+      "Lluwen, Exchange Student",
+      "Bogwater Lumaret",
+      "Pest Mascot",
+      "Tenured Concocter",
+      "Witherbloom Charm",
+      "Grapple with Death",
+      "Titan's Grave"
+    ]
+  }
+]

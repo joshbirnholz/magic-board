@@ -7,7 +7,7 @@
 1 Makeshift Battalion (M21) 26
 1 Mikaeus, the Lunarch (JMP)
 1 Patron of the Valiant (JMP) 128
-7 Plains (JMP) 43
+7 Plains (FDN) 272
 1 Supply Runners (JMP) 7
 1 Tempered Veteran (M21) 41
 1 Thriving Heath (JMP) 35

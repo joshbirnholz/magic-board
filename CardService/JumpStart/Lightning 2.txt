@@ -7,7 +7,7 @@
 2 Lightning Visionary (JMP) 22
 1 Lightning-Core Excavator (JMP) 32
 1 Living Lightning (JMP) 23
-7 Mountain (JMP) 68
+7 Mountain (FDN) 278
 1 Riddle of Lightning (JMP)
 1 Thriving Bluff (JMP) 33
 1 Weaver of Lightning (JMP)
