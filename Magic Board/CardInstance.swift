@@ -176,7 +176,7 @@ final class CardInstance: NSObject, Codable {
 			self.representation = representation
 		case .morph(let card):
 			self.representation = .card(card)
-		case .manifest(let card):
+		case .manifest(let card), .mysterious(let card):
 			self.representation = .card(card)
 		case .foretold(let card):
 			self.representation = .card(card)

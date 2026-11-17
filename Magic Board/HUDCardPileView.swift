@@ -96,6 +96,25 @@ class HUDCardPileView: UIView {
         topCardImageView.layer.cornerRadius = previewHeight * 63 / 88 * 0.045
     }
 
+	/// Phone Play: whether this phone's player may see the library's top card (kept revealed to
+	/// one or both players); nil uses the pile's own flag.
+	var revealsTopCardOverride: Bool? {
+		didSet { if oldValue != revealsTopCardOverride { refreshTopImage() } }
+	}
+
+	private var currentTopImage: UIImage? {
+		if revealsTopCardOverride == true, let top = pile.cards.value.last { return top.representation.image(type: .normal) }
+		return pile.topCardImage
+	}
+
+	private func refreshTopImage() {
+		guard pile != nil else { return }
+		DispatchQueue.global(qos: .userInteractive).async {
+			let image = self.currentTopImage
+			DispatchQueue.main.async { [weak self] in self?.topCardImageView.image = image }
+		}
+	}
+
 	private func bind() {
         bag = DisposeBag()
 		pile.cards
@@ -105,7 +124,7 @@ class HUDCardPileView: UIView {
 			self.numberLabel.text = String(cards.count)
 			
 			DispatchQueue.global(qos: .userInteractive).async {
-				let image = self.pile.topCardImage
+				let image = self.currentTopImage
 				DispatchQueue.main.async { [weak self] in
 					self?.topCardImageView.image = image
 				}
@@ -117,7 +136,7 @@ class HUDCardPileView: UIView {
       .subscribe(onNext: { [weak self] (cards) in
       guard let self = self else { return }      
       DispatchQueue.global(qos: .userInteractive).async {
-        let image = self.pile.topCardImage
+        let image = self.currentTopImage
         DispatchQueue.main.async { [weak self] in
           self?.topCardImageView.image = image
         }

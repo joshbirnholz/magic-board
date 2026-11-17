@@ -20,6 +20,12 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
     return CardService.shared.getManifestCard()
 	}()
 	
+	/// "A Mysterious Creature": the reminder card for a face-down creature that was cloaked or
+	/// cast with disguise (a 2/2 with ward {2}).
+	private static var mysteriousCard: MTGCard = {
+    return CardService.shared.getMysteriousCreatureCard()
+	}()
+	
 	private static var foretellCard: MTGCard = {
     return CardService.shared.getForetellCard()
 	}()
@@ -30,6 +36,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	case faceDown(CardRepresentation)
 	case morph(MTGCard)
 	case manifest(MTGCard)
+	/// Face down after being cloaked or cast with disguise: shown as "A Mysterious Creature".
+	case mysterious(MTGCard)
 	case foretold(MTGCard)
   case prototyped(MTGCard)
 	//			case appearingAsCopy(original: RepresentedCard, copying: Represented)
@@ -46,6 +54,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
     } else if case .morph(_) = self {
       return true
     } else if case .manifest(_) = self {
+      return true
+    } else if case .mysterious(_) = self {
       return true
     } else if case .foretold(_) = self {
       return true
@@ -65,6 +75,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 		case faceDown
 		case morph
 		case manifest
+		case mysterious
 		case foretold
     case prototyped
     case commander
@@ -78,7 +89,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return card.card
 		case .faceDown(let card):
 			return card.card
-		case .morph(let card), .manifest(let card), .foretold(let card):
+		case .morph(let card), .manifest(let card), .mysterious(let card), .foretold(let card):
 			return card
     case .prototyped(let card):
       return card
@@ -103,6 +114,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			try container.encode(card, forKey: .morph)
 		case .manifest(let card):
 			try container.encode(card, forKey: .manifest)
+		case .mysterious(let card):
+			try container.encode(card, forKey: .mysterious)
 		case .foretold(let card):
 			try container.encode(card, forKey: .foretold)
     case .prototyped(let card):
@@ -128,6 +141,10 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			self = .faceDown(card)
 		} else if let card = try container.decodeIfPresent(MTGCard.self, forKey: .morph) {
 			self = .morph(card)
+		} else if let card = try container.decodeIfPresent(MTGCard.self, forKey: .manifest) {
+			self = .manifest(card)
+		} else if let card = try container.decodeIfPresent(MTGCard.self, forKey: .mysterious) {
+			self = .mysterious(card)
 		} else if let card = try container.decodeIfPresent(MTGCard.self, forKey: .foretold) {
       self = .foretold(card)
     } else if let card = try container.decodeIfPresent(MTGCard.self, forKey: .prototyped) {
@@ -146,7 +163,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return face.power
 		case .faceDown(_), .foretold(_):
 			return nil
-		case .morph(_), .manifest(_):
+		case .morph(_), .manifest(_), .mysterious(_):
 			return "2"
     case .prototyped(let card):
       return card.prototype?.power ?? card.power
@@ -161,7 +178,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return face.toughness
 		case .faceDown(_), .foretold(_):
 			return nil
-		case .morph(_), .manifest(_):
+		case .morph(_), .manifest(_), .mysterious(_):
 			return "2"
     case .prototyped(let card):
       return card.prototype?.toughness ?? card.toughness
@@ -189,6 +206,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.typeLine
 		case .manifest(_):
 			return CardRepresentation.manifestCard.typeLine
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.typeLine
 		case .foretold(_):
 			return CardRepresentation.foretellCard.typeLine
     case .prototyped(let card):
@@ -210,6 +229,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.oracleText
 		case .manifest(_):
 			return CardRepresentation.manifestCard.oracleText
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.oracleText
 		case .foretold(_):
 			return CardRepresentation.foretellCard.oracleText
     case .prototyped(let card):
@@ -230,6 +251,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 		case .morph(_):
 			return nil
 		case .manifest(_):
+			return nil
+		case .mysterious(_):
 			return nil
 		case .foretold(_):
 			return nil
@@ -252,6 +275,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.name
 		case .manifest(_):
 			return CardRepresentation.manifestCard.name
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.name
 		case .foretold(_):
 			return CardRepresentation.foretellCard.name
     case .prototyped(let card):
@@ -273,6 +298,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.scryfallID
 		case .manifest(_):
 			return CardRepresentation.manifestCard.scryfallID
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.scryfallID
 		case .foretold(_):
 			return CardRepresentation.foretellCard.scryfallID
     case .prototyped(let card):
@@ -294,6 +321,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.borderColor ?? .black
 		case .manifest(_):
 			return CardRepresentation.manifestCard.borderColor ?? .black
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.borderColor ?? .black
 		case .foretold(_):
 			return CardRepresentation.foretellCard.borderColor ?? .black
     case .prototyped(let card):
@@ -307,7 +336,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return card.keywords ?? []
 		case .alternateFace(let card, _):
 			return card.keywords ?? []
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return []
 		case .tokenCopy(let representation):
 			return representation.keywords
@@ -330,6 +359,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.convertedManaCost
 		case .manifest(_):
 			return CardRepresentation.manifestCard.convertedManaCost
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.convertedManaCost
 		case .foretold(_):
 			return CardRepresentation.foretellCard.convertedManaCost
     case .prototyped(let card):
@@ -350,6 +381,24 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	//			}
 	//		}
 	
+    /// Reads existing artwork without starting a network request, for first-frame rendering.
+    func imageIfLoaded(type: ImageType, alwaysUpright: Bool = false) -> UIImage? {
+        switch self {
+        case .alternateFace(let card, let face):
+            return card.imageIfLoaded(type: type, for: face, alwaysUpright: alwaysUpright)
+        case .card(let card), .prototyped(let card):
+            return card.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
+        case .tokenCopy(let card):
+            return card.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
+        case .faceDown: return nil
+        case .morph: return Self.morphCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
+        case .manifest: return Self.manifestCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
+        case .mysterious: return Self.mysteriousCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
+        case .foretold:
+            return type == .art ? UIImage(named: "foretellart")
+                : Self.foretellCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
+        }
+    }
 	func image(type: ImageType, alwaysUpright: Bool = false) -> UIImage? {
 		switch self {
 		case .alternateFace(let card, let face):
@@ -366,6 +415,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.image(type: type, alwaysUpright: alwaysUpright)
 		case .manifest(_):
 			return CardRepresentation.manifestCard.image(type: type, alwaysUpright: alwaysUpright)
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.image(type: type, alwaysUpright: alwaysUpright)
 		case .foretold(_):
 			if case .art = type {
 				return UIImage(named: "foretellart")
@@ -377,7 +428,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var fullArt: Bool {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return false
 		default:
 			return card.isFullArt
@@ -386,7 +437,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var isLand: Bool {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return false
 		case .alternateFace(_, let face):
 			return face.typeLine?.lowercased().contains("land") == true
@@ -397,7 +448,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var isBasicLand: Bool {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return false
 		case .alternateFace(_, let face):
 			return (face.typeLine?.lowercased().contains("basic land") == true) || (face.typeLine?.lowercased().contains("basic snow land") == true)
@@ -410,7 +461,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 		switch self {
 		case .alternateFace(_, let face):
 			return face.flavorText
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return nil
 		default:
 			return card.flavorText
@@ -425,6 +476,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.manaCost
 		case .manifest(_):
 			return CardRepresentation.manifestCard.manaCost
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.manaCost
 		case .foretold(_):
 			return CardRepresentation.foretellCard.manaCost
     case .prototyped(let card):
@@ -455,6 +508,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.artist
 		case .manifest(_):
 			return CardRepresentation.manifestCard.artist
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.artist
 		case .foretold(_):
 			return CardRepresentation.foretellCard.artist
 		case .alternateFace(let card, let face):
@@ -468,7 +523,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var colorIndicator: [MTGColor]? {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return nil
 		case .alternateFace(_, let face):
 			return face.colorIndicator
@@ -487,6 +542,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.colors
 		case .manifest(_):
 			return CardRepresentation.manifestCard.colors
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.colors
 		case .alternateFace(_, let face):
 			if let colors = face.colors {
 				return colors.ordered
@@ -515,6 +572,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.scryfallURL
 		case .manifest(_):
 			return CardRepresentation.manifestCard.scryfallURL
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.scryfallURL
 		case .foretold(_):
 			return CardRepresentation.foretellCard.scryfallURL
 		default:
@@ -525,6 +584,17 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	/// A token copy of a token is just that token: copying a token (or a copy of one) with no
 	/// differences yields the same thing, so unwrap those layers. A token copy of a nontoken card
 	/// stays a token copy of it.
+	/// A double-faced card (each face its own card image) with no face chosen yet, as its front face.
+	/// Split, adventure and other multi-face layouts are one card and stay as they are.
+	var choosingFrontFace: CardRepresentation {
+		guard case .card(let card) = self, let front = card.cardFaces?.first, (card.cardFaces?.count ?? 0) > 1,
+			  ["transform", "modal_dfc", "double_faced_token", "reversible_card", "battle", "prepare"].contains(card.layout) else { return self }
+		return .alternateFace(card, front)
+	}
+	
+	/// A Room (Duskmourn): one split card with two doors that lock and unlock — never two faces.
+	var isRoom: Bool { card.layout == "split" && (card.typeLine ?? "").contains("Room") }
+	
 	var canonicalToken: CardRepresentation {
 		guard case .tokenCopy(let inner) = self else { return self }
 		let unwrapped = inner.canonicalToken
@@ -550,7 +620,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var isEmblem: Bool {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return false
 		case _ where card.layout == "emblem":
 			return true
@@ -561,7 +631,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var isFoil: Bool {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return false
 		default:
 			return !card.isNonFoilAvailable
@@ -576,6 +646,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.morphCard.frameEffects
 		case .manifest(_):
 			return CardRepresentation.manifestCard.frameEffects
+		case .mysterious(_):
+			return CardRepresentation.mysteriousCard.frameEffects
 		case .foretold(_):
 			return CardRepresentation.foretellCard.frameEffects
 		case .card(let card), .alternateFace(let card, _):
@@ -609,6 +681,8 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return representation.layout
 		case .manifest(_):
 			return "manifest"
+		case .mysterious(_):
+			return "mysterious"
 		case .foretold(_):
 			return "foretell"
     case .prototyped(_):
@@ -618,9 +692,12 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	var flavorName: String? {
 		switch self {
-		case .faceDown(_), .morph(_), .manifest(_), .foretold(_):
+		case .faceDown(_), .morph(_), .manifest(_), .mysterious(_), .foretold(_):
 			return nil
-		case .card(let card), .alternateFace(let card, _):
+		case .alternateFace(let card, let face):
+			// A face has its own flavor name (the card's lists both, "A // B").
+			return face.flavorName ?? card.flavorName
+		case .card(let card):
 			return card.flavorName
 		case .tokenCopy(let representation):
 			return representation.flavorName

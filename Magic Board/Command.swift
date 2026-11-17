@@ -34,6 +34,11 @@ enum Command: Codable {
 			case `default`
 			case morph
 			case manifest
+			/// Cloaked (manifested with ward {2}) or cast with disguise: "A Mysterious Creature".
+			case cloak
+			case disguise
+			/// Exiled face up from the hand, castable later (Plot).
+			case plot
 			case foretell
       case prototype
 		}
@@ -143,14 +148,20 @@ extension Command.PlayCardParameters {
         }
         if let faces = card.card.cardFaces, !faces.isEmpty {
             let aftermath = card.layout == "split" && faces.count == 2 && faces[1].oracleText?.hasPrefix("Aftermath") == true
-            if card.layout == "transform" || aftermath { return [option(faces[0].name ?? "Play", face: 0)] }
+            // Transforming and prepare cards are always cast as their front face (a prepare card's
+            // spell is cast later, from the battlefield, while it's prepared).
+            if card.layout == "transform" || card.layout == "prepare" || aftermath { return [option(faces[0].name ?? "Play", face: 0)] }
             let ordered = card.layout == "adventure" ? Array(faces.enumerated().reversed()) : Array(faces.enumerated())
             var choices = ordered.map { option($0.element.name ?? "Face \($0.offset + 1)", face: $0.offset) }
             if card.keywords.contains("Fuse") { choices.append(option("Fuse")) }
             return choices
         }
+        // Abilities that put the card onto the battlefield face down: offer them beside a normal play.
         if card.keywords.contains("Morph") || card.keywords.contains("Megamorph") {
-            return [option(card.name ?? "Play"), option("Morph", mode: .morph)]
+            return [option(card.name ?? "Play"), option("Morph (Face Down)", mode: .morph)]
+        }
+        if card.keywords.contains("Disguise") {
+            return [option(card.name ?? "Play"), option("Disguise (Face Down)", mode: .disguise)]
         }
         if card.card.prototype != nil, card.keywords.contains("Prototype") {
             return [option("Cast"), option("Prototype", mode: .prototype)]

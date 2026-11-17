@@ -67,6 +67,8 @@ class ObservableBridge<Input: Equatable>: ObservableObject {
 }
 
 final class PhoneHandPresentation: ObservableObject {
+    final class MenuSource { weak var view: UIView?; init(_ view: UIView) { self.view = view } }
+    var menuSources: [UUID: MenuSource] = [:]
     @Published var isExpanded = false {
         didSet { if oldValue != isExpanded { onChange?() } }
     }
@@ -79,6 +81,12 @@ final class PhoneHandPresentation: ObservableObject {
     /// Horizontal band (container coordinates) the collapsed hand fits in, between the HUD's
     /// piles and its untap/life controls.
     @Published var compactBand: ClosedRange<CGFloat>?
+    /// Cards the local player can cast from the graveyard or exile, shown beside the hand.
+    @Published var castable: [CardInstance] = []
+    /// Which of those are in exile (orange glow); the rest are in the graveyard (purple).
+    @Published var castableInExile: Set<UUID> = []
+    /// Companions waiting in the sideboard (teal glow).
+    @Published var castableCompanions: Set<UUID> = []
     /// Reports a hand card drag to the board (window coordinates). The board answers whether the
     /// finger is over the hand, where the card is reordered rather than played.
     var onCardDrag: ((CardInstance, PhoneHandDragPhase, CGPoint) -> Bool)?

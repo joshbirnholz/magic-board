@@ -27,6 +27,9 @@ struct CardControlView: View {
 	
 	@State var doesNotAutoUntapChecked: Bool
 	@State var doesNotUntapNextTurnChecked: Bool
+	@State var isPreparedChecked: Bool
+	@State var lockedDoors: Set<Counter>
+	@State var isPhasedOut: Bool
   @State var isCommanderChecked: Bool
   @State var commanderCasts: Int
   @State var colors: [MTGColor]
@@ -37,144 +40,276 @@ struct CardControlView: View {
 		self.card = card
 		self.doesNotAutoUntapChecked = card.doesNotUntapAutomatically.value
 		self.doesNotUntapNextTurnChecked = card.doesNotUntapNextTurn.value
+		self.isPreparedChecked = card.counters.value.contains(.prepared)
+		self.lockedDoors = Set(card.counters.value.filter(\.isDoorLock))
+		self.isPhasedOut = card.counters.value.contains(.phasedOut)
     self.isCommanderChecked = card.isCommander.value
     self.commanderCasts = card.commanderCasts.value
 		self.dismiss = dismiss
     self.colors = card.colors.value
 	}
 	
-	@ViewBuilder var mainSection: some View {
-        ForEach(Array(AppDelegate.shared.phoneCardActions(card).enumerated()), id: \.offset) { _, action in
-            Button(action.title) {
-                action.perform()
-                if action.dismisses { dismiss() }
-            }
-        }.id(phoneActionRevision)
-		Button("Switch Control") {
-			switch card.controllerIdentifier.value {
-			case .a:
-				card.controllerIdentifier.accept(.b)
-			case .b:
-				card.controllerIdentifier.accept(.a)
+	// MARK: Quick actions grid
+
+	private struct Tile: Identifiable {
+		let id: String
+		let title: String
+		let icon: String
+		var isOn: Bool? = nil
+		var destructive = false
+		let action: () -> Void
+	}
+
+	private static func icon(for title: String) -> String {
+		switch title {
+		case "Attack": return "arrow.up.forward.circle"
+		case "Remove from Combat": return "xmark.shield"
+		case "Stop Blocking": return "shield.slash"
+		case "Tap": return "arrow.turn.down.right"
+		case "Untap": return "arrow.turn.up.left"
+		case "Unattach": return "paperclip"
+		case "Move to Command Zone": return "crown"
+		case "Resolve from Stack": return "checkmark.circle"
+		case "Copy": return "plus.square.on.square"
+		default: return title.hasPrefix("Counter") ? "xmark.bin" : "circle.grid.2x2"
+		}
+	}
+
+	private var isOnBattlefield: Bool {
+		if let session = AppDelegate.shared.phoneSession { return session.game.state.battlefield.value.contains(card) }
+		return GameState.current.battlefield.value.contains(card)
+	}
+
+	private var tiles: [Tile] {
+		var tiles: [Tile] = AppDelegate.shared.phoneCardActions(card).map { action in
+			Tile(id: "action-\(action.title)", title: action.title, icon: Self.icon(for: action.title)) {
+				action.perform()
+				if action.dismisses { dismiss() }
 			}
+		}
+		tiles.append(Tile(id: "control", title: "Switch Control", icon: "arrow.left.arrow.right") {
+			card.controllerIdentifier.accept(card.controllerIdentifier.value == .a ? .b : .a)
 			try? GameState.current.save()
-		}
-		
-		Button {
-			card.doesNotUntapAutomatically.accept(!card.doesNotUntapAutomatically.value)
-			doesNotAutoUntapChecked.toggle()
-            try? GameState.current.save()
-		} label: {
-			HStack {
-				Text("Doesn't Auto-Untap")
-				if doesNotAutoUntapChecked {
-					Spacer()
-					Image(systemName: "checkmark")
+		})
+		let type = card.representation.typeLine ?? ""
+		if !(card.representation.isEmblem || type == "Vanguard" || type == "Phenomenon" || type.contains("Conspiracy") || type.contains("Scheme")) {
+			tiles.append(Tile(id: "token-copy", title: "Token Copy", icon: "doc.on.doc") {
+				card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
+					Array(repeating: (card.controllerIdentifier.value, .tokenCopy(card.representation)), count: creationCount)
 				}
-			}
+				dismiss()
+			})
 		}
-		
-		Button {
-			card.doesNotUntapNextTurn.accept(!card.doesNotUntapNextTurn.value)
-			doesNotUntapNextTurnChecked.toggle()
-            try? GameState.current.save()
-		} label: {
-			HStack {
-				Text("Doesn't Untap Next Turn")
-				if doesNotUntapNextTurnChecked {
-					Spacer()
-					Image(systemName: "checkmark")
-				}
-			}
-		}
-		
 		if card.representation.layout == "transform", case .alternateFace(let mtgCard, _) = card.representation, let faces = mtgCard.cardFaces, !faces.isEmpty {
-			Button("Transform") {
+			tiles.append(Tile(id: "transform", title: "Transform", icon: "arrow.triangle.2.circlepath") {
 				if let otherSide = faces.first(where: { $0.name != card.representation.name }) {
 					card.representation = .alternateFace(mtgCard, otherSide)
 					try? GameState.current.save()
 				}
+			})
+		}
+		switch card.representation {
+		case .faceDown(let inner):
+			tiles.append(Tile(id: "face-up", title: "Face-Up", icon: "eye") { card.representation = inner; try? GameState.current.save(); dismiss() })
+		case .morph(let inner), .manifest(let inner), .mysterious(let inner), .foretold(let inner):
+			tiles.append(Tile(id: "face-up", title: "Face-Up", icon: "eye") { card.representation = .card(inner); try? GameState.current.save(); dismiss() })
+		default:
+			tiles.append(Tile(id: "face-down", title: "Face-Down", icon: "eye.slash") {
+				card.representation = .faceDown(card.representation); try? GameState.current.save(); dismiss()
+			})
+		}
+		if isOnBattlefield {
+			tiles.append(Tile(id: "phased", title: "Phased Out", icon: "circle.dashed", isOn: isPhasedOut) { togglePhasing() })
+		}
+		tiles.append(Tile(id: "auto-untap", title: "Doesn't Auto-Untap", icon: "lock", isOn: doesNotAutoUntapChecked) {
+			card.doesNotUntapAutomatically.accept(!card.doesNotUntapAutomatically.value)
+			doesNotAutoUntapChecked.toggle()
+			try? GameState.current.save()
+		})
+		tiles.append(Tile(id: "untap-next", title: "Doesn't Untap Next Turn", icon: "lock.rotation", isOn: doesNotUntapNextTurnChecked) {
+			card.doesNotUntapNextTurn.accept(!card.doesNotUntapNextTurn.value)
+			doesNotUntapNextTurnChecked.toggle()
+			try? GameState.current.save()
+		})
+		if !card.representation.isToken {
+			tiles.append(Tile(id: "commander", title: "Commander", icon: "crown.fill", isOn: isCommanderChecked) {
+				card.isCommander.mutate { $0.toggle() }
+				isCommanderChecked.toggle()
+				try? GameState.current.save()
+			})
+		}
+		tiles.append(Tile(id: "remove", title: "Remove", icon: "trash", destructive: true) {
+			card.remove.onNext(())
+			try? GameState.current.save()
+		})
+		return tiles
+	}
+
+	/// Every quick action at a glance: compact tiles instead of a long list. Toggles light up when on.
+	@ViewBuilder var actionGrid: some View {
+		LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 6)], spacing: 6) {
+			ForEach(tiles) { tile in
+				Button(action: tile.action) {
+					VStack(spacing: 5) {
+						Image(systemName: tile.icon)
+							.font(.system(size: 17, weight: .semibold))
+							.frame(height: 20)
+						Text(tile.title)
+							.font(.caption2.weight(.medium))
+							.multilineTextAlignment(.center)
+							.lineLimit(2)
+							.minimumScaleFactor(0.8)
+					}
+					.frame(maxWidth: .infinity, minHeight: 52)
+					.padding(.horizontal, 4)
+					.foregroundStyle(tile.destructive ? Color.red : tile.isOn == true ? Color.accentColor : Color.primary)
+					.background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+						.fill(tile.isOn == true ? Color.accentColor.opacity(0.22) : Color(uiColor: .tertiarySystemFill)))
+					.overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+						.strokeBorder(tile.isOn == true ? Color.accentColor : .clear, lineWidth: 1.5))
+					.contentShape(RoundedRectangle(cornerRadius: 12))
+				}
+				.buttonStyle(.plain)
+				.accessibilityLabel(tile.title)
+				.accessibilityAddTraits(tile.isOn == true ? [.isSelected, .isButton] : .isButton)
+				.accessibilityIdentifier("card-tile-\(tile.id)")
+			}
+		}
+		.id(phoneActionRevision)
+	}
+
+	/// Card-specific rows: a prepare card's marker and spell, a Room's door locks.
+	@ViewBuilder var mainSection: some View {
+		// Prepare cards (layout "prepare") show a Prepared marker where Transform would be.
+		if card.representation.card.layout == "prepare" {
+			Button {
+				let prepared = !isPreparedChecked
+				if let session = AppDelegate.shared.phoneSession {
+					session.send(.counter(card.uuid, .prepared, prepared ? 1 : -1))
+				} else {
+					card.counters.mutate { counters in
+						if prepared { counters.append(.prepared) }
+						else if let index = counters.firstIndex(of: .prepared) { counters.remove(at: index) }
+					}
+					try? GameState.current.save()
+				}
+				isPreparedChecked = prepared
+			} label: {
+				HStack {
+					if let symbol = Counter.prepared.symbolImage {
+						Image(uiImage: symbol).renderingMode(.template).resizable().scaledToFit().frame(width: 18, height: 18)
+					}
+					Text("Prepared")
+					if isPreparedChecked {
+						Spacer()
+						Image(systemName: "checkmark")
+					}
+				}
+			}
+			.accessibilityIdentifier("card-prepared")
+			.accessibilityAddTraits(isPreparedChecked ? .isSelected : [])
+			// While prepared, its spell can be cast (as a copy); that unprepares the creature.
+			if isPreparedChecked, let session = AppDelegate.shared.phoneSession,
+			   card.controllerIdentifier.value == session.player,
+			   let spell = card.representation.card.cardFaces?.dropFirst().first {
+				Button("Cast \(spell.name ?? "Prepared Spell")") {
+					session.send(.castPrepared(card.uuid))
+					isPreparedChecked = false
+					dismiss()
+				}
+				.accessibilityIdentifier("card-cast-prepared")
+			}
+		}
+
+		if card.representation.isRoom, let faces = card.representation.card.cardFaces {
+			// A Room isn't two faces: each door is locked or unlocked (where Transform would be).
+			ForEach(Array(faces.prefix(2).enumerated()), id: \.offset) { index, face in
+				let lock = Counter.doorLock(index)
+				Button {
+					toggleDoor(lock)
+				} label: {
+					HStack {
+						if lockedDoors.contains(lock), let door = Counter.lockedDoorImage {
+							Image(uiImage: door).renderingMode(.template).resizable().scaledToFit().frame(width: 18, height: 18)
+						} else {
+							Image(systemName: "door.left.hand.open")
+						}
+						Text("\(face.name ?? "Door") Locked")
+						if lockedDoors.contains(lock) {
+							Spacer()
+							Image(systemName: "checkmark")
+						}
+					}
+				}
+				.accessibilityIdentifier("card-door-lock-\(index)")
 			}
 		}
 	}
-	
-	@ViewBuilder var removeSection: some View {
-		Button("Remove") {
-			card.remove.onNext(())
+
+	private func togglePhasing() {
+		let phased = !isPhasedOut
+		if let session = AppDelegate.shared.phoneSession {
+			session.send(.counter(card.uuid, .phasedOut, phased ? 1 : -1))
+		} else {
+			card.counters.mutate { counters in
+				if phased { counters.append(.phasedOut) } else if let index = counters.firstIndex(of: .phasedOut) { counters.remove(at: index) }
+			}
 			try? GameState.current.save()
-		}.foregroundColor(.red)
+		}
+		isPhasedOut = phased
 	}
-	
+
+	private func toggleDoor(_ lock: Counter) {
+		let locked = !lockedDoors.contains(lock)
+		if let session = AppDelegate.shared.phoneSession {
+			session.send(.counter(card.uuid, lock, locked ? 1 : -1))
+		} else {
+			card.counters.mutate { counters in
+				if locked { counters.append(lock) } else if let index = counters.firstIndex(of: lock) { counters.remove(at: index) }
+			}
+			try? GameState.current.save()
+		}
+		if locked { lockedDoors.insert(lock) } else { lockedDoors.remove(lock) }
+	}
+
+	/// A face's own flavor name when it's printed with one (e.g. "Hawkins National Laboratory"
+	/// for Havengul Laboratory), else its name.
+	static func displayName(of face: MTGCard.Face, in card: MTGCard) -> String {
+		face.flavorName ?? face.name ?? ""
+	}
+
+	/// Switching faces (split halves, double-faced sides, prototype). Face-up/down are tiles.
 	@ViewBuilder var cardFaceSection: some View {
 		switch card.representation {
-		case .faceDown(let card):
-			// For face-down cards, don't give any information about what other faces it may have. Just give the option to turn it face up.
-			Button("Face-Up") {
-				self.card.representation = card
-				
-				try? GameState.current.save()
-				dismiss()
-			}
-		case .morph(let card), .manifest(let card), .foretold(let card):
-			// For morph cards, don't give any information about what other faces it may have. Just give the option to turn it face up.
-			Button("Face-Up") {
-				self.card.representation = .card(card)
-				
-				try? GameState.current.save()
-				dismiss()
-			}
-    case .card(let card), .alternateFace(let card, _), .prototyped(let card):
+		case .card(let card), .alternateFace(let card, _), .prototyped(let card):
 			if card.layout == "split" {
-				Button(card.name ?? "") {
+				Button(card.flavorName ?? card.name ?? "") {
 					self.card.representation = .card(card)
 					try? GameState.current.save()
 				}
 			}
-			
 			if let faces = card.cardFaces, !faces.isEmpty {
 				ForEach(faces, id: \.self) { face in
-					Button(face.name ?? "") {
+					Button(Self.displayName(of: face, in: card)) {
 						self.card.representation = .alternateFace(card, face)
 						try? GameState.current.save()
 					}
 				}
 			}
-      
-      if card.prototype != nil {
-        Toggle(isOn: .init(get: {
-          if case .prototyped(_) = self.card.representation {
-            return true
-          } else {
-            return false
-          }
-        }, set: { newValue in
-          if newValue {
-            self.card.representation = .prototyped(card)
-          } else {
-            self.card.representation = .card(card)
-          }
-          
-          try? GameState.current.save()
-          dismiss()
-        }), label: {
-          Text("Prototyped")
-        })
-      }
-			
-			Button("Face-Down") {
-				self.card.representation = .faceDown(self.card.representation)
-				try? GameState.current.save()
-				dismiss()
+			if card.prototype != nil {
+				Toggle(isOn: .init(get: {
+					if case .prototyped = self.card.representation { return true } else { return false }
+				}, set: { newValue in
+					self.card.representation = newValue ? .prototyped(card) : .card(card)
+					try? GameState.current.save()
+					dismiss()
+				}), label: { Text("Prototyped") })
 			}
-		case .tokenCopy(let representedCard):
-			Button("Face-Down") {
-				self.card.representation = .faceDown(.tokenCopy(representedCard))
-				try? GameState.current.save()
-				dismiss()
-			}
+		default:
+			EmptyView()
 		}
 	}
-	
+
 	@ViewBuilder var createSection: some View {
 		HStack {
 			Text(String(creationCount))
@@ -192,12 +327,10 @@ struct CardControlView: View {
 				}
 			}
 		}
-		
 		if card.representation.name == "Factory of Momir Vig" || card.representation.name == "Momir Vig, Simic Visionary Avatar" {
 			Button("Random Creature (X = \(creationCount))") {
 				card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
 					let card = try CardService.shared.getMomirCard(convertedManaCost: creationCount)
-					
 					let rep: CardRepresentation = {
 						if let faces = card.cardFaces, faces.count > 1, let firstFace = faces.first {
 							return .alternateFace(card, firstFace)
@@ -205,14 +338,11 @@ struct CardControlView: View {
 							return .card(card)
 						}
 					}()
-					
-					let copy = CardRepresentation.tokenCopy(rep)
-					return [(self.card.controllerIdentifier.value, copy)]
+					return [(self.card.controllerIdentifier.value, CardRepresentation.tokenCopy(rep))]
 				}
 				dismiss()
 			}
 		}
-		
 		if let parts = card.representation.card.allParts?.filter({ $0.name != card.representation.name && $0.isCreatable }), !parts.isEmpty {
 			ForEach(parts, id: \.self) { part in
 				Button(part.name) {
@@ -232,16 +362,6 @@ struct CardControlView: View {
 				}
 			}
 		}
-		
-		if !(card.representation.isEmblem || card.representation.typeLine == "Vanguard" || card.representation.typeLine == "Phenomenon" || card.representation.typeLine?.contains("Conspiracy") == true || card.representation.typeLine?.contains("Scheme") == true || card.representation.typeLine?.hasPrefix("Plane") == true) {
-			Button("Token Copy") {
-				card.createCards.onNext { () -> [(Player.Identifier, CardRepresentation)] in
-					Array(repeating: (card.controllerIdentifier.value, .tokenCopy(card.representation)), count: creationCount)
-				}
-				dismiss()
-			}
-		}
-		
 	}
 	
 	@ViewBuilder var specializeSection: some View {
@@ -266,80 +386,71 @@ struct CardControlView: View {
 		}
 	}
 	
+  /// Whether the Create… section has anything beyond the Token Copy tile.
+  private var hasCreateOptions: Bool {
+    card.representation.card.language != .english
+      || card.representation.name == "Factory of Momir Vig" || card.representation.name == "Momir Vig, Simic Visionary Avatar"
+      || card.representation.card.allParts?.contains(where: { $0.name != card.representation.name && $0.isCreatable }) == true
+  }
+
+  /// Whether the card has faces to switch between (Rooms lock doors instead).
+  private var hasFaceChoices: Bool {
+    guard !card.representation.isRoom else { return false }
+    let mtgCard = card.representation.card
+    return mtgCard.layout == "split" || (mtgCard.cardFaces?.isEmpty == false) || mtgCard.prototype != nil
+  }
+
   var body: some View {
     List {
-      Section {
-        mainSection
+      // Card-specific rows (Prepared, Room doors) come first: they're why the menu was opened.
+      if card.representation.card.layout == "prepare" || card.representation.isRoom {
+        Section {
+          mainSection
+        }
       }
-      
+
+      Section {
+        actionGrid
+          .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+          .listRowBackground(Color.clear)
+      }
+
       if card.representation.card.set.lowercased() == "hbg" {
         Section(header: Text("Specialize…")) {
           specializeSection
         }
       } else {
-        switch card.representation {
-        case .faceDown, .morph, .manifest, .foretold:
-          EmptyView()
-        default:
+        if hasFaceChoices {
+          Section(header: Text("Card Face")) {
+            cardFaceSection
+          }
+        }
+        if hasCreateOptions {
           Section(header: Text("Create…")) {
             createSection
           }
         }
-        
-        Section(header: Text("Card Face")) {
-          cardFaceSection
-        }
       }
-      
-      if !card.representation.isToken {
+
+      if isCommanderChecked {
         Section {
-          Button(action: {
-            self.card.isCommander.mutate {
-              $0.toggle()
-            }
-            
-            withAnimation {
-              isCommanderChecked.toggle()
-            }
-            
-            try? GameState.current.save()
-          }, label: {
+          Stepper(value: $commanderCasts, in: 0...(Int.max)) {
             HStack {
-              Text("Commander")
+              Text("Commander Tax")
               Spacer()
-              if isCommanderChecked {
-                Image(systemName: "checkmark")
-              }
-            }
-          })
-          
-          if card.isCommander.value {
-            Stepper(value: $commanderCasts, in: 0...(Int.max)) {
-              HStack {
-                Text("Commander Tax")
-                Spacer()
-                addSymbols(string: "{\(commanderCasts * 2)}", symbolLength: 16)
-                
-              }
+              addSymbols(string: "{\(commanderCasts * 2)}", symbolLength: 16)
             }
           }
         }
       }
-      
-      Section(header: Text("Properties")) {
+
+      Section(header: Text("Colors")) {
         HStack {
           ForEach(MTGCardView.Color.allCases, id: \.self) { color in
             Button(action: {
               let color = MTGColor(rawValue: color.initial.uppercased())!
-              
               var set = Set(self.colors)
-              
-              if self.colors.contains(color) {
-                set.remove(color)
-              } else {
-                set.insert(color)
-              }
-              
+              if self.colors.contains(color) { set.remove(color) } else { set.insert(color) }
               self.colors = Array(set)
             }, label: {
               Image("{\(color.initial)}")
@@ -351,12 +462,8 @@ struct CardControlView: View {
           }
         }
       }
-      
-      Section {
-        removeSection
-      }
     }
-    .listStyle(SidebarListStyle())
+    .listStyle(.insetGrouped)
 //    .listStyle(.insetGrouped)
     .navigationTitle(card.representation.name ?? "")
     .navigationBarTitleDisplayMode(.inline)
@@ -844,7 +951,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 						try? GameState.current.save()
 					}
 					alert.addAction(faceUpAction)
-				case .morph(let card), .manifest(let card), .foretold(let card):
+				case .morph(let card), .manifest(let card), .mysterious(let card), .foretold(let card):
 					// For morph cards, don't give any information about what other faces it may have. Just give the option to turn it face up.
 					let faceUpAction = UIAlertAction(title: "Face-Up", style: .default) { _ in
 						cardInstance.representation = .card(card)

@@ -101,12 +101,29 @@ extension PileDisplaying {
 			AppDelegate.shared.sendCommand(command)
 		}
 		actions.append(manifestAction)
+		// Cloak: manifest with ward {2}, shown as "A Mysterious Creature".
+		actions.append(Action(title: "Cloak", style: .default) { _ in
+			let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .cloak)])
+			AppDelegate.shared.sendCommand(command)
+		})
 		
 		let foretellAction = Action(title: "Foretell", style: .default) { _ in
 			let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .foretell)])
 			AppDelegate.shared.sendCommand(command)
 		}
-		actions.append(foretellAction)		
+		actions.append(foretellAction)
+		if cardInstance.representation.keywords.contains("Plot") {
+			actions.append(Action(title: "Plot", style: .default) { _ in
+				let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .plot)])
+				AppDelegate.shared.sendCommand(command)
+			})
+		}
+		if cardInstance.representation.keywords.contains("Disguise") {
+			actions.append(Action(title: "Disguise", style: .default) { _ in
+				let command = Command.moveCardsToBattlefield([Command.PlayCardParameters(cardInstanceID: cardInstance.uuid, mode: .disguise)])
+				AppDelegate.shared.sendCommand(command)
+			})
+		}
 		
 		if cardInstance.representation.keywords.contains("Morph") || cardInstance.representation.keywords.contains("Megamorph") {
 			let playMorphAction = Action(title: "Morph", style: .default) { _ in
@@ -550,13 +567,32 @@ class PileViewController: UITableViewController, PileDisplaying {
 		}
 		let alert = UIAlertController(title: "Reveal \(selectedCount) Card\(selectedCount == 1 ? "" : "s") to…", message: nil, preferredStyle: .actionSheet)
 		
-		for player in GameState.current.allPlayers {
-			let revealAction = UIAlertAction(title: player.name.value, style: .default) { [weak self] _ in
-				self?.revealCardsForSelectedRows(to: player)
-				self?.setEditing(false, animated: true)
-				self?.updateButtonItems(animated: true)
+		func finish() {
+			setEditing(false, animated: true)
+			updateButtonItems(animated: true)
+		}
+		if let session = AppDelegate.shared.phoneSession {
+			// Phone Play: from this player's point of view, sent as reveal actions so the other
+			// phone learns about them (and shows its Revealed Cards sheet).
+			let ids = tableView.indexPathsForSelectedRows?.map { self.cardInstance(for: $0).uuid } ?? []
+			for (title, targets) in [("Me", [session.player]), ("Opponent", [session.opponent]), ("Both", [session.player, session.opponent])] {
+				alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+					for target in targets { session.send(.reveal(ids, target, true)) }
+					self?.tableView.reloadData()
+					finish()
+				})
 			}
-			alert.addAction(revealAction)
+		} else {
+			for player in GameState.current.allPlayers {
+				alert.addAction(UIAlertAction(title: player.name.value, style: .default) { [weak self] _ in
+					self?.revealCardsForSelectedRows(to: player)
+					finish()
+				})
+			}
+			alert.addAction(UIAlertAction(title: "Both", style: .default) { [weak self] _ in
+				for player in GameState.current.allPlayers { self?.revealCardsForSelectedRows(to: player) }
+				finish()
+			})
 		}
 		
 		let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
@@ -572,10 +608,14 @@ class PileViewController: UITableViewController, PileDisplaying {
 			navigationItem.setLeftBarButton(dismissSavedViewControllerButtonItem, animated: animated)
 			navigationItem.setRightBarButton(nil, animated: animated)
 		} else if isEditing {
-			navigationItem.setRightBarButton(confirmRevealButtonItem, animated: animated)
-			navigationItem.setLeftBarButton(cancelRevealButtonItem, animated: animated)
+			// While choosing cards, the confirming Reveal replaces Search and the Reveal that started it.
+			revealButtonItem.isHidden = true
+			navigationItem.setRightBarButtonItems([confirmRevealButtonItem], animated: animated)
+			navigationItem.setLeftBarButtonItems([cancelRevealButtonItem], animated: animated)
 		} else {
-			if AppDelegate.shared.role.isBoard {
+			revealButtonItem.isHidden = false
+			// Flipping the sheet toward the other side of a shared iPad isn't needed on a phone.
+			if AppDelegate.shared.role.isBoard && !AppDelegate.shared.usesPhoneSession {
 				let rotateButton = UIBarButtonItem(image: UIImage(systemName: "arrow.clockwise"), style: .plain, target: self, action: #selector(rotateView))
 				navigationItem.setLeftBarButton(rotateButton, animated: animated)
 			}
@@ -583,9 +623,19 @@ class PileViewController: UITableViewController, PileDisplaying {
 			if !cardsAreVisible && !isLocalPhone {
 				if AppDelegate.shared.usesPhoneSession, pileLocation == .library, isOwned {
 					// Your own library: Search shows it all to you; Reveal picks cards to show a player.
-					let search = UIBarButtonItem(title: "Search", primaryAction: UIAction { [weak self] _ in self?.tutorButtonPressed(self as Any) })
+					// Search, scry and surveil open the board's Arena-style card browser.
+					let search = UIBarButtonItem(title: "Search", primaryAction: UIAction { [weak self] _ in self?.openPhoneBrowser(.search) })
 					search.accessibilityIdentifier = "pile-search"
-					navigationItem.setRightBarButtonItems([search, revealButtonItem], animated: animated)
+					// Look at the top cards (scry, surveil, reveal…): drop each where it goes, and
+					// optionally show them to the opponent from the browser.
+					let look = UIBarButtonItem(title: "Look at", menu: UIMenu(title: "Look at the Top…", children: (1...10).map { count in
+						UIAction(title: count == 1 ? "1 card" : "\(count) cards") { [weak self] _ in self?.openPhoneBrowser(.look(count)) }
+					}))
+					look.accessibilityIdentifier = "pile-look"
+					navigationItem.setRightBarButtonItems([search, look, phoneTopCardItem()].compactMap { $0 }, animated: animated)
+				} else if AppDelegate.shared.usesPhoneSession, pileLocation == .library, let top = phoneTopCardItem() {
+					// The opponent's library: only its top card can be kept revealed.
+					navigationItem.setRightBarButtonItems([top], animated: animated)
 				} else {
 					navigationItem.setRightBarButton(revealButtonItem, animated: animated)
 				}
@@ -1363,6 +1413,7 @@ class PileViewController: UITableViewController, PileDisplaying {
 	}
 	
 	override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+		if let session = AppDelegate.shared.phoneSession { return phoneContextMenu(forRowAt: indexPath, session: session) }
 		guard isLocalPhone && (pileLocation != .library || cardIsRevealed(forRowAt: indexPath)) else { return nil }
 		let config = UIContextMenuConfiguration(identifier: indexPath as NSIndexPath, previewProvider: { [weak self] () -> UIViewController? in
 //			return nil
@@ -1409,6 +1460,95 @@ class PileViewController: UITableViewController, PileDisplaying {
 			return UIMenu(title: "", children: elements)
 		})
 		return config
+	}
+}
+
+extension PileViewController {
+	/// Closes this sheet and opens the board's card browser.
+	fileprivate func openPhoneBrowser(_ mode: BoardViewController.PhoneBrowserMode) {
+		let board = AppDelegate.shared.boardController
+		(navigationController ?? self).dismiss(animated: true) { board?.showPhoneZoneBrowser(mode) }
+	}
+}
+
+extension PileViewController {
+	/// "Top Card": keep this library's top card revealed to me, the opponent, both, or no one.
+	fileprivate func phoneTopCardItem() -> UIBarButtonItem? {
+		guard let session = AppDelegate.shared.phoneSession else { return nil }
+		let owner = ownerIdentifier
+		let current = Set(session.game.revealedTops?[owner.rawValue] ?? [])
+		func option(_ title: String, _ viewers: [Player.Identifier]) -> UIAction {
+			UIAction(title: title, state: Set(viewers.map(\.rawValue)) == current ? .on : .off) { [weak self] _ in
+				session.send(.revealTopCard(owner, viewers))
+				self?.updateButtonItems(animated: false)
+			}
+		}
+		let menu = UIMenu(title: "Keep the Top Card Revealed To…", children: [
+			option("Me", [session.player]), option("Opponent", [session.opponent]),
+			option("Both", [session.player, session.opponent]), option("No One", [])
+		])
+		let item = UIBarButtonItem(image: UIImage(systemName: current.isEmpty ? "eye.slash" : "eye"), menu: menu)
+		item.accessibilityLabel = "Top Card"
+		item.accessibilityIdentifier = "pile-top-card"
+		return item
+	}
+}
+
+// MARK: Phone Play zone menu
+
+extension PileViewController {
+	/// Phone Play: holding a card you can see moves it to another zone, or (for a permanent card)
+	/// makes a token copy on the battlefield while the card stays where it is.
+	fileprivate func phoneContextMenu(forRowAt indexPath: IndexPath, session: PhoneGameSession) -> UIContextMenuConfiguration? {
+		let card = cardInstance(for: indexPath)
+		let location = pileLocation ?? card.pile?.location
+		let isPublic = location.map { [Pile.Location.graveyard, .exile, .command].contains($0) } ?? false
+		guard !card.representation.isFaceDown || isOwned,
+		      isPublic || cardsAreVisible || cardIsRevealed(forRowAt: indexPath) else { return nil }
+		let id = card.uuid
+		let owner = card.ownerIdentifier
+		var moves: [UIMenuElement] = []
+		func move(_ title: String, _ image: String, _ destination: Pile.Location, bottom: Bool = false) {
+			guard destination != location || destination == .library else { return }
+			moves.append(UIAction(title: title, image: UIImage(systemName: image)) { _ in
+				session.send(.moveToPlayer(id, destination, destination == .hand ? session.player : owner, bottom: bottom))
+			})
+		}
+		let type = card.representation.typeLine ?? ""
+		if type.contains("Instant") || type.contains("Sorcery") {
+			moves.append(UIAction(title: "Stack", image: UIImage(systemName: "square.stack")) { _ in
+				session.send(.castTargeting(id, nil))
+			})
+		} else {
+			moves.append(UIAction(title: "Battlefield", image: UIImage(systemName: "rectangle.on.rectangle")) { _ in
+				session.send(.play(id, face: nil, faceDown: false, tapped: false, directly: true))
+			})
+		}
+		move("Hand", "hand.raised", .hand)
+		move("Graveyard", "xmark.bin", .graveyard)
+		move("Exile", "eye.slash", .exile)
+		move("Top of Library", "arrow.up.to.line", .library)
+		move("Bottom of Library", "arrow.down.to.line", .library, bottom: true)
+		var elements: [UIMenuElement] = [UIMenu(title: "Move to", options: .displayInline, children: moves)]
+		if !type.contains("Instant") && !type.contains("Sorcery") && !card.representation.isToken && !card.representation.isEmblem {
+			elements.append(UIAction(title: "Create Token Copy", image: UIImage(systemName: "doc.on.doc")) { _ in
+				session.send(.copy(id))
+			})
+		}
+		// Mark a graveyard or exile card as castable by hand (it then shows beside the hand until it
+		// leaves this zone, such as by being cast).
+		if location == .graveyard || location == .exile {
+			let marked = session.game.markedCastable?[id] == session.player
+			elements.append(UIAction(title: "Castable", image: UIImage(systemName: "wand.and.stars"), state: marked ? .on : .off) { _ in
+				session.send(.markCastable(id, !marked))
+			})
+		}
+		return UIContextMenuConfiguration(identifier: indexPath as NSIndexPath, previewProvider: { [weak self] in
+			guard let controller = self?.storyboard?.instantiateViewController(identifier: "CardImageViewController") as? CardImageViewController else { return nil }
+			controller.cardInstance = card
+			controller.preferredContentSize = CGSize(width: 315, height: 440)
+			return controller
+		}, actionProvider: { _ in UIMenu(title: card.representation.name ?? "", children: elements) })
 	}
 }
 

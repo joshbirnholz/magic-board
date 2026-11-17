@@ -69,7 +69,7 @@ private extension CardRepresentation {
   /// in play.
   var producedMana: [MTGColor] {
     switch self {
-    case .faceDown, .morph, .manifest, .foretold:
+    case .faceDown, .morph, .manifest, .mysterious, .foretold:
       return []
 
     case .alternateFace(let card, let face):
@@ -144,6 +144,7 @@ struct LandOrganizer: View {
     let onLongPress: (CardInstance) -> Void
     let height: CGFloat
     let draggedCardID: UUID?
+    var concealedCardIDs: Set<UUID> = []
     var attachedCards: [CardInstance] = []
     
     private var showsCountTile: Bool {
@@ -170,7 +171,7 @@ struct LandOrganizer: View {
         ForEach(Array((attachedCards + cardInstances.contents).enumerated()), id: \.element.uuid) { (_, card) in
           SwiftUICardView(card: card, isRotationEnabled: true)
             .frame(width: height * 480 / 420, height: height)
-            .opacity(card.uuid == draggedCardID ? 0 : 1)
+            .opacity(card.uuid == draggedCardID || concealedCardIDs.contains(card.uuid) ? 0 : 1)
             .shadow(radius: 5)
         }
       }
@@ -195,6 +196,7 @@ struct LandOrganizer: View {
   var onDragEnded: ((CardInstance, CGPoint) -> Void)?
   var onDragCancelled: (() -> Void)?
   var attachmentsByLand: [UUID: [CardInstance]] = [:]
+  var concealedCardIDs: Set<UUID> = []
   var onLandFramesChanged: (([UUID: CGRect]) -> Void)?
   
   private var stacks: [[CardInstance]] {
@@ -250,16 +252,18 @@ struct LandOrganizer: View {
     HStack(spacing: 6) {
       ForEach(stacks, id: \.first?.uuid) { stack in
         LandStack(cardInstances: OrderedSet(stack), onLongPress: onLongPress, height: max(1, height), draggedCardID: draggedCardID,
+                  concealedCardIDs: concealedCardIDs,
                   attachedCards: stack.flatMap { attachmentsByLand[$0.uuid] ?? [] })
           .background(GeometryReader { geometry in
+            let frame = geometry.frame(in: .global)
             Color.clear.preference(key: LandCardFramesKey.self,
-                                   value: stack.last.map { [$0.uuid: geometry.frame(in: .global)] } ?? [:])
+                                   value: Dictionary(uniqueKeysWithValues: stack.map { ($0.uuid, frame) }))
           })
           .contentShape(Rectangle())
           .accessibilityElement(children: .combine)
           .accessibilityLabel("\(stack.first?.representation.name ?? "Land"), \(stack.count)\(stack.first?.isTapped.value == true ? ", tapped" : ", untapped")")
           // A hold opens the inspector only if the finger stays put; moving starts a drag instead.
-          .simultaneousGesture(LongPressGesture(minimumDuration: 0.65, maximumDistance: 8).onEnded { _ in
+          .simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 8).onEnded { _ in
             if let card = stack.last { onLongPress(card) }
           })
           .simultaneousGesture(DragGesture(minimumDistance: 10, coordinateSpace: .global)
@@ -331,6 +335,10 @@ class LandOrganizerViewController: UIHostingController<LandOrganizer> {
   }
   /// Window-coordinate frame of a drawn land, if visible.
   func landFrame(for id: UUID) -> CGRect? { landCardFrames[id] }
+  func concealCard(_ id: UUID, _ concealed: Bool) {
+    if concealed { rootView.concealedCardIDs.insert(id) }
+    else { rootView.concealedCardIDs.remove(id) }
+  }
   func updateAttachments(_ attachments: [UUID: [CardInstance]]) {
     if rootView.attachmentsByLand != attachments { rootView.attachmentsByLand = attachments }
   }
