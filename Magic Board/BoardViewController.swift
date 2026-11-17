@@ -120,6 +120,12 @@ class BoardViewController: UIViewController {
   private var phonePreviousStack: [PhoneGame.StackItem] = []
   private var phonePreviousStackFrames: [UUID: CGRect] = [:]
   private var phoneResolutionHosts: [UUID: UIViewController] = [:]
+  /// Where each of the opponent's cards was at the last refresh (and where their battlefield cards
+  /// were drawn at the last layout), so a move between zones can fly from the old spot to the new one.
+  private var phoneOpponentZones: (gameID: UUID, zones: [UUID: PhoneOpponentZone])?
+  private var phonePreviousFieldGeometry: [UUID: PhoneFlightGeometry] = [:]
+  /// A spell flying onto the stack: its stack card stays invisible until the flight lands.
+  private var phoneConcealedArrival: UUID?
   private var phoneBarBackgrounds: [UIView] = []
   private var lastPhoneBounds = CGRect.zero
   private var compactBarConstraints: [NSLayoutConstraint] = []
@@ -2723,6 +2729,8 @@ extension BoardViewController {
 
     private func refreshPhoneBoard() {
         guard let session = phoneMode, isViewLoaded else { return }
+        // Before the previous stack/frames are replaced: they're where the opponent's cards started.
+        let opponentMoves = phoneOpponentMoves(session)
         let stackIDs = Set(session.game.stack.map(\.id))
         let departures = phoneKnownStack?.gameID == session.game.id
             ? phonePreviousStack.filter { !stackIDs.contains($0.id) }.compactMap { item in
@@ -2792,11 +2800,12 @@ extension BoardViewController {
         updatePlayersHidden()
         phoneStackCards?.rootView = makePhoneStackView(session)
         view.setNeedsLayout()
-        if !departures.isEmpty {
+        if !departures.isEmpty || !opponentMoves.isEmpty {
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.view.layoutIfNeeded()
                 for (item, frame) in departures { self.animatePhoneStackDeparture(item, from: frame) }
+                for (index, move) in opponentMoves.enumerated() { self.flyPhoneOpponentCard(move, delay: Double(index) * 0.06) }
             }
         }
     }
@@ -3275,6 +3284,10 @@ extension BoardViewController {
         if let drag = phoneStackDrag { updatePhoneStackDragHover(drag) }
         phonePreviousStackFrames = Dictionary(uniqueKeysWithValues: session.game.stack.compactMap { item in
             phoneStackCardFrame(item.id).map { (item.id, $0) }
+        })
+        phonePreviousFieldGeometry = Dictionary(uniqueKeysWithValues: session.game.state.battlefield.value.compactMap { card in
+            guard card.controllerIdentifier.value == session.opponent, let geometry = phoneCardGeometry(card) else { return nil }
+            return (card.uuid, PhoneFlightGeometry(center: geometry.center, size: geometry.size, angle: geometry.angle))
         })
     }
 
@@ -3959,7 +3972,7 @@ extension BoardViewController {
                                 else { self.focus(on: card, view: nil) }
                             },
                             browse: { [weak self] in self?.showPhoneAbilityOptions() },
-                            concealedCardID: concealing ?? (phoneMenuStandIn?.isStack == true ? phoneMenuStandIn?.card : nil))
+                            concealedCardID: concealing ?? phoneConcealedArrival ?? (phoneMenuStandIn?.isStack == true ? phoneMenuStandIn?.card : nil))
     }
 
     private func layoutPhoneStack(_ session: PhoneGameSession, top: CGFloat, bottom: CGFloat) {
@@ -4139,6 +4152,141 @@ extension BoardViewController {
             host.willMove(toParent: nil); host.view.removeFromSuperview(); host.removeFromParent()
         }
         phoneResolutionHosts.removeAll()
+        if phoneConcealedArrival != nil, let session = phoneMode {
+            phoneConcealedArrival = nil
+            phoneStackCards?.rootView = makePhoneStackView(session)
+        }
+    }
+
+    // MARK: Opponent zone moves
+
+    /// The opponent's cards that changed zones since the last refresh, with where each was drawn.
+    /// Hidden zones are whole-zone spots (the hand is never tracked per card), so nothing about
+    /// the order of the opponent's hand or library is revealed.
+    private func phoneOpponentMoves(_ session: PhoneGameSession) -> [PhoneOpponentMove] {
+        let opponent = session.opponent
+        var current: [UUID: (card: CardInstance, zone: PhoneOpponentZone)] = [:]
+        for location in [Pile.Location.library, .hand, .graveyard, .exile, .command, .sideboard] {
+            for card in session.game.pile(location, player: opponent).cards.value { current[card.uuid] = (card, .pile(location)) }
+        }
+        for card in session.game.state.battlefield.value where card.controllerIdentifier.value == opponent {
+            current[card.uuid] = (card, .battlefield)
+        }
+        for item in session.game.stack where item.player == opponent {
+            if let card = item.card { current[card.uuid] = (card, .stack) }
+        }
+        let previous = phoneOpponentZones
+        phoneOpponentZones = (session.game.id, current.mapValues(\.zone))
+        guard let previous, previous.gameID == session.game.id, !UIAccessibility.isReduceMotionEnabled,
+              UIApplication.shared.applicationState == .active else { return [] }
+        var moves: [PhoneOpponentMove] = []
+        for (id, now) in current {
+            guard let before = previous.zones[id], before != now.zone else { continue }
+            // Resolving spells already fly from the stack to the battlefield, graveyard or exile.
+            if before == .stack, [PhoneOpponentZone.battlefield, .pile(.graveyard), .pile(.exile)].contains(now.zone) { continue }
+            let start: PhoneFlightGeometry?
+            switch before {
+            case .battlefield: start = phonePreviousFieldGeometry[id]
+            case .stack:
+                start = phonePreviousStack.first(where: { $0.card?.uuid == id })
+                    .flatMap { phonePreviousStackFrames[$0.id] }.map(PhoneFlightGeometry.init(rect:))
+            case .pile(let location): start = phonePileFlightGeometry(location, player: opponent)
+            }
+            guard let start else { continue }
+            moves.append(PhoneOpponentMove(card: now.card, from: before, to: now.zone, start: start))
+        }
+        // A whole hand shuffled away or drawn is a quick burst, not a long parade.
+        return Array(moves.prefix(8))
+    }
+
+    /// A card-sized spot on the opponent's HUD for a whole zone.
+    private func phonePileFlightGeometry(_ location: Pile.Location, player: Player.Identifier) -> PhoneFlightGeometry? {
+        guard let bar = [bottomBarA, bottomBarB].compactMap({ $0 }).first(where: { $0.player.identifier == player }) else { return nil }
+        let zone: UIView?
+        switch location {
+        case .hand, .command: zone = bar.handContainerView
+        case .library: zone = bar.libraryPileView
+        case .graveyard: zone = bar.graveyardPileView
+        case .exile: zone = bar.exilePileView
+        case .sideboard: zone = nil
+        }
+        guard let zone, zone.window != nil, !zone.isHidden else { return nil }
+        var shown: UIView = zone
+        if let pile = zone as? HUDCardPileView, let top = pile.topCardImageView, !top.isHidden, top.bounds.height > 0 { shown = top }
+        let frame = shown.convert(shown.bounds, to: view)
+        guard frame.width > 0, frame.height > 0 else { return nil }
+        let height = min(frame.height, 110)
+        return PhoneFlightGeometry(center: CGPoint(x: frame.midX, y: frame.midY), size: CGSize(width: height * 63 / 88, height: height), angle: 0)
+    }
+
+    private func flyPhoneOpponentCard(_ move: PhoneOpponentMove, delay: TimeInterval) {
+        guard let session = phoneMode else { return }
+        let card = move.card
+        let end: PhoneFlightGeometry
+        var mini: MiniCardView?
+        switch move.to {
+        case .battlefield:
+            guard let geometry = phoneCardGeometry(card) else { return }
+            end = PhoneFlightGeometry(center: geometry.center, size: geometry.size, angle: geometry.angle)
+            mini = cardView(for: card)
+        case .stack:
+            guard let item = session.game.stack.first(where: { $0.card?.uuid == card.uuid }),
+                  let frame = phoneStackCardFrame(item.id) else { return }
+            end = PhoneFlightGeometry(rect: frame)
+        case .pile(let location):
+            guard let geometry = phonePileFlightGeometry(location, player: session.opponent) else { return }
+            end = geometry
+        }
+        if let old = phoneResolutionHosts.removeValue(forKey: card.uuid) {
+            old.view.layer.removeAllAnimations()
+            old.willMove(toParent: nil); old.view.removeFromSuperview(); old.removeFromParent()
+        }
+        // Between two hidden zones (drawn, put back, shuffled in) only the back shows, as does
+        // anything face down.
+        let faceUp = !(move.from.isHidden && move.to.isHidden) && !card.representation.isFaceDown
+        let face: MTGCard.Face?
+        if case .alternateFace(_, let selected) = card.representation { face = selected } else { face = nil }
+        let host = UIHostingController(rootView: HandCardView(isVisible: faceUp, card: card.representation.card, face: face))
+        if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+        host.view.backgroundColor = .clear
+        host.view.isUserInteractionEnabled = false
+        host.view.accessibilityElementsHidden = true
+        host.view.accessibilityIdentifier = "phone-opponent-move-preview"
+        // Laid out once at its landing size and scaled, so the SwiftUI content never re-lays out mid-flight.
+        host.view.bounds = CGRect(origin: .zero, size: end.size)
+        host.view.layer.cornerRadius = max(4, end.size.width * 0.045)
+        host.view.layer.cornerCurve = .continuous
+        host.view.clipsToBounds = true
+        host.view.center = move.start.center
+        let startScale = move.start.size.height / max(1, end.size.height)
+        host.view.transform = CGAffineTransform(rotationAngle: move.start.angle).scaledBy(x: startScale, y: startScale)
+        addChild(host); view.addSubview(host.view); host.didMove(toParent: self)
+        phoneResolutionHosts[card.uuid] = host
+        mini?.alpha = 0
+        if move.to == .stack, phoneMenuStandIn == nil {
+            phoneConcealedArrival = card.uuid
+            phoneStackCards?.rootView = makePhoneStackView(session)
+        }
+        let flight = 0.42
+        UIView.animate(withDuration: flight, delay: delay, options: [.curveEaseInOut]) {
+            host.view.center = end.center
+            host.view.transform = CGAffineTransform(rotationAngle: end.angle)
+        }
+        // Lands, then hands over to the real card (or the pile it joined).
+        UIView.animate(withDuration: 0.14, delay: delay + flight - 0.06, options: [.curveEaseIn]) {
+            host.view.alpha = 0
+            mini?.alpha = 1
+        } completion: { [weak self, weak host] _ in
+            mini?.alpha = 1
+            guard let self else { return }
+            if self.phoneConcealedArrival == card.uuid {
+                self.phoneConcealedArrival = nil
+                if let session = self.phoneMode { self.phoneStackCards?.rootView = self.makePhoneStackView(session) }
+            }
+            guard let host, self.phoneResolutionHosts[card.uuid] === host else { return }
+            self.phoneResolutionHosts[card.uuid] = nil
+            host.willMove(toParent: nil); host.view.removeFromSuperview(); host.removeFromParent()
+        }
     }
 
     private func animatePhoneStackDeparture(_ item: PhoneGame.StackItem, from frame: CGRect) {
@@ -5514,6 +5662,31 @@ extension BoardViewController {
 
 /// The board's content view: a card laid out past its edges still receives touches (Phone Play's
 /// field can be wider than the zoomed board, and UIKit only hit-tests subviews inside a view's bounds).
+/// Where one of the opponent's cards is, for animating its moves. Hidden zones are a single spot.
+enum PhoneOpponentZone: Equatable {
+    case battlefield, stack, pile(Pile.Location)
+    var isHidden: Bool {
+        if case .pile(let location) = self { return location == .hand || location == .library || location == .sideboard }
+        return false
+    }
+}
+
+/// A card's drawn position: center, size and rotation in the board view's coordinates.
+struct PhoneFlightGeometry {
+    var center: CGPoint
+    var size: CGSize
+    var angle: CGFloat
+    init(center: CGPoint, size: CGSize, angle: CGFloat) { self.center = center; self.size = size; self.angle = angle }
+    init(rect: CGRect) { self.init(center: CGPoint(x: rect.midX, y: rect.midY), size: rect.size, angle: 0) }
+}
+
+struct PhoneOpponentMove {
+    var card: CardInstance
+    var from: PhoneOpponentZone
+    var to: PhoneOpponentZone
+    var start: PhoneFlightGeometry
+}
+
 final class PhoneBoardContentView: UIView {
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         if super.point(inside: point, with: event) { return true }
