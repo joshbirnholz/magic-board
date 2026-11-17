@@ -23,6 +23,8 @@ final class XMageSession implements MageClient, AutoCloseable {
     private final Consumer<JsonObject> output;
     private UUID gameId;
     private UUID playerId;
+    private UUID tableId;
+    private boolean ownsTable;
     private JsonObject snapshot;
     private JsonObject prompt;
     private long revision;
@@ -54,7 +56,11 @@ final class XMageSession implements MageClient, AutoCloseable {
         if (receipts.containsKey(requestId)) { output.accept(receipts.get(requestId)); return; }
         try {
             switch (string(request, "type")) {
-                case "createAiGame" -> createAiGame();
+                case "createAiGame" -> createGame(true);
+                case "createHumanGame" -> createGame(false);
+                case "listTables" -> listTables();
+                case "joinTable" -> joinTable(UUID.fromString(string(request, "tableId")));
+                case "startMatch" -> startMatch();
                 case "answer" -> answer(request);
                 case "resync" -> replay();
                 default -> throw new IllegalArgumentException("Unsupported command.");
@@ -62,6 +68,7 @@ final class XMageSession implements MageClient, AutoCloseable {
             remember(requestId, object("type", "ack", "requestId", requestId));
         } catch (Exception error) {
             remember(requestId, object("type", "error", "requestId", requestId, "message", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage()));
+            if (string(request, "type").equals("answer")) replay();
         }
     }
 
@@ -72,13 +79,18 @@ final class XMageSession implements MageClient, AutoCloseable {
     }
 
     void replay() {
+        if (tableId != null && gameId == null) output.accept(object("type", "tableJoined", "tableId", tableId, "owner", ownsTable));
         if (snapshot != null) output.accept(snapshot);
         if (prompt != null) output.accept(prompt);
     }
 
-    private void createAiGame() {
-        if (gameId != null || !joinedGames.isEmpty()) throw new IllegalStateException("This session already has a game.");
-        MatchOptions options = new MatchOptions("Magic Board Rules Spike", "Two Player Duel", false);
+    private void requireNoTable() {
+        if (gameId != null || tableId != null) throw new IllegalStateException("This session already has a game or waiting table.");
+    }
+
+    private void createGame(boolean ai) {
+        requireNoTable();
+        MatchOptions options = new MatchOptions("Magic Board Rules", "Two Player Duel", false);
         options.setDeckType("Limited");
         options.setWinsNeeded(1);
         options.setMatchTimeLimit(MatchTimeLimit.NONE);
@@ -86,21 +98,56 @@ final class XMageSession implements MageClient, AutoCloseable {
         options.setAttackOption(MultiplayerAttackOption.MULTIPLE);
         options.setRange(RangeOfInfluence.ALL);
         options.getPlayerTypes().add(PlayerType.HUMAN);
-        options.getPlayerTypes().add(PlayerType.COMPUTER_MAD);
+        options.getPlayerTypes().add(ai ? PlayerType.COMPUTER_MAD : PlayerType.HUMAN);
         UUID room = session.getMainRoomId();
         TableView table = session.createTable(room, options);
         if (table == null) throw new IllegalStateException("XMage could not create the table.");
-        UUID tableId = table.getTableId();
+        tableId = table.getTableId();
+        ownsTable = true;
         try {
-            if (!session.joinTable(room, tableId, "Magic Board", PlayerType.HUMAN, 1, simpleDeck(), "")
-                    || !session.joinTable(room, tableId, "Computer", PlayerType.COMPUTER_MAD, 1, simpleDeck(), "")
-                    || !session.startMatch(room, tableId)) {
-                throw new IllegalStateException("XMage could not start the AI game. Check the server log.");
+            if (!session.joinTable(room, tableId, ai ? "Magic Board" : "Player 1", PlayerType.HUMAN, 1, simpleDeck(), ""))
+                throw new IllegalStateException("XMage could not seat you at the table.");
+            if (ai) {
+                if (!session.joinTable(room, tableId, "Computer", PlayerType.COMPUTER_MAD, 1, simpleDeck(), "")
+                        || !session.startMatch(room, tableId))
+                    throw new IllegalStateException("XMage could not start the AI game. Check the server log.");
+            } else {
+                output.accept(object("type", "tableJoined", "tableId", tableId, "owner", true));
             }
         } catch (RuntimeException failure) {
             session.removeTable(room, tableId);
+            tableId = null; ownsTable = false;
             throw failure;
         }
+    }
+
+    private void listTables() throws MageRemoteException {
+        JsonArray tables = new JsonArray();
+        for (TableView table : session.getTables(session.getMainRoomId())) {
+            if (!table.getTableName().startsWith("Magic Board Rules") || table.getTableState() != TableState.WAITING) continue;
+            long occupied = table.getSeats().stream().filter(seat -> seat.getPlayerId() != null).count();
+            tables.add(object("id", table.getTableId(), "name", table.getTableName(), "players", occupied, "capacity", table.getSeats().size()));
+        }
+        JsonObject event = object("type", "tables");
+        event.add("tables", tables);
+        output.accept(event);
+    }
+
+    private void joinTable(UUID id) {
+        requireNoTable();
+        TableView table = session.getTable(session.getMainRoomId(), id).orElseThrow(() -> new IllegalArgumentException("This waiting game no longer exists."));
+        if (!table.getTableName().startsWith("Magic Board Rules") || table.getTableState() != TableState.WAITING)
+            throw new IllegalStateException("This game is no longer waiting for players.");
+        if (!session.joinTable(session.getMainRoomId(), id, "Player 2", PlayerType.HUMAN, 1, simpleDeck(), ""))
+            throw new IllegalStateException("XMage could not join the game. It may already be full.");
+        tableId = id; ownsTable = false;
+        output.accept(object("type", "tableJoined", "tableId", id, "owner", false));
+    }
+
+    private void startMatch() {
+        if (tableId == null || !ownsTable || gameId != null) throw new IllegalStateException("Only the waiting game's creator can start it.");
+        if (!session.startMatch(session.getMainRoomId(), tableId))
+            throw new IllegalStateException("The game could not start. Wait for the second player to join, then try again.");
     }
 
     private static DeckCardLists simpleDeck() {
@@ -199,7 +246,7 @@ final class XMageSession implements MageClient, AutoCloseable {
     private JsonObject snapshot(GameView view) {
         JsonObject result = object("type", "snapshot", "gameId", gameId, "playerId", playerId,
                 "revision", ++revision, "turn", view.getTurn(), "phase", view.getPhase(), "step", view.getStep(),
-                "activePlayer", view.getActivePlayerName(), "priorityPlayer", view.getPriorityPlayerName());
+                "activePlayer", view.getActivePlayerName(), "activePlayerId", view.getActivePlayerId(), "priorityPlayer", view.getPriorityPlayerName());
         result.add("hand", cards(view.getMyHand().values()));
         result.add("stack", cards(view.getStack().values()));
         JsonArray playable = new JsonArray();
@@ -215,6 +262,17 @@ final class XMageSession implements MageClient, AutoCloseable {
             players.add(item);
         }
         result.add("players", players);
+        JsonArray combat = new JsonArray();
+        for (CombatGroupView group : view.getCombat()) {
+            JsonObject item = object("defenderId", group.getDefenderId());
+            JsonArray attackers = new JsonArray();
+            group.getAttackers().keySet().forEach(id -> attackers.add(id.toString()));
+            JsonArray blockers = new JsonArray();
+            group.getBlockers().keySet().forEach(id -> blockers.add(id.toString()));
+            item.add("attackers", attackers); item.add("blockers", blockers);
+            combat.add(item);
+        }
+        result.add("combat", combat);
         // XMage already filtered this view for this player. Never construct a combined view of both hands.
         return result;
     }
@@ -251,10 +309,13 @@ final class XMageSession implements MageClient, AutoCloseable {
         for (CardView card : cards) {
             JsonObject item = object("id", card.getId(), "name", card.getDisplayName(), "set", card.getExpansionSetCode(),
                     "collectorNumber", card.getCardNumber(), "faceDown", card.isFaceDown(), "transformed", card.isTransformed(),
-                    "power", card.getPower(), "toughness", card.getToughness(), "rules", String.join("\n", card.getRules() == null ? List.of() : card.getRules()));
+                    "power", card.getPower(), "toughness", card.getToughness(), "ability", card.isAbility(),
+                    "typeLine", card.getTypeText(), "manaCost", card.getManaCostStr(),
+                    "rules", String.join("\n", card.getRules() == null ? List.of() : card.getRules()));
             if (card instanceof PermanentView permanent) {
                 item.addProperty("tapped", permanent.isTapped());
                 item.addProperty("damage", permanent.getDamage());
+                item.addProperty("summoningSick", permanent.hasSummoningSickness());
                 item.addProperty("attachedTo", permanent.getAttachedTo() == null ? null : permanent.getAttachedTo().toString());
             }
             JsonArray counters = new JsonArray();
@@ -284,8 +345,13 @@ final class XMageSession implements MageClient, AutoCloseable {
         closed = true;
         heartbeat.shutdownNow();
         queue.execute(() -> {
-            if (gameId != null && session.isConnected()) session.quitMatch(gameId);
-            session.connectStop(false, false);
+            try {
+                if (gameId != null && session.isConnected()) session.quitMatch(gameId);
+                else if (tableId != null && session.isConnected()) {
+                    session.leaveTable(session.getMainRoomId(), tableId);
+                    if (ownsTable) session.removeTable(session.getMainRoomId(), tableId);
+                }
+            } finally { session.connectStop(false, false); }
         });
         queue.shutdown();
     }

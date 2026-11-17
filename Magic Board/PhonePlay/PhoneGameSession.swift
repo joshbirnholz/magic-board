@@ -184,6 +184,10 @@ final class PhoneGameSession: ObservableObject {
     /// How a card can be played: like `PlayCardParameters.options`, except a disturb card in the
     /// graveyard is cast as its back face.
     func castOptions(for card: CardInstance, tapped: Bool = false) -> [Command.PlayCardParameters.Option] {
+        if mode == .rules {
+            // XMage asks which face, mode, alternative cost or ability to use.
+            return [.init(title: "Play", parameters: .init(cardInstanceID: card.uuid))]
+        }
         if game.state[player: player].graveyard.cards.value.contains(card), let face = PhoneGame.castFace(for: card),
            let name = card.representation.card.cardFaces?[face].name {
             return [.init(title: name, parameters: .init(cardInstanceID: card.uuid, faceIndex: face, tapped: tapped))]
@@ -253,6 +257,7 @@ final class PhoneGameSession: ObservableObject {
 
     /// Sends without the commander-zone question (the caller already asked, e.g. Top / Bottom / Command Zone).
     func sendDirectly(_ action: PhoneAction) {
+        if let rulesAction { rulesAction(action); return }
         guard canAct else { error = "Reconnect to the host before making changes."; onUpdate?(); return }
         if mode == .host { apply(action, player: .a) }
         else {
@@ -313,7 +318,7 @@ final class PhoneGameSession: ObservableObject {
                 for card in game.state.battlefield.value {
                     if let center = centers[card.uuid] { card.center.accept(center) }
                 }
-                baseline = try? JSONEncoder().encode(game)
+                self.baseline = try? JSONEncoder().encode(game)
                 applyingSnapshot = false
             }
             return
@@ -410,7 +415,8 @@ final class PhoneGameSession: ObservableObject {
         AppDelegate.shared.role = .boardPlayer1
         rulesAction = { [weak adapter] action in Task { @MainActor in await adapter?.send(action) } }
         rulesCommand = { [weak adapter] command in Task { @MainActor in await adapter?.send(command) } }
-        rulesLeave = { [weak adapter] in Task { @MainActor in adapter?.disconnect() } }
+        // Keep the adapter alive until the explicit leave reaches the bridge.
+        rulesLeave = { Task { @MainActor in await adapter.leave() } }
         adapter.attach(to: self)
     }
 

@@ -37,7 +37,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 		// Override point for customization after application launch.
 		
         #if DEBUG
-        let isolatedPhoneCheck = ProcessInfo.processInfo.arguments.contains { $0 == "--phone-board-fixture" || $0 == "--phone-companion-fixture" || $0.hasPrefix("--phone-network-") }
+        let isolatedPhoneCheck = ProcessInfo.processInfo.arguments.contains { $0 == "--phone-board-fixture" || $0 == "--phone-companion-fixture" || $0 == "--rules-ui-test" || $0.hasPrefix("--phone-network-") }
         #else
         let isolatedPhoneCheck = false
         #endif
@@ -82,6 +82,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 extension AppDelegate {
     func phoneCardActions(_ card: CardInstance) -> [CardManualAction] {
         guard let session = phoneSession else { return [] }
+        if session.mode == .rules {
+            return [.init(title: "Choose / Activate", dismisses: true, perform: { session.send(.tap(card.uuid)) })]
+        }
         var actions: [CardManualAction] = []
         if let item = session.game.stack.first(where: { $0.card?.uuid == card.uuid }) {
             if session.game.stack.last?.id == item.id { actions.append(.init(title: "Resolve from Stack", perform: { session.send(.resolve(item.id)) })) }

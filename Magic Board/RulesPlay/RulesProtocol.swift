@@ -1,5 +1,12 @@
 import Foundation
 
+struct RulesTable: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let players: Int
+    let capacity: Int
+}
+
 /// Rules-only presentation values. These never enter PhoneGame or its editable state patches.
 struct RulesCard: Decodable, Identifiable, Equatable {
     struct Counter: Decodable, Equatable { let name: String; let count: Int }
@@ -14,6 +21,11 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     let rules: String?
     let tapped: Bool?
     let damage: Int?
+    let summoningSick: Bool?
+    let attachedTo: String?
+    let ability: Bool?
+    let typeLine: String?
+    let manaCost: String?
     let counters: [Counter]
 }
 
@@ -29,18 +41,25 @@ struct RulesPlayer: Decodable, Identifiable {
 }
 
 struct RulesSnapshot: Decodable {
+    struct CombatGroup: Decodable {
+        let defenderId: String
+        let attackers: [String]
+        let blockers: [String]
+    }
     let gameId: String
     let playerId: String
     let revision: Int
     let turn: Int
-    let phase: String
-    let step: String
-    let activePlayer: String
-    let priorityPlayer: String
+    let phase: String?
+    let step: String?
+    let activePlayer: String?
+    let activePlayerId: String?
+    let priorityPlayer: String?
     let hand: [RulesCard]
     let stack: [RulesCard]
     let players: [RulesPlayer]
     let playableIds: [String]
+    let combat: [CombatGroup]?
 }
 
 struct RulesPrompt: Decodable, Identifiable {
@@ -83,6 +102,7 @@ struct RulesCommand: Encodable {
     var protocolVersion: Int? = nil
     var resumeToken: String? = nil
     var requestId: String? = nil
+    var tableId: String? = nil
     var promptId: String? = nil
     var revision: Int? = nil
     var kind: String? = nil

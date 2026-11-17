@@ -1541,6 +1541,13 @@ class BoardViewController: UIViewController {
 	
 	@objc func longPressRecognized(gestureRecognizer: UIGestureRecognizer) {
 		guard presentedViewController == nil else { return }
+        if phoneMode?.mode == .rules {
+            let menu = BoardMenuSheetController(title: "Battlefield", message: nil, preferredStyle: .alert)
+            menu.addAction(BoardMenuAction(title: "Connection…") { [weak self] in self?.showConnectionOptions(); return nil })
+            menu.addAction(BoardMenuAction(title: "Exit Game", style: .destructive) { [weak self] _ in self?.exitGame() })
+            present(UINavigationController(rootViewController: menu), animated: true)
+            return
+        }
     
     if selectedCardInstances.count > 1 {
       presentSelectedMenu(from: nil)

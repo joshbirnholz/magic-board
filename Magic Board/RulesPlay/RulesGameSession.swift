@@ -9,6 +9,9 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var status: Status = .disconnected
     @Published private(set) var snapshot: RulesSnapshot?
     @Published private(set) var prompt: RulesPrompt?
+    @Published private(set) var tables: [RulesTable] = []
+    @Published private(set) var tableId: String?
+    @Published private(set) var ownsTable = false
     @Published private(set) var pendingRequest: String?
     @Published private(set) var notice = ""
     @Published var error: String?
@@ -40,7 +43,10 @@ final class RulesGameSession: ObservableObject {
         do { url = try RulesEndpoint.parse(address) }
         catch { self.error = error.localizedDescription; return }
         guard !key.isEmpty else { error = "Enter the connection key configured on your PC."; return }
-        if endpoint != url || !resume { resumeToken = nil; snapshot = nil; prompt = nil }
+        if endpoint != url || !resume {
+            resumeToken = nil; snapshot = nil; prompt = nil
+            tableId = nil; ownsTable = false; tables = []
+        }
         endpoint = url
         disconnect()
         defaults.set(url.absoluteString, forKey: "rules.bridgeAddress")
@@ -97,10 +103,24 @@ final class RulesGameSession: ObservableObject {
         }
         disconnect()
         resumeToken = nil; snapshot = nil; prompt = nil
+        tableId = nil; ownsTable = false; tables = []
     }
 
     func startAiGame() async {
         await submit(RulesCommand(type: "createAiGame", requestId: UUID().uuidString))
+    }
+
+    func createHumanGame() async {
+        await submit(RulesCommand(type: "createHumanGame", requestId: UUID().uuidString))
+    }
+    func refreshTables() async {
+        await submit(RulesCommand(type: "listTables", requestId: UUID().uuidString))
+    }
+    func join(_ table: RulesTable) async {
+        await submit(RulesCommand(type: "joinTable", requestId: UUID().uuidString, tableId: table.id))
+    }
+    func startMatch() async {
+        await submit(RulesCommand(type: "startMatch", requestId: UUID().uuidString))
     }
 
     func answer(_ answer: RulesAnswer) async {
@@ -135,6 +155,8 @@ final class RulesGameSession: ObservableObject {
         let resumeToken: String?
         let requestId: String?
         let message: String?
+        let tableId: String?
+        let owner: Bool?
     }
 
     private func receive(_ data: Data, socket: URLSessionWebSocketTask) async throws {
@@ -153,6 +175,13 @@ final class RulesGameSession: ObservableObject {
             let next = try decoder.decode(RulesSnapshot.self, from: data)
             if let old = snapshot, old.gameId == next.gameId, old.revision > next.revision { return }
             snapshot = next
+        case "tables":
+            struct TableList: Decodable { let tables: [RulesTable] }
+            tables = try decoder.decode(TableList.self, from: data).tables
+        case "tableJoined":
+            tableId = header.tableId
+            ownsTable = header.owner ?? false
+            tables = []
         case "prompt": prompt = try decoder.decode(RulesPrompt.self, from: data)
         case "promptCleared": prompt = nil
         case "ack":

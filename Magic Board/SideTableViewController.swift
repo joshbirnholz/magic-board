@@ -87,6 +87,7 @@ struct CardControlView: View {
 				if action.dismisses { dismiss() }
 			}
 		}
+		if PhonePlayBridge.isRulesMode { return tiles }
 		tiles.append(Tile(id: "control", title: "Switch Control", icon: "arrow.left.arrow.right") {
 			card.controllerIdentifier.accept(card.controllerIdentifier.value == .a ? .b : .a)
 			try? GameState.current.save()
@@ -395,6 +396,9 @@ struct CardControlView: View {
 
   var body: some View {
     List {
+      if PhonePlayBridge.isRulesMode {
+        Section { actionGrid }
+      } else {
       // Card-specific rows (Prepared, Room doors) come first: they're why the menu was opened.
       if card.representation.card.layout == "prepare" || card.representation.isRoom {
         Section {
@@ -455,6 +459,7 @@ struct CardControlView: View {
           }
         }
       }
+    }
     }
     .listStyle(.insetGrouped)
 //    .listStyle(.insetGrouped)
@@ -1115,11 +1120,13 @@ extension MTGCard.RelatedCard {
 /// so there they do nothing (and the menu edits the card directly, as on the iPad board).
 private enum PhonePlayBridge {
 #if BOARD_CONNECT
+	static var isRulesMode: Bool { false }
 	static func battlefieldContains(_ card: CardInstance) -> Bool? { nil }
 	static func sendCounter(_ id: UUID, _ counter: Counter, _ delta: Int) -> Bool { false }
 	static func controlsCard(_ card: CardInstance) -> Bool { false }
 	static func castPrepared(_ id: UUID) {}
 #else
+	static var isRulesMode: Bool { AppDelegate.shared.phoneSession?.mode == .rules }
 	/// Whether the card is on Phone Play's battlefield (nil outside Phone Play).
 	static func battlefieldContains(_ card: CardInstance) -> Bool? {
 		AppDelegate.shared.phoneSession.map { $0.game.state.battlefield.value.contains(card) }

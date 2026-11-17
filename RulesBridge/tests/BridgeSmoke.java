@@ -25,8 +25,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
             JsonObject event = events.poll(1, TimeUnit.SECONDS);
             if (event == null) continue;
             String actual = event.get("type").getAsString();
-            if (actual.equals("error")) throw new AssertionError(event);
             if (actual.equals(type)) return event;
+            if (actual.equals("error")) throw new AssertionError(event);
         }
         throw new AssertionError("Timed out waiting for " + type);
     }
@@ -43,6 +43,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
         test.send("{\"type\":\"createAiGame\",\"requestId\":\"" + request + "\"}");
         test.await("ack");
         JsonObject state = test.await("snapshot");
+        if (System.getenv("RULES_SMOKE_SNAPSHOT") != null)
+            java.nio.file.Files.writeString(java.nio.file.Path.of(System.getenv("RULES_SMOKE_SNAPSHOT")), state.toString());
         if (state.getAsJsonArray("players").size() != 2) throw new AssertionError("Expected two players");
         for (JsonElement player : state.getAsJsonArray("players"))
             if (player.getAsJsonObject().has("hand")) throw new AssertionError("Private hands must not be in player summaries");
@@ -66,6 +68,14 @@ public final class BridgeSmoke implements WebSocket.Listener {
         JsonObject resumedPrompt = test.await("prompt");
         if (!prompt.get("id").equals(resumedPrompt.get("id"))) throw new AssertionError("Reconnect lost prompt");
         System.out.println("PASS reconnect restores the same game and pending prompt");
+        test.send("{\"type\":\"answer\",\"requestId\":\"stale-choice\",\"promptId\":\"expired\",\"revision\":"
+                + resumed.get("revision") + ",\"kind\":\"boolean\",\"value\":false}");
+        JsonObject rejection = test.await("error");
+        if (!rejection.get("requestId").getAsString().equals("stale-choice")) throw new AssertionError(rejection);
+        resumed = test.await("snapshot");
+        resumedPrompt = test.await("prompt");
+        if (!prompt.get("id").equals(resumedPrompt.get("id"))) throw new AssertionError("Rejected stale answer changed the prompt");
+        System.out.println("PASS stale answer rejected and current state replayed");
         // Play the simple deck until the real engine ends the game. Combat can be passed;
         // the AI supplies attacks. This checks the entire lifecycle, not AI playing strength.
         boolean playedLand = false;
@@ -141,5 +151,17 @@ public final class BridgeSmoke implements WebSocket.Listener {
         System.out.println("PASS full AI game: land play, creature casting, mana, priority and engine game-over (" + decisions + " decisions)");
         test.send("{\"type\":\"leave\"}");
         test.socket.sendClose(1000, "Done").join();
+        CompletableFuture<Integer> unauthorizedClose = new CompletableFuture<>();
+        WebSocket unauthorized = HttpClient.newHttpClient().newWebSocketBuilder()
+                .header("Authorization", "Bearer invalid-key")
+                .buildAsync(URI.create("ws://127.0.0.1:17180"), new WebSocket.Listener() {
+                    public CompletionStage<?> onClose(WebSocket socket, int code, String reason) {
+                        unauthorizedClose.complete(code);
+                        return null;
+                    }
+                }).join();
+        if (unauthorizedClose.get(5, TimeUnit.SECONDS) != 1008) throw new AssertionError("Unauthorized connection accepted");
+        unauthorized.abort();
+        System.out.println("PASS invalid connection key rejected");
     }
 }

@@ -10,6 +10,7 @@ final class RulesPhoneAdapter {
     private weak var phone: PhoneGameSession?
     private var subscriptions: Set<AnyCancellable> = []
     private var projectionTask: Task<Void, Never>?
+    private var artworkTask: Task<Void, Never>?
     private let catalog = RulesCardCatalog()
     private var pendingTarget: PhoneGame.Target?
     private var hiddenIDs: [String: UUID] = [:]
@@ -99,17 +100,18 @@ final class RulesPhoneAdapter {
         guard engine.canAnswer else { return }
         if engine.prompt?.method == "GAME_SELECT", let snapshot = engine.snapshot,
            !snapshot.playableIds.contains(id.uuidString.lowercased()),
-           !snapshot.step.contains("ATTACK") && !snapshot.step.contains("BLOCK") {
+           !(snapshot.step ?? "").contains("ATTACK") && !(snapshot.step ?? "").contains("BLOCK") {
             phone?.error = "That card has no legal action right now."
             return
         }
         await engine.answer(.object(id.uuidString.lowercased()))
     }
 
-    func disconnect() {
+    func leave() async {
         projectionTask?.cancel()
+        artworkTask?.cancel()
         subscriptions.removeAll()
-        engine.disconnect()
+        await engine.endSession()
     }
 
     private func refresh() {
@@ -117,7 +119,7 @@ final class RulesPhoneAdapter {
                             status: engine.notice, primaryLabel: engine.prompt?.method == "GAME_SELECT" ? "Next" : "Choose")
     }
 
-    private func project(_ snapshot: RulesSnapshot) async throws {
+    func project(_ snapshot: RulesSnapshot, refreshArtwork: Bool = true) async throws {
         var game = PhoneGame()
         game.id = UUID(uuidString: snapshot.gameId) ?? presentation.id
         game.revision = snapshot.revision
@@ -127,12 +129,12 @@ final class RulesPhoneAdapter {
         var models: [String: MTGCard] = [:]
         for card in allCards {
             try Task.checkCancellation()
-            if let model = await catalog.card(card) { models[card.id] = model }
+            if let model = await catalog.localCard(card) { models[card.id] = model }
         }
         try Task.checkCancellation()
         let centers = phone?.game.cards.mapValues { $0.center.value } ?? [:]
         func instance(_ card: RulesCard, owner: Player.Identifier) throws -> CardInstance {
-            let model = try models[card.id] ?? Self.placeholder(name: card.name ?? "Unknown card")
+            let model = try models[card.id] ?? Self.placeholder(name: card.name ?? "Unknown card", typeLine: card.typeLine ?? "", rules: card.rules, manaCost: card.manaCost)
             var representation = CardRepresentation.card(model).choosingFrontFace
             if card.transformed, let back = model.cardFaces?.last { representation = .alternateFace(model, back) }
             if card.faceDown { representation = .faceDown(representation) }
@@ -143,6 +145,7 @@ final class RulesPhoneAdapter {
             let result = try JSONDecoder().decode(CardInstance.self, from: JSONSerialization.data(withJSONObject: encoded))
             result.center.accept(centers[result.uuid] ?? nil)
             result.isTapped.accept(card.tapped ?? false)
+            result.isSummoningSick.accept(card.summoningSick ?? false)
             if let power = card.power { result.power.accept(power) }
             if let toughness = card.toughness { result.toughness.accept(toughness) }
             result.isPowerToughnessVisible.accept(card.power != nil || card.toughness != nil)
@@ -164,6 +167,9 @@ final class RulesPhoneAdapter {
             projected.exile.cards.accept(OrderedSet(try player.exile.map { try instance($0, owner: owner) }))
             let battlefield = try player.battlefield.map { try instance($0, owner: owner) }
             game.state.battlefield.mutate { $0.formUnion(battlefield) }
+            for card in player.battlefield {
+                if let id = UUID(uuidString: card.id), let parent = card.attachedTo.flatMap(UUID.init(uuidString:)) { game.attachments[id] = parent }
+            }
             projected.library.cards.accept(OrderedSet(try hiddenCards(player.libraryCount, key: player.id + ":library", owner: owner)))
             if owner == .b { projected.hand.cards.accept(OrderedSet(try hiddenCards(player.handCount, key: player.id + ":hand", owner: owner))) }
         }
@@ -171,14 +177,43 @@ final class RulesPhoneAdapter {
         let oldOrder = presentation.state.player1.hand.cards.value.map(\.uuid)
         game.state.player1.hand.cards.accept(OrderedSet(oldOrder.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !oldOrder.contains($0.uuid) }))
         game.stack = try snapshot.stack.reversed().map { card in
-            PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: try instance(card, owner: .a), text: card.name ?? "Ability", player: .a)
+            PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: .a), text: card.name ?? "Ability", player: .a)
         }
-        let active = snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
-        let phase: PhoneGame.Turn.Phase = snapshot.phase.contains("COMBAT") ? .combat : snapshot.phase.contains("POST") ? .ending : .main
+        let active = snapshot.activePlayerId.map(seat) ?? snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
+        let enginePhase = snapshot.phase ?? ""
+        let phase: PhoneGame.Turn.Phase = enginePhase.contains("COMBAT") ? .combat : enginePhase.contains("POST") ? .ending : .main
         game.turn = .init(player: active, phase: phase, number: snapshot.turn)
-        guard engine.snapshot?.gameId == snapshot.gameId, engine.snapshot?.revision == snapshot.revision else { return }
+        if phase == .combat {
+            var combat = PhoneGame.Combat(player: active)
+            for group in snapshot.combat ?? [] {
+                combat.attackers.formUnion(group.attackers.compactMap(UUID.init(uuidString:)))
+                // Existing Phone Play supports one attacked creature per blocker.
+                if group.attackers.count == 1, let attacker = group.attackers.first.flatMap(UUID.init(uuidString:)) {
+                    for blocker in group.blockers.compactMap(UUID.init(uuidString:)) { combat.blockers[blocker] = attacker }
+                }
+            }
+            game.combat = combat
+        }
+        try Task.checkCancellation()
         presentation = game
         refresh()
+        if refreshArtwork {
+            artworkTask?.cancel()
+            let missing = allCards.filter { !$0.faceDown && models[$0.id] == nil }
+            if !missing.isEmpty {
+                artworkTask = Task { [weak self] in
+                    guard let self else { return }
+                    var loaded = false
+                    for card in missing {
+                        guard !Task.isCancelled else { return }
+                        if await self.catalog.card(card) != nil { loaded = true }
+                    }
+                    guard loaded, !Task.isCancelled,
+                          self.presentation.id == game.id, self.presentation.revision == snapshot.revision else { return }
+                    try? await self.project(snapshot, refreshArtwork: false)
+                }
+            }
+        }
     }
 
     private func hiddenCards(_ count: Int, key: String, owner: Player.Identifier) throws -> [CardInstance] {
@@ -194,12 +229,14 @@ final class RulesPhoneAdapter {
         }
     }
 
-    private static func placeholder(name: String) throws -> MTGCard {
-        let json: [String: Any] = ["scryfallID": "00000000-0000-0000-0000-000000000001", "name": name,
-                                  "layout": "normal", "typeLine": "", "isFullArt": false,
+    private static func placeholder(name: String, typeLine: String = "", rules: String? = nil, manaCost: String? = nil) throws -> MTGCard {
+        var json: [String: Any] = ["scryfallID": "00000000-0000-0000-0000-000000000001", "name": name,
+                                  "layout": "normal", "typeLine": RulesText.plain(typeLine), "isFullArt": false,
                                   "collectorNumber": "0", "set": "tst", "rarity": "common", "frame": "2015",
                                   "isPromo": false, "isFoundInBoosters": false, "isFoilAvailable": false,
                                   "isNonFoilAvailable": true, "language": "en", "keywords": []]
+        if let rules { json["oracleText"] = RulesText.plain(rules) }
+        if let manaCost { json["manaCost"] = manaCost }
         return try JSONDecoder().decode(MTGCard.self, from: JSONSerialization.data(withJSONObject: json))
     }
 }
@@ -207,21 +244,31 @@ final class RulesPhoneAdapter {
 /// Keeps the existing synchronous card lookup off the UI actor, cached and serialized.
 private actor RulesCardCatalog {
     private var cache: [String: MTGCard] = [:]
-    func card(_ card: RulesCard) async -> MTGCard? {
+    private var failedKeys: Set<String> = []
+    private func key(_ card: RulesCard) -> String { "\(card.set ?? ""):\(card.collectorNumber ?? ""):\(card.name ?? "")" }
+    func localCard(_ card: RulesCard) -> MTGCard? {
         guard !card.faceDown else { return nil }
-        let key = "\(card.set ?? ""):\(card.collectorNumber ?? ""):\(card.name ?? "")"
+        let key = key(card)
         if let model = cache[key] { return model }
         if let set = card.set, let number = card.collectorNumber,
            let local = CardService.shared.localCard(for: .collectorNumberSet(collectorNumber: number, set: set.lowercased(), name: card.name)) {
             cache[key] = local
             return local
         }
+        return nil
+    }
+    func card(_ card: RulesCard) async -> MTGCard? {
+        guard !card.faceDown else { return nil }
+        if let local = localCard(card) { return local }
+        let key = key(card)
+        guard !failedKeys.contains(key) else { return nil }
         // Projection asks sequentially. Keep remote lookups below Scryfall's request limit.
         do { try await Task.sleep(nanoseconds: 120_000_000) } catch { return nil }
         var model: MTGCard?
         if let set = card.set, let number = card.collectorNumber { model = try? CardService.shared.getCard(code: set.lowercased(), number: number) }
         if model == nil, let name = card.name { model = try? CardService.shared.getCard(name: name) }
         if let model { cache[key] = model }
+        else { failedKeys.insert(key) }
         return model
     }
 }

@@ -687,6 +687,7 @@ final class PhoneHandCardController: UIViewController, PileDisplaying, UITableVi
                 session.send(.moveToPlayer(card.uuid, .command, card.ownerIdentifier, bottom: false))
             }), at: 0)
         }
+        if session.mode == .rules { moreActions = [] }
         table.dataSource = self
         table.delegate = self
         table.accessibilityIdentifier = "phone-hand-actions"
@@ -694,9 +695,9 @@ final class PhoneHandCardController: UIViewController, PileDisplaying, UITableVi
     @objc private func done() { navigationController?.dismiss(animated: true) }
     private var isInCommandZone: Bool { session.game.state[player: session.player].commandZone.cards.value.contains(card) }
     /// Commanders get a tax stepper (2 generic mana per previous cast from the command zone).
-    private var showsCommanderTax: Bool { card.isCommander.value || isInCommandZone }
+    private var showsCommanderTax: Bool { session.mode != .rules && (card.isCommander.value || isInCommandZone) }
     func numberOfSections(in tableView: UITableView) -> Int { showsCommanderTax ? 3 : 2 }
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? 2 : section == 1 ? moreActions.count : 1 }
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? (session.mode == .rules ? 1 : 2) : section == 1 ? moreActions.count : 1 }
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { section == 2 ? "Commander" : nil }
     private func commanderTaxCell() -> UITableViewCell {
         let cell = UITableViewCell(style: .default, reuseIdentifier: nil)

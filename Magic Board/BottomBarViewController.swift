@@ -676,7 +676,7 @@ extension BottomBarViewController {
         for child in children where child is LifeTrackerViewController {
             child.view.isUserInteractionEnabled = isLocal && rulesSession == nil
             if #available(iOS 16.4, *), let tracker = child as? LifeTrackerViewController { tracker.safeAreaRegions = [] }
-            (child as? LifeTrackerViewController)?.showsMarks = isLocal
+            (child as? LifeTrackerViewController)?.showsMarks = isLocal && rulesSession == nil
         }
         guard handContainerView.superview === view else { return }
         // Reduce the original fixed side allowance as the existing piles shrink.

@@ -28,17 +28,52 @@ struct RulesConnectionView: View {
                     Button("Cancel") { session.disconnect() }
                 } else if session.status == .connected {
                     Label("Connected to XMage", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    Button("Play Against AI") { Task { await session.startAiGame() } }
-                        .disabled(session.pendingRequest != nil || session.snapshot != nil)
-                        .accessibilityIdentifier("rules-start-ai")
-                    if session.pendingRequest != nil { ProgressView("Starting game…") }
+                    if let table = session.tableId {
+                        Text("Game \(table.prefix(8))").font(.headline).monospacedDigit()
+                        if session.ownsTable {
+                            Text("Have the other player connect to this server and join your waiting game.").font(.callout)
+                            Button("Start Game") { Task { await session.startMatch() } }
+                                .disabled(session.pendingRequest != nil)
+                                .accessibilityIdentifier("rules-start-human")
+                        } else {
+                            Text("Waiting for the other player to start the game…").font(.callout)
+                        }
+                    } else {
+                        Button("Play Against AI") { Task { await session.startAiGame() } }
+                            .disabled(session.pendingRequest != nil || session.snapshot != nil)
+                            .accessibilityIdentifier("rules-start-ai")
+                        Button("Create Two-Player Game") { Task { await session.createHumanGame() } }
+                            .disabled(session.pendingRequest != nil)
+                            .accessibilityIdentifier("rules-create-human")
+                    }
+                    if session.pendingRequest != nil { ProgressView("Working…") }
                     Button("Disconnect") { session.disconnect() }
                 } else {
                     Button("Connect") { session.connect(address: address, key: key) }
                         .disabled(address.trimmingCharacters(in: .whitespaces).isEmpty || key.isEmpty)
                         .accessibilityIdentifier("rules-connect")
-                    if session.snapshot != nil {
+                    if session.snapshot != nil || session.tableId != nil {
                         Button("Connect as New Session") { session.connect(address: address, key: key, resume: false) }
+                    }
+                }
+            }
+            if session.status == .connected, session.tableId == nil {
+                Section("Waiting Games") {
+                    Button("Refresh Games") { Task { await session.refreshTables() } }
+                        .disabled(session.pendingRequest != nil)
+                        .accessibilityIdentifier("rules-refresh-games")
+                    ForEach(session.tables) { table in
+                        Button {
+                            Task { await session.join(table) }
+                        } label: {
+                            HStack {
+                                Text("Game \(table.id.prefix(8))")
+                                Spacer()
+                                Text("\(table.players)/\(table.capacity)").monospacedDigit().foregroundStyle(.secondary)
+                            }
+                        }
+                        .disabled(session.pendingRequest != nil)
+                        .accessibilityIdentifier("rules-join-\(table.id)")
                     }
                 }
             }
@@ -48,12 +83,20 @@ struct RulesConnectionView: View {
         }
         .navigationTitle("Rules Game")
         .onAppear { key = session.connectionKey }
+        .task(id: session.status == .connected && session.tableId == nil) {
+            guard session.status == .connected, session.tableId == nil else { return }
+            while !Task.isCancelled {
+                await session.refreshTables()
+                do { try await Task.sleep(nanoseconds: 3_000_000_000) }
+                catch { return }
+            }
+        }
         .onReceive(session.$snapshot.compactMap { $0 }) { _ in
             guard !transferred else { return }
             transferred = true
             open(RulesPhoneAdapter(engine: session))
         }
-        .onDisappear { if !transferred { session.disconnect() } }
+        .onDisappear { if !transferred { Task { await session.endSession() } } }
     }
 }
 
@@ -69,7 +112,7 @@ struct RulesPromptBar: View {
                 Text("Rules Game").font(.caption.bold())
                 Spacer()
                 if let state = session.snapshot {
-                    Text("Turn \(state.turn) · \(RulesText.plain(state.step.replacingOccurrences(of: "_", with: " ")))")
+                    Text("Turn \(state.turn) · \(RulesText.plain((state.step ?? "Starting Game").replacingOccurrences(of: "_", with: " ")))")
                         .font(.caption).monospacedDigit()
                 }
                 Button { expanded.toggle() } label: { Image(systemName: expanded ? "chevron.up" : "chevron.down") }
