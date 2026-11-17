@@ -167,22 +167,31 @@ struct LandOrganizer: View {
 
     }
     
+    private func cardImage(_ card: CardInstance, width: CGFloat) -> some View {
+      SwiftUICardView(card: card, isRotationEnabled: true, isInspected: card.uuid == inspectedCardID)
+        .frame(width: width, height: height)
+        .opacity(card.uuid == draggedCardID || concealedCardIDs.contains(card.uuid) ? 0 : 1)
+        .shadow(radius: 5)
+    }
+
     var body: some View {
       // The row supplies height. Measuring this stack to size its own overlap
       // feeds image intrinsic-size changes back into SwiftUI layout.
-      HStack(spacing: -height * (showsCountTile ? 1.07 : 0.97)) {
-        ForEach(Array((attachedCards + cardInstances.contents).enumerated()), id: \.element.uuid) { (_, card) in
-          SwiftUICardView(card: card, isRotationEnabled: true, isInspected: card.uuid == inspectedCardID)
-            .frame(width: height * 480 / 420, height: height)
-            .opacity(card.uuid == draggedCardID || concealedCardIDs.contains(card.uuid) ? 0 : 1)
-            .shadow(radius: 5)
+      // Attached cards (Auras, Equipment) peek out about a quarter of a card to the left, as on
+      // Arena, so their names stay readable; the lands themselves stay tightly stacked.
+      let cardWidth = height * 480 / 420
+      let attachmentReveal = attachedCards.isEmpty ? 0 : cardWidth * 0.27
+      HStack(spacing: attachmentReveal - cardWidth) {
+        ForEach(attachedCards, id: \.uuid) { card in cardImage(card, width: cardWidth) }
+        HStack(spacing: -height * (showsCountTile ? 1.07 : 0.97)) {
+          ForEach(cardInstances.contents, id: \.uuid) { card in cardImage(card, width: cardWidth) }
         }
       }
       .padding(.leading, showsCountTile ? 10 : 0)
       .frame(height: height)
       .overlay {
         if showsCountTile {
-          countTile(height: height).position(x: 24, y: max(12, min(40, height - 12)))
+          countTile(height: height).position(x: 24 + CGFloat(attachedCards.count) * attachmentReveal, y: max(12, min(40, height - 12)))
         }
       }
     }

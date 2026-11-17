@@ -2994,6 +2994,12 @@ extension BoardViewController {
         func laidOut(_ player: Player.Identifier, _ row: PhoneBattlefieldLayout.Row) -> Int {
             descriptors.contains { $0.0 == player && $0.1 == row } ? groups(for: player, row: row).count : 0
         }
+        // Arena shows each attached card (Equipment, Auras) about a quarter of a card to the left of
+        // the card it's on, so its name and some art stay readable. Crowded rows tighten the step.
+        var attachmentStep: CGFloat = 130
+        func attachmentOffset(_ layer: Int) -> CGPoint {
+            CGPoint(x: -attachmentStep * CGFloat(layer + 1), y: -6 - CGFloat(layer) * 6)
+        }
         struct FieldPlan { var leftSpill: CGFloat; var bottomSpill: CGFloat; var useColumn: Bool; var visible: CGRect; var extent: CGFloat }
         func plan() -> FieldPlan {
             // A player's lanes (other permanents, creatures, planeswalkers) share one band, so size
@@ -3007,9 +3013,9 @@ extension BoardViewController {
                 .map { session.game.attachedCards(to: $0.top.uuid).count }.max() ?? 0
             // Fanned duplicates (up to 3 layers at 22/18 per layer) and attachments only reserve space when present.
             let maxLayers = min(3, descriptors.flatMap { groups(for: $0.0, row: $0.1) }.map(\.cards.count).max() ?? 1)
-            // Attachments tuck behind their card, peeking 34 + 30 per layer to the left (and a bit up).
+            // Attachments tuck behind their card, each one attachmentStep further to the left (and a bit up).
             let bottomSpill: CGFloat = CGFloat(maxLayers - 1) * 18 + rotationSpill
-            let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? 34 + CGFloat(attachmentCount - 1) * 30 : 0) + rotationSpill
+            let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? attachmentStep * CGFloat(attachmentCount) : 0) + rotationSpill
             func extent(in rect: CGRect) -> CGFloat {
                 let heightFit = max(24, (rect.height / 2 - 4) / (1 + (topSpill + bottomSpill) / 500))
                 return min(heightFit, PhoneBattlefieldLayout.cardExtent(screenWidth: rect.width, screenHeight: view.bounds.height, groups: largestRow))
@@ -3043,11 +3049,26 @@ extension BoardViewController {
                 return count <= max(1, Int((rowWidth + 20) / cellWidth))
             }
         }
-        let stackedPlan = plan()
-        splitDuplicates = true
-        let splitPlan = plan()
-        splitDuplicates = splitPlan.extent >= stackedPlan.extent - 0.5 && fitsWithoutPaging(splitPlan)
-        let fieldPlan = splitDuplicates ? splitPlan : stackedPlan
+        func choosePlan() -> FieldPlan {
+            splitDuplicates = false
+            let stackedPlan = plan()
+            splitDuplicates = true
+            let splitPlan = plan()
+            splitDuplicates = splitPlan.extent >= stackedPlan.extent - 0.5 && fitsWithoutPaging(splitPlan)
+            return splitDuplicates ? splitPlan : stackedPlan
+        }
+        // Use the widest attachment step that doesn't noticeably shrink the cards or make a row
+        // page; fall back to a narrow peek when space is tight.
+        let tightStep: CGFloat = 34
+        attachmentStep = tightStep
+        let tightPlan = choosePlan()
+        let roomyStep = [130, 100, 70].first { (step: CGFloat) in
+            attachmentStep = step
+            let candidate = choosePlan()
+            return candidate.extent >= tightPlan.extent * 0.92 && (fitsWithoutPaging(candidate) || !fitsWithoutPaging(tightPlan))
+        }
+        attachmentStep = roomyStep ?? tightStep
+        let fieldPlan = choosePlan() // also leaves splitDuplicates set for the chosen step
         let leftSpill = fieldPlan.leftSpill
         let bottomSpill = fieldPlan.bottomSpill
         let visible = fieldPlan.visible
@@ -3184,7 +3205,8 @@ extension BoardViewController {
                         cardView.isHidden = false
                         // Arena tucks equipment and Auras right behind the card: each one peeks
                         // out a little further to the left (and a touch higher).
-                        cardView.center = CGPoint(x: point.x - 34 - CGFloat(layer) * 30, y: point.y - 6 - CGFloat(layer) * 6)
+                        let offset = attachmentOffset(layer)
+                        cardView.center = CGPoint(x: point.x + offset.x, y: point.y + offset.y)
                         if let parent = self.cardView(for: group.top) {
                             // Same size as its card, so the smaller artifact/enchantment drawing can't hide behind it.
                             cardView.layoutScale = cardView.layoutScale(matching: parent)
@@ -3238,7 +3260,8 @@ extension BoardViewController {
                     guard let attachedView = cardView(for: attachment), let parent = cardView(for: group.top) else { continue }
                     attachedView.isHidden = false
                     attachedView.layoutScale = attachedView.layoutScale(matching: parent)
-                    attachedView.center = CGPoint(x: point.x - (34 + CGFloat(layer) * 30) * scale, y: point.y - (6 + CGFloat(layer) * 6) * scale)
+                    let offset = attachmentOffset(layer)
+                    attachedView.center = CGPoint(x: point.x + offset.x * scale, y: point.y + offset.y * scale)
                     board.insertSubview(attachedView, belowSubview: parent)
                 }
             }
