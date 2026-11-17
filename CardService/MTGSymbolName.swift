@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardView
 import UIKit
 
 public enum MTGSymbolName: String, CaseIterable {
@@ -87,6 +88,6 @@ public enum MTGSymbolName: String, CaseIterable {
 	case symbol_W_U_P = "{W/U/P}"
 
 	public var image: UIImage {
-		return UIImage(named: rawValue.replacingOccurrences(of: "/", with: "-"))!.withRenderingMode(.alwaysOriginal)
+		return UIImage.resource(named: rawValue.replacingOccurrences(of: "/", with: "-"))!.withRenderingMode(.alwaysOriginal)
 	}
 }

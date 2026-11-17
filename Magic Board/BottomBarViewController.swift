@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardView
 import UIKit
 import RxSwift
 import RxCocoa
@@ -381,7 +382,7 @@ extension BottomBarViewController: UIDragInteractionDelegate {
 			let dragItem = UIDragItem(itemProvider: item)
 			dragItem.localObject = cardInstance
 			dragItem.previewProvider = { [weak self] in
-				let imageView = UIImageView(image: image ?? #imageLiteral(resourceName: "mtg-card-back-png-1"))
+				let imageView = UIImageView(image: image ?? UIImage.resource(named: "mtg-card-back-png-1")!)
 				imageView.contentMode = .scaleAspectFit
 				
 				imageView.layer.masksToBounds = true

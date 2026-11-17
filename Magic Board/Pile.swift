@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardView
 import CardService
 import RxSwift
 import RxCocoa
@@ -62,7 +63,7 @@ struct Pile: Codable, Equatable, Hashable {
     } else if !isHidden || isTopCardRevealed.value {
 			return cards.value.last?.representation.image(type: .small)
 		} else {
-      return #imageLiteral(resourceName: "mtg-card-back-png-1")
+      return UIImage.resource(named: "mtg-card-back-png-1")!
 		}
 	}
 }

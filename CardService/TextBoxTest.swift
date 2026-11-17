@@ -40,21 +40,21 @@ struct TextBox: View {
     }()
     
     if colors.isEmpty && (backgroundStyle?.isLand == true) {
-      return UIImage(named: "textbox-land\(suffix)")
+      return UIImage.resource(named: "textbox-land\(suffix)")
     } else if colors.count == 1 && (backgroundStyle?.isLand == true), let color = colors.first {
-      return UIImage(named: "textbox-\(color.rawValue)-land\(suffix)")
+      return UIImage.resource(named: "textbox-\(color.rawValue)-land\(suffix)")
     } else if colors.isEmpty && (backgroundStyle?.isArtifact == true) {
-      return UIImage(named: "textbox-artifact\(suffix)")
+      return UIImage.resource(named: "textbox-artifact\(suffix)")
     } else if colors.count == 1, let color = colors.first {
-      return UIImage(named: "textbox-\(color.rawValue)\(suffix)")
+      return UIImage.resource(named: "textbox-\(color.rawValue)\(suffix)")
     } else if colors.count > 2 {
-      return UIImage(named: "textbox-gold\(suffix)")
+      return UIImage.resource(named: "textbox-gold\(suffix)")
     } else if colors.count == 2 {
       let left = textBoxImage(colors: [colors[0]], backgroundStyle: backgroundStyle)
       let right = textBoxImage(colors: [colors[1]], backgroundStyle: backgroundStyle)
       return mergeImages(left: left, right: right)
     } else {
-      return UIImage(named: "textbox-colorless")
+      return UIImage.resource(named: "textbox-colorless")
     }
   }
   
@@ -84,7 +84,7 @@ struct TextBox: View {
     guard
       let left = left,
       let right = right,
-      let mask = UIImage(named: maskName),
+      let mask = UIImage.resource(named: maskName),
       let rightMasked = maskImage(right, withMask: mask) else {
       return left ?? right
     }
@@ -102,8 +102,8 @@ struct TextBox: View {
   }
   
 //  private func mergedImage(left: String, right: String, maskName: String = "textbox-mask") -> UIImage? {
-//    let left = UIImage(named: left)
-//    let right = UIImage(named: right)
+//    let left = UIImage.resource(named: left)
+//    let right = UIImage.resource(named: right)
 //    
 //    return mergeImages(left: left, right: right, maskName: maskName)
 //  }

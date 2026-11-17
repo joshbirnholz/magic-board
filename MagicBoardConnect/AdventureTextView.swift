@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CardView
 import CardService
 
 class AdventureViewModel: ObservableObject {
@@ -35,12 +36,12 @@ struct AdventureTextView: View {
   var body: some View {
     HStack(spacing: 0) {
       GeometryReader { proxy in
-        Image("textbox-\(viewModel.adventureColor.name)-\(viewModel.viewType)-left").resizable()
+        Image(resource: "textbox-\(viewModel.adventureColor.name)-\(viewModel.viewType)-left").resizable()
           .overlay {
             if viewModel.adventureColor != viewModel.color {
-              Image("textbox-\(viewModel.color.name)-\(viewModel.viewType)-left").resizable()
+              Image(resource: "textbox-\(viewModel.color.name)-\(viewModel.viewType)-left").resizable()
                 .mask(
-                  Image("\(viewModel.viewType)-left-mask").resizable()
+                  Image(resource: "\(viewModel.viewType)-left-mask").resizable()
                 )
             }
           }
@@ -88,7 +89,7 @@ struct AdventureTextView: View {
       }
       
       GeometryReader { proxy in
-        Image("textbox-\(viewModel.color.name)-\(viewModel.viewType)-right").resizable()
+        Image(resource: "textbox-\(viewModel.color.name)-\(viewModel.viewType)-right").resizable()
           .overlay {
             OracleTextView(viewModel: {
               let vm = OracleTextViewModel()

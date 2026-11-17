@@ -120,7 +120,7 @@ struct HandCardView: View {
 	let card: MTGCard
 	var face: MTGCard.Face?
 	
-	private static let back = Image("mtg-card-back-png-1").resizable()
+	private static let back = Image(resource: "mtg-card-back-png-1").resizable()
   
   private var type: ImageType {
     if UIApplication.shared.keyWindow?.safeAreaInsets.bottom == 0 && UIDevice.current.userInterfaceIdiom == .phone {
@@ -618,7 +618,7 @@ extension HandViewController: UIDropInteractionDelegate {
 //		let dragItem = UIDragItem(itemProvider: item)
 //		dragItem.localObject = cardInstance
 //		dragItem.previewProvider = {
-//			let imageView = UIImageView(image: image ?? #imageLiteral(resourceName: "mtg-card-back-png-1"))
+//			let imageView = UIImageView(image: image ?? UIImage.resource(named: "mtg-card-back-png-1")!)
 //			imageView.contentMode = .scaleAspectFit
 //
 //			imageView.layer.masksToBounds = true
@@ -635,7 +635,7 @@ extension HandViewController: UIDropInteractionDelegate {
 //
 //	func dragInteraction(_ interaction: UIDragInteraction, itemsForBeginning session: UIDragSession) -> [UIDragItem] {
 //		guard let cardInstance = self.cardInstance(forTouchAt: session.location(in: view)) else { return [] }
-//		let dragItem = self.dragItem(for: cardInstance, image: #imageLiteral(resourceName: "mtg-card-back-png-1"))
+//		let dragItem = self.dragItem(for: cardInstance, image: UIImage.resource(named: "mtg-card-back-png-1")!)
 //		print("Beginning with \(cardInstance.representation.name ?? "")")
 //		liftedCards.mutate { $0.insert(cardInstance) }
 //		return [dragItem]
@@ -645,7 +645,7 @@ extension HandViewController: UIDropInteractionDelegate {
 //		guard let cardInstance = self.cardInstance(forTouchAt: session.location(in: view)) else { return [] }
 //		let cardInstances = session.items.compactMap { $0.cardInstance }
 //		guard !cardInstances.contains(cardInstance) else { return [] }
-//		let dragItem = self.dragItem(for: cardInstance, image: #imageLiteral(resourceName: "mtg-card-back-png-1"))
+//		let dragItem = self.dragItem(for: cardInstance, image: UIImage.resource(named: "mtg-card-back-png-1")!)
 //		print("Adding \(cardInstance.representation.name ?? "")")
 //		liftedCards.mutate { $0.insert(cardInstance) }
 //		return [dragItem]
@@ -737,7 +737,7 @@ class HandViewController: UICollectionViewController, UICollectionViewDelegateFl
 		let card = cardItem.representation.card
 		
 //		cell.cardImageView.image = nil
-		cell.cardImageView.image = #imageLiteral(resourceName: "mtg-card-back-png-1")
+		cell.cardImageView.image = UIImage.resource(named: "mtg-card-back-png-1")!
 		
 		if self.isLocalHand {
 			DispatchQueue.global(qos: .userInteractive).async {
@@ -964,7 +964,7 @@ extension HandViewController: UICollectionViewDragDelegate {
 		let dragItem = UIDragItem(itemProvider: item)
 		dragItem.localObject = cardInstance
 		dragItem.previewProvider = { [weak self] in
-			let imageView = UIImageView(image: image ?? #imageLiteral(resourceName: "mtg-card-back-png-1"))
+			let imageView = UIImageView(image: image ?? UIImage.resource(named: "mtg-card-back-png-1")!)
 			imageView.contentMode = .scaleAspectFit
 			
 			imageView.layer.masksToBounds = true

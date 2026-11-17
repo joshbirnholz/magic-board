@@ -453,7 +453,7 @@ struct CardControlView: View {
               if self.colors.contains(color) { set.remove(color) } else { set.insert(color) }
               self.colors = Array(set)
             }, label: {
-              Image("{\(color.initial)}")
+              Image(resource: "{\(color.initial)}")
                 .resizable()
                 .aspectRatio(1, contentMode: .fit)
                 .opacity(self.colors.contains(MTGColor(rawValue: color.initial.uppercased())!) ? 1 : 0.1)
@@ -557,7 +557,7 @@ class SideTableViewController: UITableViewController, PowerToughnessCellDelegate
 			case .card:
 				return nil
 			case .creature:
-				return #imageLiteral(resourceName: "Creature_symbol")
+				return UIImage.resource(named: "Creature_symbol")!
 			case .control:
 				return nil
 			case .game:

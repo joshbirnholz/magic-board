@@ -85,7 +85,7 @@ func addSymbols(string: String, symbolLength: CGFloat = 13, forTextStyle textSty
 		let nonItalic = string[fromPreviousStart..<match.range.lowerBound]
 		
 		let imageName = match.value.replacingOccurrences(of: "/", with: "-")
-		guard let uiImage = UIImage(named: imageName)?.scaled(length: symbolLength) else {
+		guard let uiImage = UIImage.resource(named: imageName)?.scaled(length: symbolLength) else {
 			text = text + Text(match.value)
 			print("No image for \(match.value)")
 			continue
@@ -232,7 +232,7 @@ struct OracleTextView: View {
 			texts.append(OracleText(oracleText: oracleText, symbolSpacingEnabled: false, symbolLength: 13).content)
 				
 		}
-    if let text = viewModel.oracleText, let flavorText = viewModel.flavorText, !text.isEmpty && !flavorText.isEmpty, let uiImage = UIImage(named: "separator") {
+    if let text = viewModel.oracleText, let flavorText = viewModel.flavorText, !text.isEmpty && !flavorText.isEmpty, let uiImage = UIImage.resource(named: "separator") {
       let width = width * 0.95
       let size = CGSize(width: width, height: (16/583)*width)
       let scaled = uiImage.scaled(toFit: size)
@@ -514,7 +514,7 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
 			}
 			
 			if let indicator = card.colorIndicator?.ordered, !indicator.isEmpty {
-				colorIndicatorImageView.image = UIImage(named: "CI_\(indicator.map(\.initial).joined())")
+				colorIndicatorImageView.image = UIImage.resource(named: "CI_\(indicator.map(\.initial).joined())")
 				colorIndicatorImageView.isHidden = false
 			} else {
 				colorIndicatorImageView.isHidden = true
@@ -940,17 +940,17 @@ class LandscapeHandViewController: UIViewController, PileDisplaying {
 			for landName in MTGColor.allCases.compactMap(\.land) {
 				if selectedCard.typeLine?.lowercased().contains(landName) == true {
 					if selectedCard.flavorText != nil {
-						return UIImage(named: "watermark-\(landName.lowercased())")
+						return UIImage.resource(named: "watermark-\(landName.lowercased())")
 					} else if selectedCard.typeLine?.lowercased().contains("snow") == true {
-						return UIImage(named: landName.capitalized + "-snow")
+						return UIImage.resource(named: landName.capitalized + "-snow")
 					} else {
-						return UIImage(named: landName.capitalized)
+						return UIImage.resource(named: landName.capitalized)
 					}
 				}
 			}
-			return UIImage(named: "Wastes")
+			return UIImage.resource(named: "Wastes")
 		} else if let watermark = selectedCard.watermark {
-			return UIImage(named: "watermark-\(watermark)")
+			return UIImage.resource(named: "watermark-\(watermark)")
 		}
 		
 		return nil

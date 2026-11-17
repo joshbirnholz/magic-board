@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardView
 import CardService
 import UIKit
 
@@ -395,7 +396,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
         case .manifest: return Self.manifestCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
         case .mysterious: return Self.mysteriousCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
         case .foretold:
-            return type == .art ? UIImage(named: "foretellart")
+            return type == .art ? UIImage.resource(named: "foretellart")
                 : Self.foretellCard.imageIfLoaded(type: type, alwaysUpright: alwaysUpright)
         }
     }
@@ -419,7 +420,7 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 			return CardRepresentation.mysteriousCard.image(type: type, alwaysUpright: alwaysUpright)
 		case .foretold(_):
 			if case .art = type {
-				return UIImage(named: "foretellart")
+				return UIImage.resource(named: "foretellart")
 			} else {
 				return CardRepresentation.foretellCard.image(type: type, alwaysUpright: alwaysUpright)
 			}

@@ -61,7 +61,7 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
   static func doorLock(_ face: Int) -> Counter { face == 0 ? .lockedDoorLeft : .lockedDoorRight }
   /// The LOCKED door from Duskmourn's Room tokens (template).
   static var lockedDoorImage: UIImage? {
-    UIImage(named: "Icon_LockedDoor", in: Bundle(for: MTGCardView.self), compatibleWith: nil)?.withRenderingMode(.alwaysTemplate)
+    UIImage.resource(named: "Icon_LockedDoor")?.withRenderingMode(.alwaysTemplate)
       ?? UIImage(systemName: "lock.fill")
   }
 	
@@ -231,7 +231,7 @@ extension Counter {
         case .shadow, .exalted:
             // Arena's ability icons, shipped in CardView's asset catalog (template images).
             let asset = self == .shadow ? "Icon_Shadow" : "Icon_Exalted"
-            guard let image = UIImage(named: asset, in: Bundle(for: MTGCardView.self), compatibleWith: nil)?
+            guard let image = UIImage.resource(named: asset)?
                 .withRenderingMode(.alwaysTemplate) else { return nil }
             icon = .custom(image, name: name, isPermanent: true)
         default: return nil
@@ -252,7 +252,7 @@ extension Counter {
         case .shield: asset = "Icon_Shield"
         default: return nil
         }
-        let image = UIImage(named: asset, in: Bundle(for: MTGCardView.self), compatibleWith: nil)
+        let image = UIImage.resource(named: asset)
             // Stand-in until the prepared symbol asset is added.
             ?? (self == .prepared ? UIImage(systemName: "sparkles") : nil)
         return image?.withRenderingMode(.alwaysTemplate)

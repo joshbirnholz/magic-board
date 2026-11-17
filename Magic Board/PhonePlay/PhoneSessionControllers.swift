@@ -1,4 +1,5 @@
 import UIKit
+import CardView
 import Combine
 import MultipeerConnectivity
 
@@ -1094,7 +1095,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         cards = newCards
         for card in cards where cardViews[card.uuid] == nil {
             let hidden = faceDown.contains(card.uuid)
-            let view = PhoneBrowserCardView(image: hidden ? UIImage(named: "mtg-card-back-png-1")
+            let view = PhoneBrowserCardView(image: hidden ? UIImage.resource(named: "mtg-card-back-png-1")
                                    : card.representation.imageIfLoaded(type: .normal) ?? card.representation.image(type: .normal))
             view.isUserInteractionEnabled = true
             view.isAccessibilityElement = true

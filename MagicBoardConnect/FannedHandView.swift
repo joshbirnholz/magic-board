@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import CardView
 import CardService
 
 struct FannedCardHandView: View {
@@ -99,7 +100,7 @@ struct FannedCardHandView: View {
       HStack(spacing: spacing(totalWidth: fanWidth(size), cardWidth: phoneCardWidth(height: size.height))) {
         ForEach(Array([hand, commandZone].joined().enumerated()), id: \.element.uuid) { (index, card) in
           if !commandZone.isEmpty && !hand.isEmpty && index == hand.count && !AppDelegate.shared.usesPhoneSession {
-            Image("mtg-card-back-png-1")
+            Image(resource: "mtg-card-back-png-1")
               .resizable()
               .scaledToFit()
               .frame(maxWidth: .infinity)

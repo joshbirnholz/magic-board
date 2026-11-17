@@ -2429,7 +2429,7 @@ extension BoardViewController: UIDragInteractionDelegate {
 //				return UIGraphicsGetImageFromCurrentImageContext()
 //
 //			}()
-//			let imageView = UIImageView(image: image ?? #imageLiteral(resourceName: "mtg-card-back-png-1"))
+//			let imageView = UIImageView(image: image ?? UIImage.resource(named: "mtg-card-back-png-1")!)
 //
 ////			imageView.layer.masksToBounds = true
 ////			imageView.layer.cornerRadius = 5
@@ -5027,7 +5027,7 @@ extension BoardViewController {
             preview.bounds.size = size
             preview.transform = CGAffineTransform(rotationAngle: angle)
             if card.isTapped.value {
-                let arrow = UIImageView(image: UIImage(named: "tap")?.withRenderingMode(.alwaysTemplate))
+                let arrow = UIImageView(image: UIImage.resource(named: "tap")?.withRenderingMode(.alwaysTemplate))
                 arrow.tintColor = .white; arrow.alpha = 0.65; arrow.contentMode = .scaleAspectFit
                 arrow.frame = preview.bounds.insetBy(dx: size.width * 0.27, dy: size.height * 0.27)
                 preview.addSubview(arrow)

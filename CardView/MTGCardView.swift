@@ -8,10 +8,35 @@
 
 import Foundation
 import UIKit
+import SwiftUI
+import MagicBoardResources
 
 fileprivate func UIImage(named name: String) -> UIImage? {
-	let bundle = Bundle(for: MTGCardView.self)
-	return UIImage(named: name, in: bundle, compatibleWith: nil)
+	UIKit.UIImage.resource(named: name)
+}
+
+/// Images live in the shared MagicBoardResources package (outside the app's folder). A few that
+/// storyboards and xibs use also stay in the app's and CardView's own catalogs.
+public extension UIImage {
+	/// Looks in the app's catalog, then CardView's, then the shared resources package.
+	static func resource(named name: String) -> UIImage? {
+		UIImage(named: name, in: .main, compatibleWith: nil)
+			?? UIImage(named: name, in: Bundle(for: MTGCardView.self), compatibleWith: nil)
+			?? UIImage(named: name, in: MagicBoardResources.bundle, compatibleWith: nil)
+	}
+}
+
+public extension Image {
+	/// A SwiftUI image from whichever catalog has it (see `UIImage.resource(named:)`).
+	init(resource name: String) {
+		if UIImage(named: name, in: .main, compatibleWith: nil) != nil {
+			self.init(name)
+		} else if UIImage(named: name, in: Bundle(for: MTGCardView.self), compatibleWith: nil) != nil {
+			self.init(name, bundle: Bundle(for: MTGCardView.self))
+		} else {
+			self.init(name, bundle: MagicBoardResources.bundle)
+		}
+	}
 }
 
 public class MTGCardView: UIView {

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import CardView
 import RxSwift
 import RxCocoa
 import CardService
@@ -1007,7 +1008,7 @@ class PileViewController: UITableViewController, PileDisplaying {
     let isFaceDownFromBattlefield = contentType == .other && GameState.current.battlefield.value.contains(instance) && instance.representation.isFaceDown
 		
     guard !isFaceDownFromBattlefield && (cardsAreVisible || (isOwned && isLocalPhone && cardIsRevealed(forRowAt: indexPath)) || topCardRevealed && instance == cardInstances.value.last) else {
-			cell.cardImageView.image = #imageLiteral(resourceName: "mtg-card-back-png-1")
+			cell.cardImageView.image = UIImage.resource(named: "mtg-card-back-png-1")!
 			
 			cell.layout = .default
 			cell.set(content: CardTableViewCell.Content(title: nil, cost: nil, type: nil, oracleText: nil), for: .front)
@@ -1563,7 +1564,7 @@ extension PileViewController: UITableViewDragDelegate {
 			let dragItem = UIDragItem(itemProvider: item)
 			dragItem.localObject = cardInstance
 			dragItem.previewProvider = {
-				let imageView = UIImageView(image: image ?? #imageLiteral(resourceName: "mtg-card-back-png-1"))
+				let imageView = UIImageView(image: image ?? UIImage.resource(named: "mtg-card-back-png-1")!)
 				imageView.contentMode = .scaleAspectFit
 				
 				imageView.layer.masksToBounds = true
@@ -1590,7 +1591,7 @@ extension PileViewController: UITableViewDragDelegate {
 			return []
 		}
 		let card = self.card(forRowAt: indexPath)
-		let image = cardsAreVisible ? card.image(type: .small) : #imageLiteral(resourceName: "mtg-card-back-png-1")
+		let image = cardsAreVisible ? card.image(type: .small) : UIImage.resource(named: "mtg-card-back-png-1")!
 		return dragItems(forCardsAt: IndexSet(integer: self.indexOfCard(forRowAt: indexPath)), image: image)
 	}
 	
@@ -1604,7 +1605,7 @@ extension PileViewController: UITableViewDragDelegate {
 			return []
 		}
 		let card = self.card(forRowAt: indexPath)
-		let image = cardsAreVisible ? card.image(type: .small) : #imageLiteral(resourceName: "mtg-card-back-png-1")
+		let image = cardsAreVisible ? card.image(type: .small) : UIImage.resource(named: "mtg-card-back-png-1")!
 		return dragItems(forCardsAt: IndexSet(integer: self.indexOfCard(forRowAt: indexPath)), image: image)
 	}
 	

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardView
 import UIKit
 import SDWebImage
 import Combine
@@ -178,7 +179,7 @@ public extension MTGCard {
 	
 	func symbolImage(size: SymbolSize = .medium) -> UIImage? {
 		if set.lowercased() == "net" {
-			return UIImage(named: "netropolis-\(rarity.rawValue)")
+			return UIImage.resource(named: "netropolis-\(rarity.rawValue)")
 		}
 		
 		var set = self.set

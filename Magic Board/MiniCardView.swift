@@ -45,7 +45,7 @@ class MiniCardView: UIView {
 		case image(UIImage)
 		case cardProperties(MTGCardView.CardProperties)
 		
-		static let backFace: Contents = .image(#imageLiteral(resourceName: "mtg-card-back-png-1"))
+		static let backFace: Contents = .image(UIImage.resource(named: "mtg-card-back-png-1")!)
 	}
 	
 	/// Where the drawn card sits inside the rendered image (fractions of its size), when the image
@@ -480,7 +480,7 @@ class MiniCardView: UIView {
 //					let view = UIView()
 					let image: UIImage? = {
 						switch counter {
-						case .loyalty: return #imageLiteral(resourceName: "Loyalty")
+						case .loyalty: return UIImage.resource(named: "Loyalty")!
 						default: return UIImage(systemName: "circle.fill")
 						}
 					}()
@@ -567,9 +567,9 @@ class MiniCardView: UIView {
 		Observable.combineLatest(cardInstance.doesNotUntapNextTurn, cardInstance.doesNotUntapAutomatically)
 //			.do(onNext: { (doesNotUntapNextTurn, doesNotUntapAutomatically) in
 //				if doesNotUntapAutomatically {
-//					self.chainsImageView.image = #imageLiteral(resourceName: "chains")
+//					self.chainsImageView.image = UIImage.resource(named: "chains")!
 //				} else if doesNotUntapNextTurn {
-//					self.chainsImageView.image = #imageLiteral(resourceName: "bluechains")
+//					self.chainsImageView.image = UIImage.resource(named: "bluechains")!
 //				}
 //			})
 			.map { !($0 || $1) }
@@ -639,7 +639,7 @@ class MiniCardView: UIView {
   }
 	
   private lazy var phoneTapArrow: UIImageView = {
-    let arrow = UIImageView(image: UIImage(named: "tap")?.withRenderingMode(.alwaysTemplate))
+    let arrow = UIImageView(image: UIImage.resource(named: "tap")?.withRenderingMode(.alwaysTemplate))
     arrow.tintColor = .white
     arrow.alpha = 0.65
     arrow.contentMode = .scaleAspectFit
@@ -826,7 +826,7 @@ struct SwiftUICardView: View {
   @ObservedObject private var colors: ObservableBridge<[MTGColor]>
   @State private var art: UIImage?
   
-  private static let backFace: UIImage = #imageLiteral(resourceName: "mtg-card-back-png-1")
+  private static let backFace: UIImage = UIImage.resource(named: "mtg-card-back-png-1")!
   
   let bag = DisposeBag()
   
@@ -950,7 +950,7 @@ struct SwiftUICardView: View {
           Color.black.opacity(0.4)
           if AppDelegate.shared.usesPhoneSession {
             GeometryReader { proxy in
-              Image("tap").resizable().renderingMode(.template).scaledToFit()
+              Image(resource: "tap").resizable().renderingMode(.template).scaledToFit()
                 .foregroundColor(.white.opacity(0.65))
                 .frame(width: proxy.size.width * 0.46, height: proxy.size.height * 0.46)
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)

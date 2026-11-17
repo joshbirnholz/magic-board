@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import CardView
 import HFCardCollectionViewLayout
 import RxSwift
 import RxCocoa
@@ -292,7 +293,7 @@ class HandCardCollectionViewController: UICollectionViewController, HFCardCollec
 		//		cell.cornerRadius = 80
 		//        cell.backgroundColor = self.cardArray[indexPath.item].color
 		//        cell.imageIcon?.image = self.cardArray[indexPath.item].icon
-		//		cell.cardImageView?.image = UIImage(named: "card\((0...7).randomElement()!)")
+		//		cell.cardImageView?.image = UIImage.resource(named: "card\((0...7).randomElement()!)")
 		return cell
 	}
 	

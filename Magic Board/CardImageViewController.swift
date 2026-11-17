@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CardView
 import UIKit
 import CardService
 import RxSwift
@@ -238,13 +239,13 @@ class CardImageViewController: UIViewController {
 	private func updateCardImage(flip: Bool = false) {
 		if isViewLoaded { updateOtherSideButton() }
 		guard let card = cardInstance?.representation else {
-			cardImageView.image = #imageLiteral(resourceName: "mtg-card-back-png-1")
+			cardImageView.image = UIImage.resource(named: "mtg-card-back-png-1")!
             updateCardCorners()
 			return
 		}
 		
 		if case .faceDown(_) = card {
-			cardImageView.image = #imageLiteral(resourceName: "mtg-card-back-png-1")
+			cardImageView.image = UIImage.resource(named: "mtg-card-back-png-1")!
             updateCardCorners()
 			return
 		}
@@ -317,7 +318,7 @@ extension CardImageViewController: UIDragInteractionDelegate {
 		let dragItem = UIDragItem(itemProvider: item)
 		dragItem.localObject = cardInstance
 		dragItem.previewProvider = { [weak self] in
-			let imageView = UIImageView(image: self?.cardImageView.image ?? #imageLiteral(resourceName: "mtg-card-back-png-1"))
+			let imageView = UIImageView(image: self?.cardImageView.image ?? UIImage.resource(named: "mtg-card-back-png-1")!)
 			imageView.contentMode = .scaleAspectFit
 			
 			imageView.layer.masksToBounds = true
