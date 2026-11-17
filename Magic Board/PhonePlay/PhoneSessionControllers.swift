@@ -91,7 +91,7 @@ final class BoardMenuSheetController: UIViewController {
     fileprivate static func group(of action: BoardMenuAction) -> Group {
         let name = action.title ?? ""
         if name.hasPrefix("Load") || name.contains("Preloaded") || name.contains("Connection") || name.hasPrefix("Reset")
-            || name == "Clear Board" || name == "Exit Game" || name.contains("Hand") { return .game }
+            || name == "Clear Board" || name == "Exit Game" || name.contains("Hand") || name.hasSuffix("on Untap") { return .game }
         if name.hasPrefix("Add") || name.hasPrefix("Drop") { return .cards }
         if name.contains("Hide") || name.contains("Selection") || name.contains("Reveal") { return .board }
         return .more
@@ -107,6 +107,8 @@ final class BoardMenuSheetController: UIViewController {
         case "Exit Game": return "rectangle.portrait.and.arrow.right"
         case "Reveal Hand": return "eye"
         case "Stop Revealing Hand": return "eye.slash"
+        case "Draw on Untap": return "arrow.turn.up.left"
+        case "Don't Draw on Untap": return "arrow.turn.up.left.circle"
         case "Add by Name": return "text.magnifyingglass"
         case "Add by Set and Number": return "number"
         case "Add Random": return "dice"

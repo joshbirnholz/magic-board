@@ -1158,7 +1158,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         let untap = app.buttons["phone-untap-local"]
         XCTAssertTrue(untap.waitForExistence(timeout: 15))
-        XCTAssertEqual(untap.label, "Untap")
+        XCTAssertEqual(untap.label, "Untap + Draw")
         func own(_ name: String) -> XCUIElement {
             app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == %@", name))
                 .allElementsBoundByIndex.max { $0.frame.midY < $1.frame.midY }!

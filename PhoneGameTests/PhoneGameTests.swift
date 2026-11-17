@@ -250,6 +250,48 @@ final class PhoneGameTests: XCTestCase {
         XCTAssertNil(game.opening)
     }
 
+    func testPhaseButtonWalksThroughTheTurnAndPassesIt() throws {
+        var game = PhoneGame()
+        game.state.player1.library.cards.accept(OrderedSet(try (0..<20).map { try card("A\($0)", type: "Instant") }))
+        game.state.player2.library.cards.accept(OrderedSet(try (0..<20).map { try card("B\($0)", type: "Instant", player: .b) }))
+        XCTAssertEqual(game.phaseButton(for: .a), .startGame)
+        try game.apply(.startGame, player: .a)
+        let first = try XCTUnwrap(game.opening?.firstPlayer)
+        let second: Player.Identifier = first == .a ? .b : .a
+        XCTAssertEqual(game.phaseButton(for: first), .untapAndDraw)
+        XCTAssertEqual(game.phaseButton(for: second), .opponentsTurn)
+        // The first player skips their first draw.
+        try game.apply(.untapAndDraw(draw: true), player: first)
+        XCTAssertEqual(game.state[player: first].hand.cards.value.count, 7)
+        XCTAssertEqual(game.phaseButton(for: first), .moveToCombat)
+        try game.apply(.beginCombat, player: first)
+        XCTAssertEqual(game.attackingPlayer, first)
+        XCTAssertEqual(game.phaseButton(for: first), .endCombat)
+        XCTAssertEqual(game.phaseButton(for: second), .opponentsCombat)
+        try game.apply(.endCombat, player: first)
+        XCTAssertNil(game.combat)
+        XCTAssertEqual(game.phaseButton(for: first), .endTurn)
+        try game.apply(.endTurn, player: first)
+        XCTAssertEqual(game.phaseButton(for: first), .opponentsTurn)
+        XCTAssertEqual(game.phaseButton(for: second), .untapAndDraw)
+        try game.apply(.untapAndDraw(draw: true), player: second)
+        XCTAssertEqual(game.state[player: second].hand.cards.value.count, 8)
+        try game.apply(.untapAndDraw(draw: false), player: second) // drawing can be turned off
+        XCTAssertEqual(game.state[player: second].hand.cards.value.count, 8)
+    }
+
+    func testAttackingFromTheMenuMovesTheTurnToCombat() throws {
+        var game = PhoneGame()
+        let bear = try card("Grizzly Bears", type: "Creature — Bear")
+        game.state.battlefield.accept([bear])
+        try game.apply(.untapAndDraw(draw: false), player: .a)
+        try game.apply(.attack(bear.uuid, tap: true), player: .a)
+        XCTAssertEqual(game.turn?.phase, .combat)
+        XCTAssertEqual(game.phaseButton(for: .a), .endCombat)
+        try game.apply(.endCombat, player: .a)
+        XCTAssertEqual(game.phaseButton(for: .a), .endTurn)
+    }
+
     func testArrangeLibraryTopPutsCardsOnTopInOrder() throws {
         var game = PhoneGame()
         let cards = try (0..<5).map { try card("Card \($0)", type: "Instant") }

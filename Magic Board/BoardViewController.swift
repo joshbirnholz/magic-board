@@ -515,6 +515,20 @@ class BoardViewController: UIViewController {
         session.send(.attack(cardInstance.uuid, tap: !cardInstance.hasVigilance))
         return
     }
+    // During the opponent's combat, tapping one of your creatures blocks: it blocks the first
+    // attacker, each further tap moves it to the next attacker, and after the last it stops blocking.
+    if let session = phoneMode, canPhoneBlock(with: cardInstance.uuid, session: session) {
+        let attackers = session.game.state.battlefield.value.filter { session.game.combat?.attackers.contains($0.uuid) == true }.map(\.uuid)
+        guard !attackers.isEmpty else { return }
+        let next: UUID?
+        if let current = session.game.combat?.blockers[cardInstance.uuid], let index = attackers.firstIndex(of: current) {
+            next = attackers.indices.contains(index + 1) ? attackers[index + 1] : nil
+        } else {
+            next = attackers.first
+        }
+        session.send(.block(cardInstance.uuid, next))
+        return
+    }
     cardInstance.isTapped.toggle()
     try? GameState.current.save()
   }
@@ -1643,6 +1657,11 @@ class BoardViewController: UIViewController {
       let revealed = !hand.isEmpty && hand.allSatisfy { $0.revealedPlayers.value.contains(session.opponent) }
       alert.addAction(BoardMenuAction(title: revealed ? "Stop Revealing Hand" : "Reveal Hand", style: .default) { _ in
         session.send(.reveal(hand.map(\.uuid), session.opponent, !revealed))
+      })
+      // The phase button's Untap + Draw draws a card unless this is turned off (a per-phone setting).
+      alert.addAction(BoardMenuAction(title: PhoneGame.untapDraws ? "Don't Draw on Untap" : "Draw on Untap", style: .default) { [weak self] _ in
+        PhoneGame.untapDraws.toggle()
+        self?.localPhoneBar?.refreshForPhoneSession()
       })
     }
     if phoneMode != nil {

@@ -73,6 +73,25 @@ struct PhoneGame: Codable {
         var deciding: Set<String> = []
     }
     var opening: Opening? = nil
+    /// Whose turn it is and where the phase button is in it. Not a full rules engine: the
+    /// players move it along with that button. Nil before the first turn (or in older saves).
+    struct Turn: Codable, Equatable {
+        enum Phase: String, Codable {
+            /// The button reads Untap + Draw.
+            case beginning
+            /// After untapping: Move to Combat.
+            case main
+            /// In combat: End Combat.
+            case combat
+            /// After combat: End Turn, which passes the turn.
+            case ending
+        }
+        var player: Player.Identifier
+        var phase: Phase = .beginning
+        /// 1 for the first player's first turn, which skips the draw.
+        var number = 1
+    }
+    var turn: Turn? = nil
     var sharedDeck = false
     var deckNames: [String: String] = [:]
     /// Each player's last loaded deck: location raw value → card IDs. Optional so older saves still decode.
@@ -169,6 +188,7 @@ struct PhoneGame: Codable {
             let dealt = [Player.Identifier.a, .b].filter { !state[player: $0].hand.cards.value.isEmpty }
             let first: Player.Identifier = Bool.random() ? .a : .b
             opening = Opening(firstPlayer: first, deciding: Set(dealt.map(\.rawValue)))
+            turn = Turn(player: first)
         case .mulligan:
             // Only a new seven for now: the player puts cards back on the library by hand.
             guard opening?.deciding.contains(player.rawValue) == true else { return }
@@ -230,6 +250,23 @@ struct PhoneGame: Codable {
                     card.counters.mutate { $0.remove(at: index) }
                 } else { card.isTapped.accept(false) }
             }
+        case .untapAndDraw(let draw):
+            // The phase button's Untap + Draw: begins this player's turn if it wasn't already theirs.
+            try apply(.untap, player: player)
+            let number = turn?.player == player ? turn?.number ?? 1 : (turn?.number ?? 0) + 1
+            // The player going first skips their first draw.
+            if draw && !(number == 1 && opening?.firstPlayer == player) { try apply(.draw, player: player) }
+            turn = Turn(player: player, phase: .main, number: number)
+        case .beginCombat:
+            // Move to Combat: attackers are declared by tapping creatures.
+            if let attacking = attackingPlayer, attacking != player { return }
+            if combat == nil { combat = Combat() }
+            combat?.player = player
+            if turn == nil || turn?.player == player { turn = Turn(player: player, phase: .combat, number: turn?.number ?? 1) }
+        case .endTurn:
+            guard turn == nil || turn?.player == player else { return }
+            if attackingPlayer == player { combat = nil }
+            turn = Turn(player: player == .a ? .b : .a, phase: .beginning, number: (turn?.number ?? 1) + 1)
         case .shuffle:
             library(player).cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
             shuffles = (shuffles ?? [:]).merging([player.rawValue: (shuffles?[player.rawValue] ?? 0) + 1]) { $1 }
@@ -240,6 +277,8 @@ struct PhoneGame: Codable {
             if let attacking = attackingPlayer, attacking != player { return }
             if combat == nil { combat = Combat() }
             combat?.player = player
+            // Attacking from the card menu moves its controller's turn to combat too.
+            if turn == nil || turn?.player == player { turn = Turn(player: player, phase: .combat, number: turn?.number ?? 1) }
             if combat?.attackers.contains(id) == true {
                 combat?.attackers.remove(id)
                 let remainingBlocks = combat?.blockers.filter { $0.value != id } ?? [:]
@@ -260,6 +299,10 @@ struct PhoneGame: Codable {
             }
             combat?.blockers[id] = target
         case .endCombat:
+            // After combat the attacker's phase button reads End Turn.
+            if let attacking = attackingPlayer, attacking == turn?.player || turn == nil {
+                turn = Turn(player: attacking, phase: .ending, number: turn?.number ?? 1)
+            }
             combat = nil
         case .play(let id, let face, let faceDown, let tapped, let directly):
             guard let card = cards[id], canUse(card, player: player) else { return }
@@ -513,6 +556,7 @@ struct PhoneGame: Codable {
             library(player).cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
             state[player: player].life.accept(20)
             opening = nil
+            turn = nil
             deckNames[player.rawValue] = name
             var layout = deckLayout ?? [:]
             layout[player.rawValue] = Dictionary(uniqueKeysWithValues: loaded.map { ($0.key.rawValue, $0.value.map(\.uuid)) })
@@ -540,6 +584,7 @@ struct PhoneGame: Codable {
         attachments = [:]
         packetSelection = nil
         opening = nil
+        turn = nil
         revealedTops = nil // nothing stays revealed after a reset
         for card in all.values where card.representation.isToken { remove(card) }
         for (playerRaw, layout) in deckLayout ?? [:] {
@@ -573,6 +618,34 @@ struct PhoneGame: Codable {
         return opening == nil && packetSelection == nil && state.battlefield.value.isEmpty && stack.isEmpty
             && players.allSatisfy { graveyard($0).cards.value.isEmpty && state[player: $0].exile.cards.value.isEmpty }
             && players.contains { !library($0).cards.value.isEmpty }
+    }
+
+    /// Whether this phone's Untap + Draw button draws a card (the Battlefield menu turns it off).
+    static var untapDraws: Bool {
+        get { UserDefaults.standard.object(forKey: "PhoneUntapDraws") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "PhoneUntapDraws") }
+    }
+
+    /// What a player's phase button (the old untap button) shows.
+    enum PhaseButton: Equatable {
+        case startGame, untapAndDraw, moveToCombat, endCombat, endTurn
+        /// Not tappable: the opponent is attacking (tapping your creatures blocks).
+        case opponentsCombat
+        /// Not tappable: the opponent's turn.
+        case opponentsTurn
+    }
+
+    func phaseButton(for player: Player.Identifier) -> PhaseButton {
+        if canStartGame { return .startGame }
+        if let attacking = attackingPlayer { return attacking == player ? .endCombat : .opponentsCombat }
+        // Without a turn yet (no Start Game), either player can begin theirs.
+        guard let turn else { return .untapAndDraw }
+        guard turn.player == player else { return .opponentsTurn }
+        switch turn.phase {
+        case .beginning: return .untapAndDraw
+        case .main: return .moveToCombat
+        case .combat, .ending: return .endTurn
+        }
     }
 
     func attachedCards(to base: UUID) -> [CardInstance] {
@@ -732,6 +805,8 @@ enum PhoneAction: Codable {
     case drawCards(Int, opening: Bool)
     /// Deals both players a new seven, picks who goes first, and asks each to keep or mulligan.
     case startGame, mulligan, keepHand
+    /// The phase button: untap (drawing a card when `draw`), move to combat, and pass the turn.
+    case untapAndDraw(draw: Bool), beginCombat, endTurn
     case playCard(Command.PlayCardParameters)
     case moveToPlayer(UUID, Pile.Location, Player.Identifier, bottom: Bool)
     case reorderHand([UUID])

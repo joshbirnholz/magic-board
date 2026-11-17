@@ -325,6 +325,13 @@ Verification:
   - While the opponent attacks, dragging your creature onto an attacker shows an orange "Block" glow after the hover delay; dropping blocks it. Dragging a blocker off shows "Stop Blocking".
   - Blockers move to sit against the attacker, on their own side, with arrow room (attachments move with them).
   - UI tests: `testCombatModeAttackTogglesAndEndCombat` and `testDraggingOntoAttackerBlocks` (fixture flag `--phone-board-opponent-attacking`). Unit test `testAttackTapsUnlessVigilantAndOnlyOnePlayerAttacks`.
+- **Phase button.** DONE (2026-11-17, not run in the simulator yet). The local untap button is now a phase button driven by `PhoneGame.turn` (`Turn.player`, `.phase`, `.number`) and `PhoneGame.phaseButton(for:)`:
+  - Start Game (see `canStartGame`) → Untap + Draw (`.untapAndDraw(draw:)`; the first player skips their first draw) → Move to Combat (`.beginCombat`, an empty `Combat` for that player) → End Combat → End Turn (`.endTurn`, passes the turn: the opponent's button reads Untap + Draw).
+  - On the opponent's turn the button is a gray, non-tappable "Opponent's Turn"; in their combat, "Opponent Attacking". Attacking from the card menu also moves the attacker's turn to combat.
+  - In the opponent's combat, tapping your creature blocks the first attacker; each tap moves it to the next attacker, and after the last it stops blocking.
+  - The Battlefield menu's "Don't Draw on Untap" / "Draw on Untap" sets the per-phone `PhoneGame.untapDraws` (UserDefaults `PhoneUntapDraws`).
+  - Without Start Game (no `turn`), either player's button reads Untap + Draw and pressing it starts their turn. Reset Decks and Load Deck clear `turn`.
+  - Unit tests `testPhaseButtonWalksThroughTheTurnAndPassesIt`, `testAttackingFromTheMenuMovesTheTurnToCombat`.
 - **Exalted and Shadow icons.** Both still use SF Symbol stand-ins: mtg.wiki returns 403 to automated fetches. Ask the user for the official Arena icon files, add them as `Icon_Exalted` / `Icon_Shadow` in `CardView/Assets.xcassets`, and map them in `Counter.keywordIcon`.
 
 ## Latest follow-up — target selection and arcs (2026-11-15)

@@ -240,10 +240,18 @@ class BottomBarViewController: UIViewController {
 	}
 	
 	@IBAction func untapButtonPressed(_ sender: Any) {
-        if let session = AppDelegate.shared.phoneSession, session.game.attackingPlayer == session.player,
-           player.identifier == session.player {
-            // In combat the button reads End Combat: it clears every attacker and blocker.
-            session.send(.endCombat)
+        if let session = AppDelegate.shared.phoneSession, player.identifier == session.player {
+            // The phase button: Start Game → Untap + Draw → Move to Combat → End Combat → End Turn.
+            switch session.game.phaseButton(for: session.player) {
+            // Both players get a new seven to keep or mulligan.
+            case .startGame: session.send(.startGame)
+            case .untapAndDraw: session.send(.untapAndDraw(draw: PhoneGame.untapDraws))
+            case .moveToCombat: session.send(.beginCombat)
+            // Clears every attacker and blocker.
+            case .endCombat: session.send(.endCombat)
+            case .endTurn: session.send(.endTurn)
+            case .opponentsCombat, .opponentsTurn: break
+            }
             return
         }
 		if openingHandIsAvailable {
@@ -602,10 +610,21 @@ extension BottomBarViewController {
             pile.configurePhoneLayout(previewHeight: previewHeight, scale: uiScale)
 
         }
-        untapButton.isEnabled = isLocal
         untapButton.isHidden = !isLocal
-        let inCombat = isLocal && AppDelegate.shared.phoneSession?.game.attackingPlayer == player.identifier
-        configureUntapButton(combat: inCombat, height: controlHeight)
+        let phase = AppDelegate.shared.phoneSession?.game.phaseButton(for: player.identifier) ?? .untapAndDraw
+        let label: String
+        switch phase {
+        case .startGame: label = "Start\nGame"
+        case .untapAndDraw: label = PhoneGame.untapDraws ? "Untap\n+ Draw" : "Untap"
+        case .moveToCombat: label = "Move to\nCombat"
+        case .endCombat: label = "End\nCombat"
+        case .endTurn: label = "End\nTurn"
+        case .opponentsCombat: label = "Opponent\nAttacking"
+        case .opponentsTurn: label = "Opponent's\nTurn"
+        }
+        let status = phase == .opponentsCombat || phase == .opponentsTurn
+        configureUntapButton(label: label, height: controlHeight, status: status)
+        untapButton.isEnabled = isLocal && !status
         untapButton.accessibilityIdentifier = isLocal ? "phone-untap-local" : "phone-untap-opponent"
         let expanded = isLocal && handViewController?.phonePresentation.isExpanded == true
         // The local hand always draws above the static HUD controls; it never pushes them around.
@@ -673,11 +692,14 @@ class PlayerBarHitAreaView: UIView {
 
 extension BottomBarViewController {
     /// During the local player's combat, the untap button turns orange and reads "End Combat"
-    /// in Beleren (Arena); otherwise it shows its untap symbol.
-    func configureUntapButton(combat: Bool, height: CGFloat) {
+    /// in Beleren (Arena), and before the game it reads "Start Game"; otherwise it shows its
+    /// untap symbol. `label` is the text to show (lines split by "\n"), nil for the symbol.
+    /// A `status` (the opponent's turn or combat) is gray and not tappable.
+    func configureUntapButton(label: String?, height: CGFloat, status: Bool = false) {
         if phoneUntapImage == nil { phoneUntapImage = untapButton.image(for: .normal) }
+        let combat = label == "End\nCombat"
         untapButton.accessibilityValue = combat ? "Combat" : nil
-        guard combat else {
+        guard let label else {
             untapButton.setAttributedTitle(nil, for: .normal)
             untapButton.setImage(phoneUntapImage, for: .normal)
             untapButton.backgroundColor = .clear
@@ -691,20 +713,22 @@ extension BottomBarViewController {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         paragraph.lineHeightMultiple = 0.9
-        untapButton.setAttributedTitle(NSAttributedString(string: "End\nCombat", attributes: [
-            .font: font, .foregroundColor: UIColor.white, .paragraphStyle: paragraph
-        ]), for: .normal)
+        let title = NSAttributedString(string: label, attributes: [
+            .font: font, .foregroundColor: status ? UIColor.white.withAlphaComponent(0.75) : UIColor.white, .paragraphStyle: paragraph
+        ])
+        untapButton.setAttributedTitle(title, for: .normal)
+        untapButton.setAttributedTitle(title, for: .disabled)
         untapButton.titleLabel?.numberOfLines = 2
         untapButton.titleLabel?.adjustsFontSizeToFitWidth = true
         untapButton.titleLabel?.minimumScaleFactor = 0.5
         untapButton.titleLabel?.textAlignment = .center
-        untapButton.backgroundColor = .systemOrange
+        untapButton.backgroundColor = status ? .systemGray : .systemOrange
         untapButton.layer.cornerRadius = height * 0.2
         untapButton.layer.shadowColor = UIColor.systemOrange.cgColor
         untapButton.layer.shadowRadius = 6
-        untapButton.layer.shadowOpacity = 0.8
+        untapButton.layer.shadowOpacity = status ? 0 : 0.8
         untapButton.layer.shadowOffset = .zero
-        untapButton.accessibilityLabel = "End Combat"
+        untapButton.accessibilityLabel = label.replacingOccurrences(of: "\n", with: " ")
     }
 
     /// The HUD controls the collapsed hand must stay clear of: the piles on the left,
