@@ -225,6 +225,31 @@ final class PhoneGameTests: XCTestCase {
         XCTAssertTrue(game.state.player1.graveyard.cards.value.contains(fromHand))
     }
 
+    func testStartGameDealsBothPlayersAndWaitsForBothToKeep() throws {
+        var game = PhoneGame()
+        game.state.player1.library.cards.accept(OrderedSet(try (0..<20).map { try card("A\($0)", type: "Instant") }))
+        game.state.player2.library.cards.accept(OrderedSet(try (0..<20).map { try card("B\($0)", type: "Instant", player: .b) }))
+        XCTAssertTrue(game.canStartGame)
+        try game.apply(.startGame, player: .b)
+        XCTAssertEqual(game.state.player1.hand.cards.value.count, 7)
+        XCTAssertEqual(game.state.player2.hand.cards.value.count, 7)
+        XCTAssertEqual(game.opening?.deciding, ["a", "b"])
+        XCTAssertFalse(game.canStartGame)
+        let firstHand = game.state.player1.hand.cards.value.map(\.uuid)
+        try game.apply(.mulligan, player: .a)
+        XCTAssertEqual(game.state.player1.hand.cards.value.count, 7)
+        XCTAssertEqual(game.state.player1.library.cards.value.count + 7, 20)
+        XCTAssertTrue(Set(firstHand).isSubset(of: Set(game.cards.keys)))
+        try game.apply(.keepHand, player: .a)
+        try game.apply(.mulligan, player: .a) // already kept: no new hand
+        XCTAssertEqual(game.opening?.deciding, ["b"])
+        try game.apply(.keepHand, player: .b)
+        XCTAssertEqual(game.opening?.deciding, [])
+        XCTAssertNotNil(game.opening?.firstPlayer)
+        game.resetDecksAndLife()
+        XCTAssertNil(game.opening)
+    }
+
     func testArrangeLibraryTopPutsCardsOnTopInOrder() throws {
         var game = PhoneGame()
         let cards = try (0..<5).map { try card("Card \($0)", type: "Instant") }

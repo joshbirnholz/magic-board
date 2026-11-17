@@ -87,6 +87,8 @@ class BoardViewController: UIViewController {
   private var phoneSeenShuffles: [String: Int]?
   private var phoneBrowser: PhoneZoneBrowserView?
   private var phoneBrowserMode: PhoneBrowserMode?
+  /// The opening deal this phone's player kept (so a late update doesn't reopen its browser).
+  private var phoneKeptOpeningID: UUID?
   /// Spring-loaded piles: the pile a dragged card is held over, since when, and the browser it opened.
   private var phoneSpringPile: (location: Pile.Location, player: Player.Identifier, since: CFTimeInterval)?
   private var phoneSpringTimer: Timer?
@@ -2721,6 +2723,7 @@ extension BoardViewController {
         previousPhoneHandIDs = handIDs
         updatePhoneRevealedCards(session)
         refreshPhoneBrowser(session)
+        updatePhoneOpeningHand(session)
         // Libraries whose top card is kept revealed to this phone's player show it.
         for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
             let viewers = session.game.revealedTops?[bar.player.identifier.rawValue] ?? []
@@ -3604,7 +3607,7 @@ extension BoardViewController {
         switch mode {
         case .pile(let location, let owner): return (location, owner)
         case .search, .look: return (.library, session.player)
-        case .revealed: return nil
+        case .revealed, .openingHand: return nil
         }
     }
 
@@ -4235,7 +4238,22 @@ extension BoardViewController {
 
     // MARK: Zone browser (search, scry, surveil, revealed)
 
-    enum PhoneBrowserMode: Equatable { case search, look(Int), revealed, pile(Pile.Location, Player.Identifier) }
+    enum PhoneBrowserMode: Equatable { case search, look(Int), revealed, pile(Pile.Location, Player.Identifier), openingHand }
+
+    /// After Start Game, this phone's player sees their new seven in the browser, with who goes
+    /// first, until they keep (Mulligan deals another seven into it).
+    private func updatePhoneOpeningHand(_ session: PhoneGameSession) {
+        guard let opening = session.game.opening, opening.deciding.contains(session.player.rawValue),
+              phoneKeptOpeningID != opening.id else {
+            if phoneBrowserMode == .openingHand { closePhoneZoneBrowser() }
+            return
+        }
+        guard phoneBrowserMode != .openingHand else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.phoneBrowserMode != .openingHand, self.phoneMode?.game.opening?.id == opening.id else { return }
+            self.showPhoneZoneBrowser(.openingHand)
+        }
+    }
 
     /// The cards a browser mode shows, top of the library first.
     private func phoneBrowserSource(_ mode: PhoneBrowserMode, session: PhoneGameSession) -> [CardInstance] {
@@ -4244,6 +4262,7 @@ extension BoardViewController {
         case .search: return library
         case .look: return library // the rest of the library follows, face down
         case .revealed: return phoneRevealedToMe.value.contents
+        case .openingHand: return session.game.state[player: session.player].hand.cards.value.contents
         case .pile(let location, let owner):
             let pile = location == .library ? session.game.library(owner) : session.game.state[player: owner][location]
             return Array(pile.cards.value.contents.reversed())
@@ -4288,6 +4307,8 @@ extension BoardViewController {
     /// onto your hand, library, graveyard or exile, or onto the Battlefield zone at the top.
     func showPhoneZoneBrowser(_ mode: PhoneBrowserMode) {
         guard let session = phoneMode else { return }
+        // The opening hand stays up until it's kept.
+        if phoneBrowserMode == .openingHand, mode != .openingHand { return }
         closePhoneZoneBrowser()
         collapsePhoneHand()
         // A sheet that led here (the library, a reveal) closes for the browser.
@@ -4298,13 +4319,15 @@ extension BoardViewController {
         case .search: title = "Library — \(cards.count)"
         case .look(let count): title = "Top \(count) of Library"
         case .revealed: title = "Revealed Cards"
+        case .openingHand: title = session.game.opening?.firstPlayer == session.player ? "You Go First" : "Opponent Goes First"
         case .pile(let location, let owner):
             let name = location == .library ? "Library" : location.rawValue
             title = (owner == session.player ? name : "Opponent's \(name)") + " — \(cards.count)"
         }
         let browser = PhoneZoneBrowserView(title: title, cards: phoneBrowserDisplayOrder(cards, mode: mode),
-                                           secondary: mode == .search ? "Shuffle & Done" : nil,
-                                           canShowOpponent: { if case .pile = mode { return false }; return mode != .revealed }())
+                                           done: mode == .openingHand ? "Keep" : "Done",
+                                           secondary: mode == .search ? "Shuffle & Done" : mode == .openingHand ? "Mulligan" : nil,
+                                           canShowOpponent: { if case .pile = mode { return false }; return mode != .revealed && mode != .openingHand }())
         if case .pile(let location, let owner) = mode {
             browser.condensesFaceDown = false
             browser.extraMenu = phonePileBrowserMenu(location, owner: owner, session: session)
@@ -4352,6 +4375,7 @@ extension BoardViewController {
             self.phoneBrowserIDs = self.phoneBrowserDisplayOrder(cards, mode: mode).map(\.uuid)
             switch mode {
             case .revealed: break
+            case .openingHand: session.send(.reorderHand(self.phoneBrowserIDs))
             case .pile(let location, let owner):
                 if owner == session.player { session.send(.arrangePile(location, self.phoneBrowserIDs)) }
             default: session.send(.arrangeLibraryTop(self.phoneBrowserIDs))
@@ -4362,8 +4386,17 @@ extension BoardViewController {
             let shown = self.phoneBrowserIDs.filter { !self.phoneBrowserFaceDown.contains($0) }
             session.send(.reveal(shown, session.opponent, show))
         }
-        browser.onDone = { [weak self] in self?.closePhoneZoneBrowser() }
+        browser.onDone = { [weak self] in
+            guard let self else { return }
+            if mode == .openingHand {
+                self.phoneKeptOpeningID = session.game.opening?.id
+                self.closePhoneZoneBrowser()
+                session.send(.keepHand)
+            } else { self.closePhoneZoneBrowser() }
+        }
         browser.onSecondary = { [weak self] in
+            // Mulligan: a new seven replaces the hand in the browser.
+            if mode == .openingHand { session.send(.mulligan); return }
             self?.closePhoneZoneBrowser()
             session.send(.shuffle)
         }
@@ -4408,7 +4441,7 @@ extension BoardViewController {
     /// A library reads left to right from the bottom to the top (the top card on the right, as on
     /// Arena). Reversing is its own inverse, so this also turns the browser's order back to top-first.
     private func phoneBrowserDisplayOrder(_ cards: [CardInstance], mode: PhoneBrowserMode) -> [CardInstance] {
-        mode == .revealed ? cards : cards.reversed()
+        mode == .revealed || mode == .openingHand ? cards : cards.reversed()
     }
 
     /// The browser's "⋯" menu for a pile: the list view, and for your library its search, look at,

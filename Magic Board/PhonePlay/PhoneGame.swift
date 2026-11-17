@@ -64,6 +64,15 @@ struct PhoneGame: Codable {
         var completed: Set<String> = []
     }
     var packetSelection: PacketSelection?
+    /// The opening deal from Start Game: who goes first, and the players (raw values) still
+    /// choosing to keep or mulligan. Stays set after both keep, until the decks are reset or
+    /// reloaded. Optional for older saves.
+    struct Opening: Codable {
+        var id = UUID()
+        var firstPlayer: Player.Identifier
+        var deciding: Set<String> = []
+    }
+    var opening: Opening? = nil
     var sharedDeck = false
     var deckNames: [String: String] = [:]
     /// Each player's last loaded deck: location raw value → card IDs. Optional so older saves still decode.
@@ -154,6 +163,18 @@ struct PhoneGame: Codable {
                 library(player).cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
             }
             for _ in 0..<count { try apply(.draw, player: player) }
+        case .startGame:
+            guard canStartGame else { return }
+            for player in [Player.Identifier.a, .b] { try apply(.drawCards(7, opening: true), player: player) }
+            let dealt = [Player.Identifier.a, .b].filter { !state[player: $0].hand.cards.value.isEmpty }
+            let first: Player.Identifier = Bool.random() ? .a : .b
+            opening = Opening(firstPlayer: first, deciding: Set(dealt.map(\.rawValue)))
+        case .mulligan:
+            // Only a new seven for now: the player puts cards back on the library by hand.
+            guard opening?.deciding.contains(player.rawValue) == true else { return }
+            try apply(.drawCards(7, opening: true), player: player)
+        case .keepHand:
+            opening?.deciding.remove(player.rawValue)
         case .playCard(let configuration):
             guard let card = cards[configuration.cardInstanceID], canUse(card, player: player) else { return }
             switch configuration.mode {
@@ -491,6 +512,7 @@ struct PhoneGame: Codable {
             for (location, instances) in loaded { state[player: player][location].cards.accept(OrderedSet(instances)) }
             library(player).cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
             state[player: player].life.accept(20)
+            opening = nil
             deckNames[player.rawValue] = name
             var layout = deckLayout ?? [:]
             layout[player.rawValue] = Dictionary(uniqueKeysWithValues: loaded.map { ($0.key.rawValue, $0.value.map(\.uuid)) })
@@ -517,6 +539,7 @@ struct PhoneGame: Codable {
         combat = nil
         attachments = [:]
         packetSelection = nil
+        opening = nil
         revealedTops = nil // nothing stays revealed after a reset
         for card in all.values where card.representation.isToken { remove(card) }
         for (playerRaw, layout) in deckLayout ?? [:] {
@@ -541,6 +564,15 @@ struct PhoneGame: Codable {
             library(player).isTopCardRevealed.accept(false)
             state[player: player].life.accept(20)
         }
+    }
+
+    /// The untap button reads Start Game before anything has happened: no deal yet, nothing on
+    /// the battlefield or stack or in any graveyard or exile, and a library to draw from.
+    var canStartGame: Bool {
+        let players: [Player.Identifier] = [.a, .b]
+        return opening == nil && packetSelection == nil && state.battlefield.value.isEmpty && stack.isEmpty
+            && players.allSatisfy { graveyard($0).cards.value.isEmpty && state[player: $0].exile.cards.value.isEmpty }
+            && players.contains { !library($0).cards.value.isEmpty }
     }
 
     func attachedCards(to base: UUID) -> [CardInstance] {
@@ -698,6 +730,8 @@ enum PhoneAction: Codable {
     case choosePacket(UUID, String)
     case edit(PhoneStatePatch)
     case drawCards(Int, opening: Bool)
+    /// Deals both players a new seven, picks who goes first, and asks each to keep or mulligan.
+    case startGame, mulligan, keepHand
     case playCard(Command.PlayCardParameters)
     case moveToPlayer(UUID, Pile.Location, Player.Identifier, bottom: Bool)
     case reorderHand([UUID])
