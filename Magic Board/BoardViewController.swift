@@ -3099,6 +3099,8 @@ extension BoardViewController {
                 return true
             })]
         }
+        // Each player's creature lane (board units), so blockers can push the rest of the row aside.
+        var creatureLanes: [Player.Identifier: ClosedRange<CGFloat>] = [:]
         for descriptor in descriptors {
             let allGroups = groups(for: descriptor.0, row: descriptor.1)
             let key = descriptor.0.rawValue + (descriptor.1 == .creatures ? "creatures" : descriptor.1 == .side ? "side" : "support")
@@ -3124,6 +3126,7 @@ extension BoardViewController {
             let fraction: CGFloat = descriptor.0 == session.player ? 0.75 : 0.25
             let centerY = field.minY + field.height * fraction - (bottomSpill - topSpill) / 2
             let row = CGRect(x: rowX, y: centerY - 250, width: layoutWidth, height: 500)
+            if descriptor.1 == .creatures { creatureLanes[descriptor.0] = rowX...(rowX + layoutWidth) }
             if allGroups.count > capacity {
                 let button = UIButton(type: .system)
                 button.setTitle("\(startIndex + 1)–\(startIndex + pageGroups.count) ›", for: .normal)
@@ -3257,6 +3260,7 @@ extension BoardViewController {
                     board.insertSubview(attachedView, belowSubview: blockerView)
                 }
             }
+            pushPhoneCreaturesAsideForBlockers(session, combat: combat, groups: { groups(for: $0, row: .creatures) }, lanes: creatureLanes)
         }
         layoutPhoneStack(session, top: top.frame.maxY + 4, bottom: bottomHUDTop - 6)
         // The stack draws over the battlefield; a row's page button must stay reachable above it.
@@ -3272,6 +3276,88 @@ extension BoardViewController {
         phonePreviousStackFrames = Dictionary(uniqueKeysWithValues: session.game.stack.compactMap { item in
             phoneStackCardFrame(item.id).map { (item.id, $0) }
         })
+    }
+
+    /// Blockers jump out of their row to sit against their attacker, which can land them on top of
+    /// creatures that stayed home. Those creatures slide aside, away from the blockers, as one block
+    /// (keeping their own spacing), and squeeze together if that would run them out of their lane.
+    private func pushPhoneCreaturesAsideForBlockers(_ session: PhoneGameSession, combat: PhoneGame.Combat,
+                                                    groups: (Player.Identifier) -> [PhoneCardGroup],
+                                                    lanes: [Player.Identifier: ClosedRange<CGFloat>]) {
+        let gap: CGFloat = 20
+        for player in [session.opponent, session.player] {
+            let obstacles = combat.blockers.keys.compactMap { id -> CGRect? in
+                guard let card = session.game.cards[id], card.controllerIdentifier.value == player,
+                      let view = cardView(for: card), !view.isHidden else { return nil }
+                return view.frame
+            }
+            guard !obstacles.isEmpty else { continue }
+            // Each creature that stayed home moves with its stacked copies and attachments.
+            struct Unit { var views: [UIView]; var frame: CGRect }
+            var units: [Unit] = groups(player).compactMap { group in
+                guard !group.cards.contains(where: { combat.blockers[$0.uuid] != nil || combat.attackers.contains($0.uuid) }) else { return nil }
+                let views = (group.cards.prefix(3) + session.game.attachedCards(to: group.top.uuid))
+                    .compactMap { cardView(for: $0) }.filter { !$0.isHidden }
+                guard let first = views.first else { return nil }
+                return Unit(views: views, frame: views.dropFirst().reduce(first.frame) { $0.union($1.frame) })
+            }
+            let rowBand = obstacles.reduce(obstacles[0]) { $0.union($1) }
+            units.removeAll { !$0.frame.intersects(CGRect(x: -.greatestFiniteMagnitude / 2, y: rowBand.minY,
+                                                          width: .greatestFiniteMagnitude, height: rowBand.height)) }
+            guard !units.isEmpty else { continue }
+            let center = obstacles.map(\.midX).reduce(0, +) / CGFloat(obstacles.count)
+            func hits(_ frame: CGRect) -> [CGRect] {
+                obstacles.filter { $0.minY < frame.maxY && frame.minY < $0.maxY && $0.minX < frame.maxX + gap && frame.minX - gap < $0.maxX }
+            }
+            var offsets = [CGFloat](repeating: 0, count: units.count)
+            // Rightward: nearest first, each shift carried on to everything beyond it.
+            let right = units.indices.filter { units[$0].frame.midX >= center }.sorted { units[$0].frame.minX < units[$1].frame.minX }
+            let left = units.indices.filter { units[$0].frame.midX < center }.sorted { units[$0].frame.maxX > units[$1].frame.maxX }
+            var shift: CGFloat = 0
+            for index in right {
+                var frame = units[index].frame.offsetBy(dx: shift, dy: 0)
+                while let push = hits(frame).map({ $0.maxX + gap - frame.minX }).max(), push > 0 {
+                    shift += push; frame = frame.offsetBy(dx: push, dy: 0)
+                }
+                offsets[index] = shift
+            }
+            shift = 0
+            for index in left {
+                var frame = units[index].frame.offsetBy(dx: shift, dy: 0)
+                while let push = hits(frame).map({ frame.maxX + gap - $0.minX }).max(), push > 0 {
+                    shift -= push; frame = frame.offsetBy(dx: -push, dy: 0)
+                }
+                offsets[index] = shift
+            }
+            // Squeeze a side that ran past its lane back in, nearest card staying put.
+            let visible = board.convert(view.bounds, from: view)
+            let lane = lanes[player].map { max($0.lowerBound, visible.minX)...min($0.upperBound, visible.maxX) }
+                ?? visible.minX...visible.maxX
+            func squeeze(_ side: [Int], limit: CGFloat, rightward: Bool) {
+                guard let near = side.first, let far = side.last, near != far else {
+                    if let only = side.first {
+                        let frame = units[only].frame.offsetBy(dx: offsets[only], dy: 0)
+                        if rightward, frame.maxX > limit { offsets[only] -= frame.maxX - limit }
+                        if !rightward, frame.minX < limit { offsets[only] += limit - frame.minX }
+                    }
+                    return
+                }
+                let nearX = units[near].frame.midX + offsets[near], farFrame = units[far].frame.offsetBy(dx: offsets[far], dy: 0)
+                let overrun = rightward ? farFrame.maxX - limit : limit - farFrame.minX
+                guard overrun > 0 else { return }
+                let span = abs(farFrame.midX - nearX)
+                let factor = max(0, (span - overrun) / max(1, span))
+                for index in side {
+                    let x = units[index].frame.midX + offsets[index]
+                    offsets[index] = nearX + (x - nearX) * factor - units[index].frame.midX
+                }
+            }
+            squeeze(right, limit: lane.upperBound, rightward: true)
+            squeeze(left, limit: lane.lowerBound, rightward: false)
+            for (index, unit) in units.enumerated() where offsets[index] != 0 {
+                for view in unit.views { view.center.x += offsets[index] }
+            }
+        }
     }
 
     // MARK: Stack card drags — targets and zones
