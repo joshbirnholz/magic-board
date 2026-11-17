@@ -117,6 +117,9 @@ class MiniCardView: UIView {
 		cardView.backgroundColor = .clear
 		cardView.properties = properties
 		cardView.layoutIfNeeded()
+		if cardInstance?.representation.drawsFullCardImage == true {
+			cardView.topAlignArt()
+		}
 		
 		UIGraphicsBeginImageContextWithOptions(cardView.bounds.size, false, 2)
 		defer { UIGraphicsEndImageContext() }
@@ -166,8 +169,12 @@ class MiniCardView: UIView {
 		}
 	}
 	
+	/// Whether the last `updateCard` drew a Saga, Class or Case as its full card image.
+	private var showsFullCardImage = false
+
 	private func updateCard() {
 		bag = DisposeBag()
+		showsFullCardImage = card.drawsFullCardImage && !cardInstance.isPowerToughnessVisible.value
 		
 		let isUndecidedFace: Bool = {
 			var representation = self.card
@@ -176,8 +183,9 @@ class MiniCardView: UIView {
 				representation = rep
 			}
       
-      // Sagas, Classes and Cases show their full card image on the battlefield.
-      if representation.drawsFullCardImage {
+      // Sagas, Classes and Cases show their full card image on the battlefield, unless they've
+      // become creatures: then they're normal mini cards with power and toughness.
+      if representation.drawsFullCardImage, !cardInstance.isPowerToughnessVisible.value {
         return true
       }
 			
@@ -381,6 +389,12 @@ class MiniCardView: UIView {
 		
 		cardInstance.isPowerToughnessVisible
 			.subscribe(onNext: { [weak self] isPowerToughnessVisible in
+				// A Saga, Class or Case that becomes (or stops being) a creature switches between
+				// its full card image and a mini card.
+				if let self, self.card.drawsFullCardImage, self.showsFullCardImage == isPowerToughnessVisible {
+					self.updateCard()
+					return
+				}
 				self?.updateTransform(controllerIdentifier: cardInstance.controllerIdentifier.value, isTapped: cardInstance.isTapped.value, animated: true)
 			}).disposed(by: bag)
 		
@@ -929,8 +943,9 @@ struct SwiftUICardView: View {
       representation = rep
     }
     
-    // Sagas, Classes and Cases show their full card image on the battlefield.
-    if representation.drawsFullCardImage { return true }
+    // Sagas, Classes and Cases show their full card image on the battlefield, unless they've
+    // become creatures.
+    if representation.drawsFullCardImage { return !card.isPowerToughnessVisible.value }
     
     if case .alternateFace(_, _) = representation {
       return false
@@ -982,7 +997,8 @@ struct SwiftUICardView: View {
         }
       )
     } else {
-        BattlefieldCardThumbnail(properties: properties, usesLargeText: AppDelegate.shared.usesPhoneSession)
+        BattlefieldCardThumbnail(properties: properties, usesLargeText: AppDelegate.shared.usesPhoneSession,
+                                 topAlignsArt: representation.value.drawsFullCardImage)
         .aspectRatio(480/420, contentMode: .fit)
         .task {
           let image = card.representation.image(type: .art)
@@ -1075,6 +1091,7 @@ private struct CardCornerShape: Shape {
 private struct BattlefieldCardThumbnail: UIViewRepresentable {
     let properties: MTGCardView.CardProperties
     let usesLargeText: Bool
+    var topAlignsArt = false
 
     final class Coordinator {
         var properties: MTGCardView.CardProperties?
@@ -1102,6 +1119,7 @@ private struct BattlefieldCardThumbnail: UIViewRepresentable {
         renderer.backgroundColor = .clear
         renderer.properties = properties
         renderer.layoutIfNeeded()
+        if topAlignsArt { renderer.topAlignArt() }
 
         // The XIB lays out in a square canvas. Crop only after rendering to
         // preserve the original title, artwork, and power/toughness positions.
@@ -1113,6 +1131,21 @@ private struct BattlefieldCardThumbnail: UIViewRepresentable {
         let crop = CGRect(x: 0, y: 30 * square.scale, width: 480 * square.scale, height: 420 * square.scale)
         guard let cropped = pixels.cropping(to: crop) else { return }
         imageView.image = UIImage(cgImage: cropped, scale: square.scale, orientation: square.imageOrientation)
+    }
+}
+
+
+extension MTGCardView {
+    /// Crops the art to the art box from its top instead of its middle. Sagas, Classes and Cases
+    /// have tall art whose subject sits at the top; as creature mini cards they show that part.
+    func topAlignArt() {
+        let box = artImageView.bounds.size
+        guard box.width > 0, box.height > 0, let art = artImageView.image, let source = art.cgImage else { return }
+        let width = CGFloat(source.width), height = CGFloat(source.height)
+        let cropHeight = min(height, (width * box.height / box.width).rounded())
+        guard cropHeight < height,
+              let cropped = source.cropping(to: CGRect(x: 0, y: 0, width: width, height: cropHeight)) else { return }
+        artImageView.image = UIImage(cgImage: cropped, scale: art.scale, orientation: art.imageOrientation)
     }
 }
 
