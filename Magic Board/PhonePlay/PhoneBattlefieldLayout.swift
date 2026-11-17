@@ -17,13 +17,21 @@ enum PhoneBattlefieldLayout {
     /// Identical non-land permanents with at least this many copies always stack.
     static let stackThreshold = 5
 
-    enum Row { case creatures, support }
+    /// Creatures in the middle, other permanents to their left, and planeswalkers, sagas and battles
+    /// in their own lane on the right (as on Arena).
+    enum Row { case creatures, support, side }
+
+    static func row(for card: CardInstance) -> Row {
+        let type = card.representation.typeLine ?? ""
+        // A planeswalker, saga or battle that is also a creature fights in the creature row.
+        if card.isPowerToughnessVisible.value || type.contains("Creature") { return .creatures }
+        return ["Planeswalker", "Saga", "Battle"].contains(where: type.contains) ? .side : .support
+    }
 
     static func groups(in game: PhoneGame, player: Player.Identifier, row: Row, ignoringTapped: Bool = false) -> [PhoneCardGroup] {
         let cards = game.state.battlefield.value.filter {
             guard $0.controllerIdentifier.value == player, game.attachments[$0.uuid] == nil else { return false }
-            let creature = $0.isPowerToughnessVisible.value || ($0.representation.typeLine ?? "").contains("Creature")
-            return row == .creatures ? creature : !creature
+            return Self.row(for: $0) == row
         }
         var groups: [PhoneCardGroup] = []
         for card in cards {

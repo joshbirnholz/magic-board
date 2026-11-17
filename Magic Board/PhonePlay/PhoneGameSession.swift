@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Combine
 import MultipeerConnectivity
 import CardService
@@ -170,7 +171,69 @@ final class PhoneGameSession: ObservableObject {
         }
     }
 
+    /// How a card can be played: like `PlayCardParameters.options`, except a disturb card in the
+    /// graveyard is cast as its back face.
+    func castOptions(for card: CardInstance, tapped: Bool = false) -> [Command.PlayCardParameters.Option] {
+        if game.state[player: player].graveyard.cards.value.contains(card), let face = PhoneGame.castFace(for: card),
+           let name = card.representation.card.cardFaces?[face].name {
+            return [.init(title: name, parameters: .init(cardInstanceID: card.uuid, faceIndex: face, tapped: tapped))]
+        }
+        return Command.PlayCardParameters.options(for: card, tapped: tapped)
+    }
+
+    private var localInspection: PhoneGame.Inspection?
+
+    /// Tells the other phone what's open (a battlefield card's menu, a pile sheet) until the
+    /// controller is dismissed, so it can be outlined there.
+    func trackInspection(_ inspection: PhoneGame.Inspection, while controller: UIViewController) {
+        localInspection = inspection
+        if canAct { send(.inspect(inspection)) }
+        watchInspection(inspection, controller: controller)
+    }
+
+    private func watchInspection(_ inspection: PhoneGame.Inspection, controller: UIViewController?) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self, weak controller] in
+            guard let self, self.localInspection == inspection else { return }
+            if let controller, controller.presentingViewController != nil || controller.isBeingPresented {
+                self.watchInspection(inspection, controller: controller)
+            } else {
+                self.localInspection = nil
+                if self.canAct { self.send(.inspect(nil)) }
+            }
+        }
+    }
+
+    /// Asked before a commander moves to a zone other than the command zone, as on the iPad board:
+    /// call the completion with true to put it into the command zone instead.
+    var chooseCommanderZone: ((CardInstance, Pile.Location, @escaping (Bool) -> Void) -> Void)?
+
     func send(_ action: PhoneAction) {
+        if let choose = chooseCommanderZone, let (id, location, owner) = Self.commanderMove(action, game: game),
+           let card = game.cards[id] {
+            choose(card, location) { [weak self] toCommandZone in
+                self?.sendDirectly(toCommandZone ? .moveToPlayer(id, .command, owner, bottom: false) : action)
+            }
+            return
+        }
+        sendDirectly(action)
+    }
+
+    /// A move of a commander card into the hand, graveyard, exile or library.
+    private static func commanderMove(_ action: PhoneAction, game: PhoneGame) -> (UUID, Pile.Location, Player.Identifier)? {
+        let id: UUID, location: Pile.Location
+        switch action {
+        case .moveToPlayer(let card, let destination, _, _): id = card; location = destination
+        case .move(let card, let destination, _): id = card; location = destination
+        default: return nil
+        }
+        guard location != .command, let card = game.cards[id], card.isCommander.value,
+              !card.representation.isToken,
+              !game.state[player: card.ownerIdentifier].commandZone.cards.value.contains(card) else { return nil }
+        return (id, location, card.ownerIdentifier)
+    }
+
+    /// Sends without the commander-zone question (the caller already asked, e.g. Top / Bottom / Command Zone).
+    func sendDirectly(_ action: PhoneAction) {
         guard canAct else { error = "Reconnect to the host before making changes."; onUpdate?(); return }
         if mode == .host { apply(action, player: .a) }
         else {
@@ -325,7 +388,20 @@ extension PhoneGameSession {
             adopt(try PhoneGame.boardFixture(crowded: ProcessInfo.processInfo.arguments.contains("--phone-board-crowded"),
                                              bigHand: ProcessInfo.processInfo.arguments.contains("--phone-board-big-hand"),
                                              support: ProcessInfo.processInfo.arguments.contains("--phone-board-support"),
-                                             commander: ProcessInfo.processInfo.arguments.contains("--phone-board-commander")))
+                                             commander: ProcessInfo.processInfo.arguments.contains("--phone-board-commander"),
+                                             targeting: ProcessInfo.processInfo.arguments.contains("--phone-board-targets"),
+                                             permanentHand: ProcessInfo.processInfo.arguments.contains("--phone-board-permanent-hand")))
+            if ProcessInfo.processInfo.arguments.contains("--phone-board-stack") {
+                for (owner, name) in [(Player.Identifier.a, "Brainstorm"), (.b, "Predict"), (.a, "Vision Charm")] {
+                    if let card = game.state[player: owner].hand.cards.value.first(where: { $0.representation.name == name }) {
+                        try game.apply(.play(card.uuid, face: nil, faceDown: false, tapped: false, directly: false), player: owner)
+                    }
+                }
+            }
+            if ProcessInfo.processInfo.arguments.contains("--phone-board-resolution"),
+               let creature = game.state.battlefield.value.first(where: { $0.controllerIdentifier.value == player && $0.representation.name == "Grizzly Bears" }) {
+                try game.apply(.moveToStack(creature.uuid), player: player)
+            }
             if ProcessInfo.processInfo.arguments.contains("--phone-board-attacking"),
                let attacker = game.state.battlefield.value.first(where: { $0.controllerIdentifier.value == player && $0.representation.name == "Grizzly Bears" }) {
                 send(.attack(attacker.uuid, tap: false))

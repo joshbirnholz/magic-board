@@ -30,6 +30,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 	var role: Role = .board
 	
 	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+		// Scryfall Tagger lists (e.g. lands that enter tapped): refreshed weekly in the background.
+		if NSClassFromString("XCTestCase") == nil, !ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("--phone-board") }) {
+			OracleTags.shared.refreshIfNeeded()
+		}
 		// Override point for customization after application launch.
 		
         #if DEBUG
@@ -81,8 +85,14 @@ extension AppDelegate {
         var actions: [CardManualAction] = []
         if let item = session.game.stack.first(where: { $0.card?.uuid == card.uuid }) {
             if session.game.stack.last?.id == item.id { actions.append(.init(title: "Resolve from Stack", perform: { session.send(.resolve(item.id)) })) }
+            actions.append(.init(title: "Copy", dismisses: true, perform: { session.send(.copyStackItem(item.id)) }))
             actions.append(.init(title: "Counter / Move to Graveyard", perform: { session.send(.counterStack(item.id)) }))
         } else if session.game.state.battlefield.value.contains(card) {
+            if card.isCommander.value, card.ownerIdentifier == session.player {
+                actions.append(.init(title: "Move to Command Zone", dismisses: true, perform: {
+                    session.send(.moveToPlayer(card.uuid, .command, card.ownerIdentifier, bottom: false))
+                }))
+            }
             if session.game.attachments[card.uuid] != nil {
                 actions.append(.init(title: "Unattach", perform: { session.send(.attach(card.uuid, nil)) }))
             }
