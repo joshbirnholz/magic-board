@@ -3444,7 +3444,12 @@ extension BoardViewController {
     /// The zone outline for a hand, pile or battlefield card dragged to `point` (nil: none).
     private func updatePhoneZoneHover(at point: CGPoint, includesHand: Bool) {
         updatePhoneSpringLoad(at: point)
-        if let pile = phonePileZone(at: point) {
+        if let pile = phonePileZone(at: point), let card = phoneSpringDraggedCard,
+           phonePile(pile.location, of: pile.player, holds: card) {
+            // Back over the pile it came off: letting go puts it back, so no "Move to".
+            phoneZoneHoverKey = nil
+            hidePhoneDragHover()
+        } else if let pile = phonePileZone(at: point) {
             showPhoneZoneHover(pile.location, zoneView: pile.view)
         } else if includesHand, phoneHandDropRegionContains(point),
                   phoneTargetFrame(.player(phoneMode?.player ?? .a))?.contains(point) != true {
@@ -3453,6 +3458,13 @@ extension BoardViewController {
             phoneZoneHoverKey = nil // left every zone: entering one again ticks
             hidePhoneDragHover()
         }
+    }
+
+    /// Whether `card` is in that pile now (a card dragged off it and dropped back stays put).
+    private func phonePile(_ location: Pile.Location, of player: Player.Identifier, holds card: CardInstance) -> Bool {
+        guard let session = phoneMode else { return false }
+        let pile = location == .library ? session.game.library(player) : session.game.state[player: player][location]
+        return pile.cards.value.contains(card)
     }
 
     // MARK: Spring-loaded piles
@@ -3487,8 +3499,8 @@ extension BoardViewController {
         guard let session = phoneMode, let spring = phoneSpringPile, let card = phoneSpringDraggedCard,
               let pile = phonePileZone(at: phoneSpringPoint, underHand: true), pile.location == spring.location, pile.player == spring.player else { return }
         let source = spring.location == .library ? session.game.library(spring.player) : session.game.state[player: spring.player][spring.location]
-        // Already in that pile (dragged off it): nothing to place.
-        guard !source.cards.value.contains(card) else { return }
+        // Already in that pile (dragged off it), or nothing there to browse: nothing to place.
+        guard !source.cards.value.contains(card), !source.cards.value.isEmpty else { return }
         PhoneHaptics.pickUp()
         showPhoneZoneBrowser(.pile(spring.location, spring.player))
         phoneSpringOpened = true
@@ -4321,6 +4333,17 @@ extension BoardViewController {
             items.append(UIMenu(title: "Look at", image: UIImage(systemName: "eye"), children: (1...10).map { count in
                 UIAction(title: count == 1 ? "1 card" : "\(count) cards") { [weak self] _ in self?.showPhoneZoneBrowser(.look(count)) }
             }))
+            items.append(UIMenu(title: "Draw", image: UIImage(systemName: "hand.draw"), children: (1...10).map { count in
+                UIAction(title: count == 1 ? "1 card" : "\(count) cards") { _ in session.send(.drawCards(count, opening: false)) }
+            }))
+            items.append(UIMenu(title: "Mill", image: UIImage(systemName: "arrow.down.to.line"), children: (1...10).map { count in
+                UIAction(title: count == 1 ? "1 card" : "\(count) cards") { _ in
+                    // Top card first, so the graveyard ends up in the order they came off.
+                    for card in session.game.library(session.player).cards.value.contents.suffix(count).reversed() {
+                        session.send(.moveToPlayer(card.uuid, .graveyard, card.ownerIdentifier, bottom: false))
+                    }
+                }
+            }))
             items.append(UIAction(title: "Shuffle", image: UIImage(systemName: "shuffle")) { _ in session.send(.shuffle) })
         }
         if location == .library {
@@ -4831,6 +4854,12 @@ extension BoardViewController {
             return
         }
         if handIndex == nil, phoneDropBlockedByBrowser(at: point) { hidePhoneDragHover(); returnPhoneHandPreview(); return }
+        if let pile = phonePileZone(at: point), phonePile(pile.location, of: pile.player, holds: card) {
+            // Dropped back on the pile it came off: it stays where it was.
+            hidePhoneDragHover()
+            returnPhoneHandPreview()
+            return
+        }
         if let pile = phonePileZone(at: point) {
             if pile.location == .library { promptPhoneLibraryDrop(card, session: session) }
             else { session.send(.moveToPlayer(card.uuid, pile.location, pile.player, bottom: false)) }
