@@ -195,8 +195,34 @@ class CountersViewController: UITableViewController {
 		iconView.image = keywordImage
 		iconView.isHidden = keywordImage == nil
 		cell.countLabel.isHidden = keywordImage != nil
-		cell.counterView.accessibilityLabel = keywordImage == nil ? nil : counterAndCount.counter.name
-		
+		cell.counterView.accessibilityLabel = keywordImage == nil ? nil : "\(counterAndCount.count) \(counterAndCount.counter.name)"
+
+		// Symbol counters still show how many there are, as a badge on the circle's corner.
+		let badgeTag = 0x626467
+		let badge = (cell.contentView.viewWithTag(badgeTag) as? UILabel) ?? {
+			let label = UILabel()
+			label.tag = badgeTag
+			label.font = .monospacedDigitSystemFont(ofSize: 11, weight: .bold)
+			label.textAlignment = .center
+			label.textColor = .black
+			label.backgroundColor = .white
+			label.layer.cornerRadius = 9
+			label.layer.masksToBounds = true
+			label.isAccessibilityElement = false
+			label.translatesAutoresizingMaskIntoConstraints = false
+			cell.contentView.addSubview(label)
+			NSLayoutConstraint.activate([
+				label.heightAnchor.constraint(equalToConstant: 18),
+				label.widthAnchor.constraint(greaterThanOrEqualToConstant: 18),
+				label.centerXAnchor.constraint(equalTo: cell.counterView.trailingAnchor, constant: -3),
+				label.centerYAnchor.constraint(equalTo: cell.counterView.topAnchor, constant: 3)
+			])
+			return label
+		}()
+		badge.text = String(counterAndCount.count)
+		badge.isHidden = keywordImage == nil
+		cell.contentView.bringSubviewToFront(badge)
+
 		if counterAndCount.counter == .lore {
 			cell.countLabel.textColor = .black
 			cell.countLabel.text = romanNumeralFor(counterAndCount.count) ?? String(counterAndCount.count)
