@@ -106,7 +106,8 @@ extension Card {
         colorIndicator: cardFace.colorIndicator?.compactMap(MTGColor.init(rawValue:)),
         watermark: cardFace.watermark,
         artist: cardFace.artist,
-        imageUris: cardFace.imageURIs
+        imageUris: cardFace.imageURIs,
+        flavorName: cardFace.flavorName
       )
 		}
 		
@@ -427,6 +428,7 @@ class CoreDataManager: NSObject {
       cardFace.printedName = face.printedName
       cardFace.printedText = face.printedText
       cardFace.printedTypeLine = face.printedTypeLine
+      cardFace.flavorName = face.flavorName
 			return cardFace
 		}
 		

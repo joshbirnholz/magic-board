@@ -437,6 +437,7 @@
 		544B63182416F8F000FB43AF /* CardService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CardService.h; sourceTree = "<group>"; };
 		544B63192416F8F000FB43AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		544DE4B02425170100BA1977 /* Card.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Card.xcdatamodel; sourceTree = "<group>"; };
+		5B1E7C2A2F00000100A1B2C3 /* Card 2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "Card 2.xcdatamodel"; sourceTree = "<group>"; };
 		544DE4B224251AF700BA1977 /* CoreDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
 		544F294A2416FB8200B6B3C8 /* Swiftfall.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Swiftfall.swift; sourceTree = "<group>"; };
 		544F294C2416FF6B00B6B3C8 /* MTGCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTGCard.swift; sourceTree = "<group>"; };
@@ -2362,8 +2363,9 @@
 			isa = XCVersionGroup;
 			children = (
 				544DE4B02425170100BA1977 /* Card.xcdatamodel */,
+				5B1E7C2A2F00000100A1B2C3 /* Card 2.xcdatamodel */,
 			);
-			currentVersion = 544DE4B02425170100BA1977 /* Card.xcdatamodel */;
+			currentVersion = 5B1E7C2A2F00000100A1B2C3 /* Card 2.xcdatamodel */;
 			path = CardService.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

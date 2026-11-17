@@ -337,6 +337,10 @@ internal class Swiftfall {
             
             public let flavorText: String?
             
+            /// The face's own flavor name (Universes Within / Beyond printings), e.g.
+            /// "Hawkins National Laboratory" for Havengul Laboratory.
+            public let flavorName: String?
+            
             public let illustrationId: String?
             
             public var imageUris: [String: URL]?

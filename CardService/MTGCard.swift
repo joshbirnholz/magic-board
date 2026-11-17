@@ -51,6 +51,8 @@ public struct MTGCard: Codable, Equatable, Hashable {
 		public let artist: String?
 		
 		var imageUris: [String: URL]?
+		/// This face's own flavor name, if it's printed with one.
+		public var flavorName: String? = nil
 	}
 	
 	public struct RelatedCard: Codable, Equatable, Hashable {
