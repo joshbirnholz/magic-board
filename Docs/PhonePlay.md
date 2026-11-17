@@ -32,6 +32,24 @@ empty. Stack spells cannot be tapped. The Stack list supports resolving,
 countering and inspecting spells. Players perform the effects;
 there is no rules engine.
 
+There is no targeting mode. Drag from a stack card to a permanent, a land, a
+player's life total or another spell to toggle it as a target; a glowing arc
+follows the finger and the target is outlined (on the mini card itself) with
+"Target" or "Remove Target". Drag a stack card onto a graveyard, exile, library or
+your hand to move it there without resolving it. Tapping and holding board cards
+works as usual while spells are on the stack. Drag an instant, sorcery or Aura
+from your hand onto a permanent and hold briefly: it outlines blue with "Target",
+and releasing casts it onto the stack already targeting that permanent. Dragged
+anywhere else, it goes onto the stack without targets. An Aura that resolves
+attaches to the permanent it targeted. Glowing arcs connect visible stack cards
+to their targets; spell-to-spell arcs loop outside the fan. The single chevron
+and count button above the stack hides and shows it (there is no list view);
+hidden, the cards slide aside leaving their edges visible, and tapping those
+edges reopens it. Resolved cards fly from the stack into the battlefield or
+graveyard; Reduce Motion uses a fade. Blocker-to-attacker lines show combat
+assignments, with a dashed preview while dragging onto an attacker. Players
+decide target legality and apply effects themselves.
+
 Tap a card in the expanded hand to open its dedicated preview and Play sheet,
 with the same face/mode choices and selected-card More actions as Board Connect.
 Dragging upward uses that Play chooser too. The full manipulation menu belongs
