@@ -104,7 +104,7 @@ class BoardViewController: UIViewController {
   private var phoneBrowserSeen: Set<UUID> = []
   /// Arena's blue "release to play" glow around the dragged hand card.
   private var phoneHandPlayGlow: PhoneHandPlayGlow?
-  /// The battlefield band along the right edge (where the stack shows), for the "Cast to Stack"
+  /// The battlefield band along the right edge (where the stack shows), for the "Move to Stack"
   /// drop area that appears when a dragged card nears the edge.
   private var phoneStackCastBand: CGRect = .zero
   private var phoneStackCastZone: UIView?
@@ -3613,9 +3613,9 @@ extension BoardViewController {
         return pile.cards.value.contains(card)
     }
 
-    // MARK: Cast to Stack drop area
+    // MARK: Move to Stack drop area
 
-    /// Shows the "Cast to Stack" area along the right edge while a dragged card is near it, lit
+    /// Shows the "Move to Stack" area along the right edge while a dragged card is near it, lit
     /// while the card is over it (nil: hides it).
     private func updatePhoneStackCastZone(at point: CGPoint?) {
         let band = phoneStackCastBand
@@ -3643,7 +3643,7 @@ extension BoardViewController {
             icon.contentMode = .scaleAspectFit
             icon.tag = 1
             let label = UILabel()
-            label.text = "Cast to Stack"
+            label.text = "Move to Stack"
             label.font = UIFont(name: "Beleren2016-Bold", size: 14) ?? .systemFont(ofSize: 13, weight: .semibold)
             label.textColor = .white
             label.textAlignment = .center
@@ -5217,8 +5217,11 @@ extension BoardViewController {
         updatePhoneZoneHover(at: point, includesHand: drag.sourcePile != nil
                              || (isPhoneCastableOutsideHand(card) && !isNearPhoneHandDragOrigin(point, drag)))
         // Glows blue while letting go would play it (not over the hand or a pile).
-        let willPlay = !overHand && phonePileZone(at: point) == nil
-        // Near the right edge, the "Cast to Stack" area appears (it takes over the hovers when lit).
+        // Over an open browser it only glows on its Battlefield zone (elsewhere the card goes into
+        // the browser or back).
+        let overBrowser = phoneBrowser.map { $0.covers(point) && !$0.isOverBattlefieldZone(point) } ?? false
+        let willPlay = !overHand && !overBrowser && phonePileZone(at: point) == nil
+        // Near the right edge, the "Move to Stack" area appears (it takes over the hovers when lit).
         updatePhoneStackCastZone(at: overHand || phoneBrowser != nil ? nil : point)
         if phoneStackCastArmed { clearPhoneAttachHover() }
         if let glow = phoneHandPlayGlow, glow.isVisible != willPlay { glow.isVisible = willPlay }
@@ -5246,7 +5249,7 @@ extension BoardViewController {
         }
         if handIndex == nil, phoneDropBlockedByBrowser(at: point) { hidePhoneDragHover(); returnPhoneHandPreview(); return }
         if castToStack {
-            // Dropped on the "Cast to Stack" area at the right edge: onto the stack, untargeted.
+            // Dropped on the "Move to Stack" area at the right edge: onto the stack, untargeted.
             hidePhoneDragHover()
             session.send(.castTargeting(card.uuid, nil))
             PhoneHaptics.drop()
