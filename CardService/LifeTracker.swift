@@ -55,6 +55,8 @@ struct LifeTracker: View {
   
 //  @Binding var life: Int
   @ObservedObject var life: ObservableBridge<Int>
+  /// The − / + marks; off for a tracker that can't be changed (the opponent's, in Phone Play).
+  var showsMarks = true
   
   var body: some View {
     ZStack {
@@ -76,6 +78,7 @@ struct LifeTracker: View {
           .frame(width:proxy.size.width,height:proxy.size.height,alignment:.center)
           .transaction { $0.animation = nil }
         // Subtle − / + marks at the ends show that each half is a button.
+        if showsMarks {
         let mark = max(7, min(proxy.size.height * 0.2, proxy.size.width * 0.09))
         HStack {
           Image(systemName: "minus")
@@ -88,6 +91,7 @@ struct LifeTracker: View {
         .frame(width: proxy.size.width, height: proxy.size.height)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        }
       }
     }
 //    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)

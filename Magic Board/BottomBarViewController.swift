@@ -27,8 +27,13 @@ class LifeTrackerViewController: UIHostingController<LifeTracker> {
     super.init(coder: aDecoder, rootView: tracker)
   }
   
+  /// Whether the − / + marks show (Phone Play hides them on the opponent's tracker).
+  var showsMarks = true {
+    didSet { if showsMarks != oldValue, value != nil { bindValue() } }
+  }
+  
   private func bindValue() {
-    rootView = LifeTracker(life: value)
+    rootView = LifeTracker(life: value, showsMarks: showsMarks)
     view.backgroundColor = .clear
     if #available(iOS 16.4, *), AppDelegate.shared.usesPhoneSession {
       safeAreaRegions = []
@@ -623,6 +628,7 @@ extension BottomBarViewController {
         for child in children where child is LifeTrackerViewController {
             child.view.isUserInteractionEnabled = isLocal
             if #available(iOS 16.4, *), let tracker = child as? LifeTrackerViewController { tracker.safeAreaRegions = [] }
+            (child as? LifeTrackerViewController)?.showsMarks = isLocal
         }
         guard handContainerView.superview === view else { return }
         // Reduce the original fixed side allowance as the existing piles shrink.

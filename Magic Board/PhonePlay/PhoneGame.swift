@@ -140,6 +140,8 @@ struct PhoneGame: Codable {
             // A new game ID discards queued edits and choices from the previous board.
             // The nearby connection itself remains active.
             self = PhoneGame()
+            // A two-player phone game starts at 20, not the board's default of 40.
+            state.player1.life.accept(20); state.player2.life.accept(20)
         case .edit(let patch):
             // Zone changes invalidate targets even if that same card moves to another public zone.
             for id in patch.zones.flatMap(\.removed) { clearTargets(to: id) }

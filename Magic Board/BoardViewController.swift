@@ -1644,6 +1644,8 @@ class BoardViewController: UIViewController {
       UIHostingController(rootView: OfflineGamesView(close: { [weak self] in self?.dismiss(animated: true) }))
     })
 		
+		// Phone play keeps only the library top-card reveals in the Board section.
+		if phoneMode == nil {
 		let togglePlayer2Action = BoardMenuAction(title: "Show/Hide Player 2", style: .default) { _ in
 			GameState.current.player2.isHidden.toggle()
 			self.updatePlayersHidden()
@@ -1656,32 +1658,41 @@ class BoardViewController: UIViewController {
       self.updateLandOrganizerLands()
     }
     alert.addAction(toggleLandOrganizerAction)
+		}
     
     let dropModeAction = BoardMenuAction(title: "Drop Cards \(self.dropFaceUp ? "Face-Down" : "Face-Up")", style: .default) { _ in
       self.dropFaceUp.toggle()
     }
     alert.addAction(dropModeAction)
     
+		if phoneMode == nil {
     let toggleSelectionAction = BoardMenuAction(title: "\(isSelectionEnabled ? "Disable" : "Enable") Selection", style: .default) { _ in
       self.isSelectionEnabled.toggle()
       self.updateSelection()
     }
     alert.addAction(toggleSelectionAction)
+		}
     
-    let player1TopCardAction = BoardMenuAction(title: "Reveal Player 1 Library Top Card", style: .default) { _ in
-      GameState.current.effectivePile(.library, player: .a).isTopCardRevealed.mutate {
+    // In phone play the reveal goes through the shared game, to both players.
+    let toggleTopCard: (Player.Identifier) -> Void = { [weak self] owner in
+      if let session = self?.phoneMode {
+        let revealed = !(session.game.revealedTops?[owner.rawValue] ?? []).isEmpty
+        session.send(.revealTopCard(owner, revealed ? [] : [.a, .b]))
+        return
+      }
+      GameState.current.effectivePile(.library, player: owner).isTopCardRevealed.mutate {
         $0.toggle()
       }
       try? GameState.current.save()
     }
+    let player1TopCardAction = BoardMenuAction(title: "Reveal Player 1 Library Top Card", style: .default) { _ in
+      toggleTopCard(.a)
+    }
     alert.addAction(player1TopCardAction)
     
-    if !GameState.current.player2.isHidden {
+    if phoneMode != nil || !GameState.current.player2.isHidden {
       let player2TopCardAction = BoardMenuAction(title: "Reveal Player 2 Library Top Card", style: .default) { _ in
-        GameState.current.effectivePile(.library, player: .b).isTopCardRevealed.mutate {
-          $0.toggle()
-        }
-        try? GameState.current.save()
+        toggleTopCard(.b)
       }
       alert.addAction(player2TopCardAction)
     }
@@ -2108,7 +2119,8 @@ extension BoardViewController: UIDropInteractionDelegate {
         } else if blocker != nil, let target, phoneMode?.game.combat?.attackers.contains(target.uuid) == true {
             // Your creature over one of the opponent's attackers: block it.
             intent = target.uuid == blocking ? nil : .block(target.uuid)
-        } else if blocking != nil, !phoneHandDropRegionContains(point) {
+        } else if blocking != nil, !phoneHandDropRegionContains(point), phonePileZone(at: point) == nil {
+            // Over a pile the card just moves there (which also ends its block).
             intent = .unblock
         } else if let target {
             intent = target.uuid == parent ? nil : .attach(target.uuid)
@@ -2189,7 +2201,8 @@ extension BoardViewController: UIDropInteractionDelegate {
             session.send(.block(id, target.uuid))
             return true
         }
-        if phoneAttachHover?.armed == true, phoneAttachHover?.intent == .unblock, session.game.combat?.blockers[id] != nil {
+        if phoneAttachHover?.armed == true, phoneAttachHover?.intent == .unblock, session.game.combat?.blockers[id] != nil,
+           phonePileZone(at: point) == nil {
             clearPhoneAttachHover()
             session.send(.block(id, nil))
             return true
