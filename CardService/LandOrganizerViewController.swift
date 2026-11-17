@@ -287,6 +287,12 @@ struct LandOrganizer: View {
               if let card = stack.last { onDragEnded?(card, value.location) }
             }, including: AppDelegate.shared.usesPhoneSession ? .all : .subviews)
           .simultaneousGesture(TapGesture().onEnded {
+            #if !BOARD_CONNECT
+            if let session = AppDelegate.shared.phoneSession, session.mode == .rules, let card = stack.last {
+              session.send(.tap(card.uuid))
+              return
+            }
+            #endif
             guard !isOpponentRow else {
               if let card = stack.last { onLongPress(card) }
               return

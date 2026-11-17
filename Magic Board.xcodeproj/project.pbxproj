@@ -326,6 +326,10 @@
 		DD0F1CDF5DF64406BB864FF0 /* PhoneStatePatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D714F266D9B4D29B96DD900 /* PhoneStatePatch.swift */; };
 		FB78177B6E6247E488E2FACD /* PhoneBattlefieldLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7320BC62A78F48F9BD15BD4F /* PhoneBattlefieldLayout.swift */; };
 		FD3484C2C6A0483DA983A3BC /* PhoneGameSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222710FF09A14CD79A0BB052 /* PhoneGameSession.swift */; };
+		AA7711000000000000000001 /* RulesProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7712000000000000000001 /* RulesProtocol.swift */; };
+		AA7711000000000000000002 /* RulesGameSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7712000000000000000002 /* RulesGameSession.swift */; };
+		AA7711000000000000000003 /* RulesPhoneAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7712000000000000000003 /* RulesPhoneAdapter.swift */; };
+		AA7711000000000000000004 /* RulesConnectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7712000000000000000004 /* RulesConnectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -654,6 +658,10 @@
 		C8FDF1D8C0BC49A8A862B663 /* NearbyGameConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyGameConnection.swift; sourceTree = "<group>"; };
 		CAB5F5A04F13427BBB1062DB /* PhoneGame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneGame.swift; sourceTree = "<group>"; };
 		DF815106AC4549AB911603FF /* PhoneBoardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = PhoneBoardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA7712000000000000000001 /* RulesProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RulesProtocol.swift"; sourceTree = "<group>"; };
+		AA7712000000000000000002 /* RulesGameSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RulesGameSession.swift"; sourceTree = "<group>"; };
+		AA7712000000000000000003 /* RulesPhoneAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RulesPhoneAdapter.swift"; sourceTree = "<group>"; };
+		AA7712000000000000000004 /* RulesConnectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RulesConnectionView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1009,6 +1017,7 @@
 			isa = PBXGroup;
 			children = (
 				4AD8E2DDFB7648EABAF46910 /* PhonePlay */,
+				AA7713000000000000000001 /* RulesPlay */,
 				54BECD3323F4FC0400AE82A9 /* Magic Board.entitlements */,
 				54C15C9323FF034B0012F14C /* OrderedSet.swift */,
 				542CF6DE24159F7200D453CA /* Role.swift */,
@@ -1098,6 +1107,17 @@
 			children = (
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		AA7713000000000000000001 /* RulesPlay */ = {
+			isa = PBXGroup;
+			children = (
+				AA7712000000000000000001 /* RulesProtocol.swift */,
+				AA7712000000000000000002 /* RulesGameSession.swift */,
+				AA7712000000000000000003 /* RulesPhoneAdapter.swift */,
+				AA7712000000000000000004 /* RulesConnectionView.swift */,
+			);
+			path = RulesPlay;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1619,6 +1639,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA7711000000000000000004 /* RulesConnectionView.swift in Sources */,
+				AA7711000000000000000003 /* RulesPhoneAdapter.swift in Sources */,
+				AA7711000000000000000002 /* RulesGameSession.swift in Sources */,
+				AA7711000000000000000001 /* RulesProtocol.swift in Sources */,
 				DC21135D845A4EA4911BED3D /* PhoneSessionControllers.swift in Sources */,
 				2D544EC4FBFD86105A4C9363 /* PhoneHandFanView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* StartMenu.swift in Sources */,

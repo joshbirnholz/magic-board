@@ -358,6 +358,7 @@ class BoardViewController: UIViewController {
             case .board: break
             case .host(let resume): startPhoneGame(resume: resume)
             case .join: joinPhoneGame()
+            case .rules(let adapter): startRulesGame(adapter)
             case .hand: showExistingCompanion(exitsToStart: true)
             }
         }
@@ -513,6 +514,10 @@ class BoardViewController: UIViewController {
   
   @objc private func tapUnTapGestureRecognized(_ gestureRecognizer: UIGestureRecognizer) {
     guard let view = gestureRecognizer.view as? MiniCardView, let cardInstance = view.cardInstance else { return }
+    if let session = phoneMode, session.mode == .rules {
+        session.send(.tap(cardInstance.uuid))
+        return
+    }
     // During your combat, tapping one of your creatures marks or unmarks it as an attacker
     // (tapping or untapping it unless it has vigilance). The card menu can still just tap it.
     if let session = phoneMode, session.game.attackingPlayer == session.player,
@@ -2481,6 +2486,25 @@ extension BoardViewController: BottomBarViewControllerDelegate {
 
 // MARK: - Phone adaptation of the existing board
 extension BoardViewController {
+    private func startRulesGame(_ adapter: RulesPhoneAdapter) {
+        let session = PhoneGameSession()
+        AppDelegate.shared.phoneSession = session
+        session.beginRules(adapter)
+        attachPhoneSession()
+        let prompt = UIHostingController(rootView: RulesPromptBar(session: adapter.engine))
+        prompt.view.backgroundColor = .clear
+        addChild(prompt)
+        view.addSubview(prompt.view)
+        prompt.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            prompt.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 44),
+            prompt.view.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            prompt.view.widthAnchor.constraint(lessThanOrEqualToConstant: 400),
+            prompt.view.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor, constant: -24)
+        ])
+        prompt.didMove(toParent: self)
+    }
+
     private func showConnectionOptions() {
         guard let session = phoneMode else { return }
         let alert = UIAlertController(title: "Connection", message: session.status, preferredStyle: .alert)

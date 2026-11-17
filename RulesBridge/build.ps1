@@ -1,0 +1,12 @@
+$ErrorActionPreference = 'Stop'
+Set-Location $PSScriptRoot
+if (!$env:XMAGE_HOME) { throw 'Set XMAGE_HOME to your extracted xmage directory.' }
+New-Item -ItemType Directory -Force lib, build/classes | Out-Null
+if (!(Test-Path lib/Java-WebSocket-1.6.0.jar)) {
+    Invoke-WebRequest https://repo.maven.apache.org/maven2/org/java-websocket/Java-WebSocket/1.6.0/Java-WebSocket-1.6.0.jar -OutFile lib/Java-WebSocket-1.6.0.jar
+}
+$sources = Get-ChildItem src/magicboard/rules/*.java | ForEach-Object FullName
+& javac --release 17 -cp "$env:XMAGE_HOME/mage-client/lib/*;lib/*" -d build/classes $sources
+if ($LASTEXITCODE -ne 0) { throw 'Java compilation failed.' }
+& jar --create --file build/magicboard-rules.jar -C build/classes .
+if ($LASTEXITCODE -ne 0) { throw 'Jar creation failed.' }

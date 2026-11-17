@@ -6,7 +6,7 @@ import CardService
 
 /// Owns transport and game ordering; the original storyboard owns presentation.
 final class PhoneGameSession: ObservableObject {
-    enum Mode { case menu, host, join }
+    enum Mode { case menu, host, join, rules }
     struct Request: Codable {
         var id = UUID()
         var gameID: UUID
@@ -25,6 +25,13 @@ final class PhoneGameSession: ObservableObject {
     @Published private(set) var nearby: [MCPeerID] = []
     @Published var error: String?
     var onUpdate: (() -> Void)?
+    // Rules uses this class only as the existing Phone Play presentation facade.
+    // Its engine state and transport live in RulesGameSession, never in PhoneGame.apply.
+    private(set) var rulesAdapter: RulesPhoneAdapter?
+    var rulesAction: ((PhoneAction) -> Void)?
+    var rulesCommand: ((Command) -> Void)?
+    var rulesLeave: (() -> Void)?
+    var rulesPrimaryLabel = "Next"
     private let connection = NearbyGameConnection()
     private var appliedRequests: Set<UUID> = []
     private var pendingEdits: [Request] = []
@@ -40,7 +47,7 @@ final class PhoneGameSession: ObservableObject {
     static var saveURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("phoneGame.json")
     }
-    var player: Player.Identifier { mode == .host ? .a : .b }
+    var player: Player.Identifier { mode == .host || mode == .rules ? .a : .b }
     var opponent: Player.Identifier { player == .a ? .b : .a }
     var canAct: Bool { mode == .host || connected && hasSnapshot }
     var hasSavedGame: Bool { FileManager.default.fileExists(atPath: Self.saveURL.path) }
@@ -139,6 +146,8 @@ final class PhoneGameSession: ObservableObject {
     func reconnect() { if let remotePeer { join(remotePeer) } }
 
     func leave() {
+        rulesLeave?()
+        rulesAdapter = nil; rulesAction = nil; rulesCommand = nil; rulesLeave = nil
         if mode == .host { persist() }
         applyingSnapshot = true
         connection.stop()
@@ -156,6 +165,7 @@ final class PhoneGameSession: ObservableObject {
 
     /// Bridge the existing hand, deck picker, and pile commands unchanged.
     func send(_ command: Command) {
+        if let rulesCommand { rulesCommand(command); return }
         switch command {
         case .rebroadcast: if mode == .host { publish() }
         case .moveCardsToBattlefield(let cards): cards.forEach { send(.playCard($0)) }
@@ -216,6 +226,7 @@ final class PhoneGameSession: ObservableObject {
     var chooseCommanderZone: ((CardInstance, Pile.Location, @escaping (Bool) -> Void) -> Void)?
 
     func send(_ action: PhoneAction) {
+        if let rulesAction { rulesAction(action); return }
         if let choose = chooseCommanderZone, let (id, location, owner) = Self.commanderMove(action, game: game),
            let card = game.cards[id] {
             choose(card, location) { [weak self] toCommandZone in
@@ -292,6 +303,21 @@ final class PhoneGameSession: ObservableObject {
 
     private func captureLocalEdits(_ state: GameState) {
         guard !applyingSnapshot else { return }
+        if mode == .rules {
+            // Card placement is local presentation. All rule-bearing edits are restored
+            // from the last engine snapshot; no sandbox patch is ever submitted.
+            if let baseline, let authoritative = try? JSONDecoder().decode(PhoneGame.self, from: baseline) {
+                let centers = Dictionary(uniqueKeysWithValues: state.battlefield.value.map { ($0.uuid, $0.center.value) })
+                adopt(authoritative)
+                applyingSnapshot = true
+                for card in game.state.battlefield.value {
+                    if let center = centers[card.uuid] { card.center.accept(center) }
+                }
+                baseline = try? JSONEncoder().encode(game)
+                applyingSnapshot = false
+            }
+            return
+        }
         do {
             guard canAct else {
                 if let baseline { adopt(try JSONDecoder().decode(PhoneGame.self, from: baseline)) }
@@ -374,6 +400,27 @@ final class PhoneGameSession: ObservableObject {
         guard !fixture else { return }
         do { try JSONEncoder().encode(game).write(to: Self.saveURL, options: .atomic) }
         catch { self.error = "Could not save the phone game: \(error.localizedDescription)"; onUpdate?() }
+    }
+
+    @MainActor
+    func beginRules(_ adapter: RulesPhoneAdapter) {
+        mode = .rules
+        rulesAdapter = adapter
+        activate()
+        AppDelegate.shared.role = .boardPlayer1
+        rulesAction = { [weak adapter] action in Task { @MainActor in await adapter?.send(action) } }
+        rulesCommand = { [weak adapter] command in Task { @MainActor in await adapter?.send(command) } }
+        rulesLeave = { [weak adapter] in Task { @MainActor in adapter?.disconnect() } }
+        adapter.attach(to: self)
+    }
+
+    func displayRules(_ projection: PhoneGame, connected: Bool, status: String, primaryLabel: String) {
+        guard mode == .rules else { return }
+        self.connected = connected
+        self.status = status
+        rulesPrimaryLabel = primaryLabel
+        hasSnapshot = true
+        adopt(projection)
     }
 }
 

@@ -245,6 +245,7 @@ class BottomBarViewController: UIViewController {
 	
 	@IBAction func untapButtonPressed(_ sender: Any) {
         if let session = AppDelegate.shared.phoneSession, player.identifier == session.player {
+            if session.mode == .rules { session.send(.endTurn); return }
             // The phase button: Start Game → Untap + Draw → Move to Combat → End Combat → End Turn.
             switch session.game.phaseButton(for: session.player) {
             // Both players get a new seven to keep or mulligan.
@@ -649,8 +650,10 @@ extension BottomBarViewController {
         case .opponentsTurn: label = "Opponent's\nTurn"
         }
         let status = phase == .opponentsCombat || phase == .opponentsTurn
-        configureUntapButton(label: label, height: controlHeight, status: status)
-        untapButton.isEnabled = isLocal && !status
+        let rulesSession = AppDelegate.shared.phoneSession.flatMap { $0.mode == .rules ? $0 : nil }
+        configureUntapButton(label: rulesSession?.rulesPrimaryLabel ?? label, height: controlHeight,
+                             status: rulesSession == nil ? status : rulesSession?.rulesPrimaryLabel != "Next")
+        untapButton.isEnabled = isLocal && (rulesSession.map { $0.connected && $0.rulesPrimaryLabel == "Next" } ?? !status)
         untapButton.accessibilityIdentifier = isLocal ? "phone-untap-local" : "phone-untap-opponent"
         let expanded = isLocal && handViewController?.phonePresentation.isExpanded == true
         // The local hand always draws above the static HUD controls; it never pushes them around.
@@ -669,9 +672,9 @@ extension BottomBarViewController {
             phoneLifeWidth?.isActive = true
         }
         phoneLifeWidth?.constant = min(170, max(70, shortSide * 0.19))
-        lifeStepper?.isEnabled = isLocal
+        lifeStepper?.isEnabled = isLocal && rulesSession == nil
         for child in children where child is LifeTrackerViewController {
-            child.view.isUserInteractionEnabled = isLocal
+            child.view.isUserInteractionEnabled = isLocal && rulesSession == nil
             if #available(iOS 16.4, *), let tracker = child as? LifeTrackerViewController { tracker.safeAreaRegions = [] }
             (child as? LifeTrackerViewController)?.showsMarks = isLocal
         }

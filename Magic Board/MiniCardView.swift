@@ -580,6 +580,12 @@ class MiniCardView: UIView {
   
   override func accessibilityActivate() -> Bool {
     guard usesPlayerPerspective, let cardInstance else { return super.accessibilityActivate() }
+    #if !BOARD_CONNECT
+    if let session = AppDelegate.shared.phoneSession, session.mode == .rules {
+      session.send(.tap(cardInstance.uuid))
+      return true
+    }
+    #endif
     cardInstance.isTapped.mutate { $0.toggle() }
     try? GameState.current.save()
     return true

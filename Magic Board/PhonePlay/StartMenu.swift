@@ -9,6 +9,8 @@ enum AppDestination {
     case host(resume: Bool)
     /// Join a nearby game hosted on another phone.
     case join
+    /// An engine-authoritative game using the Phone Play presentation.
+    case rules(RulesPhoneAdapter)
     /// Use this device as a hand for a board running elsewhere (Board Connect screens).
     case hand
 }
@@ -68,6 +70,17 @@ struct StartMenuView: View {
                     .accessibilityIdentifier("start-host")
                     row("Join Game", "Join a game hosted on a nearby phone", "person.2") { choose(.join) }
                         .accessibilityIdentifier("start-join")
+                    NavigationLink {
+                        RulesConnectionView { choose(.rules($0)) }
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Connect to Rules Game").font(.headline)
+                                Text("Play with XMage rules on your PC").font(.subheadline).foregroundStyle(.secondary)
+                            }.padding(.vertical, 6)
+                        } icon: { Image(systemName: "server.rack") }
+                    }
+                    .accessibilityIdentifier("start-rules")
                 }
                 Section {
                     row("Connect as Hand", "Use this device as Player 1's or Player 2's hand", "hand.raised") { choose(.hand) }
