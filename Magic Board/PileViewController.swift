@@ -572,18 +572,7 @@ class PileViewController: UITableViewController, PileDisplaying {
 			setEditing(false, animated: true)
 			updateButtonItems(animated: true)
 		}
-		if let session = AppDelegate.shared.phoneSession {
-			// Phone Play: from this player's point of view, sent as reveal actions so the other
-			// phone learns about them (and shows its Revealed Cards sheet).
-			let ids = tableView.indexPathsForSelectedRows?.map { self.cardInstance(for: $0).uuid } ?? []
-			for (title, targets) in [("Me", [session.player]), ("Opponent", [session.opponent]), ("Both", [session.player, session.opponent])] {
-				alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
-					for target in targets { session.send(.reveal(ids, target, true)) }
-					self?.tableView.reloadData()
-					finish()
-				})
-			}
-		} else {
+		if !addPhoneRevealActions(to: alert, finish: finish) {
 			for player in GameState.current.allPlayers {
 				alert.addAction(UIAlertAction(title: player.name.value, style: .default) { [weak self] _ in
 					self?.revealCardsForSelectedRows(to: player)
@@ -1414,7 +1403,9 @@ class PileViewController: UITableViewController, PileDisplaying {
 	}
 	
 	override func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+#if !BOARD_CONNECT
 		if let session = AppDelegate.shared.phoneSession { return phoneContextMenu(forRowAt: indexPath, session: session) }
+#endif
 		guard isLocalPhone && (pileLocation != .library || cardIsRevealed(forRowAt: indexPath)) else { return nil }
 		let config = UIContextMenuConfiguration(identifier: indexPath as NSIndexPath, previewProvider: { [weak self] () -> UIViewController? in
 //			return nil
@@ -1464,6 +1455,14 @@ class PileViewController: UITableViewController, PileDisplaying {
 	}
 }
 
+#if BOARD_CONNECT
+// Board Connect has no Phone Play: inert stand-ins for the Phone Play pile actions.
+extension PileViewController {
+	fileprivate enum PhoneBrowserMode { case search, look(Int) }
+	fileprivate func openPhoneBrowser(_ mode: PhoneBrowserMode) {}
+	fileprivate func phoneTopCardItem() -> UIBarButtonItem? { nil }
+}
+#else
 extension PileViewController {
 	/// Closes this sheet and opens the board's card browser.
 	fileprivate func openPhoneBrowser(_ mode: BoardViewController.PhoneBrowserMode) {
@@ -1554,6 +1553,8 @@ extension PileViewController {
 }
 
 // MARK: UITableViewDragDelegate
+
+#endif
 
 extension PileViewController: UITableViewDragDelegate {
 	
@@ -1816,5 +1817,28 @@ extension PileViewController: PhoneSheetProvidesClose {
 		close.accessibilityIdentifier = "phone-sheet-close"
 		items.insert(close, at: 0)
 		navigationItem.leftBarButtonItems = items
+	}
+}
+
+extension PileViewController {
+	/// Phone Play's reveal choices (Me / Opponent / Both, sent as reveal actions). Returns false
+	/// outside Phone Play (and in Board Connect, which has none).
+	fileprivate func addPhoneRevealActions(to alert: UIAlertController, finish: @escaping () -> Void) -> Bool {
+#if BOARD_CONNECT
+		return false
+#else
+		guard let session = AppDelegate.shared.phoneSession else { return false }
+			// Phone Play: from this player's point of view, sent as reveal actions so the other
+			// phone learns about them (and shows its Revealed Cards sheet).
+			let ids = tableView.indexPathsForSelectedRows?.map { self.cardInstance(for: $0).uuid } ?? []
+			for (title, targets) in [("Me", [session.player]), ("Opponent", [session.opponent]), ("Both", [session.player, session.opponent])] {
+				alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+					for target in targets { session.send(.reveal(ids, target, true)) }
+					self?.tableView.reloadData()
+					finish()
+				})
+			}
+		return true
+#endif
 	}
 }

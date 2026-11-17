@@ -76,7 +76,7 @@ struct CardControlView: View {
 	}
 
 	private var isOnBattlefield: Bool {
-		if let session = AppDelegate.shared.phoneSession { return session.game.state.battlefield.value.contains(card) }
+		if let onField = PhonePlayBridge.battlefieldContains(card) { return onField }
 		return GameState.current.battlefield.value.contains(card)
 	}
 
@@ -184,9 +184,7 @@ struct CardControlView: View {
 		if card.representation.card.layout == "prepare" {
 			Button {
 				let prepared = !isPreparedChecked
-				if let session = AppDelegate.shared.phoneSession {
-					session.send(.counter(card.uuid, .prepared, prepared ? 1 : -1))
-				} else {
+				if !PhonePlayBridge.sendCounter(card.uuid, .prepared, prepared ? 1 : -1) {
 					card.counters.mutate { counters in
 						if prepared { counters.append(.prepared) }
 						else if let index = counters.firstIndex(of: .prepared) { counters.remove(at: index) }
@@ -209,11 +207,10 @@ struct CardControlView: View {
 			.accessibilityIdentifier("card-prepared")
 			.accessibilityAddTraits(isPreparedChecked ? .isSelected : [])
 			// While prepared, its spell can be cast (as a copy); that unprepares the creature.
-			if isPreparedChecked, let session = AppDelegate.shared.phoneSession,
-			   card.controllerIdentifier.value == session.player,
+			if isPreparedChecked, PhonePlayBridge.controlsCard(card),
 			   let spell = card.representation.card.cardFaces?.dropFirst().first {
 				Button("Cast \(spell.name ?? "Prepared Spell")") {
-					session.send(.castPrepared(card.uuid))
+					PhonePlayBridge.castPrepared(card.uuid)
 					isPreparedChecked = false
 					dismiss()
 				}
@@ -248,9 +245,7 @@ struct CardControlView: View {
 
 	private func togglePhasing() {
 		let phased = !isPhasedOut
-		if let session = AppDelegate.shared.phoneSession {
-			session.send(.counter(card.uuid, .phasedOut, phased ? 1 : -1))
-		} else {
+		if !PhonePlayBridge.sendCounter(card.uuid, .phasedOut, phased ? 1 : -1) {
 			card.counters.mutate { counters in
 				if phased { counters.append(.phasedOut) } else if let index = counters.firstIndex(of: .phasedOut) { counters.remove(at: index) }
 			}
@@ -261,9 +256,7 @@ struct CardControlView: View {
 
 	private func toggleDoor(_ lock: Counter) {
 		let locked = !lockedDoors.contains(lock)
-		if let session = AppDelegate.shared.phoneSession {
-			session.send(.counter(card.uuid, lock, locked ? 1 : -1))
-		} else {
+		if !PhonePlayBridge.sendCounter(card.uuid, lock, locked ? 1 : -1) {
 			card.counters.mutate { counters in
 				if locked { counters.append(lock) } else if let index = counters.firstIndex(of: lock) { counters.remove(at: index) }
 			}
@@ -1115,4 +1108,32 @@ extension MTGCard.RelatedCard {
 	var isCreatable: Bool {
 		component == .token || typeLine.contains("Token") || typeLine.contains("Emblem")
 	}
+}
+
+
+/// The card menu's Phone Play hooks. Board Connect compiles this file too but has no Phone Play,
+/// so there they do nothing (and the menu edits the card directly, as on the iPad board).
+private enum PhonePlayBridge {
+#if BOARD_CONNECT
+	static func battlefieldContains(_ card: CardInstance) -> Bool? { nil }
+	static func sendCounter(_ id: UUID, _ counter: Counter, _ delta: Int) -> Bool { false }
+	static func controlsCard(_ card: CardInstance) -> Bool { false }
+	static func castPrepared(_ id: UUID) {}
+#else
+	/// Whether the card is on Phone Play's battlefield (nil outside Phone Play).
+	static func battlefieldContains(_ card: CardInstance) -> Bool? {
+		AppDelegate.shared.phoneSession.map { $0.game.state.battlefield.value.contains(card) }
+	}
+	/// Sends a counter change through Phone Play; false outside Phone Play.
+	static func sendCounter(_ id: UUID, _ counter: Counter, _ delta: Int) -> Bool {
+		guard let session = AppDelegate.shared.phoneSession else { return false }
+		session.send(.counter(id, counter, delta))
+		return true
+	}
+	/// Whether this phone's player controls the card in Phone Play.
+	static func controlsCard(_ card: CardInstance) -> Bool {
+		AppDelegate.shared.phoneSession.map { card.controllerIdentifier.value == $0.player } ?? false
+	}
+	static func castPrepared(_ id: UUID) { AppDelegate.shared.phoneSession?.send(.castPrepared(id)) }
+#endif
 }
