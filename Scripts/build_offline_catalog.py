@@ -2,7 +2,7 @@
 import argparse
 import json, pathlib, re, time, urllib.request, urllib.parse, concurrent.futures, ssl, tempfile, threading, urllib.error, unicodedata
 parser = argparse.ArgumentParser()
-parser.add_argument('--metadata-only', action='store_true', help='Update deck/card metadata and runtime artwork URLs without downloading artwork.')
+parser.add_argument('--metadata-only', action='store_true', help='Kept for compatibility: the script never downloads artwork (the app does, at runtime).')
 args = parser.parse_args()
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / 'CardService' / 'OfflineGames'
@@ -128,24 +128,8 @@ for c in cards.values():
         if 'normal' in uris:
             for kind in ['small','large','png','border_crop']:
                 if kind in uris: images[uris[kind]]=images[uris['normal']]
-# Artwork is NOT bundled; the app downloads it at runtime from the catalog's URL map.
-# This local copy only lets the script validate URLs; it lives outside the bundled folder.
-ART=ROOT/'CardService'/'OfflineArtworkSource'
-if not args.metadata_only: ART.mkdir(exist_ok=True)
-def download(item):
-    filename,url=item; target=ART/filename
-    valid=False
-    if target.exists() and target.stat().st_size >= 2:
-        with target.open('rb') as existing:
-            existing.seek(-2,2); valid=existing.read()==b'\xff\xd9'
-    if not valid:
-        temporary=target.with_suffix('.part')
-        temporary.write_bytes(request(url))
-        temporary.replace(target)
-if not args.metadata_only:
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        for n,_ in enumerate(pool.map(download, downloads.items()),1):
-            if n%100==0: print('Artwork',n,'/',len(downloads),flush=True)
+# Artwork is not bundled or downloaded here: the app downloads every image in the catalog's URL
+# map on first launch (and any missing ones later), into Application Support.
 manifest=OUT/'.catalog.json.tmp'
 manifest.write_text(json.dumps({'games':games,'cards':cards,'images':images,'jumpInPackets':packets},ensure_ascii=False,separators=(',',':')))
 manifest.replace(OUT/'catalog.json')
