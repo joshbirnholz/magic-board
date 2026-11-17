@@ -146,6 +146,7 @@ class CountersViewController: UITableViewController {
 	@IBOutlet var newCounterButtons: [UIButton]!
     private var counterPalette: UIView?
     private var keywordCounterButton: UIButton?
+    private var finalityCounterButton: UIButton?
 	
 	var cardInstance: CardInstance! {
 		didSet {
@@ -171,6 +172,30 @@ class CountersViewController: UITableViewController {
 		cell.nameLabel.text = counterAndCount.counter.name
 		
 		cell.stepper.value = Double(counterAndCount.count)
+		
+		// Keyword counters show their ability symbol instead of a number.
+		let iconTag = 0x6B6579
+		let iconView = (cell.counterView.viewWithTag(iconTag) as? UIImageView) ?? {
+			let view = UIImageView()
+			view.tag = iconTag
+			view.contentMode = .scaleAspectFit
+			view.tintColor = .white
+			view.translatesAutoresizingMaskIntoConstraints = false
+			cell.counterView.addSubview(view)
+			NSLayoutConstraint.activate([
+				view.centerXAnchor.constraint(equalTo: cell.counterView.centerXAnchor),
+				view.centerYAnchor.constraint(equalTo: cell.counterView.centerYAnchor),
+				view.widthAnchor.constraint(equalTo: cell.counterView.widthAnchor, multiplier: 0.62),
+				view.heightAnchor.constraint(equalTo: cell.counterView.heightAnchor, multiplier: 0.62)
+			])
+			return view
+		}()
+		let keywordImage = counterAndCount.counter.symbolImage
+			?? (counterAndCount.counter.isKeyword ? counterAndCount.counter.keywordMenuImage : nil)
+		iconView.image = keywordImage
+		iconView.isHidden = keywordImage == nil
+		cell.countLabel.isHidden = keywordImage != nil
+		cell.counterView.accessibilityLabel = keywordImage == nil ? nil : counterAndCount.counter.name
 		
 		if counterAndCount.counter == .lore {
 			cell.countLabel.textColor = .black
@@ -210,7 +235,7 @@ class CountersViewController: UITableViewController {
 				
 				var countersAndCounts: [CounterAndCount] = []
 				
-				for counter in counters {
+				for counter in counters where !counter.isCardState {
 					if let index = countersAndCounts.firstIndex(where: { $0.counter == counter }) {
 						countersAndCounts[index].count += 1
 					} else {
@@ -255,7 +280,7 @@ class CountersViewController: UITableViewController {
         }
         // Keyword counters (flying, first strike, …) come from a menu on a full-width third row.
         var keywordConfiguration = UIButton.Configuration.filled()
-        keywordConfiguration.title = "Keyword Counter"
+        keywordConfiguration.title = "More Counters"
         keywordConfiguration.image = UIImage(systemName: "plus.circle.fill")
         keywordConfiguration.imagePadding = 6
         keywordConfiguration.cornerStyle = .capsule
@@ -263,7 +288,10 @@ class CountersViewController: UITableViewController {
         let keywordButton = UIButton(configuration: keywordConfiguration)
         keywordButton.accessibilityIdentifier = "counter-add-keyword"
         keywordButton.showsMenuAsPrimaryAction = true
-        keywordButton.menu = UIMenu(title: "Add Keyword Counter", children: Counter.keywordCounters.map { counter in
+        let other = UIMenu(options: .displayInline, children: [Counter.shield].map { counter in
+            UIAction(title: counter.name, image: counter.symbolImage) { [weak self] _ in self?.add(counter) }
+        })
+        keywordButton.menu = UIMenu(title: "Add a Counter", children: [other] + Counter.keywordCounters.map { counter in
             UIAction(title: counter.name, image: counter.keywordMenuImage) { [weak self] _ in self?.add(counter) }
         })
         palette.addSubview(keywordButton)
@@ -286,7 +314,25 @@ class CountersViewController: UITableViewController {
 		_ = genericCounterCount
 		for (index, button) in newCounterButtons.enumerated() where index > 2 {
 			button.backgroundColor = Counter(rawValue: index + 12)?.color
+			// Stun (the last palette button) shows its icon instead of a title.
+			if let counter = Counter(rawValue: index + 12), let symbol = counter.symbolImage {
+				button.setTitle(nil, for: .normal)
+				button.setImage(symbol, for: .normal)
+				button.tintColor = .white
+				button.accessibilityLabel = counter.name
+			}
 		}
+		// Finality sits beside Stun.
+		let finality = UIButton(type: .custom)
+		finality.backgroundColor = Counter.finality.color
+		finality.setImage(Counter.finality.symbolImage, for: .normal)
+		finality.tintColor = .white
+		finality.imageView?.contentMode = .scaleAspectFit
+		finality.accessibilityLabel = Counter.finality.name
+		finality.accessibilityIdentifier = "counter-add-finality"
+		finality.addAction(UIAction { [weak self] _ in self?.add(.finality) }, for: .touchUpInside)
+		counterPalette?.addSubview(finality)
+		finalityCounterButton = finality
 	}
 	
     override func viewDidLayoutSubviews() {
@@ -295,11 +341,13 @@ class CountersViewController: UITableViewController {
         let width = tableView.bounds.width
         let gap: CGFloat = 10
         let padding: CGFloat = 12
-        let diameter = min(52, max(32, (width - 2 * padding - 4 * gap) / 5))
+        // The first row holds +1/+1, -1/-1, the wider loyalty shield, Stun and Finality.
+        let diameter = min(52, max(30, (width - 2 * padding - 4 * gap) / 5.64))
         let keywordHeight = max(32, diameter * 0.8)
         let height = 2 * diameter + 2 * gap + keywordHeight + 2 * padding
         keywordCounterButton?.frame = CGRect(x: padding, y: padding + 2 * (diameter + gap), width: width - 2 * padding, height: keywordHeight)
-        let rows = [[newCounterButtons[0], newCounterButtons[1], newCounterButtons[2], newCounterButtons.last!], Array(newCounterButtons.dropFirst(3).dropLast())]
+        let rows = [[newCounterButtons[0], newCounterButtons[1], newCounterButtons[2], newCounterButtons.last!] + [finalityCounterButton].compactMap { $0 },
+                    Array(newCounterButtons.dropFirst(3).dropLast())]
         for (row, buttons) in rows.enumerated() {
             let widths = buttons.map { $0 === newCounterButtons[2] ? diameter * 1.64 : diameter }
             let total = widths.reduce(0, +) + CGFloat(max(0, buttons.count - 1)) * gap
@@ -315,6 +363,12 @@ class CountersViewController: UITableViewController {
                 button.layer.shadowRadius = isLoyalty ? 2.5 : 0
                 button.layer.shadowOffset = .zero
                 button.imageView?.contentMode = .scaleAspectFit
+                if button.image(for: .normal) != nil && !isLoyalty {
+                    let inset = buttonWidth * 0.18
+                    button.contentEdgeInsets = UIEdgeInsets(top: inset, left: inset, bottom: inset, right: inset)
+                    button.contentHorizontalAlignment = .fill
+                    button.contentVerticalAlignment = .fill
+                }
                 x += buttonWidth + gap
             }
         }

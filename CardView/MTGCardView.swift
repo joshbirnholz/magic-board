@@ -53,6 +53,9 @@ public class MTGCardView: UIView {
 		public var value: NSAttributedString? = nil
 		public var manaCost: String?
 		public var isFullArt = false
+		/// Large art behind a fully transparent frame (no lightening, unlike colorless cards), with the
+		/// card's own colored bars and border: Planets and Spacecraft are printed this way.
+		public var isPinlineFrame = false
 		public var isInverted = false
 		public var dfcIcon: DFCIcon?
     public var isCommander = false
@@ -687,6 +690,8 @@ public class MTGCardView: UIView {
 
 		if properties.isFullArt {
 			return UIImage(named: "bg-full")
+		} else if properties.isPinlineFrame {
+			return nil // fully transparent: the art shows through, unlike a colorless card's lightened frame
 		} else if properties.backgroundStyle == .nyxtouchedArtifact {
 			return UIImage(named: "bg-colorless-nyx")
 		} else if properties.backgroundStyle == .snowArtifact {
@@ -853,6 +858,60 @@ public class MTGCardView: UIView {
     case prototype
     case livingMetal
 
+    // Arena's ability icons (from mtg.wiki, MTGA_<Ability>.png), added 2026-11-17.
+    case changeling
+    case aftermath
+    case improvise
+    case ascend
+    case partner
+    case spree
+    case gift
+    case bargain
+    case station
+    case craft
+    case toxic
+    case afflict
+    case renown
+    case backup
+    case mobilize
+    case fabricate
+    case hideaway
+    case saddle
+    case offspring
+    case ninjutsu
+    case unearth
+    case eternalize
+    case plot
+    case disguise
+    case warp
+    case harmonize
+    case mayhem
+    case channel
+    case landfall
+    case morbid
+    case revolt
+    case enrage
+    case celebration
+    case eerie
+    case valiant
+    case survival
+    case void
+    case flurry
+    case renew
+    case exhaust
+    case explore
+    case investigate
+    case mill
+    case venture
+    case incubate
+    case discover
+    case forage
+    case amass
+    case monstrosity
+    case expend
+    case endure
+    case cloak
+
 		public var name: String? {
 			switch self {
 			case .doublestrike: return "Double strike"
@@ -942,7 +1001,20 @@ public class MTGCardView: UIView {
 					 .radiance,
 					 .raid,
 					 .battalion,
-					 .coven],
+					 .coven,
+					 .channel,
+					 .landfall,
+					 .morbid,
+					 .revolt,
+					 .enrage,
+					 .celebration,
+					 .eerie,
+					 .valiant,
+					 .survival,
+					 .void,
+					 .flurry,
+					 .renew,
+					 .exhaust],
 				.requirement:
 					[.companion],
 				.cost:
@@ -972,6 +1044,15 @@ public class MTGCardView: UIView {
 					 .specialize,
            .squad,
            .prototype,
+           .offspring,
+           .ninjutsu,
+           .unearth,
+           .eternalize,
+           .plot,
+           .disguise,
+           .warp,
+           .harmonize,
+           .mayhem,
           ],
 				.mention:
 					[.devotion,
@@ -987,7 +1068,19 @@ public class MTGCardView: UIView {
 					 .detain,
 					 .adapt,
 					 .party,
-					 .connive],
+					 .connive,
+					 .explore,
+					 .investigate,
+					 .mill,
+					 .venture,
+					 .incubate,
+					 .discover,
+					 .forage,
+					 .amass,
+					 .monstrosity,
+					 .expend,
+					 .endure,
+					 .cloak],
 				.creatureNameText:
 					[.noblock,
 					 .noattackorblock,
@@ -1006,7 +1099,15 @@ public class MTGCardView: UIView {
 					[.afterlife,
 					 .bloodthirst,
 					 .dredge,
-					 .graft]
+					 .graft,
+					 .toxic,
+					 .afflict,
+					 .renown,
+					 .backup,
+					 .mobilize,
+					 .fabricate,
+					 .hideaway,
+					 .saddle]
 			]
 
 			if style == .keyword {
@@ -1026,7 +1127,8 @@ public class MTGCardView: UIView {
 		public typealias AllCases = [Icon]
 
 		public static var allCases: [Icon] {
-      [.deathtouch, .defender, .doublestrike, .firststrike, .flying, .haste, .hexproof, .indestructible, .lifelink, .menace, .protection, .reach, .trample, .vigilance, .flash, .noblock, .noattackorblock, .cantbeblocked, .fear, .shroud, .intimidate, .escape, .devotion, .mutate, .companion, .constellation, .embalm, .ingest, .devoid, .skulk, .mustattack, .castingcostmodifier, .whenyoucastthisspell, .cantbecountered, .cycling, .whenyoucycle, .equip, .adamant, .echo, .horsemanship, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .haunt, .addendum, .afterlife, .extort, .surveil, .cipher, .transmute, .spectacle, .unleash, .hellbent, .bloodthirst, .bloodrush, .riot, .convoke, .populate, .forecast, .detain, .dredge, .scavenge, .undergrowth, .graft, .evolve, .adapt, .replicate, .overload, .jumpstart, .radiance, .battalion, .mentor, .raid, .formidable, .ferocious, .dash, .delve, .exploit, .prowess, .outlast, .bolster, .proliferate, .scry, .fight, .superiority, .upload, .party, .encore, .foretell, .boast, .learn, .disturb, .ward, .coven, .decayed, .cleave, .reconfigure, .training, .connive, .casualty, .blitz, .specialize, .enlist, .readAhead, .cascade, .squad, .prototype, .magecraft, .paradox, livingMetal]
+      [.deathtouch, .defender, .doublestrike, .firststrike, .flying, .haste, .hexproof, .indestructible, .lifelink, .menace, .protection, .reach, .trample, .vigilance, .flash, .noblock, .noattackorblock, .cantbeblocked, .fear, .shroud, .intimidate, .escape, .devotion, .mutate, .companion, .constellation, .embalm, .ingest, .devoid, .skulk, .mustattack, .castingcostmodifier, .whenyoucastthisspell, .cantbecountered, .cycling, .whenyoucycle, .equip, .adamant, .echo, .horsemanship, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .haunt, .addendum, .afterlife, .extort, .surveil, .cipher, .transmute, .spectacle, .unleash, .hellbent, .bloodthirst, .bloodrush, .riot, .convoke, .populate, .forecast, .detain, .dredge, .scavenge, .undergrowth, .graft, .evolve, .adapt, .replicate, .overload, .jumpstart, .radiance, .battalion, .mentor, .raid, .formidable, .ferocious, .dash, .delve, .exploit, .prowess, .outlast, .bolster, .proliferate, .scry, .fight, .superiority, .upload, .party, .encore, .foretell, .boast, .learn, .disturb, .ward, .coven, .decayed, .cleave, .reconfigure, .training, .connive, .casualty, .blitz, .specialize, .enlist, .readAhead, .cascade, .squad, .prototype, .magecraft, .paradox, livingMetal,
+       .changeling, .aftermath, .improvise, .ascend, .partner, .spree, .gift, .bargain, .station, .craft, .toxic, .afflict, .renown, .backup, .mobilize, .fabricate, .hideaway, .saddle, .offspring, .ninjutsu, .unearth, .eternalize, .plot, .disguise, .warp, .harmonize, .mayhem, .channel, .landfall, .morbid, .revolt, .enrage, .celebration, .eerie, .valiant, .survival, .void, .flurry, .renew, .exhaust, .explore, .investigate, .mill, .venture, .incubate, .discover, .forage, .amass, .monstrosity, .expend, .endure, .cloak]
 		}
 
 		// True for inherent properties of cards, like alt layouts.
@@ -1044,7 +1146,9 @@ public class MTGCardView: UIView {
 		// True for icons representing effects that don't apply after the spell has been resolved, e.e. flash, haste.
 		public var isPermanentEffect: Bool {
 			switch self {
-      case .flash, .haste, .entersthebattlefield, .castingcostmodifier, .additionalcastingcost, .whenyoucastthisspell, .companion, .mutate, .cantbecountered, .adventure, .whenyoucycle, .cycling, .adamant, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .addendum, .transmute, .spectacle, .unleash, .bloodthirst, .bloodrush, .riot, .convoke, .forecast, .scavenge, .undergrowth, .replicate, .overload, .dash, .delve, .foretell, .casualty, .readAhead, .cascade, .squad:
+      case .flash, .haste, .entersthebattlefield, .castingcostmodifier, .additionalcastingcost, .whenyoucastthisspell, .companion, .mutate, .cantbecountered, .adventure, .whenyoucycle, .cycling, .adamant, .kicker, .multikicker, .flashback, .madness, .morph, .megamorph, .affinity, .addendum, .transmute, .spectacle, .unleash, .bloodthirst, .bloodrush, .riot, .convoke, .forecast, .scavenge, .undergrowth, .replicate, .overload, .dash, .delve, .foretell, .casualty, .readAhead, .cascade, .squad,
+           .offspring, .ninjutsu, .unearth, .eternalize, .plot, .disguise, .warp, .harmonize, .mayhem,
+           .spree, .gift, .bargain, .aftermath, .improvise, .channel:
 				return false
 			case .custom(_, _, _, _, let isPermanent):
 				return isPermanent
@@ -1069,52 +1173,44 @@ public class MTGCardView: UIView {
 			case .custom(let image, _, _, _, _): return image
 			case .gained(let icon), .counter(let icon):
 				return icon.image
-			case .haunt, .afterlife, .extort:
+			case .haunt, .extort:
 				return UIImage(named: "Icon_Orzhov")
-			case .addendum, .forecast, .detain:
+			case .forecast, .detain:
 				return UIImage(named: "Icon_Azorius")
 			case .cipher, .transmute:
 				return UIImage(named: "Icon_Dimir")
       case .surveil:
         return UIImage(named: "Icon_Surveil")
-			case .spectacle, .unleash, .hellbent:
+			case .unleash, .hellbent:
 				return UIImage(named: "Icon_Rakdos")
-			case .bloodthirst, .bloodrush, .riot:
+			case .bloodthirst, .bloodrush:
 				return UIImage(named: "Icon_Gruul")
 			case .populate:
 				return UIImage(named: "Icon_Selesnya")
       case .convoke:
         return UIImage(named: "Icon_Convoke")
-			case .dredge, .scavenge, .undergrowth:
+			case .dredge, .scavenge:
 				return UIImage(named: "Icon_Golgari")
-			case .graft, .evolve, .adapt:
+			case .graft, .evolve:
 				return UIImage(named: "Icon_Simic")
-			case .replicate, .overload, .jumpstart:
+			case .replicate, .overload:
 				return UIImage(named: "Icon_Izzet")
-			case .radiance, .battalion, .mentor:
+			case .radiance, .battalion:
 				return UIImage(named: "Icon_Boros")
-			case .raid:
-				return UIImage(named: "Icon_Mardu")
 			case .formidable:
 				return UIImage(named: "Icon_Atarka")
-			case .ferocious:
-				return UIImage(named: "Icon_Temur")
 			case .dash:
 				return UIImage(named: "Icon_Kolaghan")
-			case .delve:
-				return UIImage(named: "Icon_Sultai")
 //			case .exploit:
 //				return UIImage(named: "Icon_Silumgar")
-			case .prowess:
-				return UIImage(named: "Icon_Jeskai")
-			case .outlast:
-				return UIImage(named: "Icon_Abzan")
 			case .bolster:
 				return UIImage(named: "Icon_Dromoka")
 			case .superiority:
 				return UIImage(named: "Icon_NET")
 			case .multikicker:
 				return Icon.kicker.image
+			case .whenyoucycle:
+				return Icon.cycling.image
 			case .megamorph:
 				return Icon.morph.image
 			default: return UIImage(named: "Icon_\(String(describing: self).capitalized)")
@@ -1424,6 +1520,8 @@ public class MTGCardView: UIView {
         return 0.85 // Scaled up slightly because of incorrectly cropped Scryfall cards (BRC decks, etc)
       } else if properties.isFullArt {
 				return 1.015
+      } else if properties.isPinlineFrame {
+				return 0.931
       } else if properties.colors.isEmpty && properties.backgroundStyle != .artifact && properties.backgroundStyle != .snowArtifact && properties.backgroundStyle != .vehicle && properties.backgroundStyle != .universesBeyondVehicle && properties.backgroundStyle != .universesBeyondArtifact && (properties.backgroundStyle != .land && properties.backgroundStyle != .universesBeyondLand && properties.backgroundStyle != .snowLand) && properties.objectType != .emblem {
 				return 0.931
 			} else if properties.borderStyle == .planeswalker {

@@ -40,11 +40,30 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
   case exalted
   case haste
   case shadow
+  case finality
+  /// The "prepared" marker on a prepare-layout card (Secrets of Strixhaven): its spell can be cast.
+  case prepared
+  /// A Room's locked doors: the first door (left, once the card is turned sideways) and the second.
+  case lockedDoorLeft
+  case lockedDoorRight
+  case shield
+  /// Phased out (CR 702.26): treated as though it doesn't exist until it phases in.
+  case phasedOut
 
   /// Every keyword counter (CR 122.1b), in the order the counter menu lists them.
   static let keywordCounters: [Counter] = [.flying, .firststrike, .doublestrike, .deathtouch, .decayed, .exalted, .haste,
                                            .hexproof, .indestructible, .lifelink, .menace, .reach, .shadow, .trample, .vigilance]
   var isKeyword: Bool { Counter.keywordCounters.contains(self) }
+  /// Room door locks are drawn on the card itself, not as counters.
+  var isDoorLock: Bool { self == .lockedDoorLeft || self == .lockedDoorRight }
+  /// States drawn on the card itself (locks, phasing) rather than as counter discs.
+  var isCardState: Bool { isDoorLock || self == .phasedOut }
+  static func doorLock(_ face: Int) -> Counter { face == 0 ? .lockedDoorLeft : .lockedDoorRight }
+  /// The LOCKED door from Duskmourn's Room tokens (template).
+  static var lockedDoorImage: UIImage? {
+    UIImage(named: "Icon_LockedDoor", in: Bundle(for: MTGCardView.self), compatibleWith: nil)?.withRenderingMode(.alwaysTemplate)
+      ?? UIImage(systemName: "lock.fill")
+  }
 	
 	var color: UIColor {
 		switch self {
@@ -90,6 +109,14 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
 			return #colorLiteral(red: 0.002303533489, green: 0.4835820198, blue: 0.2841368616, alpha: 1)
     case .stun:
       return #colorLiteral(red: 0.001011309098, green: 0.32381019, blue: 0.5295761228, alpha: 1)
+    case .finality:
+      return .black
+    case .prepared:
+      return #colorLiteral(red: 0.42, green: 0.25, blue: 0.62, alpha: 1)
+    case .lockedDoorLeft, .lockedDoorRight, .phasedOut:
+      return .darkGray
+    case .shield:
+      return #colorLiteral(red: 0.2, green: 0.24, blue: 0.3, alpha: 1)
     case .decayed, .exalted, .haste, .shadow:
       return #colorLiteral(red: 0.001011309098, green: 0.32381019, blue: 0.5295761228, alpha: 1)
 		}
@@ -135,6 +162,12 @@ enum Counter: Int, Equatable, Hashable, Codable, CaseIterable {
     case .exalted: return "Exalted"
     case .haste: return "Haste"
     case .shadow: return "Shadow"
+    case .finality: return "Finality"
+    case .prepared: return "Prepared"
+    case .lockedDoorLeft: return "Locked (First Door)"
+    case .lockedDoorRight: return "Locked (Second Door)"
+    case .shield: return "Shield"
+    case .phasedOut: return "Phased Out"
 		}
 	}
 	
@@ -196,12 +229,33 @@ extension Counter {
         case .trample: icon = .trample
         case .vigilance: icon = .vigilance
         case .shadow, .exalted:
-            let symbol = self == .shadow ? "moon.fill" : "arrow.up.circle.fill"
-            guard let image = UIImage(systemName: symbol)?.withRenderingMode(.alwaysTemplate) else { return nil }
+            // Arena's ability icons, shipped in CardView's asset catalog (template images).
+            let asset = self == .shadow ? "Icon_Shadow" : "Icon_Exalted"
+            guard let image = UIImage(named: asset, in: Bundle(for: MTGCardView.self), compatibleWith: nil)?
+                .withRenderingMode(.alwaysTemplate) else { return nil }
             icon = .custom(image, name: name, isPermanent: true)
         default: return nil
         }
         return .counter(icon)
+    }
+}
+
+extension Counter {
+    /// Counters drawn as a symbol rather than a number (Arena's stun and finality icons), as
+    /// templates to draw in white on the counter's color.
+    var symbolImage: UIImage? {
+        let asset: String
+        switch self {
+        case .stun: asset = "Icon_Stun"
+        case .finality: asset = "Icon_Finality"
+        case .prepared: asset = "Icon_Prepared"
+        case .shield: asset = "Icon_Shield"
+        default: return nil
+        }
+        let image = UIImage(named: asset, in: Bundle(for: MTGCardView.self), compatibleWith: nil)
+            // Stand-in until the prepared symbol asset is added.
+            ?? (self == .prepared ? UIImage(systemName: "sparkles") : nil)
+        return image?.withRenderingMode(.alwaysTemplate)
     }
 }
 

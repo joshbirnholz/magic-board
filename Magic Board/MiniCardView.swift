@@ -75,15 +75,19 @@ class MiniCardView: UIView {
 		}
 		set {
 			if var properties = newValue {
+				// Initial renders and delayed artwork must use the current tap state too.
+				properties.isTapped = cardInstance?.isTapped.value ?? properties.isTapped
 				// Keyword counters show as blue counter tiles after any commander tile, like Arena.
 				properties.icons.removeAll { if case .counter = $0 { return true }; return false }
 				var seen: [MTGCardView.Icon] = []
 				for icon in (cardInstance?.counters.value ?? []).compactMap(\.keywordIcon) where !seen.contains(icon) { seen.append(icon) }
 				properties.icons.insert(contentsOf: seen, at: properties.icons.first == .commander ? 1 : 0)
 				contents = .cardProperties(properties)
-			} else {
+			} else if case .cardProperties = contents {
 				contents = .backFace
 			}
+			// Cards drawn as their full image (sagas, undecided double-faced cards) have no
+			// properties; clearing them must not turn the image into a card back (tapping did).
 		}
 	}
 	
@@ -164,9 +168,10 @@ class MiniCardView: UIView {
 				representation = rep
 			}
       
-//      if representation.card.typeLine?.contains("Saga") == true {
-//        return true
-//      }
+      // Sagas have no good mini-card form: they show their full card image on the battlefield.
+      if representation.typeLine?.contains("Saga") == true {
+        return true
+      }
 			
 			if case .alternateFace(_, _) = representation {
 				return false
@@ -224,14 +229,18 @@ class MiniCardView: UIView {
 		} else if isUndecidedFace {
 			
 			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
-				let image = card.image(type: .normal)
+				var image = card.image(type: .normal)
+				// A Room lies sideways on the battlefield, its two doors side by side.
+				if card.isRoom, let source = image, let cgImage = source.cgImage {
+					image = UIImage(cgImage: cgImage, scale: source.scale, orientation: .right)
+				}
 				DispatchQueue.main.async { [weak self] in
 					guard let self = self, let image = image, card == self.card else { return }
 					UIView.transition(with: self.cardView,
 									  duration: 0.2,
 									  options: .transitionCrossDissolve,
 									  animations: { self.cardImage = image },
-									  completion: nil)
+									  completion: { _ in self.updateDoorLocks() })
 				}
 			}
 		} else {
@@ -256,8 +265,12 @@ class MiniCardView: UIView {
         securityStamp: card.card.securityStamp,
         isCommander: cardInstance.isCommander.value
       )
+			// Planets and Spacecraft are printed like colorless cards (large art inside pinlines),
+			// keeping their colored border.
+			if let type = card.typeLine, type.contains("Planet") || type.contains("Spacecraft") { properties.isPinlineFrame = true }
 			defaultFrameColors = properties.colors
 			properties.applyFrameColors(cardInstance.colors.value, isLand: card.isLand, defaults: defaultFrameColors)
+			properties.art = card.imageIfLoaded(type: .art)
 			self.properties = properties
 			
 			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
@@ -268,8 +281,9 @@ class MiniCardView: UIView {
 									  duration: 0.2,
 									  options: .transitionCrossDissolve,
 									  animations: {
-										properties.art = image
-										self.properties = properties
+									guard var current = self.properties else { return }
+									current.art = image
+									self.properties = current
 					},
 									  completion: nil)
 				}
@@ -370,6 +384,25 @@ class MiniCardView: UIView {
 //				}
 //			}).disposed(by: bag)
 		
+    // A phased-out permanent is drawn faded (it's treated as though it doesn't exist).
+    cardInstance.counters
+      .map { $0.contains(.phasedOut) }
+      .distinctUntilChanged()
+      .observeOn(MainScheduler.instance)
+      .subscribe(onNext: { [weak self] phased in
+        UIView.animate(withDuration: 0.2) { self?.cardView?.alpha = phased ? 0.3 : 1 }
+        self?.accessibilityHint = phased ? "Phased out" : nil
+      })
+      .disposed(by: bag)
+
+    // A Room's locked doors are darkened, with a lock, on the card itself.
+    cardInstance.counters
+      .map { $0.filter(\.isDoorLock) }
+      .distinctUntilChanged()
+      .observeOn(MainScheduler.instance)
+      .subscribe(onNext: { [weak self] _ in self?.updateDoorLocks() })
+      .disposed(by: bag)
+
     // Re-apply keyword counter tiles when counters change.
     cardInstance.counters
       .map { $0.filter(\.isKeyword) }
@@ -411,7 +444,7 @@ class MiniCardView: UIView {
 			.map { [weak self] (counters, isPowerToughnessVisible) -> [CounterAndCount] in
 				var countersAndCounts: [CounterAndCount] = []
 				
-				for counter in counters {
+				for counter in counters where !counter.isCardState {
 					// Keyword counters already show as ability tiles on the card; no round counter for them.
 					if counter.isKeyword { continue }
 					if (counter == .loyalty && self?.card.typeLine?.lowercased().contains("planeswalker") == true && !isPowerToughnessVisible) { continue }
@@ -473,7 +506,40 @@ class MiniCardView: UIView {
 					label.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
 					label.font = UIFont(name: "Beleren2016-Bold", size: 45)
 					
-					if counter == .lore {
+					if let symbol = counter.symbolImage {
+						// Stun and finality show their icon; a count only when there's more than one.
+						let icon = UIImageView(image: symbol)
+						icon.tintColor = .white
+						icon.contentMode = .scaleAspectFit
+						icon.translatesAutoresizingMaskIntoConstraints = false
+						view.addSubview(icon)
+						NSLayoutConstraint.activate([
+							icon.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+							icon.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+							icon.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.66),
+							icon.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.66)
+						])
+						label.isHidden = true
+						if count > 1 {
+							let badge = UILabel()
+							badge.translatesAutoresizingMaskIntoConstraints = false
+							badge.font = UIFont(name: "Beleren2016-Bold", size: 30)
+							badge.textColor = .white
+							badge.textAlignment = .center
+							badge.text = String(count)
+							badge.backgroundColor = UIColor.black.withAlphaComponent(0.75)
+							badge.layer.cornerRadius = 18
+							badge.layer.masksToBounds = true
+							view.addSubview(badge)
+							NSLayoutConstraint.activate([
+								badge.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+								badge.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+								badge.widthAnchor.constraint(greaterThanOrEqualToConstant: 36),
+								badge.heightAnchor.constraint(equalToConstant: 36)
+							])
+						}
+						view.accessibilityLabel = "\(counter.name) counter\(count > 1 ? "s, \(count)" : "")"
+					} else if counter == .lore {
 						label.textColor = .black
 						
 						label.text = romanNumeralFor(count) ?? String(count)
@@ -513,6 +579,46 @@ class MiniCardView: UIView {
     return true
   }
 
+  private var doorLockViews: [UIView] = []
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    if !doorLockViews.isEmpty { updateDoorLocks() }
+  }
+
+  /// Darkens each locked door of a sideways Room and marks it with a lock.
+  fileprivate func updateDoorLocks() {
+    doorLockViews.forEach { $0.removeFromSuperview() }
+    doorLockViews = []
+    guard let cardInstance, cardInstance.representation.isRoom, let image = cardView?.image,
+          image.size.width > 0, image.size.height > 0 else { return }
+    let bounds = cardView.bounds
+    let scale = min(bounds.width / image.size.width, bounds.height / image.size.height)
+    let drawn = CGRect(x: bounds.midX - image.size.width * scale / 2, y: bounds.midY - image.size.height * scale / 2,
+                       width: image.size.width * scale, height: image.size.height * scale)
+    for (index, counter) in [Counter.lockedDoorLeft, .lockedDoorRight].enumerated() where cardInstance.counters.value.contains(counter) {
+      let half = CGRect(x: drawn.minX + CGFloat(index) * drawn.width / 2, y: drawn.minY, width: drawn.width / 2, height: drawn.height)
+      let shade = UIView(frame: half.insetBy(dx: 1, dy: 1))
+      shade.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+      shade.isUserInteractionEnabled = false
+      let lock = UIImageView(image: Counter.lockedDoorImage)
+      lock.tintColor = .white
+      lock.contentMode = .scaleAspectFit
+      let side = min(half.width, half.height) * 0.5
+      lock.frame = CGRect(x: (shade.bounds.width - side) / 2, y: (shade.bounds.height - side) / 2, width: side, height: side)
+      lock.layer.shadowColor = UIColor.black.cgColor
+      lock.layer.shadowOpacity = 0.8
+      lock.layer.shadowRadius = side * 0.1
+      lock.layer.shadowOffset = .zero
+      shade.addSubview(lock)
+      shade.isAccessibilityElement = true
+      shade.accessibilityIdentifier = "phone-door-locked"
+      shade.accessibilityLabel = "\(cardInstance.representation.card.cardFaces?[index].name ?? "Door") locked"
+      cardView.addSubview(shade)
+      doorLockViews.append(shade)
+    }
+  }
+
   var updatesTransform = true
   var usesPlayerPerspective = false {
     didSet {
@@ -535,6 +641,15 @@ class MiniCardView: UIView {
     addSubview(arrow)
     return arrow
   }()
+
+  /// Phone Play: a size for this card on top of the board's zoom (back-row permanents are drawn
+  /// at land size, as on Arena).
+  var layoutScale: CGFloat = 1 {
+    didSet {
+      guard abs(oldValue - layoutScale) > 0.001 else { return }
+      updateTransform(controllerIdentifier: cardInstance.controllerIdentifier.value, isTapped: cardInstance.isTapped.value, animated: false)
+    }
+  }
 
   private func updateTransform(controllerIdentifier: Player.Identifier, isTapped: Bool, animated: Bool) {
     guard updatesTransform else { return }
@@ -568,6 +683,7 @@ class MiniCardView: UIView {
           let scale: CGFloat = 0.85
           transform = transform.scaledBy(x: scale, y: scale)
         }
+        if self.layoutScale != 1 { transform = transform.scaledBy(x: self.layoutScale, y: self.layoutScale) }
         
         self.transform = transform
       },
@@ -696,6 +812,7 @@ struct SwiftUICardView: View {
   
   init(card: CardInstance, isRotationEnabled: Bool = true) {
     self.card = card
+    self._art = State(initialValue: card.representation.imageIfLoaded(type: .art))
     self.isTapped = ObservableBridge(card.isTapped)
     self.colors = ObservableBridge(card.colors)
     self.isRotationEnabled = isRotationEnabled
@@ -794,6 +911,7 @@ struct SwiftUICardView: View {
       securityStamp: representation.value.card.securityStamp,
       isCommander: card.isCommander.value
     )
+    if let type = representation.value.typeLine, type.contains("Planet") || type.contains("Spacecraft") { properties.isPinlineFrame = true }
     properties.applyFrameColors(colors.value, isLand: representation.value.isLand, defaults: properties.colors)
     
     properties.art = self.art
