@@ -146,6 +146,9 @@ struct LandOrganizer: View {
     let draggedCardID: UUID?
     var concealedCardIDs: Set<UUID> = []
     var attachedCards: [CardInstance] = []
+    /// Phone Play: the card the opponent is looking at gets a thin white outline (drawn on the
+    /// card itself, so it follows the card's tap tilt).
+    var inspectedCardID: UUID? = nil
     
     private var showsCountTile: Bool {
       cardInstances.count > 3
@@ -169,7 +172,7 @@ struct LandOrganizer: View {
       // feeds image intrinsic-size changes back into SwiftUI layout.
       HStack(spacing: -height * (showsCountTile ? 1.07 : 0.97)) {
         ForEach(Array((attachedCards + cardInstances.contents).enumerated()), id: \.element.uuid) { (_, card) in
-          SwiftUICardView(card: card, isRotationEnabled: true)
+          SwiftUICardView(card: card, isRotationEnabled: true, isInspected: card.uuid == inspectedCardID)
             .frame(width: height * 480 / 420, height: height)
             .opacity(card.uuid == draggedCardID || concealedCardIDs.contains(card.uuid) ? 0 : 1)
             .shadow(radius: 5)
@@ -197,6 +200,7 @@ struct LandOrganizer: View {
   var onDragCancelled: (() -> Void)?
   var attachmentsByLand: [UUID: [CardInstance]] = [:]
   var concealedCardIDs: Set<UUID> = []
+  var inspectedCardID: UUID? = nil
   var onLandFramesChanged: (([UUID: CGRect]) -> Void)?
   
   private var stacks: [[CardInstance]] {
@@ -253,7 +257,8 @@ struct LandOrganizer: View {
       ForEach(stacks, id: \.first?.uuid) { stack in
         LandStack(cardInstances: OrderedSet(stack), onLongPress: onLongPress, height: max(1, height), draggedCardID: draggedCardID,
                   concealedCardIDs: concealedCardIDs,
-                  attachedCards: stack.flatMap { attachmentsByLand[$0.uuid] ?? [] })
+                  attachedCards: stack.flatMap { attachmentsByLand[$0.uuid] ?? [] },
+                  inspectedCardID: inspectedCardID)
           .background(GeometryReader { geometry in
             let frame = geometry.frame(in: .global)
             Color.clear.preference(key: LandCardFramesKey.self,
@@ -339,6 +344,12 @@ class LandOrganizerViewController: UIHostingController<LandOrganizer> {
     if concealed { rootView.concealedCardIDs.insert(id) }
     else { rootView.concealedCardIDs.remove(id) }
   }
+  /// Outlines the land the opponent is looking at (nil: none).
+  func setInspectedCard(_ id: UUID?) {
+    if rootView.inspectedCardID != id { rootView.inspectedCardID = id }
+  }
+  /// Whether this row draws the land.
+  func containsLand(_ id: UUID) -> Bool { rootView.cardInstances.value.contains { $0.uuid == id } }
   func updateAttachments(_ attachments: [UUID: [CardInstance]]) {
     if rootView.attachmentsByLand != attachments { rootView.attachmentsByLand = attachments }
   }

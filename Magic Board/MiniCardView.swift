@@ -121,7 +121,13 @@ class MiniCardView: UIView {
 		guard let context = UIGraphicsGetCurrentContext() else { return nil }
 		cardView.layer.render(in: context)
 		let image = UIGraphicsGetImageFromCurrentImageContext()
-		renderedCardFraction = image.flatMap(Self.opaqueFraction(of:))
+		// The card body, not the visible pixels: the mana cost pips sit above the card, and
+		// outlines (opponent looking, combat) drawn around the pixels came out too tall.
+		let body = cardView.cardBodyFrame
+		renderedCardFraction = frame.width > 0 && frame.height > 0 && body.width > 0 && body.height > 0
+			? CGRect(x: body.minX / frame.width, y: body.minY / frame.height,
+					 width: body.width / frame.width, height: body.height / frame.height)
+			: image.flatMap(Self.opaqueFraction(of:))
 		return image
 	}
 	
@@ -812,6 +818,8 @@ extension MiniCardView: UIGestureRecognizerDelegate {
 struct SwiftUICardView: View {
   let card: CardInstance
   let isRotationEnabled: Bool
+  /// Phone Play: the opponent is looking at this card (a thin white outline around it).
+  var isInspected = false
   
   @ObservedObject private var isTapped: ObservableBridge<Bool>
   @ObservedObject private var representation: ObservableBridge<CardRepresentation>
@@ -822,8 +830,9 @@ struct SwiftUICardView: View {
   
   let bag = DisposeBag()
   
-  init(card: CardInstance, isRotationEnabled: Bool = true) {
+  init(card: CardInstance, isRotationEnabled: Bool = true, isInspected: Bool = false) {
     self.card = card
+    self.isInspected = isInspected
     self._art = State(initialValue: card.representation.imageIfLoaded(type: .art))
     self.isTapped = ObservableBridge(card.isTapped)
     self.colors = ObservableBridge(card.colors)
@@ -947,6 +956,19 @@ struct SwiftUICardView: View {
                 .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
             }.allowsHitTesting(false)
           }
+        }
+      }
+      .overlay {
+        // Every face here fills its frame with the card (thumbnails are cropped to the card
+        // body), so the outline hugs the card; it sits inside the tap rotation below.
+        if isInspected {
+          GeometryReader { proxy in
+            RoundedRectangle(cornerRadius: proxy.size.width * 0.0455 + 1.5, style: .continuous)
+              .strokeBorder(Color.white, lineWidth: 1.5)
+              .padding(-1.5)
+          }
+          .allowsHitTesting(false)
+          .accessibilityIdentifier("phone-opponent-inspecting")
         }
       }
       .rotationEffect(isRotationEnabled && isTapped.value ? .init(radians: .pi/15) : .zero)

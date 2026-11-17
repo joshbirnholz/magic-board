@@ -186,16 +186,24 @@ final class PhoneGameSession: ObservableObject {
     /// Tells the other phone what's open (a battlefield card's menu, a pile sheet) until the
     /// controller is dismissed, so it can be outlined there.
     func trackInspection(_ inspection: PhoneGame.Inspection, while controller: UIViewController) {
-        localInspection = inspection
-        if canAct { send(.inspect(inspection)) }
-        watchInspection(inspection, controller: controller)
+        trackInspection(inspection) { [weak controller] in
+            guard let controller else { return false }
+            return controller.presentingViewController != nil || controller.isBeingPresented
+        }
     }
 
-    private func watchInspection(_ inspection: PhoneGame.Inspection, controller: UIViewController?) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self, weak controller] in
+    /// The same, for as long as `isActive` holds (a pile's browser, which isn't presented).
+    func trackInspection(_ inspection: PhoneGame.Inspection, while isActive: @escaping () -> Bool) {
+        localInspection = inspection
+        if canAct { send(.inspect(inspection)) }
+        watchInspection(inspection, isActive: isActive)
+    }
+
+    private func watchInspection(_ inspection: PhoneGame.Inspection, isActive: @escaping () -> Bool) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let self, self.localInspection == inspection else { return }
-            if let controller, controller.presentingViewController != nil || controller.isBeingPresented {
-                self.watchInspection(inspection, controller: controller)
+            if isActive() {
+                self.watchInspection(inspection, isActive: isActive)
             } else {
                 self.localInspection = nil
                 if self.canAct { self.send(.inspect(nil)) }

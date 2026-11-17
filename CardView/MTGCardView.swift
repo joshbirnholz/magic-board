@@ -17,6 +17,9 @@ fileprivate func UIImage(named name: String) -> UIImage? {
 public class MTGCardView: UIView {
     /// Strengthen the existing typography for compact battlefield rendering.
     public var prefersLargeBattlefieldText = false { didSet { setNeedsLayout() } }
+    /// The card itself within this view (after layout): the mana cost draws above it, so the
+    /// rendered image's visible pixels are taller than the card.
+    public var cardBodyFrame: CGRect { cardView.frame }
 
 
 	public struct CardProperties: Equatable {

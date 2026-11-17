@@ -4161,6 +4161,8 @@ extension BoardViewController {
             phoneInspectionOutline = outline
             return outline
         }()
+        var inspectedLand: UUID?
+        defer { [landOrganizer, opponentLandOrganizer].forEach { $0?.setInspectedCard(inspectedLand) } }
         switch session.game.inspecting?[session.opponent.rawValue] {
         case .card(let id)?:
             if let card = session.game.cards[id], let mini = cardView(for: card), !mini.isHidden {
@@ -4168,17 +4170,17 @@ extension BoardViewController {
                 let host = phoneOutlineHost(mini)
                 if outline.superview !== host { host.addSubview(outline) }
                 host.bringSubviewToFront(outline)
-                outline.frame = phoneDrawnCardRect(in: mini).insetBy(dx: -1.5 / scale, dy: -1.5 / scale)
+                let cardRect = phoneDrawnCardRect(in: mini)
+                outline.frame = cardRect.insetBy(dx: -1.5 / scale, dy: -1.5 / scale)
                 outline.layer.borderWidth = 1.5 / scale
-                outline.layer.cornerRadius = min(8 / scale, outline.bounds.width * 0.05)
-            } else if let frame = [landOrganizer, opponentLandOrganizer].compactMap({ $0?.landFrame(for: id) }).first {
-                if outline.superview !== view { view.addSubview(outline) }
-                view.bringSubviewToFront(outline)
-                outline.frame = view.convert(frame, from: nil).insetBy(dx: -1.5, dy: -1.5)
-                outline.layer.borderWidth = 1.5
-                outline.layer.cornerRadius = min(6, outline.bounds.width * 0.05)
+                // The card's own corner (MTGCardView: 4.55% of its width), widened by the gap.
+                outline.layer.cornerRadius = cardRect.width * 0.0455 + 1.5 / scale
+                inspectedLand = nil
             } else {
+                // Lands in the land rows draw the outline on the card itself, so it hugs that
+                // card (not its whole stack) and tilts with it when tapped.
                 outline.removeFromSuperview()
+                inspectedLand = [landOrganizer, opponentLandOrganizer].contains { $0?.containsLand(id) == true } ? id : nil
             }
         case .pile(let player, let location)?:
             let bar = [bottomBarA, bottomBarB].compactMap { $0 }.first { $0.player.identifier == player }
@@ -4403,6 +4405,20 @@ extension BoardViewController {
         phoneBrowser = browser
         phoneBrowserMode = mode
         phoneBrowserIDs = cards.map(\.uuid)
+        // The opponent's phone outlines the pile while its browser is open, as for the sheet.
+        let inspectedPile: (Player.Identifier, Pile.Location)? = {
+            switch mode {
+            case .pile(let location, let owner) where [.graveyard, .exile, .library].contains(location): return (owner, location)
+            case .search, .look: return (session.player, .library)
+            default: return nil
+            }
+        }()
+        if let inspectedPile {
+            session.trackInspection(.pile(inspectedPile.0, inspectedPile.1)) { [weak self, weak browser] in
+                guard let self, let browser else { return false }
+                return self.phoneBrowser === browser && self.phoneBrowserMode == mode
+            }
+        }
         if case .look(let count) = mode { phoneBrowserLookedAt = Set(cards.prefix(count).map(\.uuid)) } else { phoneBrowserLookedAt = [] }
         phoneBrowserSeen = []
         browser.frame = view.bounds
