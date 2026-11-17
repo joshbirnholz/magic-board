@@ -65,8 +65,51 @@ class BoardViewController: UIViewController {
   /// The hand card being dragged (or landing), with where it was picked up.
   private var phoneHandDrag: PhoneHandDragState?
   private var phoneHandPreviewHost: UIHostingController<PhoneHandCardFace>?
+  private var phoneHandMiniPreview: UIView?
+  private var phoneHandMiniHost: UIViewController?
   private var phoneStackButton: UIButton?
   private var phoneStackCards: UIHostingController<PhoneStackCardsView>?
+  /// Full-screen holder of the stack's hosting view that only takes touches on drawn stack cards,
+  /// so the empty part of the fan's frame doesn't block the battlefield (or its page buttons).
+  private var phoneStackContainer: PhoneTouchFilterView?
+  private var phoneStackResolveButton: UIButton?
+  private var phoneStackCollapsed = false
+  private var phoneTargetArcs: PhoneTargetArcsView?
+  private var phoneKnownStack: (gameID: UUID, ids: Set<UUID>)?
+  private var phoneStackDrag: PhoneStackDragState?
+  private var phoneStackDragOutline: UIView?
+  private var phoneInspectionOutline: UIView?
+  private var phoneZoneHoverKey: String?
+  /// Cards revealed to this phone's player, listed by the Revealed Cards sheet.
+  private let phoneRevealedToMe = BehaviorRelay<OrderedSet<CardInstance>>(value: [])
+  private var phoneRevealedShownIDs: Set<UUID> = []
+  /// Shuffle counts already seen (nil until the first snapshot, which never animates).
+  private var phoneSeenShuffles: [String: Int]?
+  private var phoneBrowser: PhoneZoneBrowserView?
+  private var phoneBrowserMode: PhoneBrowserMode?
+  /// Spring-loaded piles: the pile a dragged card is held over, since when, and the browser it opened.
+  private var phoneSpringPile: (location: Pile.Location, player: Player.Identifier, since: CFTimeInterval)?
+  private var phoneSpringTimer: Timer?
+  private var phoneSpringOpened = false
+  private var phoneSpringPoint: CGPoint = .zero
+  private var phoneSpringCard: CardInstance?
+  /// The browser's cards, in its current order.
+  private var phoneBrowserIDs: [UUID] = []
+  /// The cards Look at turned face up (they stay face up wherever they're moved to in the fan).
+  private var phoneBrowserLookedAt: Set<UUID> = []
+  /// Arena's blue "release to play" glow behind the dragged hand card.
+  private weak var phoneHandPlayGlow: UIView?
+  private var phoneStackArcLink: CADisplayLink?
+  /// The arc following the finger during a stack drag; faded out separately when the drag ends.
+  private var phoneStackDragArc: PhoneTargetArcsView?
+  private var phoneStackDragLabel: UILabel?
+  private var phoneStackPeekButton: UIButton?
+  private var phoneStackSlideAnimator: UIViewPropertyAnimator?
+  private var phoneCombatLines: PhoneCombatLinesView?
+  private var phoneCombatPreview: (blocker: UUID, attacker: UUID)?
+  private var phonePreviousStack: [PhoneGame.StackItem] = []
+  private var phonePreviousStackFrames: [UUID: CGRect] = [:]
+  private var phoneResolutionHosts: [UUID: UIViewController] = [:]
   private var phoneBarBackgrounds: [UIView] = []
   private var lastPhoneBounds = CGRect.zero
   private var compactBarConstraints: [NSLayoutConstraint] = []
@@ -95,6 +138,9 @@ class BoardViewController: UIViewController {
 	private let bag = DisposeBag()
 	
 	override func viewDidLoad() {
+		// Cards laid out past the board view's edges (Phone Play's field is wider than the zoomed
+		// board) must still get touches.
+		if type(of: board!) == UIView.self { object_setClass(board!, PhoneBoardContentView.self) }
 		super.viewDidLoad()
         AppDelegate.shared.boardController = self
 		
@@ -169,6 +215,8 @@ class BoardViewController: UIViewController {
           cardInstance.representation = .foretold(cardInstance.representation.card)
         case _ where param.mode == .manifest:
           cardInstance.representation = .manifest(cardInstance.representation.card)
+        case _ where param.mode == .cloak || param.mode == .disguise:
+          cardInstance.representation = .mysterious(cardInstance.representation.card)
         case _ where param.mode == .prototype:
           cardInstance.representation = .prototyped(cardInstance.representation.card)
         case (0...)?:
@@ -191,7 +239,12 @@ class BoardViewController: UIViewController {
         }
       }
       
-      self.moveCardItemsToBattlefield(cardInstances.values, at: self.visibleBoardCenter)
+      // Plotted cards go to their owner's exile instead of the battlefield.
+      let plotted = Set(parameters.filter { $0.mode == .plot }.map(\.cardInstanceID))
+      for card in cardInstances.values where plotted.contains(card.uuid) {
+        GameState.current.move(cardInstances: [card], to: GameState.current[player: card.ownerIdentifier].exile)
+      }
+      self.moveCardItemsToBattlefield(cardInstances.values.filter { !plotted.contains($0.uuid) }, at: self.visibleBoardCenter)
       
       if shouldFocus, let cardInstance: CardInstance = cardInstances.values.first, let typeLine = cardInstance.representation.typeLine, typeLine.contains("Instant") || typeLine.contains("Sorcery") {
         focus(on: cardInstance, view: nil)
@@ -356,6 +409,14 @@ class BoardViewController: UIViewController {
         super.viewDidLayoutSubviews()
         if phoneMode != nil, !phoneLayoutInProgress { layoutPhoneBattlefield() }
         if phoneMode != nil { layoutPhoneHandOverlay() }
+        // The zone browser covers everything, including the hand.
+        if let browser = phoneBrowser {
+            browser.frame = view.bounds
+            browser.uncoveredBottom = phoneBrowserUncoveredBottom
+            browser.topInset = phoneBrowserTopInset
+            browser.contentBottomInset = phoneBrowserContentBottomInset
+            orderPhoneBrowser()
+        }
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -580,11 +641,13 @@ class BoardViewController: UIViewController {
   }
   
   func focus(on cardInstance: CardInstance, view cardView: MiniCardView?) {
-        if let session = phoneMode, session.game.state[player: session.player].hand.cards.value.contains(cardInstance) {
+        if let session = phoneMode, session.game.state[player: session.player].hand.cards.value.contains(cardInstance)
+            || session.game.state[player: session.player].commandZone.cards.value.contains(cardInstance)
+            || session.game.castableCards(for: session.player).contains(cardInstance) {
             let controller = PhoneHandCardController(session: session, card: cardInstance)
             let navigation = UINavigationController(rootViewController: controller)
             navigation.modalPresentationStyle = .pageSheet
-            present(navigation, animated: true)
+            presentPhoneCardMenu(navigation, card: cardInstance, fallback: cardView)
             return
         }
         focusViewController?.dismiss(animated: true, completion: nil)
@@ -624,7 +687,7 @@ class BoardViewController: UIViewController {
                 if ProcessInfo.processInfo.arguments.contains("--phone-board-fixture") { return [] }
                 guard let id = cardInstance.representation.card.oracleID else { return [] }
                 switch cardInstance.representation {
-                case .faceDown, .morph, .foretold: return []
+                case .faceDown, .morph, .manifest, .mysterious, .foretold: return []
                 default: return CardService.shared.getRulings(oracleID: id)
                 }
             }()
@@ -633,6 +696,7 @@ class BoardViewController: UIViewController {
             var showCard = cardInstance.representation.card.language == .english
             if case .faceDown = cardInstance.representation { showCard = true }
             if showCard { image?.cardInstance = cardInstance }
+            image?.showsOtherSideButton = true
             let controls = UIHostingController(rootView: CardControlView(card: cardInstance, dismiss: { dismissInspector() }))
             controllers.insert(controls, at: 0)
             return InspectorPage(card: cardInstance, image: image, controls: controllers)
@@ -712,8 +776,122 @@ class BoardViewController: UIViewController {
         if cardInstance.controllerIdentifier.value == .b && phoneMode == nil { host.view.transform = .init(rotationAngle: .pi) }
         focusViewController = host
         dismissInspector = { [weak host] in host?.dismiss(animated: true) }
-        present(host, animated: true)
+        if phoneMode != nil { presentPhoneCardMenu(host, card: cardInstance, fallback: cardView) }
+        else { present(host, animated: true) }
   }
+
+    private func phoneCardMenuSource(_ card: CardInstance, fallback: UIView?, zooming controller: UIViewController? = nil) -> UIView? {
+        if let mini = cardView(for: card), !mini.isHidden, mini.window != nil { return mini.cardView }
+        if let source = localPhoneBar?.handViewController?.phonePresentation.menuSources[card.uuid]?.view, source.window != nil {
+            // Artwork may finish loading after SwiftUI last updated this background source.
+            (source as? UIImageView)?.image = card.representation.imageIfLoaded(type: .normal)
+            return source
+        }
+        if let stand = phoneMenuStandIn(for: card, zooming: controller) { return stand }
+        return fallback?.window != nil ? fallback : nil
+    }
+
+    // MARK: Menu zoom stand-ins (organized lands, stack cards)
+
+    /// Lands and stack cards are SwiftUI, with no UIKit view for the zoom transition to lift.
+    /// A UIKit stand-in takes the card's place (the real one is concealed) for each zoom, in and
+    /// out, and is removed as soon as that transition ends so the board stays live meanwhile.
+    private struct PhoneMenuStandIn {
+        let card: UUID
+        let view: UIView
+        let host: UIViewController?
+        let isStack: Bool
+    }
+    private var phoneMenuStandIn: PhoneMenuStandIn?
+
+    private func phoneMenuStandIn(for card: CardInstance, zooming controller: UIViewController?) -> UIView? {
+        if let current = phoneMenuStandIn, current.card == card.uuid, current.view.superview != nil { return current.view }
+        removePhoneMenuStandIn()
+        let stand: PhoneMenuStandIn
+        if let organizer = [landOrganizer, opponentLandOrganizer].compactMap({ $0 }).first(where: { $0.landFrame(for: card.uuid) != nil }),
+           let frame = organizer.landFrame(for: card.uuid), organizer.view.window != nil {
+            let rect = view.convert(frame, from: nil)
+            let host = UIHostingController(rootView: SwiftUICardView(card: card, isRotationEnabled: false))
+            if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+            host.view.backgroundColor = .clear
+            host.view.isUserInteractionEnabled = false
+            host.view.bounds = CGRect(origin: .zero, size: rect.size)
+            host.view.center = CGPoint(x: rect.midX, y: rect.midY)
+            if card.isTapped.value { host.view.transform = CGAffineTransform(rotationAngle: .pi / 15) }
+            view.addSubview(host.view)
+            host.view.layoutIfNeeded()
+            organizer.concealCard(card.uuid, true)
+            stand = PhoneMenuStandIn(card: card.uuid, view: host.view, host: host, isStack: false)
+        } else if let session = phoneMode, !phoneStackCollapsed, let stackView = phoneStackCards?.view, !stackView.isHidden,
+                  stackView.window != nil,
+                  let index = session.game.stack.firstIndex(where: { $0.card?.uuid == card.uuid }),
+                  session.game.stack.count - 1 - index < 4 {
+            let depth = session.game.stack.count - 1 - index
+            let size = PhoneStackCardsView.cardSize(in: stackView.bounds.size)
+            let transform = PhoneStackCardsView.cardTransform(in: stackView.bounds.size, depth: depth)
+            let center = CGPoint(x: size.width / 2, y: size.height / 2).applying(transform)
+            let image = UIImageView(image: card.representation.imageIfLoaded(type: .normal)
+                                    ?? card.representation.image(type: .normal))
+            image.contentMode = .scaleAspectFill
+            image.clipsToBounds = true
+            image.layer.cornerCurve = .continuous
+            image.layer.cornerRadius = max(4, size.width * 0.045)
+            image.isUserInteractionEnabled = false
+            image.bounds = CGRect(origin: .zero, size: size)
+            image.center = stackView.convert(center, to: view)
+            image.transform = CGAffineTransform(rotationAngle: -4 * CGFloat(depth) * .pi / 180)
+            view.addSubview(image)
+            stand = PhoneMenuStandIn(card: card.uuid, view: image, host: nil, isStack: true)
+            phoneStackCards?.rootView = makePhoneStackView(session, concealing: card.uuid)
+        } else {
+            return nil
+        }
+        phoneMenuStandIn = stand
+        watchPhoneMenuTransition(controller, standIn: stand.view)
+        return stand.view
+    }
+
+    /// Removes the stand-in once the transition that uses it has finished.
+    private func watchPhoneMenuTransition(_ controller: UIViewController?, standIn: UIView) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 30) { [weak self, weak controller, weak standIn] in
+            guard let self, let standIn, self.phoneMenuStandIn?.view === standIn else { return }
+            if let controller, controller.transitionCoordinator != nil || controller.isBeingPresented || controller.isBeingDismissed {
+                self.watchPhoneMenuTransition(controller, standIn: standIn)
+            } else {
+                self.removePhoneMenuStandIn()
+            }
+        }
+    }
+
+    private func removePhoneMenuStandIn() {
+        guard let stand = phoneMenuStandIn else { return }
+        phoneMenuStandIn = nil
+        stand.view.removeFromSuperview()
+        if stand.isStack {
+            if let session = phoneMode { phoneStackCards?.rootView = makePhoneStackView(session) }
+        } else {
+            landOrganizer?.concealCard(stand.card, false)
+            opponentLandOrganizer?.concealCard(stand.card, false)
+        }
+    }
+
+    private func presentPhoneCardMenu(_ controller: UIViewController, card: CardInstance, fallback: UIView?) {
+        if #available(iOS 18.0, *), !UIAccessibility.isReduceMotionEnabled,
+           phoneCardMenuSource(card, fallback: fallback, zooming: controller) != nil {
+            controller.preferredTransition = .zoom { [weak self, weak fallback] context in
+                self?.phoneCardMenuSource(card, fallback: fallback, zooming: context.zoomedViewController)
+            }
+        }
+        let feedback = UIImpactFeedbackGenerator(style: .medium)
+        feedback.prepare()
+        present(controller, animated: true)
+        // A battlefield card's menu shows as a white outline on the opponent's phone.
+        if let session = phoneMode, session.game.state.battlefield.value.contains(card) {
+            session.trackInspection(.card(card.uuid), while: controller)
+        }
+        // With the zoom, as the card starts to lift, rather than once the sheet has settled.
+        feedback.impactOccurred()
+    }
 
 	func toggleSidebar() {
 		guard let splitViewController = splitViewController else { return }
@@ -1200,6 +1378,8 @@ class BoardViewController: UIViewController {
             cardInstance.representation = .card(card)
           } else if case .manifest(let card) = cardInstance.representation {
             cardInstance.representation = .card(card)
+          } else if case .mysterious(let card) = cardInstance.representation {
+            cardInstance.representation = .card(card)
           } else if case .foretold(let card) = cardInstance.representation {
             cardInstance.representation = .card(card)
           }
@@ -1443,14 +1623,25 @@ class BoardViewController: UIViewController {
       self.loadDandan()
     }
     alert.addAction(dandanAction)
-    if phoneMode != nil {
-      alert.addAction(BoardMenuAction(title: "Connection…", style: .default) { [weak self] _ in self?.showConnectionOptions() })
+    // The reset options sit right on the menu's first group (they used to hide behind Reset).
+    alert.addAction(BoardMenuAction(title: "Reset Decks and Life", style: .default) { [weak self] _ in self?.resetDecksAndLife() })
+    alert.addAction(BoardMenuAction(title: "Clear Board", style: .destructive) { [weak self] _ in self?.clearBoard() })
+    alert.addAction(BoardMenuAction(title: "Exit Game", style: .destructive) { [weak self] _ in self?.exitGame() })
+    if let session = phoneMode {
+      // Show the whole hand to the opponent (their phone opens its revealed-cards browser).
+      let hand = session.game.state[player: session.player].hand.cards.value.contents
+      let revealed = !hand.isEmpty && hand.allSatisfy { $0.revealedPlayers.value.contains(session.opponent) }
+      alert.addAction(BoardMenuAction(title: revealed ? "Stop Revealing Hand" : "Reveal Hand", style: .default) { _ in
+        session.send(.reveal(hand.map(\.uuid), session.opponent, !revealed))
+      })
     }
-    alert.addAction(BoardMenuAction(title: "Load Deck / JumpStart / Jump In", style: .default) { [weak self] _ in self?.showPhoneDeckPicker() })
-    alert.addAction(BoardMenuAction(title: "Preloaded Games & Artwork", style: .default) { [weak self] _ in
-      let games = UIHostingController(rootView: NavigationStack { OfflineGamesView(close: { [weak self] in self?.dismiss(animated: true) }) })
-      games.view.accessibilityHint = PhoneSheet.providesCloseHint // has its own Done
-      self?.present(games, animated: true)
+    if phoneMode != nil {
+      // An alert over the menu, which stays open underneath.
+      alert.addAction(BoardMenuAction(title: "Connection…") { [weak self] in self?.showConnectionOptions(); return nil })
+    }
+    alert.addAction(BoardMenuAction(title: "Load Deck / JumpStart / Jump In") { [weak self] in self?.makePhoneDeckPicker() })
+    alert.addAction(BoardMenuAction(title: "Preloaded Games & Artwork") { [weak self] in
+      UIHostingController(rootView: OfflineGamesView(close: { [weak self] in self?.dismiss(animated: true) }))
     })
 		
 		let togglePlayer2Action = BoardMenuAction(title: "Show/Hide Player 2", style: .default) { _ in
@@ -1816,6 +2007,8 @@ extension BoardViewController: UIDocumentPickerDelegate {
 		guard urls.count == 1, let url = urls.first else { return }
 		
 		loadDeck(from: url, for: loadDeckPlayerIdentifier)
+		// Phone Play picks the file over the board menu's Load Deck page; close that too.
+		if phoneMode != nil, presentedViewController != nil, presentedViewController !== controller { dismiss(animated: true) }
 	}
 	
 	func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
@@ -1896,7 +2089,7 @@ extension BoardViewController: UIDropInteractionDelegate {
     }
 
     /// What dropping here would do besides a plain move.
-    private enum PhoneDropIntent: Equatable { case attach(UUID), unattach, block(UUID), unblock }
+    private enum PhoneDropIntent: Equatable { case attach(UUID), unattach, block(UUID), unblock, target(UUID) }
 
     /// Hovering a dragged card over another starts a short delay; then the target glows blue with
     /// "Attach" floating above it. Dragging an attached card off its host offers "Unattach" instead
@@ -1909,7 +2102,10 @@ extension BoardViewController: UIDropInteractionDelegate {
         let blocker = draggedID.flatMap { id in phoneMode.flatMap { canPhoneBlock(with: id, session: $0) ? $0.game.cards[id] : nil } }
         let blocking = blocker.flatMap { phoneMode?.game.combat?.blockers[$0.uuid] }
         let intent: PhoneDropIntent?
-        if blocker != nil, let target, phoneMode?.game.combat?.attackers.contains(target.uuid) == true {
+        if let draggedID, let target, isPhoneTargetingSpellInHand(draggedID) {
+            // An instant, sorcery or Aura from your hand: offer to cast it targeting this card.
+            intent = .target(target.uuid)
+        } else if blocker != nil, let target, phoneMode?.game.combat?.attackers.contains(target.uuid) == true {
             // Your creature over one of the opponent's attackers: block it.
             intent = target.uuid == blocking ? nil : .block(target.uuid)
         } else if blocking != nil, !phoneHandDropRegionContains(point) {
@@ -1921,11 +2117,19 @@ extension BoardViewController: UIDropInteractionDelegate {
         } else {
             intent = nil
         }
+        let combatPreview = blocker.flatMap { card -> (blocker: UUID, attacker: UUID)? in
+            guard let target, phoneMode?.game.combat?.attackers.contains(target.uuid) == true else { return nil }
+            return (card.uuid, target.uuid)
+        }
         if let intent, intent == phoneAttachHover?.intent {
+            phoneCombatPreview = combatPreview
+            updatePhoneCombatLines()
             if phoneAttachHover?.armed == true { showPhoneDropIntent(intent, at: point) } // follow the finger/relayouts
             return
         }
         clearPhoneAttachHover()
+        phoneCombatPreview = combatPreview
+        updatePhoneCombatLines()
         guard let intent else { return }
         phoneAttachGeneration += 1
         let generation = phoneAttachGeneration
@@ -1934,9 +2138,23 @@ extension BoardViewController: UIDropInteractionDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self, let hover = self.phoneAttachHover, hover.generation == generation else { return }
             self.phoneAttachHover?.armed = true
-            UISelectionFeedbackGenerator().selectionChanged()
+            PhoneHaptics.pickUp()
             self.showPhoneDropIntent(intent, at: self.phoneLastDragPoint ?? point)
         }
+    }
+
+    /// Instants, sorceries and Auras in your hand go onto the stack, possibly already targeting.
+    private func isPhoneTargetingSpellInHand(_ id: UUID) -> Bool {
+        guard let session = phoneMode,
+              let card = session.game.state[player: session.player].hand.cards.value.first(where: { $0.uuid == id }) else { return false }
+        return card.isPhoneTargetingSpell
+    }
+
+    /// The permanent an armed "Target" hover would target.
+    private func armedPhoneSpellTarget(at point: CGPoint, excluding ids: Set<UUID>) -> CardInstance? {
+        guard let hover = phoneAttachHover, hover.armed, case .target(let id) = hover.intent,
+              let target = phoneAttachmentTarget(at: point, excluding: ids), target.uuid == id else { return nil }
+        return target
     }
 
     private func armedPhoneAttachTarget(at point: CGPoint, excluding ids: Set<UUID>) -> CardInstance? {
@@ -1984,11 +2202,14 @@ extension BoardViewController: UIDropInteractionDelegate {
     }
 
     private func clearPhoneAttachHover() {
+        phoneCombatPreview = nil
+        updatePhoneCombatLines()
         phoneAttachHover = nil
         phoneAttachIndicator?.removeFromSuperview()
         phoneAttachIndicator = nil
         phoneAttachLabel?.removeFromSuperview()
         phoneAttachLabel = nil
+        if phoneStackDrag == nil { hidePhoneDragHover() }
     }
 
     /// The card's drawn art (not its padded frame): center, size and rotation in view coordinates.
@@ -2019,7 +2240,7 @@ extension BoardViewController: UIDropInteractionDelegate {
     private func phoneDropLabel(_ text: String) -> UILabel {
         let label = phoneAttachLabel ?? UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.font = UIFont(name: "Beleren2016-Bold", size: 14) ?? .systemFont(ofSize: 13, weight: .semibold)
         label.textColor = .white
         label.backgroundColor = .systemBlue
         label.textAlignment = .center
@@ -2036,7 +2257,7 @@ extension BoardViewController: UIDropInteractionDelegate {
 
     private func showPhoneDropIntent(_ intent: PhoneDropIntent, at point: CGPoint) {
         switch intent {
-        case .attach(let id), .block(let id):
+        case .attach(let id), .block(let id), .target(let id):
             let isBlock = intent == .block(id)
             let color: UIColor = isBlock ? .systemOrange : .systemBlue
             guard let card = phoneMode?.game.cards[id] ?? GameState.current.cardInstance(with: id),
@@ -2050,31 +2271,46 @@ extension BoardViewController: UIDropInteractionDelegate {
                 indicator.layer.shadowRadius = 10
                 indicator.layer.shadowOffset = .zero
                 indicator.accessibilityIdentifier = "phone-attach-indicator"
-                view.addSubview(indicator)
                 phoneAttachIndicator = indicator
             }
             indicator.layer.borderColor = color.cgColor
             indicator.layer.shadowColor = color.cgColor
             indicator.backgroundColor = color.withAlphaComponent(0.15)
             indicator.transform = .identity
-            indicator.bounds.size = CGSize(width: geometry.size.width + 4, height: geometry.size.height + 4)
-            indicator.center = geometry.center
-            indicator.layer.cornerRadius = min(10, geometry.size.width * 0.05)
-            indicator.transform = CGAffineTransform(rotationAngle: geometry.angle)
-            // Under the card being dragged; the label floats above the target, over everything.
-            if let preview = phoneDragPreview, preview.superview === view { view.insertSubview(indicator, belowSubview: preview) }
-            else { view.bringSubviewToFront(indicator) }
-            let label = phoneDropLabel(isBlock ? "Block" : "Attach")
+            if let mini = cardView(for: card), !mini.isHidden, mini.window != nil {
+                // Inside the mini card, around the drawn card only, like the combat glow: it
+                // follows the card's tap rotation instead of being placed from a computed angle.
+                let host = phoneOutlineHost(mini)
+                if indicator.superview !== host { host.addSubview(indicator) }
+                host.bringSubviewToFront(indicator)
+                let scale = max(0.01, scrollView.zoomScale * hypot(mini.transform.a, mini.transform.b))
+                indicator.frame = phoneDrawnCardRect(in: mini).insetBy(dx: -2 / scale, dy: -2 / scale)
+                indicator.layer.borderWidth = 3 / scale
+                indicator.layer.shadowRadius = 10 / scale
+                indicator.layer.cornerRadius = min(10 / scale, indicator.bounds.width * 0.05)
+            } else {
+                // Organized lands are SwiftUI; outline their frame on the board.
+                if indicator.superview !== view { view.addSubview(indicator) }
+                indicator.layer.borderWidth = 3
+                indicator.layer.shadowRadius = 10
+                indicator.bounds.size = CGSize(width: geometry.size.width + 4, height: geometry.size.height + 4)
+                indicator.center = geometry.center
+                indicator.layer.cornerRadius = min(10, geometry.size.width * 0.05)
+                indicator.transform = CGAffineTransform(rotationAngle: geometry.angle)
+                // Under the card being dragged.
+                if let preview = phoneDragPreview, preview.superview === view { view.insertSubview(indicator, belowSubview: preview) }
+                else { view.bringSubviewToFront(indicator) }
+            }
+            let label = phoneDropLabel(isBlock ? "Block" : intent == .target(id) ? "Target" : "Attach")
             label.backgroundColor = color
-            label.center = CGPoint(x: geometry.center.x, y: indicator.frame.minY - label.bounds.height / 2 - 6)
+            label.center = phoneDragLabelCenter(for: label, finger: point)
             view.bringSubviewToFront(label)
         case .unattach, .unblock:
             phoneAttachIndicator?.removeFromSuperview()
             phoneAttachIndicator = nil
             let label = phoneDropLabel(intent == .unblock ? "Stop Blocking" : "Unattach")
             label.backgroundColor = .systemBlue
-            let top = phoneDragPreview.map { $0.frame.minY } ?? point.y - 50
-            label.center = CGPoint(x: phoneDragPreview?.center.x ?? point.x, y: top - label.bounds.height / 2 - 6)
+            label.center = phoneDragLabelCenter(for: label, finger: point)
             view.bringSubviewToFront(label)
         }
     }
@@ -2084,9 +2320,9 @@ extension BoardViewController: UIDropInteractionDelegate {
     private func phoneHandDropRegionContains(_ point: CGPoint) -> Bool {
         guard phoneMode != nil, let container = localPhoneBar?.handContainerView,
               container.superview === view, !container.isHidden else { return false }
-        let visibleTop = container.frame.minY + (container.phoneContentFrame?.minY ?? 0)
-        let hudTop = phoneBarBackgrounds.count > 1 ? phoneBarBackgrounds[1].frame.minY : visibleTop
-        return point.y >= min(visibleTop, hudTop) && point.y <= view.bounds.maxY
+        // Only where the hand sits (or would sit, when empty) — not the HUD between the piles.
+        let content = container.phoneContentFrame ?? container.bounds
+        return view.convert(content, from: container).contains(point)
     }
 
     private func finishDroppedCards(_ cards: [CardInstance], at point: CGPoint, attachTo attachTarget: CardInstance?) {
@@ -2201,9 +2437,8 @@ extension BoardViewController {
         guard let session = phoneMode else { return }
         let alert = UIAlertController(title: "Connection", message: session.status, preferredStyle: .alert)
         if session.mode == .join { alert.addAction(.init(title: "Reconnect", style: .default) { _ in session.reconnect() }) }
-        alert.addAction(.init(title: "View Stack (\(session.game.stack.count))", style: .default) { [weak self] _ in self?.showPhoneStack() })
         alert.addAction(.init(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
+        phonePresenter.present(alert, animated: true)
     }
 
     /// The menu's Reset button: reset decks and life, clear the board, or exit to the start screen.
@@ -2325,7 +2560,25 @@ extension BoardViewController {
             alert.addAction(.init(title: "OK", style: .default) { _ in session?.error = nil })
             self.phonePresenter.present(alert, animated: true)
         }.store(in: &phoneSubscriptions)
+        session.chooseCommanderZone = { [weak self] card, location, completion in
+            guard let self else { completion(false); return }
+            let names: [Pile.Location: String] = [.hand: "Hand", .graveyard: "Graveyard", .exile: "Exile", .library: "Library", .sideboard: "Sideboard"]
+            let alert = UIAlertController(title: "Move \(card.representation.name ?? "commander") to…", message: nil, preferredStyle: .alert)
+            alert.addAction(.init(title: names[location] ?? location.rawValue, style: .default) { _ in completion(false) })
+            alert.addAction(.init(title: "Command Zone", style: .default) { _ in completion(true) })
+            alert.addAction(.init(title: "Cancel", style: .cancel))
+            self.phonePresenter.present(alert, animated: true)
+        }
         for child in [bottomBarA, bottomBarB].compactMap({ $0 }) {
+            // The top card of a graveyard, exile or library drags like a hand card.
+            for (pileView, zone) in [(child.graveyardPileView, Pile.Location.graveyard), (child.exilePileView, .exile), (child.libraryPileView, .library)] {
+                guard let pileView, !pileView.gestureRecognizers.orEmpty.contains(where: { $0 is PhonePilePanGesture }) else { continue }
+                let pan = PhonePilePanGesture(target: self, action: #selector(phonePilePanned(_:)))
+                pan.zone = zone
+                pan.bar = child
+                pan.maximumNumberOfTouches = 1
+                pileView.addGestureRecognizer(pan)
+            }
             child.focusOn = { [weak self] card in
                 guard let self, let card, card.ownerIdentifier == session.player else { return }
                 self.focus(on: card, view: nil)
@@ -2342,6 +2595,7 @@ extension BoardViewController {
         // for whatever size the scene has now.
         NotificationCenter.default.publisher(for: UIScene.willDeactivateNotification).sink { [weak self] _ in
             self?.abandonPhoneHandDrag()
+            self?.clearPhoneResolutionAnimations()
         }.store(in: &phoneSubscriptions)
         NotificationCenter.default.publisher(for: UIScene.didActivateNotification).sink { [weak self] _ in
             guard let self else { return }
@@ -2395,6 +2649,7 @@ extension BoardViewController {
                 // Deferred: frames often arrive during a layout pass, and must not be dropped.
                 DispatchQueue.main.async {
                     guard let self else { return }
+                    self.updatePhoneTargetArcs()
                     // Only growth past the reservation can change the battlefield layout.
                     if (self.currentPhoneLandMaxX() ?? 0) > (self.phoneLandReservation?.maxX ?? -.infinity) { self.view.setNeedsLayout() }
                 }
@@ -2426,14 +2681,50 @@ extension BoardViewController {
 
     private func refreshPhoneBoard() {
         guard let session = phoneMode, isViewLoaded else { return }
+        let stackIDs = Set(session.game.stack.map(\.id))
+        let departures = phoneKnownStack?.gameID == session.game.id
+            ? phonePreviousStack.filter { !stackIDs.contains($0.id) }.compactMap { item in
+                phonePreviousStackFrames[item.id].map { (item, $0) }
+            } : []
+        phonePreviousStack = session.game.stack
+        phoneKnownStack = (session.game.id, stackIDs)
+        if let drag = phoneStackDrag, !stackIDs.contains(drag.itemID) { endPhoneStackDrag() }
         DispatchQueue.main.async { [weak self] in self?.presentPhonePacketChoices() }
         let cards = Array(session.game.cards.values)
         let fieldIDs = Set(session.game.state.battlefield.value.map(\.uuid) + session.game.stack.compactMap { $0.card?.uuid })
         let handIDs = Set(session.game.state[player: session.player].hand.cards.value.map(\.uuid))
-        if let previousPhoneHandIDs, !previousPhoneHandIDs.subtracting(handIDs).isDisjoint(with: fieldIDs) {
+        // A card that left the hand (played, discarded, put back…) closes the open hand, as on Arena.
+        if let previousPhoneHandIDs, !previousPhoneHandIDs.subtracting(handIDs).isEmpty, phoneHandDrag == nil {
             collapsePhoneHand()
         }
         previousPhoneHandIDs = handIDs
+        updatePhoneRevealedCards(session)
+        refreshPhoneBrowser(session)
+        // Libraries whose top card is kept revealed to this phone's player show it.
+        for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
+            let viewers = session.game.revealedTops?[bar.player.identifier.rawValue] ?? []
+            bar.libraryPileView?.revealsTopCardOverride = viewers.contains(session.player.rawValue)
+        }
+        // A shuffled library gives a quick wiggle.
+        let shuffles = session.game.shuffles ?? [:]
+        if let seen = phoneSeenShuffles {
+            for (player, count) in shuffles where count > (seen[player] ?? 0) {
+                let bar = [bottomBarA, bottomBarB].compactMap { $0 }.first { $0.player.identifier.rawValue == player }
+                if let pile = bar?.libraryPileView { wigglePhoneLibrary(pile) }
+            }
+        }
+        phoneSeenShuffles = shuffles
+        // Cards castable from the graveyard or exile sit beside the hand with a glow.
+        if let presentation = localPhoneBar?.handViewController?.phonePresentation {
+            let castable = session.game.castableCards(for: session.player)
+            if castable.count != presentation.castable.count || !zip(castable, presentation.castable).allSatisfy({ $0 === $1 }) {
+                presentation.castable = castable
+            }
+            let inExile = Set(castable.filter { session.game.state[player: session.player].exile.cards.value.contains($0) }.map(\.uuid))
+            if inExile != presentation.castableInExile { presentation.castableInExile = inExile }
+            let companions = Set(castable.filter { session.game.state[player: session.player].sideboard.cards.value.contains($0) }.map(\.uuid))
+            if companions != presentation.castableCompanions { presentation.castableCompanions = companions }
+        }
         for cardView in board.subviews.compactMap({ $0 as? MiniCardView }) where !fieldIDs.contains(cardView.cardInstance.uuid) {
             cardInstanceDisposeBags[cardView.cardInstance.uuid] = nil
             cardView.removeFromSuperview()
@@ -2456,8 +2747,15 @@ extension BoardViewController {
         }
         updateLandOrganizerLands()
         updatePlayersHidden()
-        phoneStackCards?.rootView = PhoneStackCardsView(items: session.game.stack, inspect: { [weak self] card in self?.focus(on: card, view: nil) })
+        phoneStackCards?.rootView = makePhoneStackView(session)
         view.setNeedsLayout()
+        if !departures.isEmpty {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.view.layoutIfNeeded()
+                for (item, frame) in departures { self.animatePhoneStackDeparture(item, from: frame) }
+            }
+        }
     }
 
     private func layoutPhoneBattlefield() {
@@ -2512,6 +2810,11 @@ extension BoardViewController {
         var safe = view.safeAreaInsets
         safe.left += 24; safe.right += 24
         safe.top += 8
+        // Each bar reaches as close to the edges as the system allows along its own band: on a
+        // closed iPhone Duo only the camera's strip is avoided, not the whole side of the safe area.
+        let barHeightEstimate = min(124, max(52, min(view.bounds.width, view.bounds.height) * 0.12))
+        let topBand = phoneBandInsets(0...(barHeightEstimate + view.safeAreaInsets.top))
+        let bottomBand = phoneBandInsets((view.bounds.height - barHeightEstimate - view.safeAreaInsets.bottom)...view.bounds.height)
         landOrganizerContainerView.accessibilityIdentifier = "phone-local-lands"
         landOrganizerContainerView.backgroundColor = .clear
         landOrganizer?.hideOrganizerBackground()
@@ -2520,11 +2823,12 @@ extension BoardViewController {
         for constraint in view.constraints {
             let first = constraint.firstItem as? UIView
             let second = constraint.secondItem as? UIView
+            func band(_ container: UIView?) -> (left: CGFloat, right: CGFloat) { container === top ? topBand : bottomBand }
             if (first === player1BarContainerView || first === player2BarContainerView) && constraint.firstAttribute == .leading {
-                rememberPhoneConstraint(constraint); constraint.constant = safe.left - (constraint.secondItem is UILayoutGuide ? view.safeAreaInsets.left : 0)
+                rememberPhoneConstraint(constraint); constraint.constant = band(first).left - (constraint.secondItem is UILayoutGuide ? view.safeAreaInsets.left : 0)
             }
             if (second === player1BarContainerView || second === player2BarContainerView) && constraint.firstAttribute == .trailing {
-                rememberPhoneConstraint(constraint); constraint.constant = safe.right - (constraint.firstItem is UILayoutGuide ? view.safeAreaInsets.right : 0)
+                rememberPhoneConstraint(constraint); constraint.constant = band(second).right - (constraint.firstItem is UILayoutGuide ? view.safeAreaInsets.right : 0)
             }
         }
         for child in [bottomBarA, bottomBarB].compactMap({ $0 }) { child.refreshForPhoneSession() }
@@ -2536,7 +2840,9 @@ extension BoardViewController {
         // Both land rows: same left edge as the battlefield, same gap to their player's bar.
         let landGap = (6 * min(2.4, max(1, view.bounds.height / 375))).rounded()
         let landBase = untransformedFrame(landOrganizerContainerView)
-        translate(landOrganizerContainerView, x: safe.left + 8 - landBase.minX, y: bottomHUDTop - landGap - landHeight - landBase.minY)
+        let ownLandTop = bottomHUDTop - landGap - landHeight
+        let ownLandBand = phoneBandInsets(ownLandTop...max(ownLandTop, ownLandTop + landHeight), margin: 32, minimum: 32)
+        translate(landOrganizerContainerView, x: ownLandBand.left - landBase.minX, y: ownLandTop - landBase.minY)
         if phoneBarBackgrounds.isEmpty {
             for _ in 0..<2 {
                 let background = UIView(); background.backgroundColor = UIColor.black.withAlphaComponent(0.6)
@@ -2552,10 +2858,13 @@ extension BoardViewController {
         if let shield = phoneHandShield, !shield.isHidden { view.bringSubviewToFront(shield) }
         let opponentLandHeight = min(124, max(52, view.bounds.height * 0.14))
         let landRowTop = top.frame.maxY + landGap
-        (phoneOpponentLandContainer ?? opponentLandOrganizer?.view)?.frame = CGRect(x: safe.left + 8, y: landRowTop, width: view.bounds.width - safe.left - safe.right - 100, height: opponentLandHeight)
+        // Each band of the field keeps clear only of the reserved regions (camera) it crosses.
+        let opponentLandBand = phoneBandInsets(landRowTop...(landRowTop + opponentLandHeight), margin: 32, minimum: 32)
+        (phoneOpponentLandContainer ?? opponentLandOrganizer?.view)?.frame = CGRect(x: opponentLandBand.left, y: landRowTop, width: view.bounds.width - opponentLandBand.left - opponentLandBand.right - 84, height: opponentLandHeight)
         let topY = landRowTop + opponentLandHeight
         let bottomY = bottomHUDTop - landHeight - landGap
-        let rowVisible = CGRect(x: safe.left + 8, y: topY + 4, width: max(100, view.bounds.width - safe.left - safe.right - 16), height: max(90, bottomY - topY - 8))
+        let rowBand = phoneBandInsets((topY + 4)...max(topY + 4, bottomY - 4), margin: 32, minimum: 32)
+        let rowVisible = CGRect(x: rowBand.left, y: topY + 4, width: max(100, view.bounds.width - rowBand.left - rowBand.right), height: max(90, bottomY - topY - 8))
         // Column layout: land rows only occupy the left of their rows. When their lands are narrow,
         // the battlefield can use the full height between the bars beside them (much larger cards on
         // short screens). It stays clear of the compact hand's top edge in the middle.
@@ -2570,17 +2879,41 @@ extension BoardViewController {
         }
         let landMaxX = phoneLandReservation?.maxX ?? measuredLandMaxX
         let handHeight = min(360, max(150, min(view.bounds.width, view.bounds.height) * 0.40))
-        let columnTop = top.frame.maxY + landGap
-        let columnBottom = min(bottomHUDTop - landGap, view.bounds.height - handHeight * 0.44 - 4)
+        // A reserved region (the camera's strip) that only nicks the top or bottom of the column
+        // shortens it a little rather than narrowing the whole field.
+        let columnRange = phoneTrimmedBand((top.frame.maxY + landGap)...min(bottomHUDTop - landGap, view.bounds.height - handHeight * 0.44 - 4))
+        let columnTop = columnRange.lowerBound
+        let columnBottom = columnRange.upperBound
+        let columnBand = phoneBandInsets(columnRange, margin: 8, minimum: 8)
         let columnX = landMaxX + 12
+        if ProcessInfo.processInfo.arguments.contains("--phone-board-log-regions"), let logo = phoneBackgroundLogo {
+            // Debug: the reserved regions, readable by a UI test (simctl can't reach the app's log reliably).
+            var text = "bounds=\(view.bounds.size) safe=\(view.safeAreaInsets) top=\(top.frame.maxY) hud=\(bottomHUDTop) land=\(landOrganizerContainerView.frame)"
+            if #available(iOS 27.1, *) {
+                for region in view.reservedRegions(kind: .occlusion, options: .includeInactive) { text += " region=\(region.frame) active=\(region.isActive)" }
+            }
+            logo.isAccessibilityElement = true
+            logo.accessibilityIdentifier = "phone-regions"
+            logo.accessibilityLabel = text
+        }
         // Symmetric about the screen center, so the column layout's cards stay centered like the row layout's.
-        let columnInset = max(columnX, safe.right + 8)
+        let columnInset = max(columnX, columnBand.left, columnBand.right)
         let columnVisible = CGRect(x: columnInset, y: columnTop, width: max(100, view.bounds.width - 2 * columnInset), height: max(90, columnBottom - columnTop))
-        var descriptors: [(Player.Identifier, PhoneBattlefieldLayout.Row)] = [(session.opponent, .support), (session.opponent, .creatures), (session.player, .creatures)]
+        // Arena's back row: with a land row shown, a player's other noncreature permanents sit in it,
+        // right-aligned opposite the lands (laid out below); the band in the middle holds creatures
+        // (and planeswalkers, sagas and battles at its right end).
+        let opponentBackRow = opponentLandOrganizer != nil
+        let ownBackRow = showLandOrganizer && landOrganizer != nil
+        var descriptors: [(Player.Identifier, PhoneBattlefieldLayout.Row)] = [(session.opponent, .creatures), (session.player, .creatures)]
+        if !opponentBackRow { descriptors.insert((session.opponent, .support), at: 0) }
         let ownSupport = PhoneBattlefieldLayout.groups(in: session.game, player: session.player, row: .support).filter {
             !(showLandOrganizer && landOrganizer?.shouldIncludeCard($0.top) == true)
         }
-        if !ownSupport.isEmpty { descriptors.append((session.player, .support)) }
+        if !ownSupport.isEmpty && !ownBackRow { descriptors.append((session.player, .support)) }
+        for player in [session.opponent, session.player]
+        where !PhoneBattlefieldLayout.groups(in: session.game, player: player, row: .side).isEmpty {
+            descriptors.append((player, .side))
+        }
         // Identical non-land permanents are laid out one by one when that fits without shrinking
         // the cards or paging a row; otherwise (or for 5+ copies) they stack. Lands keep their stacking.
         var splitDuplicates = false
@@ -2605,17 +2938,26 @@ extension BoardViewController {
         // Reserve the tapped footprint in both states; tapping never changes card scale.
         let rotationSpill = ceil(250 * (cos(CGFloat.pi / 15) + sin(CGFloat.pi / 15) - 1))
         let topSpill = rotationSpill
+        /// Groups in a row that is laid out on the field (own lands may live in the land organizer).
+        func laidOut(_ player: Player.Identifier, _ row: PhoneBattlefieldLayout.Row) -> Int {
+            descriptors.contains { $0.0 == player && $0.1 == row } ? groups(for: player, row: row).count : 0
+        }
         struct FieldPlan { var leftSpill: CGFloat; var bottomSpill: CGFloat; var useColumn: Bool; var visible: CGRect; var extent: CGFloat }
         func plan() -> FieldPlan {
-            let largestRow = descriptors.map { groups(for: $0.0, row: $0.1, ignoringTapped: true).count }.max() ?? 0
+            // A player's lanes (other permanents, creatures, planeswalkers) share one band, so size
+            // the cards for the fullest band, not just its longest row.
+            let largestRow = Set(descriptors.map(\.0)).map { player in
+                descriptors.filter { $0.0 == player }.reduce(0) { $0 + groups(for: player, row: $1.1, ignoringTapped: true).count }
+            }.max() ?? 0
             // A row includes its fanned duplicates and attachments. Keep that entire
             // footprint inside its player's half, clear of both land organizers.
             let attachmentCount = descriptors.flatMap { groups(for: $0.0, row: $0.1) }
                 .map { session.game.attachedCards(to: $0.top.uuid).count }.max() ?? 0
             // Fanned duplicates (up to 3 layers at 22/18 per layer) and attachments only reserve space when present.
             let maxLayers = min(3, descriptors.flatMap { groups(for: $0.0, row: $0.1) }.map(\.cards.count).max() ?? 1)
-            let bottomSpill: CGFloat = max(CGFloat(maxLayers - 1) * 18, attachmentCount > 0 ? 70 + CGFloat(attachmentCount - 1) * 25 : 0) + rotationSpill
-            let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? 85 + CGFloat(attachmentCount - 1) * 30 : 0) + rotationSpill
+            // Attachments tuck behind their card, peeking 34 + 30 per layer to the left (and a bit up).
+            let bottomSpill: CGFloat = CGFloat(maxLayers - 1) * 18 + rotationSpill
+            let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? 34 + CGFloat(attachmentCount - 1) * 30 : 0) + rotationSpill
             func extent(in rect: CGRect) -> CGFloat {
                 let heightFit = max(24, (rect.height / 2 - 4) / (1 + (topSpill + bottomSpill) / 500))
                 return min(heightFit, PhoneBattlefieldLayout.cardExtent(screenWidth: rect.width, screenHeight: view.bounds.height, groups: largestRow))
@@ -2626,11 +2968,9 @@ extension BoardViewController {
             func fittedColumnExtent() -> CGFloat {
                 var fitted = extent(in: columnVisible)
                 let needed = CGFloat(max(1, largestRow)) * cellUnits - 20
-                for _ in 0..<2 {
-                    let stackInset = session.game.stack.isEmpty ? 0 : max(86, fitted * 1.12)
-                    let available = columnVisible.width - 2 * stackInset
-                    if needed * fitted / 500 > available { fitted = max(24, available * 500 / needed) }
-                }
+                // The stack overlays the battlefield (Arena), so it never changes this layout.
+                let available = columnVisible.width
+                if needed * fitted / 500 > available { fitted = max(24, available * 500 / needed) }
                 return fitted
             }
             let useColumn = fittedColumnExtent() > extent(in: rowVisible) * 1.05
@@ -2641,16 +2981,13 @@ extension BoardViewController {
         /// Mirrors the row/lane sizing below: true when no row of this plan would page.
         func fitsWithoutPaging(_ plan: FieldPlan) -> Bool {
             let zoom = plan.extent / 500
-            let stackInset = session.game.stack.isEmpty ? 0 : max(86, plan.extent * 1.12) / zoom
-            let fieldWidth = max(500, plan.visible.width / zoom - 2 * stackInset)
+            let fieldWidth = max(500, plan.visible.width / zoom)
             let cellWidth = 520 + plan.leftSpill + rotationSpill
             return descriptors.allSatisfy { player, row in
                 let count = groups(for: player, row: row).count
-                let supportCount = groups(for: player, row: .support).count
-                let hasCreatures = !groups(for: player, row: .creatures).isEmpty
-                let supportWidth = supportCount > 0 && hasCreatures
-                    ? min(max(cellWidth, min(fieldWidth * 0.35, CGFloat(supportCount) * cellWidth)), fieldWidth - cellWidth) : 0
-                let rowWidth = supportWidth > 0 && row == .support ? supportWidth : fieldWidth - supportWidth
+                let lanes = phoneLanes(fieldWidth: fieldWidth, cellWidth: cellWidth,
+                                       support: laidOut(player, .support), creatures: laidOut(player, .creatures), side: laidOut(player, .side))
+                let rowWidth = row == .support ? lanes.support.width : row == .side ? lanes.side.width : lanes.creatures.width
                 return count <= max(1, Int((rowWidth + 20) / cellWidth))
             }
         }
@@ -2675,22 +3012,21 @@ extension BoardViewController {
         scrollView.pinchGestureRecognizer?.isEnabled = false
         selectionGestureRecognizer.isEnabled = false
         let world = board.convert(visible, from: view)
-        let stackScreenWidth = max(86, extent * 1.12)
-        let stackWidth = stackScreenWidth / scrollView.zoomScale
-        let fieldInset = session.game.stack.isEmpty ? CGFloat.zero : stackWidth
-        let field = CGRect(x: world.minX + fieldInset, y: world.minY, width: max(500, world.width - 2 * fieldInset), height: world.height)
+        // Cards on the stack never move the battlefield: the stack draws over it (hide it to uncover).
+        let field = CGRect(x: world.minX, y: world.minY, width: max(500, world.width), height: world.height)
         for button in phoneGroupButtons { button.removeFromSuperview() }
         phoneGroupButtons.removeAll()
         for cardView in board.subviews.compactMap({ $0 as? MiniCardView }) {
             cardView.isHidden = true
+            cardView.layoutScale = 1
             for gesture in cardView.gestureRecognizers ?? [] where gesture is UIPanGestureRecognizer { gesture.isEnabled = true }
             for interaction in cardView.interactions.compactMap({ $0 as? UIDragInteraction }) { interaction.isEnabled = true }
-            // Holding opens the inspector only after 0.65 s without moving; any drag wins first.
+            // Holding opens the inspector after 0.35 s without moving; any drag wins first.
             for interaction in cardView.interactions.compactMap({ $0 as? UIContextMenuInteraction }) { cardView.removeInteraction(interaction) }
             if !(cardView.gestureRecognizers ?? []).contains(where: { $0.name == "phone-hold" }) {
                 let hold = UILongPressGestureRecognizer(target: self, action: #selector(phoneCardHeld(_:)))
                 hold.name = "phone-hold"
-                hold.minimumPressDuration = 0.65
+                hold.minimumPressDuration = 0.35 // a quick hold opens the card's menu
                 hold.allowableMovement = 8
                 cardView.addGestureRecognizer(hold)
                 // The board's own long press (its menu) waits, so holding a card opens the card.
@@ -2707,6 +3043,13 @@ extension BoardViewController {
             let blocking = session.game.combat?.blockers[cardView.cardInstance.uuid] != nil
             cardView.layer.borderWidth = 0
             cardView.accessibilityValue = attacking ? "Attacking" : blocking ? "Blocking" : cardView.cardInstance.isTapped.value ? "Tapped" : "Untapped"
+            // A Room's locked doors, by name.
+            if cardView.cardInstance.representation.isRoom, let faces = cardView.cardInstance.representation.card.cardFaces {
+                let locked = [Counter.lockedDoorLeft, .lockedDoorRight].enumerated()
+                    .filter { cardView.cardInstance.counters.value.contains($0.element) && faces.indices.contains($0.offset) }
+                    .map { "\(faces[$0.offset].name ?? "Door") locked" }
+                if !locked.isEmpty { cardView.accessibilityValue = ([cardView.accessibilityValue ?? ""] + locked).joined(separator: ", ") }
+            }
             cardView.accessibilityCustomActions = [UIAccessibilityCustomAction(name: "Inspect", actionHandler: { [weak self, weak cardView] _ in
                 guard let self, let cardView else { return false }
                 self.focus(on: cardView.cardInstance, view: cardView)
@@ -2715,22 +3058,24 @@ extension BoardViewController {
         }
         for descriptor in descriptors {
             let allGroups = groups(for: descriptor.0, row: descriptor.1)
-            let key = descriptor.0.rawValue + (descriptor.1 == .creatures ? "creatures" : "support")
-            let supportCount = groups(for: descriptor.0, row: .support).count
-            let hasCreatures = !groups(for: descriptor.0, row: .creatures).isEmpty
+            let key = descriptor.0.rawValue + (descriptor.1 == .creatures ? "creatures" : descriptor.1 == .side ? "side" : "support")
             let cellWidth = 520 + leftSpill + rotationSpill // 20-unit gap; less padding between cards
-            // Support permanents and creatures use separate horizontal lanes in
+            // Support permanents, creatures and planeswalkers/sagas use separate horizontal lanes in
             // the same player band. Four fractional rows could overlap vertically.
-            let supportWidth = supportCount > 0 && hasCreatures
-                ? min(max(cellWidth, min(field.width * 0.35, CGFloat(supportCount) * cellWidth)), field.width - cellWidth)
-                : 0
-            let rowX = descriptor.1 == .creatures ? field.minX + supportWidth : field.minX
-            let rowWidth = supportWidth > 0 && descriptor.1 == .support ? supportWidth : field.width - supportWidth
+            let lanes = phoneLanes(fieldWidth: field.width, cellWidth: cellWidth,
+                                   support: laidOut(descriptor.0, .support), creatures: laidOut(descriptor.0, .creatures), side: laidOut(descriptor.0, .side))
+            let lane = descriptor.1 == .support ? lanes.support : descriptor.1 == .side ? lanes.side : lanes.creatures
+            let rowX = field.minX + lane.minX
+            let rowWidth = lane.width
             // A paging row reserves room at its end for the page button, so it never covers a card.
             let pageReserve = 76 / max(0.01, scrollView.zoomScale)
-            let pages = allGroups.count > max(1, Int((rowWidth + 20) / cellWidth))
+            // A full row first overlaps its cards (as on Arena), down to 45% of a card apart;
+            // it pages only beyond that.
+            let minSpacing = cellWidth * 0.45
+            func overlapCapacity(_ width: CGFloat) -> Int { max(1, Int((width - cellWidth + 20) / minSpacing) + 1) }
+            let pages = allGroups.count > max(Int((rowWidth + 20) / cellWidth), overlapCapacity(rowWidth))
             let layoutWidth = pages ? max(cellWidth, rowWidth - pageReserve) : rowWidth
-            let capacity = max(1, Int((layoutWidth + 20) / cellWidth))
+            let capacity = pages ? overlapCapacity(layoutWidth) : max(1, allGroups.count)
             let startIndex = min(phoneRowOffsets[key] ?? 0, max(0, allGroups.count - 1))
             let pageGroups = Array(allGroups.dropFirst(startIndex).prefix(capacity))
             let fraction: CGFloat = descriptor.0 == session.player ? 0.75 : 0.25
@@ -2753,8 +3098,9 @@ extension BoardViewController {
                 }, for: .touchUpInside)
                 view.addSubview(button); phoneGroupButtons.append(button)
             }
-            let spacing = cellWidth
-            let width = CGFloat(pageGroups.count) * cellWidth - 20
+            let spacing = pageGroups.count > 1
+                ? min(cellWidth, (layoutWidth - cellWidth + 20) / CGFloat(pageGroups.count - 1)) : cellWidth
+            let width = CGFloat(max(0, pageGroups.count - 1)) * spacing + cellWidth - 20
             // Creature rows center on the screen (not on the lane beside the lands), sliding
             // toward the lane only as far as needed to stay clear of the lands.
             var start = row.minX
@@ -2772,14 +3118,69 @@ extension BoardViewController {
                         board.bringSubviewToFront(cardView)
                     }
                 }
-                if group.cards.count > 1 { addPhoneBadge("x\(group.cards.count)", at: CGPoint(x: point.x + 160, y: point.y - 190), cards: group.cards) }
+                // Arena labels a stack just above its top-left corner (the fanned copies reach left).
+                if group.cards.count > 1 {
+                    let fan = CGFloat(min(3, group.cards.count) - 1) * 22
+                    addPhoneBadge("x\(group.cards.count)", above: CGPoint(x: point.x - 238 - fan, y: point.y - 214), cards: group.cards)
+                }
                 let attached = session.game.attachedCards(to: group.top.uuid)
                 for (layer, attachment) in attached.enumerated() {
                     if let cardView = cardView(for: attachment) {
                         cardView.isHidden = false
-                        cardView.center = CGPoint(x: point.x - 85 - CGFloat(layer) * 30, y: point.y + 70 + CGFloat(layer) * 25)
+                        // Arena tucks equipment and Auras right behind the card: each one peeks
+                        // out a little further to the left (and a touch higher).
+                        cardView.center = CGPoint(x: point.x - 34 - CGFloat(layer) * 30, y: point.y - 6 - CGFloat(layer) * 6)
                         if let parent = self.cardView(for: group.top) { board.insertSubview(cardView, belowSubview: parent) }
                     }
+                }
+            }
+        }
+        // The back rows: noncreature permanents at land size, right-aligned in each land row's band,
+        // overlapping (rather than paging) when there are many.
+        for (player, organizer, bandTop, bandHeight) in [
+            (session.opponent, opponentBackRow ? opponentLandOrganizer : nil, landRowTop, opponentLandHeight),
+            (session.player, ownBackRow ? landOrganizer : nil, ownLandTop, landHeight)
+        ] {
+            guard let organizer, bandHeight > 20 else { continue }
+            let backGroups = groups(for: player, row: .support)
+            guard !backGroups.isEmpty else { continue }
+            let zoom = max(0.01, scrollView.zoomScale)
+            let scale = min(1, bandHeight * 1.1 / max(1, 500 * zoom))
+            let band = phoneBandInsets(bandTop...(bandTop + bandHeight), margin: 32, minimum: 32)
+            let landsMaxX = organizer.landContentFrames.map { view.convert($0, from: nil).maxX }.max() ?? band.left
+            // Clear of the stack's controls (its button, Resolve) where they share the band.
+            let bandRect = CGRect(x: 0, y: bandTop, width: view.bounds.width, height: bandHeight)
+            let controls = [phoneStackButton, phoneStackResolveButton].compactMap { $0 }
+                .filter { !$0.isHidden && $0.alpha > 0.01 && $0.superview != nil }
+                .map { view.convert($0.bounds, from: $0) }
+                .filter { $0.intersects(bandRect) }
+            let rightEdge = min(view.bounds.width - band.right, controls.map(\.minX).min().map { $0 - 8 } ?? .greatestFiniteMagnitude)
+            let available = max(0, rightEdge - landsMaxX - 16) / zoom // board units
+            let cell = 500 * scale
+            let natural = 520 * scale
+            let spacing = backGroups.count > 1 ? max(cell * 0.3, min(natural, (available - cell) / CGFloat(backGroups.count - 1))) : natural
+            let anchor = board.convert(CGPoint(x: rightEdge, y: bandTop + bandHeight / 2), from: view)
+            for (index, group) in backGroups.enumerated() {
+                // The first permanent sits at the right end; the rest step left, each on top of the
+                // one to its right so its name stays readable.
+                let point = CGPoint(x: anchor.x - cell / 2 - CGFloat(index) * spacing, y: anchor.y)
+                for (layer, card) in group.cards.prefix(3).enumerated().reversed() {
+                    guard let cardView = cardView(for: card) else { continue }
+                    cardView.isHidden = false
+                    cardView.layoutScale = scale
+                    cardView.center = CGPoint(x: point.x - CGFloat(layer) * 22 * scale, y: point.y + CGFloat(layer) * 18 * scale)
+                    board.bringSubviewToFront(cardView)
+                }
+                if group.cards.count > 1 {
+                    let fan = CGFloat(min(3, group.cards.count) - 1) * 22 * scale
+                    addPhoneBadge("x\(group.cards.count)", above: CGPoint(x: point.x - 238 * scale - fan, y: point.y - 214 * scale), cards: group.cards)
+                }
+                for (layer, attachment) in session.game.attachedCards(to: group.top.uuid).enumerated() {
+                    guard let attachedView = cardView(for: attachment), let parent = cardView(for: group.top) else { continue }
+                    attachedView.isHidden = false
+                    attachedView.layoutScale = scale
+                    attachedView.center = CGPoint(x: point.x - (34 + CGFloat(layer) * 30) * scale, y: point.y - (6 + CGFloat(layer) * 6) * scale)
+                    board.insertSubview(attachedView, belowSubview: parent)
                 }
             }
         }
@@ -2810,34 +3211,766 @@ extension BoardViewController {
                 }
             }
         }
-        if phoneStackCards == nil {
-            let host = UIHostingController(rootView: PhoneStackCardsView(items: session.game.stack, inspect: { [weak self] card in self?.focus(on: card, view: nil) }))
-            host.view.backgroundColor = .clear
-            addChild(host); view.addSubview(host.view); host.didMove(toParent: self)
-            phoneStackCards = host
-        }
-        phoneStackCards?.view.frame = CGRect(x: visible.maxX - stackScreenWidth, y: visible.minY + 38, width: stackScreenWidth, height: max(80, visible.height - 38))
-        phoneStackCards?.view.isHidden = session.game.stack.isEmpty
-        if phoneStackButton == nil {
-            let button = UIButton(type: .system)
-            button.addAction(UIAction { [weak self] _ in self?.showPhoneStack() }, for: .touchUpInside)
-            view.addSubview(button); phoneStackButton = button
-        }
-        phoneStackButton?.isHidden = session.game.stack.isEmpty
-        phoneStackButton?.setTitle("Stack · \(session.game.stack.count)", for: .normal)
-        phoneStackButton?.titleLabel?.font = .systemFont(ofSize: max(14, min(28, view.bounds.height * 0.037)))
-        phoneStackButton?.frame = CGRect(x: visible.maxX - stackScreenWidth, y: visible.minY, width: stackScreenWidth, height: 36)
-        phoneStackButton?.accessibilityIdentifier = "phone-stack"
+        layoutPhoneStack(session, top: top.frame.maxY + 4, bottom: bottomHUDTop - 6)
+        // The stack draws over the battlefield; a row's page button must stay reachable above it.
+        for button in phoneGroupButtons where button.superview === view { view.bringSubviewToFront(button) }
         updatePhoneAttackIndicators()
+        updatePhoneTargetArcs()
+        updatePhoneCombatLines()
         view.bringSubviewToFront(bottom)
         for badge in phoneGroupButtons where badge.superview === board { board.bringSubviewToFront(badge) }
         layoutPhoneHandOverlay()
         if let shield = phoneHandShield, !shield.isHidden { view.bringSubviewToFront(shield) }
+        if let drag = phoneStackDrag { updatePhoneStackDragHover(drag) }
+        phonePreviousStackFrames = Dictionary(uniqueKeysWithValues: session.game.stack.compactMap { item in
+            phoneStackCardFrame(item.id).map { (item.id, $0) }
+        })
+    }
+
+    // MARK: Stack card drags — targets and zones
+
+    /// Dragging a stack card draws a live arc from it. Released on a permanent, a player or another
+    /// spell, it toggles that target; released on a pile or the hand, the card moves there
+    /// without resolving. There is no separate targeting mode.
+    private struct PhoneStackDragState {
+        let itemID: UUID
+        let card: CardInstance
+        var finger: CGPoint
+        var target: PhoneGame.Target?
+        var zone: (location: Pile.Location, player: Player.Identifier, view: UIView?)?
+    }
+
+    /// The visible stack item under a point in view coordinates (newest first).
+    private func phoneStackItem(at point: CGPoint) -> PhoneGame.StackItem? {
+        guard let session = phoneMode, let stackView = phoneStackCards?.view, !phoneStackCollapsed, !stackView.isHidden else { return nil }
+        let local = stackView.convert(point, from: view)
+        let size = PhoneStackCardsView.cardSize(in: stackView.bounds.size)
+        for (depth, item) in session.game.stack.suffix(4).reversed().enumerated() {
+            let transform = PhoneStackCardsView.cardTransform(in: stackView.bounds.size, depth: depth)
+            if CGRect(origin: .zero, size: size).contains(local.applying(transform.inverted())) { return item }
+        }
+        return nil
+    }
+
+    @objc private func phoneStackPanned(_ pan: UIPanGestureRecognizer) {
+        guard let session = phoneMode else { return }
+        let point = pan.location(in: view)
+        switch pan.state {
+        case .began:
+            let start = CGPoint(x: point.x - pan.translation(in: view).x, y: point.y - pan.translation(in: view).y)
+            guard session.canAct, let item = phoneStackItem(at: start), let card = item.card else {
+                pan.isEnabled = false; pan.isEnabled = true // not on a card: cancel
+                return
+            }
+            collapsePhoneHand()
+            phoneStackDrag = PhoneStackDragState(itemID: item.id, card: card, finger: point)
+            PhoneHaptics.pickUp()
+            fallthrough
+        case .changed:
+            guard var drag = phoneStackDrag else { return }
+            drag.finger = point
+            let zone = phoneStackDropZone(at: point, card: drag.card)
+            drag.zone = zone
+            let previous = drag.target
+            drag.target = zone == nil ? phoneStackDropTarget(at: point, excluding: drag) : nil
+            // A small tick as the arrow reaches something it could target.
+            if let target = drag.target, target != previous { PhoneHaptics.hover() }
+            phoneStackDrag = drag
+            updatePhoneStackDragHover(drag)
+            updatePhoneTargetArcs()
+        case .ended:
+            guard let drag = phoneStackDrag else { return }
+            endPhoneStackDrag()
+            if let zone = drag.zone {
+                if zone.location == .library { promptPhoneLibraryDrop(drag.card, session: session) }
+                else { session.send(.moveToPlayer(drag.card.uuid, zone.location, zone.player, bottom: false)) }
+                PhoneHaptics.drop()
+            } else if let target = drag.target,
+                      let item = session.game.stack.first(where: { $0.id == drag.itemID }), item.player == session.player {
+                var targets = item.targets ?? []
+                if let index = targets.firstIndex(of: target) { targets.remove(at: index) } else { targets.append(target) }
+                session.send(.setStackTargets(item.id, targets))
+                PhoneHaptics.drop()
+            }
+        default:
+            endPhoneStackDrag()
+        }
+    }
+
+    private func endPhoneStackDrag() {
+        phoneStackDrag = nil
+        phoneZoneHoverKey = nil
+        hidePhoneDragHover()
+        // The arc that followed the finger fades away rather than vanishing.
+        if let arc = phoneStackDragArc {
+            phoneStackDragArc = nil
+            UIView.animate(withDuration: UIAccessibility.isReduceMotionEnabled ? 0.1 : 0.25, delay: 0, options: [.beginFromCurrentState]) {
+                arc.alpha = 0
+            } completion: { _ in arc.removeFromSuperview() }
+        }
+        updatePhoneTargetArcs()
+    }
+
+    /// The live arc from the dragged stack card to the finger. None while the finger is over a
+    /// zone: moving a card to the hand or a pile isn't targeting.
+    private func updatePhoneStackDragArc() {
+        guard let drag = phoneStackDrag, drag.zone == nil, let source = phoneStackAnchor(drag.itemID) else {
+            phoneStackDragArc?.isHidden = true
+            return
+        }
+        let arc = phoneStackDragArc ?? {
+            let arc = PhoneTargetArcsView()
+            arc.isOpaque = false; arc.backgroundColor = .clear
+            arc.isUserInteractionEnabled = false
+            arc.accessibilityElementsHidden = true
+            phoneStackDragArc = arc
+            return arc
+        }()
+        arc.frame = view.bounds
+        if arc.superview !== view {
+            if let stack = phoneStackContainer, stack.superview === view { view.insertSubview(arc, belowSubview: stack) }
+            else { view.addSubview(arc) }
+        }
+        arc.isHidden = false
+        arc.connections = [.init(source: source, destination: drag.finger, local: true, targetsStack: false)]
+    }
+
+    /// Room a horizontal band of the board (a bar, the stack, the hand) leaves at its left and
+    /// right edges. On iOS 27.1 it avoids only the reserved regions that cross the band — on a
+    /// closed iPhone Duo, the outer camera and its bar strip — plus `margin` and room for the
+    /// rounded screen corners, instead of the whole side of the safe area. Earlier: the safe area.
+    func phoneBandInsets(_ band: ClosedRange<CGFloat>, margin: CGFloat = 24, minimum: CGFloat = 24) -> (left: CGFloat, right: CGFloat) {
+        let safe = view.safeAreaInsets
+        guard #available(iOS 27.1, *) else { return (safe.left + margin, safe.right + margin) }
+        let regions = view.reservedRegions(kind: .occlusion)
+        // No regions reported (a device or state without any): keep to the safe area.
+        guard !regions.isEmpty else { return (safe.left + margin, safe.right + margin) }
+        var left: CGFloat = 0, right: CGFloat = 0
+        for region in regions where region.frame.maxY > band.lowerBound && region.frame.minY < band.upperBound {
+            if region.frame.midX < view.bounds.midX { left = max(left, region.frame.maxX) }
+            else { right = max(right, view.bounds.maxX - region.frame.minX) }
+        }
+        // `minimum` (24 pt for the bars) clears the rounded corners along the top and bottom edges.
+        return (max(minimum, left + margin), max(minimum, right + margin))
+    }
+
+    /// A vertical band shortened past any reserved region that only intrudes a little (under a
+    /// quarter of its height) at its top or bottom edge, e.g. the closed iPhone Duo's camera strip
+    /// reaching just below the top bar.
+    func phoneTrimmedBand(_ band: ClosedRange<CGFloat>) -> ClosedRange<CGFloat> {
+        var top = band.lowerBound, bottom = band.upperBound
+        guard #available(iOS 27.1, *) else { return band }
+        let height = bottom - top
+        for region in view.reservedRegions(kind: .occlusion) where region.frame.maxY > top && region.frame.minY < bottom {
+            if region.frame.minY <= top, region.frame.maxY - top < height * 0.25 { top = region.frame.maxY + 4 }
+            else if region.frame.maxY >= bottom, bottom - region.frame.minY < height * 0.25 { bottom = region.frame.minY - 4 }
+        }
+        return top...max(top, bottom)
+    }
+
+    /// Either player's graveyard, exile or library pile under a point.
+    private func phonePileZone(at point: CGPoint, underHand: Bool = false) -> (location: Pile.Location, player: Player.Identifier, view: UIView)? {
+        // Piles the open hand's cards cover aren't drop targets there (but holding a card over one
+        // still spring-loads it: `underHand`).
+        if !underHand, localPhoneBar?.handViewController?.phonePresentation.isExpanded == true, phoneHandDropRegionContains(point) { return nil }
+        for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
+            let piles: [(UIView?, Pile.Location)] = [(bar.graveyardPileView, .graveyard), (bar.exilePileView, .exile), (bar.libraryPileView, .library)]
+            for (pile, location) in piles {
+                guard let pile, !pile.isHidden, pile.window != nil,
+                      pile.point(inside: pile.convert(point, from: view), with: nil) else { continue }
+                return (location, bar.player.identifier, pile)
+            }
+        }
+        return nil
+    }
+
+    /// A pile (either player's graveyard, exile or library) or your hand under the finger.
+    private func phoneStackDropZone(at point: CGPoint, card: CardInstance) -> (location: Pile.Location, player: Player.Identifier, view: UIView?)? {
+        guard let session = phoneMode else { return nil }
+        if let pile = phonePileZone(at: point) { return (pile.location, pile.player, pile.view) }
+        // Your life total sits in the HUD band over the hand: there it's a target, not the hand.
+        if phoneTargetFrame(.player(session.player))?.contains(point) == true { return nil }
+        if phoneHandDropRegionContains(point) { return (.hand, session.player, nil) }
+        return nil
+    }
+
+    /// A player, a battlefield card or land, or another visible spell under the finger.
+    private func phoneStackDropTarget(at point: CGPoint, excluding drag: PhoneStackDragState) -> PhoneGame.Target? {
+        guard let session = phoneMode else { return nil }
+        for player in [session.player, session.opponent] {
+            if phoneTargetFrame(.player(player))?.contains(point) == true { return .player(player) }
+        }
+        if let item = phoneStackItem(at: point) {
+            return item.id == drag.itemID ? nil : item.card.map { .card($0.uuid) }
+        }
+        if let card = phoneAttachmentTarget(at: point, excluding: [drag.card.uuid]) { return .card(card.uuid) }
+        return nil
+    }
+
+    /// Outlines what releasing would do: the target (around the drawn mini card itself) or the zone.
+    private func updatePhoneStackDragHover(_ drag: PhoneStackDragState) {
+        guard let session = phoneMode else { return }
+        if let zone = drag.zone {
+            showPhoneZoneHover(zone.location, zoneView: zone.view)
+        } else if let target = drag.target,
+                  let item = session.game.stack.first(where: { $0.id == drag.itemID }), item.player == session.player {
+            phoneZoneHoverKey = nil
+            let text = (item.targets ?? []).contains(target) ? "Remove Target" : "Target"
+            if case .card(let id) = target, let card = session.game.cards[id], let mini = cardView(for: card), !mini.isHidden {
+                let scale = max(0.01, scrollView.zoomScale * hypot(mini.transform.a, mini.transform.b))
+                showPhoneDragHover(text, in: phoneOutlineHost(mini), frame: phoneDrawnCardRect(in: mini).insetBy(dx: -2 / scale, dy: -2 / scale), scale: scale)
+            } else {
+                showPhoneDragHover(text, in: view, frame: phoneBoardTargetFrame(target)?.insetBy(dx: -3, dy: -3), scale: 1)
+            }
+        } else {
+            phoneZoneHoverKey = nil
+            hidePhoneDragHover()
+        }
+    }
+
+    /// "Move to Graveyard/Exile/Library/Hand": the zone a dragged card would go to, outlined.
+    /// Shared by stack, hand, pile and battlefield drags.
+    private func showPhoneZoneHover(_ location: Pile.Location, zoneView: UIView?) {
+        let names: [Pile.Location: String] = [.graveyard: "Graveyard", .exile: "Exile", .library: "Library", .hand: "Hand"]
+        let frame: CGRect? = zoneView.map { view.convert($0.bounds, from: $0) } ?? localPhoneBar?.handContainerView.map { container in
+            view.convert(container.phoneContentFrame ?? container.bounds, from: container)
+        }
+        // A tick each time the card comes over a zone it would move to.
+        let key = "\(location.rawValue)-\(zoneView.map { ObjectIdentifier($0).hashValue } ?? 0)"
+        if key != phoneZoneHoverKey { phoneZoneHoverKey = key; PhoneHaptics.hover() }
+        showPhoneDragHover("Move to \(names[location] ?? "Zone")", in: view, frame: frame?.insetBy(dx: -2, dy: -2), scale: 1, outlined: false)
+    }
+
+    /// The zone outline for a hand, pile or battlefield card dragged to `point` (nil: none).
+    private func updatePhoneZoneHover(at point: CGPoint, includesHand: Bool) {
+        updatePhoneSpringLoad(at: point)
+        if let pile = phonePileZone(at: point) {
+            showPhoneZoneHover(pile.location, zoneView: pile.view)
+        } else if includesHand, phoneHandDropRegionContains(point),
+                  phoneTargetFrame(.player(phoneMode?.player ?? .a))?.contains(point) != true {
+            showPhoneZoneHover(.hand, zoneView: nil)
+        } else {
+            phoneZoneHoverKey = nil // left every zone: entering one again ticks
+            hidePhoneDragHover()
+        }
+    }
+
+    // MARK: Spring-loaded piles
+
+    /// The card being dragged (from the hand, a pile or the battlefield).
+    private var phoneSpringDraggedCard: CardInstance? { phoneHandDrag?.card ?? phoneDraggedCard }
+
+    /// Holding a dragged card over a graveyard, exile or library opens its browser, so the card
+    /// can be dropped at an exact spot; moving over the fan opens a gap where it would go.
+    private func updatePhoneSpringLoad(at point: CGPoint) {
+        phoneSpringPoint = point
+        guard let card = phoneSpringDraggedCard else { return }
+        phoneSpringCard = card
+        // An open browser (spring-loaded or not) takes the card: a gap opens where it would go.
+        if let browser = phoneBrowser {
+            if phoneBrowserDropZone != nil { browser.externalDragMoved(to: point) }
+            return
+        }
+        guard let pile = phonePileZone(at: point, underHand: true) else {
+            phoneSpringPile = nil; phoneSpringTimer?.invalidate(); phoneSpringTimer = nil
+            return
+        }
+        if let current = phoneSpringPile, current.location == pile.location, current.player == pile.player { return }
+        phoneSpringPile = (pile.location, pile.player, CACurrentMediaTime())
+        phoneSpringTimer?.invalidate()
+        // Under the open hand (where a quick drop reorders the hand), it takes a slightly longer hold.
+        let covered = phonePileZone(at: point) == nil
+        phoneSpringTimer = Timer.scheduledTimer(withTimeInterval: covered ? 0.9 : 0.65, repeats: false) { [weak self] _ in self?.springOpenPhonePile() }
+    }
+
+    private func springOpenPhonePile() {
+        guard let session = phoneMode, let spring = phoneSpringPile, let card = phoneSpringDraggedCard,
+              let pile = phonePileZone(at: phoneSpringPoint, underHand: true), pile.location == spring.location, pile.player == spring.player else { return }
+        let source = spring.location == .library ? session.game.library(spring.player) : session.game.state[player: spring.player][spring.location]
+        // Already in that pile (dragged off it): nothing to place.
+        guard !source.cards.value.contains(card) else { return }
+        PhoneHaptics.pickUp()
+        showPhoneZoneBrowser(.pile(spring.location, spring.player))
+        phoneSpringOpened = true
+        hidePhoneDragHover()
+        phoneZoneHoverKey = nil
+        // The dragged card stays above the browser.
+        if let preview = phoneDragPreview { view.bringSubviewToFront(preview) }
+        phoneBrowser?.externalDragMoved(to: phoneSpringPoint)
+    }
+
+    /// The zone an open browser shows, which a card dragged onto its fan goes into.
+    private var phoneBrowserDropZone: (location: Pile.Location, owner: Player.Identifier)? {
+        guard let session = phoneMode, let mode = phoneBrowserMode else { return nil }
+        switch mode {
+        case .pile(let location, let owner): return (location, owner)
+        case .search, .look: return (.library, session.player)
+        case .revealed: return nil
+        }
+    }
+
+    /// A drag ended over an open browser: a card released over its fan goes into that spot of the
+    /// zone. Returns false when it wasn't released over the fan (a spring-loaded browser closes).
+    private func finishPhoneSpringLoad(_ card: CardInstance, at point: CGPoint) -> Bool {
+        phoneSpringTimer?.invalidate(); phoneSpringTimer = nil
+        phoneSpringPile = nil
+        phoneSpringCard = nil
+        let springLoaded = phoneSpringOpened
+        phoneSpringOpened = false
+        guard let session = phoneMode, let browser = phoneBrowser, let zone = phoneBrowserDropZone else { return false }
+        let location = zone.location, owner = zone.owner
+        guard let index = browser.externalDrop(at: point) else {
+            if springLoaded { closePhoneZoneBrowser() }
+            return false
+        }
+        // In Look at, a card you put in stays visible to you.
+        if case .look = phoneBrowserMode {
+            if phoneBrowserLookedAt.isEmpty { phoneBrowserLookedAt = Set(phoneBrowserIDs.filter { !phoneBrowserFaceDown.contains($0) }) }
+            phoneBrowserLookedAt.insert(card.uuid)
+        }
+        var display = browser.cards.filter { $0.uuid != card.uuid }
+        display.insert(card, at: min(index, display.count))
+        let topFirst = display.reversed().map(\.uuid)
+        session.send(.moveToPlayer(card.uuid, location, owner, bottom: false))
+        if owner == session.player { session.send(.arrangePile(location, topFirst)) }
+        else if location == .library, topFirst.last == card.uuid {
+            // Dropped at the far left of a library: its bottom.
+            session.send(.moveToPlayer(card.uuid, location, owner, bottom: true))
+        }
+        PhoneHaptics.drop()
+        // A spring-loaded browser stays open briefly so the card can be seen in place; one the
+        // player opened stays open.
+        if springLoaded {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                if self?.phoneBrowser === browser { self?.closePhoneZoneBrowser() }
+            }
+        }
+        return true
+    }
+
+    /// Released over an open browser's dimmed area but not into it: the card goes back rather
+    /// than landing on the battlefield (or stack) hidden behind the browser.
+    private func phoneDropBlockedByBrowser(at point: CGPoint) -> Bool {
+        guard let browser = phoneBrowser, browser.covers(point) else { return false }
+        return phonePileZone(at: point) == nil && !browser.isOverBattlefieldZone(point)
+    }
+
+    /// A drag was cancelled or ended elsewhere: forget the spring-loaded pile.
+    private func cancelPhoneSpringLoad() {
+        phoneBrowser?.cancelExternalDrag()
+        phoneSpringTimer?.invalidate(); phoneSpringTimer = nil
+        phoneSpringPile = nil
+        phoneSpringCard = nil
+        if phoneSpringOpened {
+            phoneSpringOpened = false
+            closePhoneZoneBrowser()
+        }
+    }
+
+    /// `outlined: false` (zones) shows just the label over the zone; targets get the cyan outline too.
+    private func showPhoneDragHover(_ text: String, in container: UIView, frame: CGRect?, scale: CGFloat, outlined: Bool = true) {
+        let outline = phoneStackDragOutline ?? {
+            let outline = UIView()
+            outline.isUserInteractionEnabled = false
+            outline.backgroundColor = UIColor.systemCyan.withAlphaComponent(0.12)
+            outline.layer.borderColor = UIColor.systemCyan.cgColor
+            outline.layer.shadowColor = UIColor.systemCyan.cgColor
+            outline.layer.shadowOpacity = 1
+            outline.layer.shadowOffset = .zero
+            outline.accessibilityIdentifier = "phone-stack-drag-outline"
+            phoneStackDragOutline = outline
+            return outline
+        }()
+        let label = phoneStackDragLabel ?? {
+            let label = UILabel()
+            label.font = UIFont(name: "Beleren2016-Bold", size: 14) ?? .systemFont(ofSize: 13, weight: .semibold)
+            // White on a deep blue keeps it readable over any card art (contrast ~6:1).
+            label.textColor = .white
+            label.backgroundColor = UIColor(red: 0.0, green: 0.36, blue: 0.68, alpha: 0.95)
+            label.layer.borderColor = UIColor.systemCyan.cgColor
+            label.layer.borderWidth = 1
+            label.textAlignment = .center
+            label.layer.cornerRadius = 6
+            label.layer.masksToBounds = true
+            label.isUserInteractionEnabled = false
+            label.accessibilityIdentifier = "phone-stack-drag-intent"
+            phoneStackDragLabel = label
+            return label
+        }()
+        outline.transform = .identity
+        place(outline, in: container, frame: frame, scale: scale)
+        // The (invisible) box still positions the label over the zone.
+        outline.backgroundColor = outlined ? UIColor.systemCyan.withAlphaComponent(0.12) : .clear
+        outline.layer.shadowOpacity = outlined ? 1 : 0
+        if !outlined { outline.layer.borderWidth = 0 }
+        guard outline.superview != nil else { label.removeFromSuperview(); return }
+        label.text = text
+        let size = (text as NSString).size(withAttributes: [.font: label.font!])
+        label.bounds.size = CGSize(width: size.width + 14, height: size.height + 6)
+        label.center = phoneDragLabelCenter(for: label, finger: phoneStackDrag?.finger ?? phoneLastDragPoint)
+        if label.superview !== view { view.addSubview(label) }
+        view.bringSubviewToFront(label)
+        if let preview = phoneDragPreview, preview.superview === view { view.bringSubviewToFront(preview) }
+    }
+
+    /// Hides the outline. The zone the card is over is still remembered (it's redrawn on each
+    /// move), so its haptic plays once on entering, not on every move.
+    /// Drop labels ("Attach", "Block", "Target", "Move to …") sit just above the dragged card, so
+    /// neither the card nor the finger covers them; with no card (a stack card's arrow), above the finger.
+    private func phoneDragLabelCenter(for label: UIView, finger: CGPoint?) -> CGPoint {
+        let half = label.bounds.height / 2
+        let anchor: CGPoint
+        if let preview = phoneDragPreview, preview.superview === view {
+            let box = preview.layer.presentation()?.frame ?? preview.frame
+            anchor = CGPoint(x: box.midX, y: box.minY - half - 8)
+        } else {
+            let point = finger ?? CGPoint(x: view.bounds.midX, y: view.bounds.midY)
+            anchor = CGPoint(x: point.x, y: point.y - 44 - half)
+        }
+        let halfWidth = label.bounds.width / 2
+        return CGPoint(x: min(max(anchor.x, halfWidth + 8), view.bounds.width - halfWidth - 8),
+                       y: max(anchor.y, view.safeAreaInsets.top + half + 4))
+    }
+
+    private func hidePhoneDragHover() {
+        phoneStackDragOutline?.removeFromSuperview()
+        phoneStackDragLabel?.removeFromSuperview()
+    }
+
+    private func place(_ outline: UIView, in container: UIView, frame: CGRect?, scale: CGFloat) {
+        guard let frame else { outline.removeFromSuperview(); return }
+        if outline.superview !== container { container.addSubview(outline) }
+        container.bringSubviewToFront(outline)
+        outline.frame = frame
+        outline.layer.borderWidth = 3 / scale
+        outline.layer.shadowRadius = 9 / scale
+        outline.layer.cornerRadius = min(10 / scale, frame.width * 0.05)
+    }
+
+    private func phoneStackCardFrame(_ itemID: UUID) -> CGRect? {
+        guard let session = phoneMode, let stackView = phoneStackCards?.view,
+              let index = session.game.stack.firstIndex(where: { $0.id == itemID }) else { return nil }
+        let depth = session.game.stack.count - 1 - index
+        guard depth < 4 else { return nil }
+        let transform = PhoneStackCardsView.cardTransform(in: stackView.bounds.size, depth: depth)
+        let rect = CGRect(origin: .zero, size: PhoneStackCardsView.cardSize(in: stackView.bounds.size)).applying(transform)
+        return stackView.convert(rect, to: view)
+    }
+
+    private func phoneStackAnchor(_ itemID: UUID) -> CGPoint? {
+        guard let session = phoneMode, let stackView = phoneStackCards?.view, !stackView.isHidden,
+              let index = session.game.stack.firstIndex(where: { $0.id == itemID }) else { return nil }
+        let depth = session.game.stack.count - 1 - index
+        guard depth < 4 else { return nil }
+        var point = stackView.convert(PhoneStackCardsView.connectionPoint(in: stackView.bounds.size, depth: depth), to: view)
+        // Mid-slide, follow where the cards are drawn rather than where they're headed.
+        if let shown = stackView.layer.presentation()?.affineTransform() { point.x += shown.tx - stackView.transform.tx }
+        return point
+    }
+
+    private func phoneBoardTargetFrame(_ target: PhoneGame.Target) -> CGRect? {
+        if case .card(let id) = target, let item = phoneMode?.game.stack.first(where: { $0.card?.uuid == id }) {
+            return phoneStackCardFrame(item.id)
+        }
+        return phoneTargetFrame(target)
+    }
+
+    private func phoneTargetFrame(_ target: PhoneGame.Target) -> CGRect? {
+        guard let session = phoneMode else { return nil }
+        switch target {
+        case .player(let player):
+            guard let bar = [bottomBarA, bottomBarB].compactMap({ $0 }).first(where: { $0.player.identifier == player }),
+                  let life = bar.children.first(where: { $0 is LifeTrackerViewController })?.view else { return nil }
+            return life.convert(life.bounds, to: view)
+        case .card(let id):
+            if let item = session.game.stack.first(where: { $0.card?.uuid == id }) {
+                guard let point = phoneStackAnchor(item.id) else { return phoneStackButton?.frame }
+                return CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)
+            }
+            guard let card = session.game.publicCard(id) else { return nil }
+            if let geometry = phoneCardGeometry(card) {
+                return CGRect(x: geometry.center.x - geometry.size.width / 2, y: geometry.center.y - geometry.size.height / 2,
+                              width: geometry.size.width, height: geometry.size.height)
+            }
+            // Offscreen battlefield pages have no visible endpoint. Public piles use their HUD preview.
+            for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
+                let player = bar.player.identifier
+                let piles: [(Pile, UIView?)] = [(session.game.graveyard(player), bar.graveyardPileView),
+                                               (session.game.state[player: player].exile, bar.exilePileView)]
+                for (pile, preview) in piles where pile.cards.value.contains(card) {
+                    if let preview { return preview.convert(preview.bounds, to: view) }
+                }
+            }
+            return nil
+        }
+    }
+
+    private func updatePhoneTargetArcs() {
+        guard let session = phoneMode, let stackView = phoneStackCards?.view else { return }
+        if phoneTargetArcs == nil {
+            let arcs = PhoneTargetArcsView()
+            arcs.isOpaque = false; arcs.backgroundColor = .clear
+            arcs.isUserInteractionEnabled = false
+            arcs.accessibilityElementsHidden = true
+            phoneTargetArcs = arcs
+        }
+        guard let arcs = phoneTargetArcs else { return }
+        arcs.frame = view.bounds
+        if arcs.superview !== view || view.subviews.firstIndex(of: arcs) != (view.subviews.firstIndex(of: phoneStackContainer ?? stackView) ?? 0) - 1 {
+            view.insertSubview(arcs, belowSubview: phoneStackContainer ?? stackView)
+        }
+        var connections: [PhoneTargetArcsView.Connection] = []
+        // Drawn while the stack is collapsed too, from the edges of the cards left showing.
+        for item in session.game.stack {
+            guard let source = phoneStackAnchor(item.id) else { continue }
+            let targets = item.targets ?? []
+            for target in targets {
+                guard let frame = phoneTargetFrame(target), frame.width > 0, frame.height > 0 else { continue }
+                let center = CGPoint(x: frame.midX, y: frame.midY)
+                let dx = source.x - center.x, dy = source.y - center.y
+                let scale = min(frame.width / 2 / max(0.001, abs(dx)), frame.height / 2 / max(0.001, abs(dy)))
+                let end = CGPoint(x: center.x + dx * min(1, scale), y: center.y + dy * min(1, scale))
+                let targetsStack: Bool
+                if case .card(let id) = target { targetsStack = session.game.stack.contains { $0.card?.uuid == id } }
+                else { targetsStack = false }
+                connections.append(.init(source: source, destination: end, local: item.player == session.player, targetsStack: targetsStack))
+            }
+        }
+        updatePhoneStackDragArc()
+        arcs.connections = connections
+        arcs.isHidden = connections.isEmpty
+        phoneStackButton?.accessibilityValue = "\(connections.count) target connections"
+    }
+
+    private func makePhoneStackView(_ session: PhoneGameSession, concealing: UUID? = nil) -> PhoneStackCardsView {
+        PhoneStackCardsView(items: session.game.stack,
+                            inspect: { [weak self] card in
+                                guard let self else { return }
+                                if self.phoneStackCollapsed { self.setPhoneStackCollapsed(false, animated: true) }
+                                else { self.focus(on: card, view: nil) }
+                            },
+                            browse: { [weak self] in self?.showPhoneAbilityOptions() },
+                            concealedCardID: concealing ?? (phoneMenuStandIn?.isStack == true ? phoneMenuStandIn?.card : nil))
+    }
+
+    private func layoutPhoneStack(_ session: PhoneGameSession, top: CGFloat, bottom: CGFloat) {
+        if phoneStackCards == nil {
+            let host = UIHostingController(rootView: makePhoneStackView(session))
+            if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+            host.view.backgroundColor = .clear
+            let container = PhoneTouchFilterView()
+            container.accepts = { [weak self, weak container] point in
+                guard let self, let container else { return false }
+                return self.phoneStackItem(at: self.view.convert(point, from: container)) != nil
+            }
+            view.addSubview(container)
+            phoneStackContainer = container
+            addChild(host); container.addSubview(host.view); host.didMove(toParent: self)
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(phoneStackPanned(_:)))
+            pan.maximumNumberOfTouches = 1
+            host.view.addGestureRecognizer(pan)
+            phoneStackCards = host
+        }
+        if phoneStackButton == nil {
+            let button = UIButton(type: .system)
+            // One control: chevron and count, expanding or collapsing the stack.
+            button.addAction(UIAction { [weak self] _ in
+                guard let self else { return }
+                self.setPhoneStackCollapsed(!self.phoneStackCollapsed, animated: true)
+            }, for: .touchUpInside)
+            button.setPreferredSymbolConfiguration(.init(pointSize: 18, weight: .semibold), forImageIn: .normal)
+            button.tintColor = .white
+            button.setTitleColor(.white, for: .normal)
+            button.backgroundColor = UIColor.black.withAlphaComponent(0.75)
+            button.layer.cornerRadius = 18
+            button.accessibilityIdentifier = "phone-stack"
+            view.addSubview(button); phoneStackButton = button
+        }
+        if phoneStackResolveButton == nil {
+            let button = UIButton(type: .system)
+            button.setTitle("Resolve", for: .normal)
+            button.setTitleColor(.white, for: .normal)
+            button.backgroundColor = UIColor(red: 0.86, green: 0.31, blue: 0.07, alpha: 1)
+            button.layer.cornerRadius = 20
+            button.layer.borderWidth = 1
+            button.layer.borderColor = UIColor.systemOrange.withAlphaComponent(0.9).cgColor
+            button.layer.shadowColor = UIColor.systemOrange.cgColor
+            button.layer.shadowOpacity = 0.4
+            button.layer.shadowRadius = 6
+            button.accessibilityIdentifier = "phone-stack-resolve"
+            button.addAction(UIAction { [weak self] _ in
+                guard let session = self?.phoneMode, let item = session.game.stack.last else { return }
+                session.send(.resolve(item.id))
+            }, for: .touchUpInside)
+            view.addSubview(button); phoneStackResolveButton = button
+        }
+        let empty = session.game.stack.isEmpty
+        if empty { phoneStackCollapsed = false }
+        let right = view.bounds.width - phoneBandInsets(top...bottom, margin: 8, minimum: 8).right
+        let availableHeight = max(120, bottom - top)
+        let width = min(300, view.bounds.width * 0.30, (availableHeight - 46) * 0.88 * 63 / 88 * 1.62)
+        // Leave the card title below the count/chevron. Older cards pivot upward from
+        // their bottom edge so the fan stays clear of Resolve on short landscape phones.
+        let frame = CGRect(x: right - width, y: top + 20, width: width, height: availableHeight - 46)
+        phoneStackCards?.view.transform = .identity
+        phoneStackCards?.view.frame = frame
+        let cardWidth = PhoneStackCardsView.cardSize(in: frame.size).width
+        let shift = phoneStackCollapsed ? cardWidth + 5 - 18 : 0
+        // Keep the fan rendered beyond the edge: each older card leaves a narrow exposed strip.
+        phoneStackCards?.view.transform = CGAffineTransform(translationX: shift, y: 0)
+        phoneStackCards?.view.isHidden = empty
+        phoneStackCards?.view.accessibilityElementsHidden = phoneStackCollapsed
+        phoneStackCards?.view.isUserInteractionEnabled = !phoneStackCollapsed
+        if phoneStackPeekButton == nil {
+            let button = UIButton(type: .custom)
+            button.accessibilityIdentifier = "phone-stack-peek"
+            button.accessibilityLabel = "Show Stack cards"
+            button.addAction(UIAction { [weak self] _ in self?.setPhoneStackCollapsed(false, animated: true) }, for: .touchUpInside)
+            view.addSubview(button); phoneStackPeekButton = button
+        }
+        // Only the exposed sliver plus a minimum touch target: a wider strip would steal presses
+        // from battlefield cards sitting under the tucked-away stack.
+        let peekWidth = min(width, 44)
+        phoneStackPeekButton?.frame = CGRect(x: right - peekWidth, y: frame.minY + 16, width: view.bounds.width - right + peekWidth, height: frame.height - 24)
+        phoneStackPeekButton?.isHidden = empty || !phoneStackCollapsed
+        let font = UIFont(name: "Beleren2016-Bold", size: min(24, max(17, view.bounds.height * 0.045))) ?? .boldSystemFont(ofSize: 17)
+        phoneStackButton?.titleLabel?.font = font
+        // Just a stack icon: filled while the stack is shown, outlined while it's tucked away.
+        phoneStackButton?.setImage(UIImage(systemName: phoneStackCollapsed ? "square.stack.3d.up" : "square.stack.3d.up.fill"), for: .normal)
+        phoneStackButton?.setTitle(nil, for: .normal)
+        phoneStackButton?.accessibilityLabel = "Stack · \(session.game.stack.count)"
+        phoneStackButton?.accessibilityHint = phoneStackCollapsed ? "Shows the stack" : "Hides the stack"
+        phoneStackButton?.frame = CGRect(x: right - 52, y: top, width: 52, height: 36)
+        phoneStackButton?.isHidden = empty
+        phoneStackResolveButton?.titleLabel?.font = font
+        phoneStackResolveButton?.frame = CGRect(x: right - max(100, cardWidth), y: bottom - 40,
+                                                width: max(100, cardWidth), height: 40)
+        phoneStackResolveButton?.isHidden = empty || phoneStackCollapsed
+        phoneStackResolveButton?.isEnabled = session.canAct
+        phoneStackContainer?.frame = view.bounds
+        for control in [phoneStackContainer, phoneStackPeekButton, phoneStackButton, phoneStackResolveButton].compactMap({ $0 }) {
+            view.bringSubviewToFront(control)
+        }
+    }
+
+    private func setPhoneStackCollapsed(_ collapsed: Bool, animated: Bool) {
+        guard phoneStackCollapsed != collapsed else { return }
+        let stack = phoneStackCards?.view
+        let current = stack?.layer.presentation()?.affineTransform() ?? stack?.transform ?? .identity
+        phoneStackSlideAnimator?.stopAnimation(true)
+        phoneStackArcLink?.invalidate()
+        phoneStackCollapsed = collapsed
+        view.setNeedsLayout(); view.layoutIfNeeded()
+        guard let stack else { return }
+        let destination = stack.transform
+        if animated && !UIAccessibility.isReduceMotionEnabled {
+            stack.transform = current
+            let animator = UIViewPropertyAnimator(duration: 0.25, curve: .easeInOut) { stack.transform = destination }
+            // Arcs stay drawn, following the cards frame by frame as they slide.
+            let link = CADisplayLink(target: PhoneDisplayLinkTarget { [weak self] in self?.updatePhoneTargetArcs() },
+                                     selector: #selector(PhoneDisplayLinkTarget.tick))
+            phoneStackArcLink?.invalidate()
+            link.add(to: .main, forMode: .common)
+            phoneStackArcLink = link
+            animator.addCompletion { [weak self] _ in
+                link.invalidate()
+                self?.updatePhoneTargetArcs()
+            }
+            phoneStackSlideAnimator = animator
+            animator.startAnimation()
+        }
+    }
+
+    private func phoneEdgePoint(_ rect: CGRect, toward point: CGPoint) -> CGPoint {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let dx = point.x - center.x, dy = point.y - center.y
+        let scale = min(rect.width / 2 / max(0.001, abs(dx)), rect.height / 2 / max(0.001, abs(dy)))
+        return CGPoint(x: center.x + dx * min(1, scale), y: center.y + dy * min(1, scale))
+    }
+
+    private func updatePhoneCombatLines() {
+        guard let session = phoneMode else { return }
+        if phoneCombatLines == nil {
+            let lines = PhoneCombatLinesView()
+            lines.isOpaque = false; lines.backgroundColor = .clear; lines.isUserInteractionEnabled = false
+            lines.accessibilityElementsHidden = true
+            phoneCombatLines = lines
+        }
+        guard let lines = phoneCombatLines else { return }
+        lines.frame = view.bounds
+        if let anchor = phoneTargetArcs ?? phoneStackCards?.view,
+           lines.superview !== view || view.subviews.firstIndex(of: lines) != (view.subviews.firstIndex(of: anchor) ?? 0) - 1 {
+            view.insertSubview(lines, belowSubview: anchor)
+        }
+        var assignments: [PhoneCombatLinesView.Line] = []
+        func append(_ blocker: UUID, _ attacker: UUID, preview: Bool) {
+            guard let from = phoneTargetFrame(.card(blocker)), let to = phoneTargetFrame(.card(attacker)) else { return }
+            // From the middle of the blocker's facing edge to the middle of the attacker's.
+            let up = to.midY < from.midY
+            assignments.append(.init(from: CGPoint(x: from.midX, y: up ? from.minY : from.maxY),
+                                     to: CGPoint(x: to.midX, y: up ? to.maxY : to.minY), preview: preview, blocker: from))
+        }
+        for (blocker, attacker) in session.game.combat?.blockers ?? [:] { append(blocker, attacker, preview: false) }
+        if let preview = phoneCombatPreview,
+           session.game.combat?.attackers.contains(preview.attacker) == true,
+           canPhoneBlock(with: preview.blocker, session: session) {
+            append(preview.blocker, preview.attacker, preview: true)
+        } else { phoneCombatPreview = nil }
+        lines.lines = assignments
+        lines.isHidden = assignments.isEmpty
+        localPhoneBar?.untapButton.accessibilityValue = "\(session.game.combat?.blockers.count ?? 0) blocking assignments"
+    }
+
+    private func clearPhoneResolutionAnimations() {
+        for (id, host) in phoneResolutionHosts {
+            if let card = phoneMode?.game.cards[id] { cardView(for: card)?.alpha = 1 }
+            host.view.layer.removeAllAnimations()
+            host.willMove(toParent: nil); host.view.removeFromSuperview(); host.removeFromParent()
+        }
+        phoneResolutionHosts.removeAll()
+    }
+
+    private func animatePhoneStackDeparture(_ item: PhoneGame.StackItem, from frame: CGRect) {
+        guard let session = phoneMode, let card = item.card else { return }
+        let destination: CGRect
+        let mini: MiniCardView?
+        if session.game.state.battlefield.value.contains(card), let geometry = phoneCardGeometry(card) {
+            destination = CGRect(x: geometry.center.x - geometry.size.width / 2, y: geometry.center.y - geometry.size.height / 2,
+                                 width: geometry.size.width, height: geometry.size.height)
+            mini = cardView(for: card)
+        } else if session.game.graveyard(card.ownerIdentifier).cards.value.contains(card)
+                    || session.game.state[player: card.ownerIdentifier].exile.cards.value.contains(card),
+                  let target = phoneTargetFrame(.card(card.uuid)) {
+            destination = target; mini = nil
+        } else { return }
+        let face: MTGCard.Face?
+        if case .alternateFace(_, let selected) = card.representation { face = selected } else { face = nil }
+        let host = UIHostingController(rootView: HandCardView(isVisible: true, card: card.representation.card, face: face))
+        if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+        host.view.backgroundColor = .clear; host.view.isUserInteractionEnabled = false
+        host.view.accessibilityIdentifier = "phone-resolution-preview"
+        host.view.frame = frame
+        host.view.layer.cornerRadius = max(4, frame.width * 0.045); host.view.clipsToBounds = true
+        addChild(host); view.addSubview(host.view); host.didMove(toParent: self)
+        phoneResolutionHosts[card.uuid] = host
+        mini?.alpha = 0
+        let reduced = UIAccessibility.isReduceMotionEnabled
+        UIView.animate(withDuration: reduced ? 0.15 : 0.42, delay: 0, options: [.curveEaseInOut, .beginFromCurrentState]) {
+            if !reduced { host.view.frame = destination }
+            host.view.alpha = 0.05
+            mini?.alpha = 1
+        } completion: { [weak self, weak host] _ in
+            guard let self, let host, self.phoneResolutionHosts[card.uuid] === host else { return }
+            self.phoneResolutionHosts[card.uuid] = nil
+            mini?.alpha = 1
+            host.willMove(toParent: nil); host.view.removeFromSuperview(); host.removeFromParent()
+        }
     }
 
     private func updatePhoneAttackIndicators() {
         guard let session = phoneMode else { return }
         updatePhoneCombatGlows(session)
+        updatePhoneInspectionOutline(session)
         let attacking = session.game.combat?.attackers ?? []
         let visible = board.subviews.compactMap { $0 as? MiniCardView }.filter {
             !$0.isHidden && attacking.contains($0.cardInstance.uuid)
@@ -2860,7 +3993,9 @@ extension BoardViewController {
             indicator.bounds.size = CGSize(width: min(72, max(28, frame.width * 0.6)), height: 20)
             indicator.center = CGPoint(x: frame.midX, y: local ? frame.minY - 13 : frame.maxY + 13)
             indicator.transform = local ? .identity : CGAffineTransform(rotationAngle: .pi)
-            view.bringSubviewToFront(indicator)
+            // Above the battlefield but under the stack, which draws over the field.
+            if let stack = phoneStackContainer, stack.superview === view { view.insertSubview(indicator, belowSubview: stack) }
+            else { view.bringSubviewToFront(indicator) }
         }
     }
 
@@ -2868,13 +4003,15 @@ extension BoardViewController {
         let combat = session.game.combat
         var wanted: [UUID: UIColor] = [:]
         for id in combat?.attackers ?? [] { wanted[id] = .systemOrange }
-        for id in combat?.blockers.keys.map({ $0 }) ?? [] { wanted[id] = .systemBlue }
+        // Blockers glow gold, matching their golden lines (Arena).
+        for id in combat?.blockers.keys.map({ $0 }) ?? [] { wanted[id] = PhoneCombatLinesView.gold }
         for (id, glow) in phoneCombatGlows where wanted[id] == nil {
             glow.removeFromSuperview()
             phoneCombatGlows[id] = nil
         }
         for (id, color) in wanted {
-            guard let card = session.game.cards[id], let geometry = phoneCardGeometry(card) else {
+            guard let card = session.game.cards[id], let mini = cardView(for: card), !mini.isHidden,
+                  mini.cardView != nil else {
                 phoneCombatGlows.removeValue(forKey: id)?.removeFromSuperview()
                 continue
             }
@@ -2892,16 +4029,405 @@ extension BoardViewController {
             glow.layer.borderColor = color.cgColor
             glow.layer.shadowColor = color.cgColor
             glow.accessibilityValue = color == .systemOrange ? "Attacking" : "Blocking"
-            // Just above the battlefield: under the HUD, the hand and any dragged card.
-            if glow.superview !== view || view.subviews.firstIndex(of: glow) != (view.subviews.firstIndex(of: scrollView) ?? -1) + 1 {
-                view.insertSubview(glow, aboveSubview: scrollView)
-            }
-            glow.transform = .identity
-            glow.bounds.size = CGSize(width: geometry.size.width + 3, height: geometry.size.height + 3)
-            glow.center = geometry.center
-            glow.layer.cornerRadius = min(10, geometry.size.width * 0.05)
-            glow.transform = CGAffineTransform(rotationAngle: geometry.angle)
+            // The outline belongs to the card's unrotated coordinate space. It inherits the
+            // card's in-flight tap/flying transform rather than jumping to the model angle.
+            let host = phoneOutlineHost(mini)
+            if glow.superview !== host { host.addSubview(glow) }
+            host.bringSubviewToFront(glow)
+            let scale = max(0.01, scrollView.zoomScale * hypot(mini.transform.a, mini.transform.b))
+            glow.frame = phoneDrawnCardRect(in: mini).insetBy(dx: -1.5 / scale, dy: -1.5 / scale)
+            glow.layer.borderWidth = 2.5 / scale
+            glow.layer.shadowRadius = 9 / scale
+            glow.layer.cornerRadius = min(10 / scale, glow.bounds.width * 0.05)
         }
+    }
+
+    /// Arena's "opponent is looking at this": a thin white outline on the battlefield card whose
+    /// menu the opponent has open, or on the small top card of the pile they're viewing.
+    private func updatePhoneInspectionOutline(_ session: PhoneGameSession) {
+        let outline = phoneInspectionOutline ?? {
+            let outline = UIView()
+            outline.isUserInteractionEnabled = false
+            outline.backgroundColor = .clear
+            outline.layer.borderColor = UIColor.white.cgColor
+            outline.layer.cornerCurve = .continuous
+            outline.accessibilityIdentifier = "phone-opponent-inspecting"
+            phoneInspectionOutline = outline
+            return outline
+        }()
+        switch session.game.inspecting?[session.opponent.rawValue] {
+        case .card(let id)?:
+            if let card = session.game.cards[id], let mini = cardView(for: card), !mini.isHidden {
+                let scale = max(0.01, scrollView.zoomScale * hypot(mini.transform.a, mini.transform.b))
+                let host = phoneOutlineHost(mini)
+                if outline.superview !== host { host.addSubview(outline) }
+                host.bringSubviewToFront(outline)
+                outline.frame = phoneDrawnCardRect(in: mini).insetBy(dx: -1.5 / scale, dy: -1.5 / scale)
+                outline.layer.borderWidth = 1.5 / scale
+                outline.layer.cornerRadius = min(8 / scale, outline.bounds.width * 0.05)
+            } else if let frame = [landOrganizer, opponentLandOrganizer].compactMap({ $0?.landFrame(for: id) }).first {
+                if outline.superview !== view { view.addSubview(outline) }
+                view.bringSubviewToFront(outline)
+                outline.frame = view.convert(frame, from: nil).insetBy(dx: -1.5, dy: -1.5)
+                outline.layer.borderWidth = 1.5
+                outline.layer.cornerRadius = min(6, outline.bounds.width * 0.05)
+            } else {
+                outline.removeFromSuperview()
+            }
+        case .pile(let player, let location)?:
+            let bar = [bottomBarA, bottomBarB].compactMap { $0 }.first { $0.player.identifier == player }
+            let pileView: HUDCardPileView? = {
+                switch location {
+                case .graveyard: return bar?.graveyardPileView
+                case .exile: return bar?.exilePileView
+                case .library: return bar?.libraryPileView
+                default: return nil
+                }
+            }()
+            guard let pileView else { outline.removeFromSuperview(); return }
+            let card: UIView = pileView.topCardImageView.isHidden ? pileView : pileView.topCardImageView
+            if outline.superview !== pileView { pileView.addSubview(outline) }
+            pileView.bringSubviewToFront(outline)
+            outline.frame = pileView.convert(card.bounds, from: card).insetBy(dx: -1.5, dy: -1.5)
+            outline.layer.borderWidth = 1.5
+            outline.layer.cornerRadius = min(4, outline.bounds.width * 0.08)
+        case nil:
+            outline.removeFromSuperview()
+        }
+    }
+
+    private func wigglePhoneLibrary(_ pile: UIView) {
+        guard !UIAccessibility.isReduceMotionEnabled else { return }
+        let wiggle = CAKeyframeAnimation(keyPath: "transform.rotation.z")
+        wiggle.values = [0, -0.16, 0.14, -0.1, 0.06, 0]
+        wiggle.keyTimes = [0, 0.18, 0.4, 0.6, 0.8, 1]
+        wiggle.duration = 0.4
+        wiggle.timingFunctions = Array(repeating: CAMediaTimingFunction(name: .easeOut), count: 5)
+        let target = (pile as? HUDCardPileView)?.topCardImageView ?? pile
+        target.layer.add(wiggle, forKey: "shuffle")
+        UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6)
+    }
+
+    /// Cards revealed to this phone's player (searching, "reveal the top card…") open the card
+    /// browser in Revealed Cards mode; closing it stops revealing them to this player.
+    private func updatePhoneRevealedCards(_ session: PhoneGameSession) {
+        let me = session.player
+        let revealed = OrderedSet(session.game.cards.values
+            .filter { $0.revealedPlayers.value.contains(me) }
+            .sorted { ($0.representation.name ?? "") < ($1.representation.name ?? "") })
+        phoneRevealedToMe.accept(revealed)
+        let ids = Set(revealed.map(\.uuid))
+        guard !ids.isEmpty else { phoneRevealedShownIDs = []; return }
+        // Only newly revealed cards bring the sheet up (again).
+        guard !ids.subtracting(phoneRevealedShownIDs).isEmpty else {
+            phoneRevealedShownIDs.formUnion(ids)
+            return
+        }
+        phoneRevealedShownIDs = ids
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.phoneBrowserMode == nil else { self?.refreshPhoneBrowser(session); return }
+            self.showPhoneZoneBrowser(.revealed)
+        }
+    }
+
+    // MARK: Zone browser (search, scry, surveil, revealed)
+
+    enum PhoneBrowserMode: Equatable { case search, look(Int), revealed, pile(Pile.Location, Player.Identifier) }
+
+    /// The cards a browser mode shows, top of the library first.
+    private func phoneBrowserSource(_ mode: PhoneBrowserMode, session: PhoneGameSession) -> [CardInstance] {
+        let library = Array(session.game.library(session.player).cards.value.contents.reversed())
+        switch mode {
+        case .search: return library
+        case .look: return library // the rest of the library follows, face down
+        case .revealed: return phoneRevealedToMe.value.contents
+        case .pile(let location, let owner):
+            let pile = location == .library ? session.game.library(owner) : session.game.state[player: owner][location]
+            return Array(pile.cards.value.contents.reversed())
+        }
+    }
+
+    /// Height of the bottom bar (your HUD and collapsed hand) the browser leaves uncovered.
+    /// The browser darkens everything down to the bottom row (your HUD); the hand stays above it.
+    private var phoneBrowserUncoveredBottom: CGFloat {
+        let top = phoneBarBackgrounds.count > 1 ? phoneBarBackgrounds[1].frame.minY : view.bounds.maxY - 60
+        return max(0, view.bounds.maxY - top)
+    }
+    private var phoneBrowserTopInset: CGFloat { phoneBarBackgrounds.first?.frame.maxY ?? 0 }
+    /// The collapsed hand peeks above the HUD; the fan stays clear of it.
+    private var phoneBrowserContentBottomInset: CGFloat {
+        var top = view.bounds.maxY - phoneBrowserUncoveredBottom
+        if let container = localPhoneBar?.handContainerView, container.superview === view {
+            var content = view.convert(container.phoneContentFrame ?? container.bounds, from: container)
+            // Always the collapsed hand's height: the expanded hand opens over the browser
+            // rather than squeezing its cards.
+            if localPhoneBar?.handViewController?.phonePresentation.isExpanded == true {
+                // (see layoutPhoneHandOverlay: the collapsed frame starts 48% down the expanded one)
+                content = CGRect(x: content.minX, y: content.minY + content.height * 0.48, width: content.width, height: content.height * 0.7)
+            }
+            top = min(top, content.minY)
+        }
+        return max(0, view.bounds.maxY - top)
+    }
+
+    /// The browser sits over the board but under your hand (so the hand stays visible and usable),
+    /// except while a lifted card travels over it.
+    private func orderPhoneBrowser() {
+        guard let browser = phoneBrowser else { return }
+        view.bringSubviewToFront(browser)
+        if !browser.isLifting, let hand = localPhoneBar?.handContainerView, hand.superview === view { view.bringSubviewToFront(hand) }
+        // A card being dragged always stays on top of everything.
+        if let preview = phoneDragPreview, preview.superview === view { view.bringSubviewToFront(preview) }
+    }
+
+    /// Arena's card browser over the darkened board (your bottom bar stays usable): search your
+    /// library, look at its top cards (scry, surveil…), or see revealed cards. Cards drag to reorder,
+    /// onto your hand, library, graveyard or exile, or onto the Battlefield zone at the top.
+    func showPhoneZoneBrowser(_ mode: PhoneBrowserMode) {
+        guard let session = phoneMode else { return }
+        closePhoneZoneBrowser()
+        collapsePhoneHand()
+        // A sheet that led here (the library, a reveal) closes for the browser.
+        if presentedViewController != nil { dismiss(animated: true) }
+        let cards = phoneBrowserSource(mode, session: session)
+        let title: String
+        switch mode {
+        case .search: title = "Library — \(cards.count)"
+        case .look(let count): title = "Top \(count) of Library"
+        case .revealed: title = "Revealed Cards"
+        case .pile(let location, let owner):
+            let name = location == .library ? "Library" : location.rawValue
+            title = (owner == session.player ? name : "Opponent's \(name)") + " — \(cards.count)"
+        }
+        let browser = PhoneZoneBrowserView(title: title, cards: phoneBrowserDisplayOrder(cards, mode: mode),
+                                           secondary: mode == .search ? "Shuffle & Done" : nil,
+                                           canShowOpponent: { if case .pile = mode { return false }; return mode != .revealed }())
+        if case .pile(let location, let owner) = mode {
+            browser.condensesFaceDown = false
+            browser.extraMenu = phonePileBrowserMenu(location, owner: owner, session: session)
+            if location == .library {
+                // Face down, except a top card kept revealed to this player.
+                var hidden = Set(cards.map(\.uuid))
+                if (session.game.revealedTops?[owner.rawValue] ?? []).contains(session.player.rawValue), let top = cards.first { hidden.remove(top.uuid) }
+                browser.setCards(phoneBrowserDisplayOrder(cards, mode: mode), faceDown: hidden)
+            }
+        }
+        browser.zoneAt = { [weak self] point in
+            guard let self else { return nil }
+            if let pile = self.phonePileZone(at: point), pile.player == session.player {
+                switch pile.location {
+                case .graveyard: return .graveyard
+                case .exile: return .exile
+                case .library: return .library
+                default: return nil
+                }
+            }
+            return self.phoneHandDropRegionContains(point) ? .hand : nil
+        }
+        browser.onMove = { [weak self] card, destination in
+            guard let self else { return }
+            let position = self.phoneBrowserIDs.firstIndex(of: card.uuid)
+            self.phoneBrowserIDs.removeAll { $0 == card.uuid }
+            let owner = card.ownerIdentifier
+            switch destination {
+            case .hand: session.send(.moveToPlayer(card.uuid, .hand, session.player, bottom: false))
+            case .graveyard: session.send(.moveToPlayer(card.uuid, .graveyard, owner, bottom: false))
+            case .exile: session.send(.moveToPlayer(card.uuid, .exile, owner, bottom: false))
+            case .battlefield: session.send(.play(card.uuid, face: nil, faceDown: false, tapped: false, directly: true))
+            case .library:
+                self.promptPhoneLibraryDrop(card, session: session) { [weak self] in
+                    // Left where it was: back into the browser.
+                    guard let self else { return }
+                    self.phoneBrowserIDs.insert(card.uuid, at: min(position ?? self.phoneBrowserIDs.count, self.phoneBrowserIDs.count))
+                    self.refreshPhoneBrowser(session)
+                }
+            }
+        }
+        browser.onReorder = { [weak self] cards in
+            guard let self else { return }
+            // Back to top-first (the browser shows a library with its top on the right).
+            self.phoneBrowserIDs = self.phoneBrowserDisplayOrder(cards, mode: mode).map(\.uuid)
+            switch mode {
+            case .revealed: break
+            case .pile(let location, let owner):
+                if owner == session.player { session.send(.arrangePile(location, self.phoneBrowserIDs)) }
+            default: session.send(.arrangeLibraryTop(self.phoneBrowserIDs))
+            }
+        }
+        browser.onShowOpponent = { [weak self] show in
+            guard let self else { return }
+            let shown = self.phoneBrowserIDs.filter { !self.phoneBrowserFaceDown.contains($0) }
+            session.send(.reveal(shown, session.opponent, show))
+        }
+        browser.onDone = { [weak self] in self?.closePhoneZoneBrowser() }
+        browser.onSecondary = { [weak self] in
+            self?.closePhoneZoneBrowser()
+            session.send(.shuffle)
+        }
+        phoneBrowser = browser
+        phoneBrowserMode = mode
+        phoneBrowserIDs = cards.map(\.uuid)
+        if case .look(let count) = mode { phoneBrowserLookedAt = Set(cards.prefix(count).map(\.uuid)) } else { phoneBrowserLookedAt = [] }
+        browser.frame = view.bounds
+        browser.uncoveredBottom = phoneBrowserUncoveredBottom
+        browser.topInset = phoneBrowserTopInset
+        browser.contentBottomInset = phoneBrowserContentBottomInset
+        browser.onLiftChanged = { [weak self] _ in self?.orderPhoneBrowser() }
+        if case .look(let count) = mode {
+            browser.setCards(phoneBrowserDisplayOrder(cards, mode: mode), faceDown: Set(cards.dropFirst(count).map(\.uuid)))
+        }
+        browser.alpha = 0
+        view.addSubview(browser)
+        orderPhoneBrowser()
+        UIView.animate(withDuration: 0.2) { browser.alpha = 1 }
+        UIAccessibility.post(notification: .screenChanged, argument: browser)
+    }
+
+    /// Keeps the browser in step with the game: cards that left its zone disappear.
+    private func refreshPhoneBrowser(_ session: PhoneGameSession) {
+        guard let browser = phoneBrowser, let mode = phoneBrowserMode else { return }
+        let source = phoneBrowserSource(mode, session: session)
+        let sourceIDs = Set(source.map(\.uuid))
+        // Newly revealed cards join the revealed browser; library modes follow the library's order
+        // (a card put on the bottom shows up at the end).
+        if mode == .revealed { phoneBrowserIDs += source.map(\.uuid).filter { !phoneBrowserIDs.contains($0) } }
+        else { phoneBrowserIDs = source.map(\.uuid) }
+        phoneBrowserIDs = phoneBrowserIDs.filter { sourceIDs.contains($0) }
+        let cards = phoneBrowserDisplayOrder(phoneBrowserIDs.compactMap { id in source.first { $0.uuid == id } }, mode: mode)
+        if cards.map(\.uuid) != browser.cards.map(\.uuid) || !zip(cards, browser.cards).allSatisfy({ $0 === $1 })
+            || browser.faceDownIDs != phoneBrowserFaceDown {
+            browser.setCards(cards, faceDown: phoneBrowserFaceDown)
+        }
+        orderPhoneBrowser()
+    }
+
+    /// A library reads left to right from the bottom to the top (the top card on the right, as on
+    /// Arena). Reversing is its own inverse, so this also turns the browser's order back to top-first.
+    private func phoneBrowserDisplayOrder(_ cards: [CardInstance], mode: PhoneBrowserMode) -> [CardInstance] {
+        mode == .revealed ? cards : cards.reversed()
+    }
+
+    /// The browser's "⋯" menu for a pile: the list view, and for your library its search, look at,
+    /// shuffle and top-card choices.
+    private func phonePileBrowserMenu(_ location: Pile.Location, owner: Player.Identifier, session: PhoneGameSession) -> UIMenu {
+        var items: [UIMenuElement] = [UIAction(title: "Open List", image: UIImage(systemName: "list.bullet")) { [weak self] _ in
+            guard let self, let bar = [self.bottomBarA, self.bottomBarB].compactMap({ $0 }).first(where: { $0.player.identifier == owner }) else { return }
+            let pileView: HUDCardPileView? = location == .graveyard ? bar.graveyardPileView : location == .exile ? bar.exilePileView : bar.libraryPileView
+            self.closePhoneZoneBrowser()
+            if let pileView { bar.presentPileSheet(from: pileView) }
+        }]
+        if location == .library && owner == session.player {
+            items.append(UIAction(title: "Search", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in self?.showPhoneZoneBrowser(.search) })
+            items.append(UIMenu(title: "Look at", image: UIImage(systemName: "eye"), children: (1...10).map { count in
+                UIAction(title: count == 1 ? "1 card" : "\(count) cards") { [weak self] _ in self?.showPhoneZoneBrowser(.look(count)) }
+            }))
+            items.append(UIAction(title: "Shuffle", image: UIImage(systemName: "shuffle")) { _ in session.send(.shuffle) })
+        }
+        if location == .library {
+            let current = Set(session.game.revealedTops?[owner.rawValue] ?? [])
+            items.append(UIMenu(title: "Keep Top Card Revealed To", image: UIImage(systemName: "eye.circle"), children: [
+                ("Me", [session.player]), ("Opponent", [session.opponent]), ("Both", [session.player, session.opponent]), ("No One", [])
+            ].map { title, viewers in
+                UIAction(title: title, state: Set(viewers.map(\.rawValue)) == current ? .on : .off) { _ in session.send(.revealTopCard(owner, viewers)) }
+            }))
+        }
+        return UIMenu(children: items)
+    }
+
+    /// In Look at, everything below the cards being looked at stays face down.
+    private var phoneBrowserFaceDown: Set<UUID> {
+        if case .pile(.library, let owner) = phoneBrowserMode {
+            // A library stays hidden, except a top card kept revealed to this player.
+            var hidden = Set(phoneBrowserIDs)
+            if let session = phoneMode, (session.game.revealedTops?[owner.rawValue] ?? []).contains(session.player.rawValue),
+               let top = phoneBrowserIDs.first { hidden.remove(top) }
+            return hidden
+        }
+        guard case .look(let count) = phoneBrowserMode else { return [] }
+        if phoneBrowserLookedAt.isEmpty { return Set(phoneBrowserIDs.dropFirst(count)) }
+        return Set(phoneBrowserIDs.filter { !phoneBrowserLookedAt.contains($0) })
+    }
+
+    /// A card dropped on a library: on top or at the bottom (and, for a commander, the command
+    /// zone instead). `cancelled` runs if the player backs out.
+    func promptPhoneLibraryDrop(_ card: CardInstance, session: PhoneGameSession, cancelled: (() -> Void)? = nil) {
+        let owner = card.ownerIdentifier
+        let alert = UIAlertController(title: card.representation.name, message: "Put it on the top or bottom of the library?", preferredStyle: .alert)
+        alert.addAction(.init(title: "Top", style: .default) { _ in session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: false)) })
+        alert.addAction(.init(title: "Bottom", style: .default) { _ in session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: true)) })
+        if card.isCommander.value {
+            alert.addAction(.init(title: "Command Zone", style: .default) { _ in session.sendDirectly(.moveToPlayer(card.uuid, .command, owner, bottom: false)) })
+        }
+        alert.addAction(.init(title: "Cancel", style: .cancel) { _ in cancelled?() })
+        phonePresenter.present(alert, animated: true)
+    }
+
+    private func closePhoneZoneBrowser() {
+        guard let browser = phoneBrowser else { return }
+        if let session = phoneMode, session.canAct {
+            if phoneBrowserMode == .revealed {
+                // Done looking: stop revealing these cards to this player.
+                let ids = phoneRevealedToMe.value.map(\.uuid)
+                if !ids.isEmpty { session.send(.reveal(ids, session.player, false)) }
+            } else if browser.showsOpponent, !phoneBrowserIDs.isEmpty {
+                // Shown to the opponent while looking; put away with the browser.
+                session.send(.reveal(phoneBrowserIDs.filter { !phoneBrowserFaceDown.contains($0) }, session.opponent, false))
+            }
+        }
+        phoneBrowser = nil
+        phoneBrowserMode = nil
+        phoneBrowserIDs = []
+        UIView.animate(withDuration: 0.18) { browser.alpha = 0 } completion: { _ in browser.removeFromSuperview() }
+    }
+
+    /// The card as drawn (not its padded frame), in the mini card's own unrotated coordinates, so
+    /// outlines added to the mini card follow its tap rotation and any in-flight transform.
+    /// Outlines live inside the mini card's image view, so they follow its tap rotation and its
+    /// flying wiggle and lift.
+    private func phoneOutlineHost(_ mini: MiniCardView) -> UIView { mini.cardView ?? mini }
+
+    private func phoneDrawnCardRect(in mini: MiniCardView) -> CGRect {
+        guard let art = mini.cardView else { return mini.bounds }
+        var rect = art.bounds
+        if let fraction = mini.renderedCardFraction {
+            rect = CGRect(x: rect.minX + rect.width * fraction.minX, y: rect.minY + rect.height * fraction.minY,
+                          width: rect.width * fraction.width, height: rect.height * fraction.height)
+        } else if let image = art.image, image.size.width > 0, image.size.height > 0 {
+            let scale = min(rect.width / image.size.width, rect.height / image.size.height)
+            let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            rect = CGRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height)
+        }
+        return rect // in the image view's coordinates (see phoneOutlineHost)
+    }
+
+    /// Horizontal lanes (offsets within the field) of one player's band: other permanents on the
+    /// left, creatures in the middle, planeswalkers/sagas/battles on the right. A lane only takes
+    /// room when the band has something else to share it with.
+    private struct PhoneLane { var minX: CGFloat; var width: CGFloat }
+
+    private func phoneLanes(fieldWidth: CGFloat, cellWidth: CGFloat, support: Int, creatures: Int, side: Int)
+        -> (support: PhoneLane, creatures: PhoneLane, side: PhoneLane) {
+        let others = support + creatures
+        // Lanes get the room their cards need when everything fits; otherwise a share in
+        // proportion to their card counts (at least one card each). No fixed caps, so two
+        // planeswalkers beside one creature both show when there's space.
+        let total = max(1, support + creatures + side)
+        let fits = CGFloat(total) * cellWidth <= fieldWidth + 20
+        func share(_ count: Int) -> CGFloat {
+            guard count > 0 else { return 0 }
+            return fits ? CGFloat(count) * cellWidth : max(cellWidth, fieldWidth * CGFloat(count) / CGFloat(total))
+        }
+        let sideWidth: CGFloat = side == 0 ? 0 : others > 0
+            ? min(share(side), fieldWidth - cellWidth)
+            : min(fieldWidth, max(cellWidth, CGFloat(side) * cellWidth))
+        let remaining = fieldWidth - (others > 0 ? sideWidth : 0)
+        let supportWidth: CGFloat = support > 0 && creatures > 0
+            ? min(share(support), remaining - cellWidth)
+            : (creatures > 0 ? 0 : remaining)
+        // Alone in the band, planeswalkers and sagas still sit at its right end.
+        return (PhoneLane(minX: 0, width: max(0, supportWidth)),
+                PhoneLane(minX: supportWidth, width: max(0, remaining - supportWidth)),
+                PhoneLane(minX: fieldWidth - sideWidth, width: sideWidth))
     }
 
     /// Right edge (in view coordinates) of the land stacks drawn in either land row, or nil if none.
@@ -2949,8 +4475,9 @@ extension BoardViewController {
               let container = bar.handContainerView, container.superview === view else { return }
         let shortSide = min(view.bounds.width, view.bounds.height)
         let scale = min(2.4, max(1, shortSide / 375))
-        let margin = max(36 * scale, max(view.safeAreaInsets.left, view.safeAreaInsets.right) + 12)
         let height = min(360, max(150, shortSide * 0.40))
+        let handBand = phoneBandInsets((view.bounds.height - height)...view.bounds.height, margin: 12)
+        let margin = max(36 * scale, max(handBand.left, handBand.right))
         let width = max(0, view.bounds.width - 2 * margin)
         // Always derived from the current bounds; the bottom 8% intentionally sits below the screen edge.
         let frame = CGRect(x: margin, y: view.bounds.maxY - height * 0.92, width: width, height: height)
@@ -2988,19 +4515,24 @@ extension BoardViewController {
     private func rememberPhoneConstraint(_ constraint: NSLayoutConstraint) {
         if !savedPhoneConstraints.contains(where: { $0.0 === constraint }) { savedPhoneConstraints.append((constraint, constraint.constant)) }
     }
-    private func addPhoneBadge(_ text: String, at point: CGPoint, cards: [CardInstance]) {
+    /// Arena's stack count: a small dark label with white text, sitting just above the stack's
+    /// top-left corner (`corner`, in board coordinates) rather than over the card.
+    private func addPhoneBadge(_ text: String, above corner: CGPoint, cards: [CardInstance]) {
         let button = UIButton(type: .system)
         button.setTitle(text, for: .normal)
         let scale = max(0.04, scrollView.zoomScale)
         let uiScale = min(2.4, max(1, min(view.bounds.width, view.bounds.height) / 375))
-        let font = UIFont(name: "Beleren2016-Bold", size: 14 * uiScale / scale) ?? .boldSystemFont(ofSize: 14 * uiScale / scale)
+        let unit = uiScale / scale
+        let font = UIFont.systemFont(ofSize: 10 * unit, weight: .semibold)
         button.titleLabel?.font = font
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = UIColor.black.withAlphaComponent(0.82)
-        button.layer.cornerRadius = 4 * uiScale / scale
+        button.setTitleColor(UIColor(white: 0.95, alpha: 1), for: .normal)
+        button.backgroundColor = UIColor(white: 0.1, alpha: 0.85)
+        button.layer.cornerRadius = 3 * unit
+        button.layer.borderWidth = 0.75 * unit
+        button.layer.borderColor = UIColor(white: 1, alpha: 0.18).cgColor
         let measured = (text as NSString).size(withAttributes: [.font: font])
-        let size = CGSize(width: ceil(measured.width) + 16 * uiScale / scale, height: ceil(measured.height) + 8 * uiScale / scale)
-        button.frame = CGRect(x: point.x - size.width / 2, y: point.y - size.height / 2, width: size.width, height: size.height)
+        let size = CGSize(width: ceil(measured.width) + 8 * unit, height: ceil(measured.height) + 3 * unit)
+        button.frame = CGRect(x: corner.x, y: corner.y - 3 * unit - size.height, width: size.width, height: size.height)
         button.accessibilityLabel = "Choose individual cards (\(cards.count))"
         button.addAction(UIAction { [weak self] _ in
             guard let self else { return }
@@ -3018,7 +4550,7 @@ extension BoardViewController {
     }
 
     private func playPhoneCard(_ card: CardInstance, session: PhoneGameSession, completion: ((Bool) -> Void)? = nil) {
-        let options = Command.PlayCardParameters.options(for: card)
+        let options = session.castOptions(for: card)
         if options.count == 1 { session.send(.playCard(options[0].parameters)); completion?(true); return }
         let chooser = UIAlertController(title: "Play", message: card.representation.name, preferredStyle: .actionSheet)
         for option in options {
@@ -3031,7 +4563,15 @@ extension BoardViewController {
     }
 
     private func clearPhoneDragPreview() {
-        if let card = phoneDraggedCard { cardView(for: card)?.alpha = 1 }
+        cancelPhoneSpringLoad()
+        phoneZoneHoverKey = nil
+        if let card = phoneDraggedCard {
+            cardView(for: card)?.alpha = 1
+            landOrganizer?.concealCard(card.uuid, false)
+        }
+        phoneHandMiniPreview?.removeFromSuperview()
+        phoneHandMiniPreview = nil
+        phoneHandMiniHost = nil
         phoneDragPreview?.removeFromSuperview()
         phoneDragPreview = nil
         phoneDraggedCard = nil
@@ -3040,11 +4580,13 @@ extension BoardViewController {
 
     private func movePhoneCardPreview(_ card: CardInstance, to point: CGPoint, sourceSize: CGSize? = nil) {
         guard phoneMode?.canAct == true else { return }
+        defer { updatePhoneZoneHover(at: point, includesHand: true) } // runs after the attach hover below
         defer { updatePhoneAttachHover(at: point, excluding: [card.uuid]) }
         if phoneDraggedCard?.uuid != card.uuid {
             clearPhoneDragPreview()
             phoneDraggedCard = card
             guard let source = cardView(for: card) else { return }
+            PhoneHaptics.pickUp()
             var image = source.cardView.image
             let size: CGSize
             let angle: CGFloat
@@ -3078,7 +4620,45 @@ extension BoardViewController {
             cardView(for: card)?.alpha = 0
         }
         phoneDragPreview?.center = point
+        if let preview = phoneDragPreview { view.bringSubviewToFront(preview) }
     }
+    // MARK: Pile top-card drags
+
+    /// The top card lifts off the pile at the pile's size and grows to hand size, then behaves
+    /// like a card dragged from the hand: battlefield, attach/target hovers, piles, or the hand.
+    @objc private func phonePilePanned(_ pan: PhonePilePanGesture) {
+        guard let session = phoneMode, let bar = pan.bar else { return }
+        let point = pan.location(in: view)
+        switch pan.state {
+        case .began:
+            let owner = bar.player.identifier
+            let pile = session.game.state[player: owner][pan.zone]
+            // Your own library only; graveyards and exile are public.
+            guard session.canAct, pan.zone != .library || owner == session.player,
+                  let card = pile.cards.value.last, let pileView = pan.view as? HUDCardPileView else {
+                pan.isEnabled = false; pan.isEnabled = true
+                return
+            }
+            let source: UIView = pileView.topCardImageView.isHidden ? pileView : pileView.topCardImageView
+            let sourceFrame = source.convert(source.bounds, to: nil)
+            let height = min(220, max(110, view.bounds.height * 0.42))
+            let size = CGSize(width: height * 63 / 88, height: height)
+            let start = PhoneHandCardGeometry(center: CGPoint(x: sourceFrame.midX, y: sourceFrame.midY), size: size, angle: 0)
+            let faceDown = pan.zone == .library && !pile.isTopCardRevealed.value
+            beginPhoneHandCardDrag(card, start: start, at: point, sourcePile: pan.zone, faceDown: faceDown,
+                                   startScale: max(0.1, sourceFrame.height / height))
+            _ = movePhoneHandCardPreview(card, to: point)
+        case .changed:
+            guard let card = phoneHandDrag?.card, phoneHandDrag?.sourcePile != nil else { return }
+            _ = movePhoneHandCardPreview(card, to: point)
+        case .ended:
+            guard let card = phoneHandDrag?.card, phoneHandDrag?.sourcePile != nil else { return }
+            finishPhoneHandCardDrag(card, at: point, handIndex: nil, slot: nil)
+        default:
+            if phoneHandDrag?.sourcePile != nil, phoneHandDrag?.landing == false { returnPhoneHandPreview() }
+        }
+    }
+
     // MARK: Arena-style hand drag
 
     private struct PhoneHandDragState {
@@ -3086,12 +4666,16 @@ extension BoardViewController {
         /// Where it was picked up (view coordinates) and its height in the fan.
         let startCenter: CGPoint
         let startHeight: CGFloat
-        /// From the finger to the card's center when it was picked up.
-        let grab: CGVector
         /// Current scale relative to the hand size (0 until the first move straightens it).
         var scale: CGFloat = 0
+        /// Whether the finger was over the hand at the last move, and until when the card is still
+        /// easing between floating above the finger (over the hand) and centered on it.
+        var overHand: Bool?
+        var settleUntil: CFTimeInterval = 0
         /// Released and animating to where it went.
         var landing = false
+        /// Picked up off the top of a graveyard, exile or library rather than out of the hand.
+        var sourcePile: Pile.Location? = nil
     }
 
     private func handlePhoneHandDrag(_ card: CardInstance, phase: PhoneHandDragPhase, windowPoint: CGPoint) -> Bool {
@@ -3122,22 +4706,52 @@ extension BoardViewController {
         return phoneHandDropRegionContains(point) || point.y >= compactTop - container.bounds.height * 0.25
     }
 
+    /// Shown beside the hand but actually in the graveyard or exile.
+    private func isPhoneCastableOutsideHand(_ card: CardInstance) -> Bool {
+        guard let session = phoneMode else { return false }
+        let mine = session.game.state[player: session.player]
+        return !mine.hand.cards.value.contains(card) && !mine.commandZone.cards.value.contains(card)
+    }
+
+    /// Still over the spot the card was picked up from (dropping it there changes nothing).
+    private func isNearPhoneHandDragOrigin(_ point: CGPoint, _ drag: PhoneHandDragState) -> Bool {
+        abs(point.x - drag.startCenter.x) < drag.startHeight * 63 / 88 * 0.6 && abs(point.y - drag.startCenter.y) < drag.startHeight * 0.6
+    }
+
     /// The card lifts out of the fan exactly where it was drawn (same size, rotation and cost),
     /// and the rest of the hand collapses.
-    private func beginPhoneHandCardDrag(_ card: CardInstance, start: PhoneHandCardGeometry, at point: CGPoint) {
+    private func beginPhoneHandCardDrag(_ card: CardInstance, start: PhoneHandCardGeometry, at point: CGPoint,
+                                        sourcePile: Pile.Location? = nil, faceDown: Bool = false, startScale: CGFloat = 1) {
         let presentation = localPhoneBar?.handViewController?.phonePresentation
         guard phoneMode?.canAct == true else { presentation?.endDrag(); return }
         if phoneHandDrag != nil { finishPhoneHandLanding() }
-        clearPhoneDragPreview()
+        clearPhoneDragPreview() // also forgets the last zone, so this drag's first zone ticks
         let center = view.convert(start.center, from: view.window)
-        let host = UIHostingController(rootView: PhoneHandCardFace(card: card, height: start.size.height))
+        let inCommandZone = phoneMode.map { $0.game.state[player: $0.player].commandZone.cards.value.contains(card) } ?? false
+        let host = UIHostingController(rootView: PhoneHandCardFace(card: card, height: start.size.height, inCommandZone: inCommandZone, faceDown: faceDown))
         if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
         host.view.backgroundColor = .clear
         host.view.isUserInteractionEnabled = false
         host.view.accessibilityIdentifier = "phone-hand-drag-preview"
         host.view.bounds = CGRect(origin: .zero, size: start.size)
         host.view.center = center
-        host.view.transform = CGAffineTransform(rotationAngle: start.angle)
+        host.view.transform = CGAffineTransform(rotationAngle: start.angle).scaledBy(x: startScale, y: startScale)
+        // Arena's blue glow: a soft cyan-blue halo with a bright rim, shown while release would play.
+        let glow = UIView(frame: CGRect(origin: .zero, size: start.size))
+        glow.isUserInteractionEnabled = false
+        glow.backgroundColor = .clear // an outline: the rim and its halo, never over the card
+        glow.layer.cornerRadius = start.size.width * 0.05
+        glow.layer.cornerCurve = .continuous
+        glow.layer.borderColor = UIColor(red: 0.62, green: 0.88, blue: 1, alpha: 1).cgColor
+        glow.layer.borderWidth = max(2, start.size.width * 0.02)
+        glow.layer.shadowColor = UIColor(red: 0.2, green: 0.62, blue: 1, alpha: 1).cgColor
+        glow.layer.shadowOpacity = 1
+        glow.layer.shadowRadius = start.size.width * 0.12
+        glow.layer.shadowOffset = .zero
+        glow.transform = CGAffineTransform(scaleX: 1.03, y: 1.022)
+        glow.alpha = 0
+        host.view.insertSubview(glow, at: 0)
+        phoneHandPlayGlow = glow
         host.view.layer.shadowColor = UIColor.black.cgColor
         host.view.layer.shadowOpacity = 0.55
         host.view.layer.shadowRadius = 10
@@ -3146,9 +4760,10 @@ extension BoardViewController {
         phoneHandPreviewHost = host
         phoneDragPreview = host.view
         phoneDraggedCard = card
-        phoneHandDrag = PhoneHandDragState(card: card, startCenter: center, startHeight: start.size.height,
-                                           grab: CGVector(dx: center.x - point.x, dy: center.y - point.y))
-        collapsePhoneHand()
+        phoneHandDrag = PhoneHandDragState(card: card, startCenter: center, startHeight: start.size.height, sourcePile: sourcePile)
+        PhoneHaptics.pickUp()
+        // A hand card leaves the hand open (to reorder in it) until it's dragged out of the hand.
+        if sourcePile != nil { collapsePhoneHand() }
     }
 
     /// Follows the finger: full hand size over the hand, battlefield size over the battlefield,
@@ -3157,9 +4772,27 @@ extension BoardViewController {
         guard var drag = phoneHandDrag, drag.card.uuid == card.uuid, !drag.landing,
               let preview = phoneDragPreview else { return phoneHandDragRegionContains(point) }
         let overHand = phoneHandDragRegionContains(point)
-        let scale = overHand ? 1 : min(1, phoneBattlefieldCardHeight / drag.startHeight)
-        // The point that was grabbed stays under the finger, at the card's current scale.
-        preview.center = CGPoint(x: point.x + drag.grab.dx * scale, y: point.y + drag.grab.dy * scale)
+        if !overHand, localPhoneBar?.handViewController?.phonePresentation.isExpanded == true { collapsePhoneHand() }
+        // Only cards out of the hand grow and shrink; one off a pile keeps a single size.
+        let scale = drag.sourcePile != nil ? min(1, phoneBattlefieldCardHeight / drag.startHeight)
+            : overHand ? 1 : min(1, phoneBattlefieldCardHeight / drag.startHeight)
+        // Over the hand the card floats with its bottom just above the finger, so it can be read;
+        // over the battlefield the finger holds its center. Crossing between them eases over.
+        let target = overHand ? CGPoint(x: point.x, y: point.y - drag.startHeight * scale / 2 - 14) : point
+        let now = CACurrentMediaTime()
+        if drag.overHand != overHand {
+            drag.overHand = overHand
+            drag.settleUntil = now + 0.2
+            phoneHandDrag = drag
+        }
+        let remaining = drag.settleUntil - now
+        if remaining > 0.01 {
+            UIView.animate(withDuration: remaining, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction, .curveEaseOut]) {
+                preview.center = target
+            }
+        } else {
+            preview.center = target
+        }
         if drag.scale != scale {
             drag.scale = scale
             phoneHandDrag = drag
@@ -3168,7 +4801,17 @@ extension BoardViewController {
             }
         }
         view.bringSubviewToFront(preview)
-        if overHand { clearPhoneAttachHover() } else { updatePhoneAttachHover(at: point, excluding: [card.uuid]) }
+        if overHand { clearPhoneAttachHover() } else { updatePhoneAttachHover(at: point, excluding: [card.uuid], dragged: card.uuid) }
+        // Piles (and, for a card off a pile or castable from another zone, the hand) show where it would go.
+        updatePhoneZoneHover(at: point, includesHand: drag.sourcePile != nil
+                             || (isPhoneCastableOutsideHand(card) && !isNearPhoneHandDragOrigin(point, drag)))
+        // Glows blue while letting go would play it (not over the hand or a pile).
+        let willPlay = !overHand && phonePileZone(at: point) == nil
+        if let glow = phoneHandPlayGlow, (glow.alpha > 0.5) != willPlay {
+            UIView.animate(withDuration: 0.15, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
+                glow.alpha = willPlay ? 1 : 0
+            }
+        }
         return overHand
     }
 
@@ -3178,18 +4821,31 @@ extension BoardViewController {
             return
         }
         let attachTarget = handIndex == nil ? armedPhoneAttachTarget(at: point, excluding: [card.uuid]) : nil
+        let spellTarget = handIndex == nil ? armedPhoneSpellTarget(at: point, excluding: [card.uuid]) : nil
         clearPhoneAttachHover()
-        guard let session = phoneMode, session.canAct else { returnPhoneHandPreview(); return }
-        for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
-            let targets: [(UIView?, Pile.Location)] = [(bar.graveyardPileView, .graveyard), (bar.exilePileView, .exile), (bar.libraryPileView, .library)]
-            for (target, location) in targets {
-                guard let target, !target.isHidden,
-                      target.point(inside: target.convert(point, from: view), with: nil) else { continue }
-                session.send(.moveToPlayer(card.uuid, location, bar.player.identifier, bottom: false))
-                let frame = view.convert(target.bounds, from: target)
-                landPhoneHandPreview(center: CGPoint(x: frame.midX, y: frame.midY), height: frame.height * 0.8, angle: 0, fade: true)
-                return
-            }
+        guard let session = phoneMode, session.canAct else { cancelPhoneSpringLoad(); returnPhoneHandPreview(); return }
+        if finishPhoneSpringLoad(card, at: point) {
+            hidePhoneDragHover()
+            collapsePhoneHand()
+            landPhoneHandPreview(center: point, height: drag.startHeight * 0.6, angle: 0, fade: true)
+            return
+        }
+        if handIndex == nil, phoneDropBlockedByBrowser(at: point) { hidePhoneDragHover(); returnPhoneHandPreview(); return }
+        if let pile = phonePileZone(at: point) {
+            if pile.location == .library { promptPhoneLibraryDrop(card, session: session) }
+            else { session.send(.moveToPlayer(card.uuid, pile.location, pile.player, bottom: false)) }
+            PhoneHaptics.drop()
+            collapsePhoneHand() // the card left the hand
+            let frame = view.convert(pile.view.bounds, from: pile.view)
+            landPhoneHandPreview(center: CGPoint(x: frame.midX, y: frame.midY), height: frame.height * 0.8, angle: 0, fade: true)
+            return
+        }
+        if drag.sourcePile != nil, handIndex == nil, phoneHandDropRegionContains(point) {
+            // Off a pile into the hand (drawing the top card, returning one from the graveyard…).
+            session.send(.moveToPlayer(card.uuid, .hand, session.player, bottom: false))
+            PhoneHaptics.drop()
+            landPhoneHandPreview(center: point, height: drag.startHeight * 0.7, angle: 0, fade: true)
+            return
         }
         if let handIndex {
             var ids = session.game.state[player: session.player].hand.cards.value.map(\.uuid)
@@ -3197,9 +4853,14 @@ extension BoardViewController {
                 ids.remove(at: from)
                 ids.insert(card.uuid, at: min(max(0, handIndex), ids.count))
                 if ids != session.game.state[player: session.player].hand.cards.value.map(\.uuid) { session.send(.reorderHand(ids)) }
-            } else {
+            } else if session.game.state[player: session.player].commandZone.cards.value.contains(card) {
                 // A commander dropped on the hand goes to the hand.
                 session.send(.moveToPlayer(card.uuid, .hand, session.player, bottom: false))
+            } else if !isNearPhoneHandDragOrigin(point, drag) {
+                // A card castable from the graveyard or exile, dropped among the hand cards, moves
+                // into the hand; dropped back where it came from, it stays put.
+                session.send(.moveToPlayer(card.uuid, .hand, session.player, bottom: false))
+                PhoneHaptics.drop()
             }
             if let slot {
                 landPhoneHandPreview(center: view.convert(slot.center, from: view.window), height: slot.size.height, angle: slot.angle)
@@ -3208,13 +4869,27 @@ extension BoardViewController {
             }
             return
         }
+        if let spellTarget {
+            session.send(.castTargeting(card.uuid, .card(spellTarget.uuid)))
+            PhoneHaptics.drop()
+            flyPhoneHandPreviewToBoard(card)
+            return
+        }
+        if card.isPhoneTargetingSpell, (card.representation.typeLine ?? "").contains("Aura") {
+            // Auras go onto the stack too; one cast without a target is just put there.
+            session.send(.castTargeting(card.uuid, nil))
+            PhoneHaptics.drop()
+            flyPhoneHandPreviewToBoard(card)
+            return
+        }
         if let attachTarget {
             session.send(.attachDroppedCard(card.uuid, attachTarget.uuid))
+            PhoneHaptics.drop()
             flyPhoneHandPreviewToBoard(card)
             return
         }
         playPhoneCard(card, session: session) { [weak self] played in
-            if played { self?.flyPhoneHandPreviewToBoard(card) } else { self?.returnPhoneHandPreview() }
+            if played { PhoneHaptics.drop(); self?.flyPhoneHandPreviewToBoard(card) } else { self?.returnPhoneHandPreview() }
         }
     }
 
@@ -3224,6 +4899,9 @@ extension BoardViewController {
         guard let drag = phoneHandDrag, drag.card.uuid == card.uuid, phoneDragPreview != nil else { return }
         phoneHandDrag?.landing = true
         view.layoutIfNeeded()
+        // Adding a permanent can regroup the row. Capture its final slot even when the
+        // model's card-view subscription ran before the next UIKit layout callback.
+        layoutPhoneBattlefield()
         if let target = cardView(for: card), target.window != nil, !target.isHidden, target.superview != nil {
             let origin = target.convert(CGPoint.zero, to: view)
             let xEdge = target.convert(CGPoint(x: target.bounds.width, y: 0), to: view)
@@ -3234,12 +4912,26 @@ extension BoardViewController {
         }
         if let frame = landOrganizer?.landFrame(for: card.uuid) {
             let rect = view.convert(frame, from: nil)
-            landPhoneHandPreview(center: CGPoint(x: rect.midX, y: rect.midY), height: rect.height, angle: 0, crossfade: true)
+            let host = UIHostingController(rootView: SwiftUICardView(card: card, isRotationEnabled: false))
+            if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+            host.view.backgroundColor = .clear
+            host.view.bounds = CGRect(origin: .zero, size: rect.size)
+            phoneHandMiniHost = host
+            landOrganizer?.concealCard(card.uuid, true)
+            landPhoneHandPreview(center: CGPoint(x: rect.midX, y: rect.midY), height: rect.height,
+                                angle: card.isTapped.value ? .pi / 15 : 0, crossfade: true, morph: host.view)
             return
         }
-        if phoneMode?.game.stack.contains(where: { $0.card?.uuid == card.uuid }) == true, let button = phoneStackButton, !button.isHidden {
-            landPhoneHandPreview(center: CGPoint(x: button.frame.midX, y: button.frame.midY), height: button.frame.height, angle: 0, fade: true)
-            return
+        if phoneMode?.game.stack.contains(where: { $0.card?.uuid == card.uuid }) == true {
+            if let stackView = phoneStackCards?.view, !stackView.isHidden {
+                let width = min(stackView.bounds.width / 1.62, stackView.bounds.height * 0.88 * 63 / 88)
+                let center = CGPoint(x: stackView.frame.maxX - width / 2 - 5, y: stackView.frame.midY)
+                landPhoneHandPreview(center: center, height: width * 88 / 63, angle: 0, crossfade: true)
+                return
+            } else if let button = phoneStackButton, !button.isHidden {
+                landPhoneHandPreview(center: CGPoint(x: button.frame.midX, y: button.frame.midY), height: button.frame.height, angle: 0, fade: true)
+                return
+            }
         }
         guard attempt < 45 else {
             // Never showed up where we could see it: fade out where it was dropped.
@@ -3255,30 +4947,44 @@ extension BoardViewController {
 
     /// - Parameters:
     ///   - fade: fades the card out over the whole flight (into a pile or the stack).
-    ///   - crossfade: dissolves the card into what it lands on during the second half of the flight
-    ///     (`target`, faded in from transparent, or a land already drawn underneath).
+    ///   - crossfade: morphs the travelling full card into a travelling mini-card snapshot.
     private func landPhoneHandPreview(center: CGPoint, height: CGFloat, angle: CGFloat, fade: Bool = false,
-                                      crossfade: Bool = false, hiding target: UIView? = nil) {
+                                      crossfade: Bool = false, hiding target: UIView? = nil, morph: UIView? = nil) {
         guard let preview = phoneDragPreview, let drag = phoneHandDrag else { finishPhoneHandLanding(); return }
         phoneHandDrag?.landing = true
+        let reduced = UIAccessibility.isReduceMotionEnabled
+        let mini = crossfade && !reduced ? (morph ?? target?.snapshotView(afterScreenUpdates: true)) : nil
+        if let mini {
+            if let target { mini.bounds = target.bounds }
+            mini.center = preview.center
+            let currentHeight = preview.bounds.height * hypot(preview.transform.a, preview.transform.b)
+            mini.transform = CGAffineTransform(rotationAngle: atan2(preview.transform.b, preview.transform.a))
+                .scaledBy(x: currentHeight / mini.bounds.height, y: currentHeight / mini.bounds.height)
+            mini.alpha = 0; mini.isUserInteractionEnabled = false
+            view.insertSubview(mini, aboveSubview: preview)
+            phoneHandMiniPreview = mini
+        }
         target?.alpha = 0
         let scale = height / drag.startHeight
-        let duration = 0.32
+        let duration = reduced ? 0.12 : 0.32
         UIView.animate(withDuration: duration, delay: 0, usingSpringWithDamping: 0.9, initialSpringVelocity: 0, options: [.beginFromCurrentState]) {
-            preview.center = center
-            preview.transform = CGAffineTransform(rotationAngle: angle).scaledBy(x: scale, y: scale)
-            preview.layer.shadowOpacity = 0
-            if fade { preview.alpha = 0 }
+            if !reduced {
+                preview.center = center
+                preview.transform = CGAffineTransform(rotationAngle: angle).scaledBy(x: scale, y: scale)
+                if let mini {
+                    mini.center = center
+                    mini.transform = CGAffineTransform(rotationAngle: angle)
+                        .scaledBy(x: height / mini.bounds.height, y: height / mini.bounds.height)
+                    mini.alpha = 1
+                }
+            }
+            preview.layer.shadowOpacity = 0; self.phoneHandPlayGlow?.alpha = 0
+            if fade || crossfade { preview.alpha = 0 }
+            if crossfade && mini == nil { target?.alpha = 1 }
         } completion: { [weak self] _ in
             target?.alpha = 1
             guard self?.phoneHandDrag?.card.uuid == drag.card.uuid else { return }
             self?.finishPhoneHandLanding()
-        }
-        if crossfade {
-            UIView.animate(withDuration: duration * 0.55, delay: duration * 0.4, options: [.curveEaseInOut, .beginFromCurrentState]) {
-                preview.alpha = 0
-                target?.alpha = 1
-            }
         }
     }
 
@@ -3298,6 +5004,7 @@ extension BoardViewController {
     }
 
     private func finishPhoneHandLanding() {
+        cancelPhoneSpringLoad()
         phoneHandDrag = nil
         phoneHandPreviewHost = nil
         clearPhoneDragPreview()
@@ -3305,28 +5012,87 @@ extension BoardViewController {
     }
 
     private func finishPhoneCardDrag(_ card: CardInstance, at point: CGPoint) {
-        defer { clearPhoneDragPreview() }
-        guard let session = phoneMode else { return }
-        if performPhoneCombatDrop(at: point, ids: [card.uuid]) { return }
-        for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
-            let targets: [(UIView?, Pile.Location)] = [(bar.graveyardPileView, .graveyard), (bar.exilePileView, .exile), (bar.libraryPileView, .library), (bar.handContainerView, .hand)]
-            for (target, location) in targets {
-                guard let target, !target.isHidden,
-                      target.point(inside: target.convert(point, from: view), with: nil) else { continue }
-                session.send(.moveToPlayer(card.uuid, location, bar.player.identifier, bottom: false))
-                return
-            }
+        guard let session = phoneMode else { clearPhoneDragPreview(); return }
+        let settle = performPhoneCardDrop(card, at: point, session: session)
+        clearPhoneAttachHover()
+        settlePhoneDragPreview(card, settle)
+    }
+
+    private enum PhoneDragSettle { case back, fade, into(CGRect) }
+
+    /// What a battlefield card dropped here does, and how its drag preview should settle.
+    private func performPhoneCardDrop(_ card: CardInstance, at point: CGPoint, session: PhoneGameSession) -> PhoneDragSettle {
+        if finishPhoneSpringLoad(card, at: point) { hidePhoneDragHover(); return .fade }
+        if phoneDropBlockedByBrowser(at: point) { hidePhoneDragHover(); return .back }
+        if performPhoneCombatDrop(at: point, ids: [card.uuid]) { return .back }
+        if let pile = phonePileZone(at: point) {
+            if pile.location == .library { promptPhoneLibraryDrop(card, session: session) }
+            else { session.send(.moveToPlayer(card.uuid, pile.location, pile.player, bottom: false)) }
+            phoneZoneDropFeedback()
+            return .into(view.convert(pile.view.bounds, from: pile.view))
         }
         if phoneHandDropRegionContains(point) {
             session.send(.moveToPlayer(card.uuid, .hand, session.player, bottom: false))
-            return
+            phoneZoneDropFeedback()
+            return .fade
         }
         if let target = armedPhoneAttachTarget(at: point, excluding: [card.uuid]) {
             session.send(.attachDroppedCard(card.uuid, target.uuid))
+            PhoneHaptics.drop()
+            return .fade
         } else if phoneUnattachArmed {
             session.send(.attach(card.uuid, nil))
+            return .fade
         }
+        return .back
     }
+
+    /// A released battlefield card doesn't snap: it glides back to its place, shrinks into the
+    /// pile it was dropped on, or fades where it went (the hand, an attachment).
+    private func settlePhoneDragPreview(_ card: CardInstance, _ settle: PhoneDragSettle) {
+        guard let preview = phoneDragPreview, !UIAccessibility.isReduceMotionEnabled else { clearPhoneDragPreview(); return }
+        phoneDragPreview = nil
+        phoneDraggedCard = nil
+        let source = cardView(for: card)
+        let organizer = [landOrganizer, opponentLandOrganizer].compactMap { $0 }.first { $0.landFrame(for: card.uuid) != nil }
+        let landFrame = organizer?.landFrame(for: card.uuid).map { view.convert($0, from: nil) }
+        // Keep the land's slot empty until its preview arrives back.
+        if case .back = settle { organizer?.concealCard(card.uuid, true) }
+        let finish = { [weak self, weak source, weak organizer] in
+            preview.removeFromSuperview()
+            source?.alpha = 1
+            organizer?.concealCard(card.uuid, false)
+            self?.landOrganizer?.concealCard(card.uuid, false)
+        }
+        UIView.animate(withDuration: 0.22, delay: 0, usingSpringWithDamping: 0.9, initialSpringVelocity: 0, options: [.beginFromCurrentState]) { [weak self] in
+            guard let self else { return }
+            switch settle {
+            case .back:
+                if let source, source.superview != nil, !source.isHidden {
+                    preview.center = source.convert(CGPoint(x: source.bounds.midX, y: source.bounds.midY), to: self.view)
+                    let x = source.convert(CGPoint(x: source.bounds.width, y: 0), to: self.view)
+                    let origin = source.convert(CGPoint.zero, to: self.view)
+                    preview.transform = CGAffineTransform(rotationAngle: atan2(x.y - origin.y, x.x - origin.x))
+                } else if let frame = landFrame {
+                    // An organized land glides back to its slot in the land row.
+                    preview.center = CGPoint(x: frame.midX, y: frame.midY)
+                    preview.transform = CGAffineTransform(rotationAngle: card.isTapped.value ? .pi / 15 : 0)
+                } else { preview.alpha = 0 }
+            case .fade:
+                preview.alpha = 0
+                preview.transform = preview.transform.scaledBy(x: 0.85, y: 0.85)
+            case .into(let rect):
+                preview.center = CGPoint(x: rect.midX, y: rect.midY)
+                let scale = rect.height / max(1, preview.bounds.height)
+                preview.transform = CGAffineTransform(scaleX: scale, y: scale)
+                preview.alpha = 0
+            }
+        } completion: { _ in finish() }
+    }
+
+    /// A firm tap when a dropped card lands in a different zone.
+    private func phoneZoneDropFeedback() { PhoneHaptics.drop() }
+
     private func handlePhoneCardPan(_ gesture: UIPanGestureRecognizer) {
         guard let cardView = gesture.view as? MiniCardView, let card = cardView.cardInstance else { return }
         let point = gesture.location(in: view)
@@ -3363,6 +5129,17 @@ extension BoardViewController {
             return
         }
         guard phonePacketSelectionID != selection.id else { return }
+        // With the board menu open (its Load Deck page started the draft), navigate forward in it.
+        if let navigation = presentedViewController as? UINavigationController, !navigation.isBeingDismissed,
+           navigation.presentedViewController == nil {
+            phonePacketSelectionID = selection.id
+            let chooser = UIHostingController(rootView: PhonePacketChoiceView(session: session, embedsNavigation: false))
+            chooser.navigationItem.hidesBackButton = true
+            phonePacketChooser = chooser
+            navigation.isModalInPresentation = true
+            navigation.pushViewController(chooser, animated: true)
+            return
+        }
         guard presentedViewController == nil else {
             dismiss(animated: true) { [weak self] in self?.presentPhonePacketChoices() }
             return
@@ -3375,31 +5152,34 @@ extension BoardViewController {
         present(chooser, animated: true)
     }
 
-    private func showPhoneDeckPicker() {
+    /// Load Deck, pushed inside the board menu's sheet.
+    private func makePhoneDeckPicker() -> UIViewController {
         let player = phoneMode?.player ?? .a
-        let host = UIHostingController(rootView: NavigationStack {
-            LoadDeckView(startPacketGame: { [weak self] kind, set in
-                self?.dismiss(animated: true) { [weak self] in self?.phoneMode?.send(.startPackets(kind: kind, set: set)) }
-            }, playerIdentifier: player, chooseListFile: { [weak self] in
-                self?.dismiss(animated: true) {
-                    self?.loadDeckPlayerIdentifier = player
-                    let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.plainText])
-                    picker.delegate = self
-                    self?.present(picker, animated: true)
-                }
-            }, dismiss: { [weak self] in self?.dismiss(animated: true) }).navigationTitle("Load Deck")
-        })
-        host.modalPresentationStyle = .formSheet
-        present(host, animated: true)
+        return UIHostingController(rootView: LoadDeckView(startPacketGame: { [weak self] kind, set in
+            // The packet choices are pushed into this same sheet (presentPhonePacketChoices)
+            // rather than closing it and presenting another.
+            self?.phoneMode?.send(.startPackets(kind: kind, set: set))
+        }, playerIdentifier: player, chooseListFile: { [weak self] in
+            guard let self else { return }
+            // Over the menu, which closes once a file is picked.
+            self.loadDeckPlayerIdentifier = player
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.plainText])
+            picker.delegate = self
+            self.phonePresenter.present(picker, animated: true)
+        }, dismiss: { [weak self] in self?.dismiss(animated: true) }).navigationTitle("Load Deck"))
     }
 
-    private func showPhoneStack() {
-        guard let phoneMode else { return }
-        let controller = PhoneStackController(session: phoneMode)
-        controller.inspect = { [weak self, weak controller] card in
-            controller?.dismiss(animated: true) { [weak self] in self?.focus(on: card, view: nil) }
+    /// Abilities on the stack have no card to inspect or drag.
+    private func showPhoneAbilityOptions() {
+        guard let session = phoneMode, let item = session.game.stack.last(where: { $0.card == nil }) else { return }
+        let alert = UIAlertController(title: item.text, message: nil, preferredStyle: .actionSheet)
+        if session.game.stack.last?.id == item.id {
+            alert.addAction(.init(title: "Resolve", style: .default) { _ in session.send(.resolve(item.id)) })
         }
-        present(UINavigationController(rootViewController: controller), animated: true)
+        alert.addAction(.init(title: "Remove from Stack", style: .destructive) { _ in session.send(.counterStack(item.id)) })
+        alert.addAction(.init(title: "Cancel", style: .cancel))
+        alert.popoverPresentationController?.sourceView = phoneStackCards?.view ?? view
+        phonePresenter.present(alert, animated: true)
     }
 
     private func leavePhoneGame(showingStart: Bool = false) {
@@ -3444,5 +5224,15 @@ extension BoardViewController {
         controller.modalPresentationStyle = .fullScreen
         present(controller, animated: true)
         app.sendCommand(.rebroadcast)
+    }
+}
+
+
+/// The board's content view: a card laid out past its edges still receives touches (Phone Play's
+/// field can be wider than the zoomed board, and UIKit only hit-tests subviews inside a view's bounds).
+final class PhoneBoardContentView: UIView {
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        if super.point(inside: point, with: event) { return true }
+        return subviews.contains { !$0.isHidden && $0.alpha > 0.01 && $0.isUserInteractionEnabled && $0.frame.contains(point) }
     }
 }

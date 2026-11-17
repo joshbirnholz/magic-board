@@ -314,7 +314,19 @@ class BottomBarViewController: UIViewController {
 	
 	func viewPile(from pileView: PileViewProtocol) {
 		let pile = self.pile(for: pileView)
-		
+		guard !pile.cards.value.isEmpty else { return }
+		// Phone Play opens graveyards, exile and libraries in the board's card browser.
+		if AppDelegate.shared.usesPhoneSession, [.graveyard, .exile, .library].contains(pile.location),
+		   let board = AppDelegate.shared.boardController {
+			board.showPhoneZoneBrowser(.pile(pile.location, pile.playerIdentifier))
+			return
+		}
+		presentPileSheet(from: pileView)
+	}
+
+	/// The list view of a pile (search, reveal, context menus…), still reachable from the browser.
+	func presentPileSheet(from pileView: PileViewProtocol) {
+		let pile = self.pile(for: pileView)
 		guard !pile.cards.value.isEmpty else { return }
 		guard let pileViewController = self.storyboard?.instantiateViewController(identifier: "PileViewController") as? PileViewController else { return }
 		pileViewController.setPile(pile)
@@ -332,6 +344,10 @@ class BottomBarViewController: UIViewController {
 		}
 		
 		self.present(navigationController, animated: true, completion: nil)
+		// The opponent's phone outlines the pile while this sheet is open.
+		if let session = AppDelegate.shared.phoneSession, [.graveyard, .exile, .library].contains(pile.location) {
+			session.trackInspection(.pile(pile.playerIdentifier, pile.location), while: navigationController)
+		}
 	}
 	
 	func pile(for pileView: PileViewProtocol) -> Pile {
@@ -555,8 +571,9 @@ extension BottomBarViewController {
                 phoneHUDBottoms.append(bottom); phoneHUDHeights.append(height)
             }
             phoneHUDConstraints = phoneHUDBottoms + phoneHUDHeights + [
-                // Safe area: on a folded iPhone Duo the camera side can be the right edge.
-                lifeContainer.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -4),
+                // The board already keeps the bar clear of the camera (reserved regions); the
+                // bar's own safe area would push the life total in by the whole side inset again.
+                lifeContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
                 untapButton.trailingAnchor.constraint(equalTo: lifeContainer.leadingAnchor, constant: -8)
             ]
             NSLayoutConstraint.activate(phoneHUDConstraints)
@@ -571,7 +588,8 @@ extension BottomBarViewController {
         untapButton.contentVerticalAlignment = .fill
         untapButton.imageView?.contentMode = .scaleAspectFit
         for pile in [libraryPileView, graveyardPileView, exilePileView].compactMap({ $0 }) {
-            for drag in pile.interactions.compactMap({ $0 as? UIDragInteraction }) { drag.isEnabled = true }
+            // Phone Play drags the top card with the board's own pan (like hand cards), not a system drag.
+            for drag in pile.interactions.compactMap({ $0 as? UIDragInteraction }) { drag.isEnabled = false }
             pile.numberLabel.font = .systemFont(ofSize: 12 * uiScale)
             pile.titleLabel.font = titleFont
             pile.titleLabel.adjustsFontSizeToFitWidth = false

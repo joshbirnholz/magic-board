@@ -52,153 +52,162 @@ final class NearbyGamePickerController: UITableViewController {
     }
 }
 
-final class PhoneStackController: UITableViewController {
-    private let session: PhoneGameSession
-    private var subscriptions = Set<AnyCancellable>()
-    var inspect: ((CardInstance) -> Void)?
-    init(session: PhoneGameSession) { self.session = session; super.init(style: .insetGrouped) }
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        title = "Stack"
-        navigationItem.leftBarButtonItem = .init(barButtonSystemItem: .done, target: self, action: #selector(done))
-        navigationItem.rightBarButtonItems = [
-            .init(title: "Resolve Top", primaryAction: UIAction { [weak self] _ in
-                guard let self, let item = self.session.game.stack.last else { return }
-                self.session.send(.resolve(item.id))
-            })
-        ]
-        session.$game.sink { [weak self] _ in
-            // @Published emits before assignment; reload after the new snapshot is installed.
-            DispatchQueue.main.async { self?.tableView.reloadData() }
-        }.store(in: &subscriptions)
-    }
-    @objc private func done() { dismiss(animated: true) }
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { session.game.stack.count }
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { "Top resolves first · swipe to counter/remove" }
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let item = Array(session.game.stack.reversed())[indexPath.row]
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
-        cell.textLabel?.text = item.text
-        cell.detailTextLabel?.text = session.game.state[player: item.player].name.value
-        cell.accessoryType = item.card == nil ? .none : .disclosureIndicator
-        return cell
-    }
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if let card = Array(session.game.stack.reversed())[indexPath.row].card { inspect?(card) }
-    }
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        session.send(.counterStack(Array(session.game.stack.reversed())[indexPath.row].id))
-    }
-}
-
 // The original board menu's actions, organized into a scrollable native sheet.
 final class BoardMenuAction {
     let title: String?
     let style: UIAlertAction.Style
     let handler: ((BoardMenuAction) -> Void)?
+    /// Shown by navigating forward within the menu's own sheet, instead of closing the menu.
+    let destination: (() -> UIViewController?)?
     init(title: String?, style: UIAlertAction.Style, handler: ((BoardMenuAction) -> Void)? = nil) {
-        self.title = title; self.style = style; self.handler = handler
+        self.title = title; self.style = style; self.handler = handler; self.destination = nil
+    }
+    init(title: String, push destination: @escaping () -> UIViewController?) {
+        self.title = title; self.style = .default; self.handler = nil; self.destination = destination
     }
 }
 
-/// The long-press board menu: actions split into pages (segmented control in the navigation bar,
-/// or swipe left/right), with Reset and Done in the bar on every page.
-final class BoardMenuSheetController: UITableViewController {
-    private enum Page: Int, CaseIterable {
-        case game, cards, board, more
-        var title: String { ["Game", "Cards", "Board", "More"][rawValue] }
-    }
+/// The long-press board menu: every action at a glance as compact icon tiles, grouped (Game,
+/// Cards, Board, More) on one page — the most used ones (load, reset, exit) first. Actions with a
+/// destination navigate forward within this sheet.
+final class BoardMenuSheetController: UIViewController {
     private var actions: [BoardMenuAction] = []
     var textFields: [UITextField]? = []
-    /// Shown as the Reset bar button on every page.
+    /// Kept for callers; the reset options are tiles now.
     var onReset: (() -> Void)?
-    private var page = Page.game
-    private let pagePicker = UISegmentedControl(items: Page.allCases.map(\.title))
 
     init(title: String?, message: String?, preferredStyle: UIAlertController.Style) {
-        super.init(style: .insetGrouped); self.title = title
+        super.init(nibName: nil, bundle: nil); self.title = title
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func addAction(_ action: BoardMenuAction) { if action.style != .cancel { actions.append(action) } }
     func addTextField(configurationHandler: ((UITextField) -> Void)?) {
         let field = UITextField(); field.placeholder = "Card name or set and number"
-        field.clearButtonMode = .whileEditing; configurationHandler?(field); textFields?.append(field)
+        field.clearButtonMode = .whileEditing; field.borderStyle = .roundedRect
+        configurationHandler?(field); textFields?.append(field)
     }
-    private func page(of action: BoardMenuAction) -> Page {
+
+    fileprivate enum Group: String, CaseIterable { case game = "Game", cards = "Cards", board = "Board", more = "More" }
+    fileprivate static func group(of action: BoardMenuAction) -> Group {
         let name = action.title ?? ""
-        if name.hasPrefix("Load") || name.contains("Preloaded") || name.contains("Connection") { return .game }
+        if name.hasPrefix("Load") || name.contains("Preloaded") || name.contains("Connection") || name.hasPrefix("Reset")
+            || name == "Clear Board" || name == "Exit Game" || name.contains("Hand") { return .game }
         if name.hasPrefix("Add") || name.hasPrefix("Drop") { return .cards }
         if name.contains("Hide") || name.contains("Selection") || name.contains("Reveal") { return .board }
         return .more
     }
-    private var rows: [BoardMenuAction] { actions.filter { page(of: $0) == page } }
-    /// The card text field leads the Cards page.
-    private var hasField: Bool { page == .cards && textFields?.first != nil }
+    fileprivate static func icon(for title: String) -> String {
+        switch title {
+        case "Load Deck / JumpStart / Jump In": return "rectangle.stack.badge.plus"
+        case "Preloaded Games & Artwork": return "square.grid.3x3.square"
+        case "Connection…": return "antenna.radiowaves.left.and.right"
+        case "Load Dandân": return "fish"
+        case "Reset Decks and Life": return "arrow.counterclockwise"
+        case "Clear Board": return "trash"
+        case "Exit Game": return "rectangle.portrait.and.arrow.right"
+        case "Reveal Hand": return "eye"
+        case "Stop Revealing Hand": return "eye.slash"
+        case "Add by Name": return "text.magnifyingglass"
+        case "Add by Set and Number": return "number"
+        case "Add Random": return "dice"
+        case "Update Card Database": return "arrow.down.circle"
+        case "Share Connect App": return "square.and.arrow.up"
+        default:
+            if title.contains("Player 2") { return "person.2" }
+            if title.contains("Land Organizer") { return "square.stack.3d.up" }
+            if title.hasPrefix("Drop") { return "rectangle.portrait.on.rectangle.portrait" }
+            if title.contains("Selection") { return "selection.pin.in.out" }
+            if title.contains("Top Card") { return "eye" }
+            return "circle.grid.2x2"
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        pagePicker.selectedSegmentIndex = page.rawValue
-        pagePicker.accessibilityIdentifier = "board-menu-pages"
-        pagePicker.addAction(UIAction { [weak self] _ in
-            guard let self, let page = Page(rawValue: self.pagePicker.selectedSegmentIndex) else { return }
-            self.show(page)
-        }, for: .valueChanged)
-        navigationItem.titleView = pagePicker
+        view.backgroundColor = .systemGroupedBackground
         navigationItem.rightBarButtonItem = .init(barButtonSystemItem: .done, target: self, action: #selector(done))
-        if onReset != nil {
-            let reset = UIBarButtonItem(title: "Reset", primaryAction: UIAction { [weak self] _ in self?.onReset?() })
-            reset.tintColor = .systemRed
-            reset.accessibilityIdentifier = "board-menu-reset"
-            navigationItem.leftBarButtonItem = reset
-        }
-        tableView.keyboardDismissMode = .onDrag
-        for direction in [UISwipeGestureRecognizer.Direction.left, .right] {
-            let swipe = UISwipeGestureRecognizer(target: self, action: #selector(swiped(_:)))
-            swipe.direction = direction
-            tableView.addGestureRecognizer(swipe)
-        }
+        let grid = BoardMenuGrid(groups: Group.allCases.compactMap { group in
+            // Most used first: load, reset, clear, exit, reveal hand; the rest keep their order.
+            let priority = ["Load Deck / JumpStart / Jump In", "Reset Decks and Life", "Clear Board", "Exit Game", "Reveal Hand", "Stop Revealing Hand"]
+            let items = actions.filter { Self.group(of: $0) == group }.enumerated().sorted { a, b in
+                let pa = priority.firstIndex(of: a.element.title ?? "") ?? priority.count + a.offset
+                let pb = priority.firstIndex(of: b.element.title ?? "") ?? priority.count + b.offset
+                return pa < pb
+            }.map(\.element)
+            return items.isEmpty && !(group == .cards && textFields?.first != nil) ? nil : (group.rawValue, items)
+        }, field: textFields?.first, select: { [weak self] action in self?.select(action) })
+        let host = UIHostingController(rootView: grid)
+        host.view.backgroundColor = .clear
+        addChild(host)
+        view.addSubview(host.view)
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            host.view.topAnchor.constraint(equalTo: view.topAnchor),
+            host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        host.didMove(toParent: self)
     }
-    private func show(_ newPage: Page) {
-        guard newPage != page else { return }
-        let forward = newPage.rawValue > page.rawValue
-        page = newPage
-        pagePicker.selectedSegmentIndex = newPage.rawValue
+
+    private func select(_ action: BoardMenuAction) {
         view.endEditing(true)
-        let transition = CATransition()
-        transition.type = .push
-        transition.subtype = forward ? .fromRight : .fromLeft
-        transition.duration = 0.2
-        tableView.layer.add(transition, forKey: "page")
-        tableView.reloadData()
-    }
-    @objc private func swiped(_ gesture: UISwipeGestureRecognizer) {
-        let next = page.rawValue + (gesture.direction == .left ? 1 : -1)
-        if let target = Page(rawValue: next) { show(target) }
-    }
-    @objc private func done() { dismiss(animated: true) }
-    override func numberOfSections(in tableView: UITableView) -> Int { 1 }
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { rows.count + (hasField ? 1 : 0) }
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
-        if hasField && indexPath.row == 0, let field = textFields?.first {
-            field.removeFromSuperview()
-            field.translatesAutoresizingMaskIntoConstraints = false; cell.contentView.addSubview(field)
-            NSLayoutConstraint.activate([field.leadingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.leadingAnchor), field.trailingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.trailingAnchor), field.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 12), field.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -12)])
-            cell.selectionStyle = .none
-        } else {
-            let action = rows[indexPath.row - (hasField ? 1 : 0)]
-            cell.textLabel?.text = action.title; cell.textLabel?.numberOfLines = 0
-            cell.textLabel?.textColor = action.style == .destructive ? .systemRed : .label
-            cell.accessoryType = .disclosureIndicator
+        if let destination = action.destination {
+            if let controller = destination() { navigationController?.pushViewController(controller, animated: true) }
+            return
         }
-        return cell
-    }
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if hasField && indexPath.row == 0 { return }
-        let action = rows[indexPath.row - (hasField ? 1 : 0)]
         dismiss(animated: true) { action.handler?(action) }
     }
+
+    @objc private func done() { dismiss(animated: true) }
+}
+
+/// The board menu's grouped icon tiles.
+private struct BoardMenuGrid: View {
+    let groups: [(String, [BoardMenuAction])]
+    let field: UITextField?
+    let select: (BoardMenuAction) -> Void
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(groups, id: \.0) { name, actions in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(name.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.leading, 4)
+                        if name == "Cards", let field {
+                            TextFieldHost(field: field).frame(height: 36)
+                        }
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
+                            ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                                Button { select(action) } label: {
+                                    VStack(spacing: 5) {
+                                        Image(systemName: BoardMenuSheetController.icon(for: action.title ?? ""))
+                                            .font(.system(size: 19, weight: .semibold)).frame(height: 22)
+                                        Text(action.title ?? "").font(.caption.weight(.medium))
+                                            .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.8)
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 64)
+                                    .padding(.horizontal, 4)
+                                    .foregroundStyle(action.style == .destructive ? Color.red : Color.primary)
+                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(uiColor: .secondarySystemGroupedBackground)))
+                                    .contentShape(RoundedRectangle(cornerRadius: 12))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(action.title ?? "")
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+}
+
+private struct TextFieldHost: UIViewRepresentable {
+    let field: UITextField
+    func makeUIView(context: Context) -> UITextField { field }
+    func updateUIView(_ uiView: UITextField, context: Context) {}
 }
 
 import SwiftUI
@@ -207,25 +216,212 @@ import CardService
 struct PhoneStackCardsView: View {
     let items: [PhoneGame.StackItem]
     let inspect: (CardInstance) -> Void
+    let browse: () -> Void
+    /// Hidden while its stand-in zooms into (or back from) the card menu.
+    var concealedCardID: UUID? = nil
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    static func cardSize(in size: CGSize) -> CGSize {
+        let width = min(size.width / 1.62, size.height * 0.88 * 63 / 88)
+        return CGSize(width: width, height: width * 88 / 63)
+    }
+    static func cardTransform(in size: CGSize, depth: Int) -> CGAffineTransform {
+        let card = cardSize(in: size), depth = CGFloat(depth)
+        let center = CGPoint(x: size.width - card.width / 2 - 5 - depth * card.width * 0.08,
+                             y: size.height / 2 - depth * card.height * 0.02)
+        return CGAffineTransform(translationX: center.x, y: center.y + card.height / 2)
+            .rotated(by: -4 * depth * .pi / 180)
+            .translatedBy(x: -card.width / 2, y: -card.height)
+    }
+    /// The exposed left edge, accounting for the same bottom-pivot rotation as the fan.
+    static func connectionPoint(in size: CGSize, depth: Int) -> CGPoint {
+        let card = cardSize(in: size)
+        let depth = CGFloat(depth)
+        let angle = -4 * depth * .pi / 180
+        let x = size.width - card.width / 2 - 5 - depth * card.width * 0.08
+        let bottom = size.height / 2 - depth * card.height * 0.02 + card.height / 2
+        return CGPoint(x: x - card.width / 2 * cos(angle) + card.height / 2 * sin(angle),
+                       y: bottom - card.width / 2 * sin(angle) - card.height / 2 * cos(angle))
+    }
     private func face(of card: CardInstance) -> MTGCard.Face? {
         if case .alternateFace(_, let face) = card.representation { return face }
         return nil
     }
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                ForEach(Array(items.compactMap(\.card).enumerated()), id: \.element.uuid) { index, card in
-                    HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
-                        .frame(width: geometry.size.width, height: geometry.size.width * 88 / 63)
-                        .clipShape(RoundedRectangle(cornerRadius: max(5,geometry.size.width * 0.045),style: .continuous))
-                        .offset(y: CGFloat(index) * min(34, geometry.size.height * 0.08))
-                        .onTapGesture { inspect(card) }
-                        .onLongPressGesture { inspect(card) }
-                        .drag(card: card)
-                        .accessibilityLabel(card.representation.name ?? "Spell on Stack")
+            // Arena keeps the newest card upright, with older cards fanned to its left.
+            // Bound the fan; the count button opens every item, even in a very large stack.
+            let visible = Array(items.suffix(4))
+            let size = Self.cardSize(in: geometry.size)
+            let width = size.width
+            let height = size.height
+            let corner = max(4, width * 0.045)
+            ZStack {
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, item in
+                    let depth = CGFloat(visible.count - index - 1)
+                    Button {
+                        if let card = item.card { inspect(card) } else { browse() }
+                    } label: {
+                        Group {
+                            if let card = item.card {
+                                HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
+                            } else {
+                                RoundedRectangle(cornerRadius: corner)
+                                    .fill(Color(white: 0.15))
+                                    .overlay(Text(item.text).font(.headline).foregroundStyle(.white).padding(8))
+                            }
+                        }
+                        .frame(width: width, height: height)
+                        .overlay(Color.black.opacity(Double(depth) * 0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: corner, style: .continuous)
+                            .strokeBorder(.white.opacity(depth == 0 ? 0.65 : 0.3), lineWidth: depth == 0 ? 1 : 0.5))
+                        .shadow(color: .black.opacity(0.7), radius: depth == 0 ? 7 : 3, x: -2, y: 4)
+                    }
+                        .buttonStyle(.plain)
+                        .opacity(item.card != nil && item.card?.uuid == concealedCardID ? 0 : 1)
+                        .rotationEffect(.degrees(-4 * depth), anchor: .bottom)
+                        .position(x: geometry.size.width - width / 2 - 5 - depth * width * 0.08,
+                                  y: geometry.size.height / 2 - depth * height * 0.02)
+                        .zIndex(Double(index))
+                        .onLongPressGesture { if let card = item.card { inspect(card) } else { browse() } }
+
+                        .accessibilityLabel(item.text)
+                        .accessibilityValue((depth == 0 ? "Top of stack, resolves next" : "\(visible.count - index) from top")
+                                            + ", \(item.targets?.count ?? 0) targets")
                         .accessibilityIdentifier("phone-stack-full-card")
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: items.map(\.id))
+        }
+    }
+}
+
+/// Drags the top card off one of a player's piles (see `BoardViewController.phonePilePanned`).
+final class PhonePilePanGesture: UIPanGestureRecognizer {
+    var zone: Pile.Location = .graveyard
+    weak var bar: BottomBarViewController?
+}
+
+extension Optional where Wrapped == [UIGestureRecognizer] {
+    var orEmpty: [UIGestureRecognizer] { self ?? [] }
+}
+
+/// Phone Play's haptics, firmer than UIKit's selection tick so they're felt mid-drag.
+enum PhoneHaptics {
+    /// Picking a card up, or an attach/target/block offer arming under it.
+    static func pickUp() { UIImpactFeedbackGenerator(style: .medium).impactOccurred(intensity: 0.9) }
+    /// A dragged card landing in a new zone (or a target being set).
+    static func drop() { UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 1) }
+    /// A stack card's targeting arrow passing over something it can target.
+    static func hover() { UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.7) }
+}
+
+/// A CADisplayLink target that doesn't retain its owner.
+final class PhoneDisplayLinkTarget: NSObject {
+    private let action: () -> Void
+    init(_ action: @escaping () -> Void) { self.action = action }
+    @objc func tick() { action() }
+}
+
+/// Passes touches through except where `accepts` says something is drawn.
+final class PhoneTouchFilterView: UIView {
+    var accepts: ((CGPoint) -> Bool)?
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard accepts?(point) == true else { return nil }
+        return super.hitTest(point, with: event)
+    }
+}
+
+/// Blocker-to-attacker connections, including the assignment under the dragged card.
+/// Arena's blocks: a glowing golden curve from each blocker to the attacker it blocks, and a
+/// golden halo arcing over the blocker's edge that faces the attacker.
+final class PhoneCombatLinesView: UIView {
+    struct Line { let from: CGPoint; let to: CGPoint; let preview: Bool; var blocker: CGRect? = nil }
+    var lines: [Line] = [] { didSet { setNeedsDisplay() } }
+    static let gold = UIColor(red: 1, green: 0.8, blue: 0.3, alpha: 1)
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        let gold = Self.gold
+        var haloed: Set<String> = []
+        for line in lines {
+            let distance = hypot(line.to.x - line.from.x, line.to.y - line.from.y)
+            guard distance > 4 else { continue }
+            // A gentle curve, bowing sideways like Arena's.
+            let mid = CGPoint(x: (line.from.x + line.to.x) / 2, y: (line.from.y + line.to.y) / 2)
+            let normal = CGPoint(x: -(line.to.y - line.from.y) / distance, y: (line.to.x - line.from.x) / distance)
+            let bow = min(28, distance * 0.18)
+            let control = CGPoint(x: mid.x + normal.x * bow, y: mid.y + normal.y * bow)
+            let path = UIBezierPath()
+            path.move(to: line.from); path.addQuadCurve(to: line.to, controlPoint: control)
+            path.lineCapStyle = .round; path.lineWidth = line.preview ? 3.5 : 3
+            if line.preview { path.setLineDash([7, 5], count: 2, phase: 0) }
+            context.saveGState()
+            context.setShadow(offset: .zero, blur: 10, color: gold.cgColor)
+            gold.withAlphaComponent(line.preview ? 0.7 : 0.95).setStroke(); path.stroke()
+            context.restoreGState()
+            path.lineWidth = 1; UIColor.white.withAlphaComponent(0.85).setStroke(); path.stroke()
+
+            // The halo over the blocker's facing edge (once per blocker).
+            guard let card = line.blocker, haloed.insert("\(card.midX),\(card.midY)").inserted else { continue }
+            let facesUp = line.to.y < card.midY
+            let edgeY = facesUp ? card.minY : card.maxY
+            let width = card.width * 1.15, height = max(6, card.width * 0.22)
+            let oval = CGRect(x: card.midX - width / 2, y: edgeY - height / 2, width: width, height: height)
+            // The half of the ellipse outside the card.
+            let halo = UIBezierPath(arcCenter: .zero, radius: 1, startAngle: facesUp ? .pi : 0, endAngle: facesUp ? 2 * .pi : .pi, clockwise: true)
+            halo.apply(CGAffineTransform(scaleX: width / 2, y: height / 2))
+            halo.apply(CGAffineTransform(translationX: oval.midX, y: oval.midY))
+            halo.lineCapStyle = .round
+            context.saveGState()
+            context.setShadow(offset: .zero, blur: 12, color: gold.cgColor)
+            halo.lineWidth = 4; gold.withAlphaComponent(line.preview ? 0.6 : 0.9).setStroke(); halo.stroke()
+            context.restoreGState()
+            halo.lineWidth = 1.2; UIColor.white.withAlphaComponent(0.8).setStroke(); halo.stroke()
+        }
+    }
+}
+
+/// A transparent, non-interactive layer. Geometry is supplied by the actual board layout.
+final class PhoneTargetArcsView: UIView {
+    struct Connection {
+        let source: CGPoint
+        let destination: CGPoint
+        let local: Bool
+        let targetsStack: Bool
+    }
+    var connections: [Connection] = [] { didSet { setNeedsDisplay() } }
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        for connection in connections {
+            let start = connection.source, end = connection.destination
+            let distance = hypot(end.x - start.x, end.y - start.y)
+            guard distance > 8 else { continue }
+            let bend = min(100, max(30, distance * 0.3))
+            // A response targeting a nearby spell needs to loop outside the fan;
+            // a shallow curve between their edges would be entirely hidden by the cards.
+            let control = connection.targetsStack
+                ? CGPoint(x: min(start.x, end.x) - max(110, distance * 0.5), y: max(8, min(start.y, end.y) - 45))
+                : CGPoint(x: (start.x + end.x) / 2 - bend * 0.4, y: max(8, (start.y + end.y) / 2 - bend))
+            let color: UIColor = connection.local ? .systemCyan : .systemOrange
+            let curve = UIBezierPath()
+            curve.move(to: start)
+            curve.addQuadCurve(to: end, controlPoint: control)
+            curve.lineCapStyle = .round
+            context.saveGState()
+            context.setShadow(offset: .zero, blur: 9, color: color.cgColor)
+            color.withAlphaComponent(0.9).setStroke()
+            curve.lineWidth = 3.5; curve.stroke()
+            context.restoreGState()
+            UIColor.white.withAlphaComponent(0.8).setStroke()
+            curve.lineWidth = 1; curve.stroke()
+            let angle = atan2(end.y - control.y, end.x - control.x)
+            let arrow = UIBezierPath()
+            arrow.move(to: CGPoint(x: end.x - 8 * cos(angle - 0.45), y: end.y - 8 * sin(angle - 0.45)))
+            arrow.addLine(to: end)
+            arrow.addLine(to: CGPoint(x: end.x - 8 * cos(angle + 0.45), y: end.y - 8 * sin(angle + 0.45)))
+            arrow.lineWidth = 2.5; arrow.lineCapStyle = .round; arrow.lineJoinStyle = .round
+            color.setStroke(); arrow.stroke()
         }
     }
 }
@@ -339,9 +535,14 @@ struct PacketChoiceCard: View {
 /// Offers belong to the authoritative game, so both phones enter the same draft.
 struct PhonePacketChoiceView: View {
     @ObservedObject var session: PhoneGameSession
+    /// False when pushed inside an existing navigation (the board menu's Load Deck page).
+    var embedsNavigation = true
     private let library = OfflineGameLibrary.shared
     var body: some View {
-        NavigationStack {
+        if embedsNavigation { NavigationStack { choices } } else { choices }
+    }
+
+    @ViewBuilder private var choices: some View {
             if let selection = session.game.packetSelection,
                !selection.completed.contains(session.player.rawValue) {
                 let player = session.player.rawValue
@@ -374,8 +575,8 @@ struct PhonePacketChoiceView: View {
                 .navigationTitle(selection.firstChoices[player] == nil ? "Choose First Packet" : "Choose Second Packet")
                 .navigationBarTitleDisplayMode(.inline)
                 .interactiveDismissDisabled()
+                .navigationBarBackButtonHidden(true) // the draft has to finish
             }
-        }
     }
 }
 
@@ -435,6 +636,7 @@ final class PhoneHandCardController: UIViewController, PileDisplaying, UITableVi
         navigationItem.rightBarButtonItem = .init(barButtonSystemItem: .done, target: self, action: #selector(done))
         let image = UIStoryboard(name: "Board", bundle: nil).instantiateViewController(withIdentifier: "CardImageViewController") as! CardImageViewController
         image.cardInstance = card
+        image.showsOtherSideButton = true
         preview = image
         addChild(image)
         view.addSubview(image.view)
@@ -465,14 +667,70 @@ final class PhoneHandCardController: UIViewController, PileDisplaying, UITableVi
                 session.send(.moveToStack(card.uuid))
             }), at: 0)
         }
+        // Companions: mark or unmark one; a marked companion in the sideboard can go to the hand.
+        if card.representation.keywords.contains("Companion") {
+            let marked = session.game.companions?[card.uuid] == session.player
+            if marked, session.game.state[player: session.player].sideboard.cards.value.contains(card) {
+                moreActions.insert(Action(title: "Put into Hand", handler: { [session, card] _ in
+                    session.send(.moveToPlayer(card.uuid, .hand, session.player, bottom: false))
+                }), at: 0)
+            }
+            moreActions.append(Action(title: marked ? "Not My Companion" : "Mark as Companion", handler: { [session, card] _ in
+                session.send(.markCompanion(card.uuid, !marked))
+            }))
+        }
+        if card.isCommander.value && !isInCommandZone {
+            moreActions.insert(Action(title: "Move to Command Zone", handler: { [session, card] _ in
+                session.send(.moveToPlayer(card.uuid, .command, card.ownerIdentifier, bottom: false))
+            }), at: 0)
+        }
         table.dataSource = self
         table.delegate = self
         table.accessibilityIdentifier = "phone-hand-actions"
     }
     @objc private func done() { navigationController?.dismiss(animated: true) }
-    func numberOfSections(in tableView: UITableView) -> Int { 2 }
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? 2 : moreActions.count }
+    private var isInCommandZone: Bool { session.game.state[player: session.player].commandZone.cards.value.contains(card) }
+    /// Commanders get a tax stepper (2 generic mana per previous cast from the command zone).
+    private var showsCommanderTax: Bool { card.isCommander.value || isInCommandZone }
+    func numberOfSections(in tableView: UITableView) -> Int { showsCommanderTax ? 3 : 2 }
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? 2 : section == 1 ? moreActions.count : 1 }
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { section == 2 ? "Commander" : nil }
+    private func commanderTaxCell() -> UITableViewCell {
+        let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
+        cell.selectionStyle = .none
+        let label = UILabel()
+        func update(_ casts: Int) {
+            let text = NSMutableAttributedString(string: "Commander Tax  ")
+            text.append(NSAttributedString(string: "+\(casts * 2)", attributes: [.font: UIFont.monospacedDigitSystemFont(ofSize: 17, weight: .semibold)]))
+            label.attributedText = text
+            label.accessibilityValue = "\(casts * 2) mana"
+        }
+        update(card.commanderCasts.value)
+        let stepper = UIStepper()
+        stepper.minimumValue = 0
+        stepper.maximumValue = 50
+        stepper.value = Double(card.commanderCasts.value)
+        stepper.accessibilityIdentifier = "phone-commander-tax"
+        stepper.addAction(UIAction { [session, card] action in
+            guard let stepper = action.sender as? UIStepper else { return }
+            let casts = Int(stepper.value)
+            update(casts)
+            session.send(.commanderTax(card.uuid, casts))
+        }, for: .valueChanged)
+        let row = UIStackView(arrangedSubviews: [label, UIView(), stepper])
+        row.alignment = .center
+        row.translatesAutoresizingMaskIntoConstraints = false
+        cell.contentView.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: cell.contentView.layoutMarginsGuide.trailingAnchor),
+            row.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 6),
+            row.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -6)
+        ])
+        return cell
+    }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if indexPath.section == 2 { return commanderTaxCell() }
         let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
         cell.textLabel?.text = indexPath.section == 0 ? (indexPath.row == 0 ? "Play" : "Play Tapped") : moreActions[indexPath.row].title
         cell.textLabel?.textColor = indexPath.section == 1 && moreActions[indexPath.row].style == .destructive ? .systemRed : view.tintColor
@@ -480,12 +738,13 @@ final class PhoneHandCardController: UIViewController, PileDisplaying, UITableVi
         return cell
     }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if indexPath.section == 2 { return }
         if indexPath.section == 1 {
             let action = moreActions[indexPath.row]
             navigationController?.dismiss(animated: true) { [self] in action.handler?(self) }
             return
         }
-        let options = Command.PlayCardParameters.options(for: card, tapped: indexPath.row == 1)
+        let options = session.castOptions(for: card, tapped: indexPath.row == 1)
         if options.count == 1 { finish(options[0].parameters); return }
         let alert = UIAlertController(title: "Play", message: card.representation.name, preferredStyle: .actionSheet)
         for option in options {
@@ -589,6 +848,617 @@ final class PhonePortraitNavigationController: UINavigationController {
 
 // These build their own Done/Cancel in viewDidLoad (after the automatic close button check runs).
 extension NearbyGamePickerController: PhoneSheetProvidesClose {}
-extension PhoneStackController: PhoneSheetProvidesClose {}
 extension BoardMenuSheetController: PhoneSheetProvidesClose {}
 extension PhoneHandCardController: PhoneSheetProvidesClose {}
+
+// MARK: - Arena-style zone browser (search, look at, revealed cards)
+
+/// Cards laid out large in a scrolling fan over the darkened board, as Arena shows a library search
+/// or revealed cards. The board's bottom bar (your hand and piles) stays uncovered: hold a card to lift
+/// it, then drop it elsewhere in the fan to reorder, on your hand, library, graveyard or exile, or on
+/// the Battlefield zone at the top.
+final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
+    enum Destination: Equatable {
+        case hand, library, graveyard, exile, battlefield
+        var title: String {
+            switch self {
+            case .hand: return "Hand"
+            case .library: return "Library"
+            case .graveyard: return "Graveyard"
+            case .exile: return "Exile"
+            case .battlefield: return "Battlefield"
+            }
+        }
+    }
+
+    /// Display order, left to right (for library modes: top of the library first).
+    private(set) var cards: [CardInstance] = []
+    var onMove: ((CardInstance, Destination) -> Void)?
+    var onReorder: (([CardInstance]) -> Void)?
+    var onDone: (() -> Void)?
+    var onSecondary: (() -> Void)?
+    var onShowOpponent: ((Bool) -> Void)?
+    /// The board's zone (hand, library, graveyard, exile) under a point, in this view's coordinates.
+    var zoneAt: ((CGPoint) -> Destination?)?
+    /// Height at the bottom left uncovered (the board's own bottom bar).
+    var uncoveredBottom: CGFloat = 0 { didSet { setNeedsLayout() } }
+    /// The fan and scrollbar stay above this much of the bottom (the top of your hand).
+    var contentBottomInset: CGFloat = 0 { didSet { setNeedsLayout() } }
+    /// Where the browser's controls start (below the opponent's HUD).
+    var topInset: CGFloat = 0 { didSet { setNeedsLayout() } }
+    /// Called as a card is lifted (true) and put down (false), so the board can raise the browser
+    /// above the hand while a card travels over it.
+    var onLiftChanged: ((Bool) -> Void)?
+    var isLifting: Bool { lifted != nil }
+    /// Cards shown face down (the rest of the library under the cards being looked at).
+    private(set) var faceDownIDs: Set<UUID> = []
+
+    private let dim = UIView()
+    private let titleLabel = UILabel()
+    private let doneButton = UIButton(type: .custom)
+    private let secondaryButton = UIButton(type: .custom)
+    private let showButton = UIButton(type: .system)
+    private let battlefieldZone = UILabel()
+    private let dropLabel = UILabel()
+    private let scrollView = UIScrollView()
+    private let track = UIView()
+    private let thumb = UIView()
+    private var cardViews: [UUID: PhoneBrowserCardView] = [:]
+    private var didInitialScroll = false
+    /// A card dragged in from the board (spring-loaded pile): where it would be inserted.
+    private var externalGap: Int?
+    private var externalPoint: CGPoint?
+    private let moreButton = UIButton(type: .system)
+    /// Extra actions (open the list view, search, shuffle…), shown as a "⋯" menu.
+    var extraMenu: UIMenu? {
+        didSet {
+            moreButton.menu = extraMenu
+            moreButton.showsMenuAsPrimaryAction = true
+            moreButton.isHidden = extraMenu == nil
+            setNeedsLayout()
+        }
+    }
+    /// The number of face-down cards, shown on their condensed stack.
+    private let hiddenCount = UILabel()
+    private var lifted: (card: CardInstance, view: PhoneBrowserCardView, offset: CGPoint)?
+    private var gapIndex: Int?
+    private var hovered: Destination?
+    /// Keeps scrolling while a lifted card is held near either edge.
+    private var edgeScroll: CADisplayLink?
+    private var liftedPoint: CGPoint?
+    private(set) var showsOpponent = false
+
+    init(title: String, cards: [CardInstance], done: String = "Done", secondary: String? = nil, canShowOpponent: Bool = false) {
+        super.init(frame: .zero)
+        accessibilityIdentifier = "phone-zone-browser"
+        dim.backgroundColor = UIColor.black.withAlphaComponent(0.68)
+        addSubview(dim)
+        titleLabel.text = title
+        titleLabel.font = UIFont(name: "Beleren2016-Bold", size: 18) ?? .boldSystemFont(ofSize: 18)
+        titleLabel.textColor = .white
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.7
+        addSubview(titleLabel)
+        let beleren = UIFont(name: "Beleren2016-Bold", size: 18) ?? .boldSystemFont(ofSize: 18)
+        for (button, text, identifier, primary) in [(doneButton, done, "phone-browser-done", true), (secondaryButton, secondary ?? "", "phone-browser-secondary", false)] {
+            // The stack's Resolve style: orange, Beleren, a glowing rim.
+            button.setTitle(text, for: .normal)
+            button.titleLabel?.font = beleren
+            button.setTitleColor(.white, for: .normal)
+            button.backgroundColor = primary ? UIColor(red: 0.86, green: 0.31, blue: 0.07, alpha: 1) : UIColor(white: 0.18, alpha: 0.95)
+            button.layer.cornerRadius = 18
+            button.layer.borderWidth = 1
+            button.layer.borderColor = (primary ? UIColor.systemOrange.withAlphaComponent(0.9) : UIColor.white.withAlphaComponent(0.3)).cgColor
+            button.layer.shadowColor = (primary ? UIColor.systemOrange : UIColor.black).cgColor
+            button.layer.shadowOpacity = 0.4
+            button.layer.shadowRadius = 6
+            button.contentEdgeInsets = UIEdgeInsets(top: 4, left: 18, bottom: 4, right: 18)
+            button.accessibilityIdentifier = identifier
+            addSubview(button)
+        }
+        secondaryButton.isHidden = secondary == nil
+        moreButton.setImage(UIImage(systemName: "ellipsis.circle.fill"), for: .normal)
+        moreButton.setPreferredSymbolConfiguration(.init(pointSize: 26, weight: .semibold), forImageIn: .normal)
+        moreButton.tintColor = UIColor(white: 0.85, alpha: 1)
+        moreButton.accessibilityLabel = "More"
+        moreButton.accessibilityIdentifier = "phone-browser-more"
+        moreButton.isHidden = true
+        addSubview(moreButton)
+        doneButton.addAction(UIAction { [weak self] _ in self?.onDone?() }, for: .touchUpInside)
+        secondaryButton.addAction(UIAction { [weak self] _ in self?.onSecondary?() }, for: .touchUpInside)
+        showButton.tintColor = .white
+        showButton.titleLabel?.font = UIFont(name: "Beleren2016-Bold", size: 15) ?? .boldSystemFont(ofSize: 15)
+        showButton.setTitleColor(.white, for: .normal)
+        showButton.accessibilityIdentifier = "phone-browser-show-opponent"
+        showButton.isHidden = !canShowOpponent
+        showButton.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            self.showsOpponent.toggle()
+            self.updateShowButton()
+            self.onShowOpponent?(self.showsOpponent)
+        }, for: .touchUpInside)
+        updateShowButton()
+        addSubview(showButton)
+        battlefieldZone.text = "Battlefield"
+        battlefieldZone.textAlignment = .center
+        battlefieldZone.font = UIFont(name: "Beleren2016-Bold", size: 15) ?? .boldSystemFont(ofSize: 15)
+        battlefieldZone.textColor = .white
+        battlefieldZone.layer.cornerRadius = 10
+        battlefieldZone.layer.masksToBounds = true
+        battlefieldZone.layer.borderWidth = 1.5
+        battlefieldZone.isAccessibilityElement = true
+        battlefieldZone.accessibilityIdentifier = "phone-browser-zone-battlefield"
+        setBattlefieldHighlighted(false)
+        addSubview(battlefieldZone)
+        scrollView.delegate = self
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.alwaysBounceHorizontal = true
+        scrollView.clipsToBounds = false
+        addSubview(scrollView)
+        track.backgroundColor = UIColor.white.withAlphaComponent(0.25)
+        track.layer.cornerRadius = 1.5
+        addSubview(track)
+        thumb.backgroundColor = UIColor(white: 0.85, alpha: 1)
+        thumb.layer.cornerRadius = 12
+        let arrows = UIImageView(image: UIImage(systemName: "arrowtriangle.left.and.line.vertical.and.arrowtriangle.right.fill"))
+        arrows.tintColor = UIColor(white: 0.25, alpha: 1)
+        arrows.contentMode = .scaleAspectFit
+        arrows.frame = CGRect(x: 0, y: 0, width: 56, height: 24).insetBy(dx: 16, dy: 5)
+        thumb.addSubview(arrows)
+        thumb.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(scrubbed(_:))))
+        thumb.accessibilityLabel = "Scroll cards"
+        addSubview(thumb)
+        dropLabel.font = UIFont(name: "Beleren2016-Bold", size: 14) ?? .boldSystemFont(ofSize: 14)
+        dropLabel.textColor = .white
+        dropLabel.backgroundColor = UIColor(red: 0.0, green: 0.36, blue: 0.68, alpha: 0.95)
+        dropLabel.layer.borderColor = UIColor.systemCyan.cgColor
+        dropLabel.layer.borderWidth = 1
+        dropLabel.layer.cornerRadius = 6
+        dropLabel.layer.masksToBounds = true
+        dropLabel.textAlignment = .center
+        dropLabel.isHidden = true
+        addSubview(dropLabel)
+        hiddenCount.font = UIFont(name: "Beleren2016-Bold", size: 16) ?? .boldSystemFont(ofSize: 16)
+        hiddenCount.textColor = .white
+        hiddenCount.textAlignment = .center
+        hiddenCount.backgroundColor = UIColor.black.withAlphaComponent(0.75)
+        hiddenCount.layer.cornerRadius = 6
+        hiddenCount.layer.masksToBounds = true
+        hiddenCount.isHidden = true
+        hiddenCount.accessibilityIdentifier = "phone-browser-hidden-count"
+        scrollView.addSubview(hiddenCount)
+        setCards(cards)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    private func updateShowButton() {
+        // Arena's settings checkbox: a dark diamond when off, a glowing orange check when on.
+        showButton.setImage(Self.arenaCheckbox(on: showsOpponent).withRenderingMode(.alwaysOriginal), for: .normal)
+        showButton.setTitle("  Show Opponent", for: .normal)
+        showButton.setTitleColor(showsOpponent ? .white : UIColor(white: 0.85, alpha: 1), for: .normal)
+        showButton.accessibilityValue = showsOpponent ? "On" : "Off"
+    }
+
+    private static func arenaCheckbox(on: Bool) -> UIImage {
+        let size = CGSize(width: 22, height: 22)
+        return UIGraphicsImageRenderer(size: size).image { context in
+            let cg = context.cgContext
+            if on {
+                let check = UIBezierPath()
+                check.move(to: CGPoint(x: 3, y: 12))
+                check.addLine(to: CGPoint(x: 8.5, y: 18))
+                check.addLine(to: CGPoint(x: 20, y: 3))
+                check.lineWidth = 3.5
+                check.lineCapStyle = .round
+                check.lineJoinStyle = .round
+                cg.setShadow(offset: .zero, blur: 4, color: UIColor(red: 1, green: 0.55, blue: 0.1, alpha: 0.9).cgColor)
+                UIColor(red: 0.98, green: 0.62, blue: 0.2, alpha: 1).setStroke()
+                check.stroke()
+                cg.setShadow(offset: .zero, blur: 0, color: nil)
+                check.lineWidth = 1.4
+                UIColor(red: 1, green: 0.88, blue: 0.62, alpha: 1).setStroke()
+                check.stroke()
+            } else {
+                let diamond = UIBezierPath()
+                diamond.move(to: CGPoint(x: 11, y: 3)); diamond.addLine(to: CGPoint(x: 19, y: 11))
+                diamond.addLine(to: CGPoint(x: 11, y: 19)); diamond.addLine(to: CGPoint(x: 3, y: 11)); diamond.close()
+                UIColor(white: 0.04, alpha: 1).setFill(); diamond.fill()
+                diamond.lineWidth = 1.2
+                UIColor(white: 0.45, alpha: 1).setStroke(); diamond.stroke()
+            }
+        }
+    }
+
+    private func setBattlefieldHighlighted(_ on: Bool) {
+        battlefieldZone.backgroundColor = on ? UIColor(red: 0.0, green: 0.36, blue: 0.68, alpha: 0.95) : UIColor(white: 0.1, alpha: 0.85)
+        battlefieldZone.layer.borderColor = (on ? UIColor.systemCyan : UIColor.white.withAlphaComponent(0.35)).cgColor
+    }
+
+    /// The bottom bar stays uncovered and usable while the browser is up (unless a card is lifted).
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if lifted == nil, point.y > bounds.height - uncoveredBottom { return nil }
+        return super.hitTest(point, with: event)
+    }
+
+    /// Replaces the shown cards (keeping views for cards still shown). `faceDown` cards show their back.
+    func setCards(_ newCards: [CardInstance], faceDown: Set<UUID> = []) {
+        let ids = Set(newCards.map(\.uuid))
+        for (id, view) in cardViews where !ids.contains(id) && lifted?.view !== view { view.removeFromSuperview(); cardViews[id] = nil }
+        // A card turning face up or down gets a fresh view.
+        for id in faceDown.symmetricDifference(faceDownIDs) where cardViews[id] !== lifted?.view {
+            cardViews[id]?.removeFromSuperview(); cardViews[id] = nil
+        }
+        faceDownIDs = faceDown
+        cards = newCards
+        for card in cards where cardViews[card.uuid] == nil {
+            let hidden = faceDown.contains(card.uuid)
+            let view = PhoneBrowserCardView(image: hidden ? UIImage(named: "mtg-card-back-png-1")
+                                   : card.representation.imageIfLoaded(type: .normal) ?? card.representation.image(type: .normal))
+            view.isUserInteractionEnabled = true
+            view.isAccessibilityElement = true
+            view.accessibilityLabel = hidden ? "Face-down card" : card.representation.name
+            view.accessibilityIdentifier = "phone-browser-card"
+            view.accessibilityTraits = .button
+            let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
+            hold.minimumPressDuration = 0.15
+            view.addGestureRecognizer(hold)
+            scrollView.addSubview(view)
+            cardViews[card.uuid] = view
+        }
+        setNeedsLayout()
+    }
+
+    /// The darkened area (everything above the uncovered bottom bar).
+    private var coveredHeight: CGFloat { bounds.height - uncoveredBottom }
+    /// Face-down cards condense into one stack (Look at); a whole face-down library (opened from its
+    /// pile) stays spread out so cards can be dropped at exact positions.
+    var condensesFaceDown = true
+
+    /// A card dragged from the board over the fan: opens a gap where it would be inserted.
+    func externalDragMoved(to point: CGPoint) {
+        externalPoint = point
+        if edgeScroll == nil {
+            let link = CADisplayLink(target: PhoneDisplayLinkTarget { [weak self] in self?.scrollAtEdge() }, selector: #selector(PhoneDisplayLinkTarget.tick))
+            link.add(to: .main, forMode: .common)
+            edgeScroll = link
+        }
+        let gap = fanDropArea.contains(point) ? insertionIndex(at: point) : nil
+        guard gap != externalGap else { return }
+        externalGap = gap
+        if gap != nil { UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.7) }
+        layoutCards(animated: true)
+    }
+
+    /// Where a board card released at `point` goes in the fan (display order), or nil off the fan.
+    func externalDrop(at point: CGPoint) -> Int? {
+        externalPoint = nil
+        edgeScroll?.invalidate(); edgeScroll = nil
+        let index = fanDropArea.contains(point) ? insertionIndex(at: point) : nil
+        externalGap = nil
+        layoutCards(animated: true)
+        return index
+    }
+
+    /// Where a card dragged in from the board drops into the fan: the band the cards occupy
+    /// (full width, so the ends of a scrolled fan count), with a little slack above and below.
+    private var fanDropArea: CGRect {
+        let frames = cardViews.values.map { convert($0.frame, from: $0.superview) }
+        guard let first = frames.first else { return scrollView.frame }
+        let band = frames.dropFirst().reduce(first) { $0.union($1) }
+        return CGRect(x: 0, y: band.minY - 24, width: bounds.width, height: band.height + 48)
+    }
+
+    /// Over the browser's dimmed area (not the uncovered bottom bar), where board drops don't fall through.
+    func covers(_ point: CGPoint) -> Bool {
+        bounds.contains(point) && point.y < bounds.height - uncoveredBottom
+    }
+
+    /// Over the "Battlefield" zone at the top, where a card dragged from the hand is played.
+    func isOverBattlefieldZone(_ point: CGPoint) -> Bool {
+        !battlefieldZone.isHidden && battlefieldZone.frame.insetBy(dx: -10, dy: -10).contains(point)
+    }
+
+    func cancelExternalDrag() {
+        externalPoint = nil
+        edgeScroll?.invalidate(); edgeScroll = nil
+        guard externalGap != nil else { return }
+        externalGap = nil
+        layoutCards(animated: true)
+    }
+
+    /// Space for the fan: below the controls, above the scrollbar and the uncovered bottom bar.
+    private var fanArea: CGRect {
+        let top = (showButton.isHidden ? titleLabel.frame.maxY : showButton.frame.maxY) + 12
+        let bottom = min(coveredHeight, bounds.height - contentBottomInset)
+        return CGRect(x: 0, y: top, width: bounds.width, height: max(80, bottom - top - 34))
+    }
+    private var cardSize: CGSize {
+        // Fills the space the controls leave (bigger on large screens), within the width too.
+        let height = min(fanArea.height * 0.86, 460, bounds.width * 0.42 * 88 / 63)
+        return CGSize(width: height * 63 / 88, height: height)
+    }
+    private var spacing: CGFloat { cardSize.width * 0.6 }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        dim.frame = CGRect(x: 0, y: 0, width: bounds.width, height: coveredHeight)
+        let safe = safeAreaInsets
+        let left = max(16, safe.left + 12), right = max(16, safe.right + 12)
+        let top = max(8, safe.top + 4, topInset + 6)
+        titleLabel.frame = CGRect(x: left, y: top, width: bounds.width * 0.3, height: 32)
+        let doneSize = doneButton.intrinsicContentSize
+        doneButton.frame = CGRect(x: bounds.width - right - doneSize.width, y: top, width: doneSize.width, height: 36)
+        let secondarySize = secondaryButton.intrinsicContentSize
+        secondaryButton.frame = CGRect(x: doneButton.frame.minX - 10 - secondarySize.width, y: top, width: secondarySize.width, height: 36)
+        let moreX = (secondaryButton.isHidden ? doneButton.frame.minX : secondaryButton.frame.minX) - 46
+        moreButton.frame = CGRect(x: moreX, y: top, width: 36, height: 36)
+        let zoneWidth = min(220, bounds.width * 0.26)
+        battlefieldZone.frame = CGRect(x: (bounds.width - zoneWidth) / 2, y: top, width: zoneWidth, height: 36)
+        let showSize = showButton.intrinsicContentSize
+        showButton.frame = CGRect(x: left, y: titleLabel.frame.maxY + 2, width: showSize.width, height: 28)
+        let size = cardSize
+        let area = fanArea
+        // The fan sits centred in its space.
+        let fanTop = area.minY + max(0, (area.height - size.height - 30) / 2)
+        scrollView.frame = CGRect(x: 0, y: fanTop, width: bounds.width, height: size.height + 30)
+        track.frame = CGRect(x: bounds.width * 0.3, y: min(scrollView.frame.maxY + 6, min(coveredHeight, bounds.height - contentBottomInset) - 16), width: bounds.width * 0.4, height: 3)
+        layoutCards(animated: false)
+        // Opens at the right end, where the top of the library is.
+        if !didInitialScroll, bounds.width > 0 {
+            didInitialScroll = true
+            scrollView.contentOffset.x = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+        }
+    }
+
+    private func layoutCards(animated: Bool) {
+        let size = cardSize
+        var order = cards.filter { $0.uuid != lifted?.card.uuid }
+        if let gapIndex, let lifted { order.insert(lifted.card, at: min(gapIndex, order.count)) }
+        // Face-down cards (the rest of the library) condense into a tight stack, as on Arena.
+        var offsets: [CGFloat] = []
+        var x: CGFloat = 0
+        for (index, card) in order.enumerated() {
+            if index > 0 {
+                let previousHidden = faceDownIDs.contains(order[index - 1].uuid), hidden = faceDownIDs.contains(card.uuid)
+                x += previousHidden && hidden && condensesFaceDown ? min(3, size.width * 0.02) : spacing
+            }
+            // A card dragged in from the board opens a gap where it would go.
+            if index == externalGap { x += spacing }
+            offsets.append(x)
+        }
+        if externalGap == order.count { x += spacing }
+        let contentWidth = size.width + max(offsets.last ?? 0, x) + 80
+        scrollView.contentSize = CGSize(width: max(bounds.width, contentWidth), height: scrollView.bounds.height)
+        let startX = max(40, (bounds.width - contentWidth) / 2 + 40)
+        let hidden = order.filter { faceDownIDs.contains($0.uuid) }
+        let changes = {
+            for (index, card) in order.enumerated() {
+                guard let view = self.cardViews[card.uuid], view !== self.lifted?.view else { continue }
+                view.transform = .identity
+                view.bounds = CGRect(origin: .zero, size: size)
+                view.cornerRadius = size.width * 0.045
+                view.center = CGPoint(x: startX + size.width / 2 + offsets[index], y: 10 + size.height / 2)
+                self.scrollView.bringSubviewToFront(view)
+            }
+            self.applyFan()
+            // The hidden stack's count sits on its top card.
+            if let top = hidden.last.flatMap({ self.cardViews[$0.uuid] }), top !== self.lifted?.view {
+                self.hiddenCount.text = "\(hidden.count)"
+                self.hiddenCount.bounds.size = CGSize(width: 40, height: 28)
+                self.hiddenCount.center = CGPoint(x: top.center.x, y: top.center.y)
+                self.hiddenCount.isHidden = false
+                self.scrollView.bringSubviewToFront(self.hiddenCount)
+            } else {
+                self.hiddenCount.isHidden = true
+            }
+        }
+        if animated { UIView.animate(withDuration: 0.18, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction], animations: changes) } else { changes() }
+        updateScrollbar()
+    }
+
+    /// Arena's arc: cards tilt and dip away from the middle of the visible window.
+    private func applyFan() {
+        let middle = scrollView.contentOffset.x + scrollView.bounds.width / 2
+        for view in cardViews.values where view !== lifted?.view {
+            let position = (view.center.x - middle) / max(1, scrollView.bounds.width / 2)
+            let clamped = max(-1.2, min(1.2, position))
+            view.transform = CGAffineTransform(translationX: 0, y: clamped * clamped * 16).rotated(by: clamped * 0.12)
+        }
+    }
+
+    private func updateScrollbar() {
+        let content = scrollView.contentSize.width, visible = scrollView.bounds.width
+        let scrolls = content > visible + 1
+        track.isHidden = !scrolls; thumb.isHidden = !scrolls
+        guard scrolls else { return }
+        let progress = scrollView.contentOffset.x / max(1, content - visible)
+        let thumbWidth: CGFloat = 56
+        thumb.frame = CGRect(x: track.frame.minX + (track.frame.width - thumbWidth) * max(0, min(1, progress)),
+                             y: track.frame.midY - 12, width: thumbWidth, height: 24)
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) { applyFan(); updateScrollbar() }
+
+    @objc private func scrubbed(_ pan: UIPanGestureRecognizer) {
+        let x = pan.location(in: self).x
+        let progress = max(0, min(1, (x - track.frame.minX) / max(1, track.frame.width)))
+        scrollView.contentOffset.x = progress * max(0, scrollView.contentSize.width - scrollView.bounds.width)
+    }
+
+    /// The zone a lifted card at `point` would go to: the Battlefield zone up top, or the board's.
+    private func destination(at point: CGPoint) -> Destination? {
+        if battlefieldZone.frame.insetBy(dx: -8, dy: -8).contains(point) { return .battlefield }
+        guard point.y > coveredHeight - 6 else { return nil }
+        return zoneAt?(point)
+    }
+
+    private func showDropLabel(for destination: Destination?, above view: UIView) {
+        guard let destination, destination != .battlefield else { dropLabel.isHidden = true; return }
+        dropLabel.text = "Move to \(destination.title)"
+        let size = (dropLabel.text! as NSString).size(withAttributes: [.font: dropLabel.font!])
+        dropLabel.bounds.size = CGSize(width: size.width + 14, height: size.height + 6)
+        let box = view.frame
+        dropLabel.center = CGPoint(x: min(max(box.midX, dropLabel.bounds.width / 2 + 8), bounds.width - dropLabel.bounds.width / 2 - 8),
+                                   y: max(box.minY - dropLabel.bounds.height / 2 - 8, dropLabel.bounds.height))
+        dropLabel.isHidden = false
+        bringSubviewToFront(dropLabel)
+    }
+
+    @objc private func held(_ gesture: UILongPressGestureRecognizer) {
+        let point = gesture.location(in: self)
+        switch gesture.state {
+        case .began:
+            guard let view = gesture.view as? PhoneBrowserCardView,
+                  let card = cards.first(where: { cardViews[$0.uuid] === view }) else { return }
+            let center = scrollView.convert(view.center, to: self)
+            addSubview(view)
+            view.center = center
+            lifted = (card, view, CGPoint(x: center.x - point.x, y: center.y - point.y))
+            onLiftChanged?(true)
+            gapIndex = cards.firstIndex { $0.uuid == card.uuid }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred(intensity: 0.9)
+            UIView.animate(withDuration: 0.15) { view.transform = CGAffineTransform(scaleX: 1.08, y: 1.08) }
+            view.isHighlighted = true
+        case .changed:
+            guard let lifted else { return }
+            let destination = destination(at: point)
+            // Over the uncovered bottom bar the card shrinks so the zones under it stay readable.
+            let scale: CGFloat = destination != nil && destination != .battlefield ? 0.55 : 1.08
+            UIView.animate(withDuration: 0.12, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
+                lifted.view.transform = CGAffineTransform(scaleX: scale, y: scale)
+            }
+            lifted.view.center = CGPoint(x: point.x + lifted.offset.x * scale, y: point.y + lifted.offset.y * scale)
+            if destination != hovered {
+                hovered = destination
+                if destination != nil { UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.7) }
+            }
+            setBattlefieldHighlighted(destination == .battlefield)
+            showDropLabel(for: destination, above: lifted.view)
+            let newGap = destination == nil && scrollView.frame.insetBy(dx: 0, dy: -30).contains(point) ? insertionIndex(at: point) : gapIndex
+            if newGap != gapIndex {
+                gapIndex = newGap
+                UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.7) // reordering tick
+                layoutCards(animated: true)
+            }
+            liftedPoint = point
+            if edgeScroll == nil {
+                let link = CADisplayLink(target: PhoneDisplayLinkTarget { [weak self] in self?.scrollAtEdge() }, selector: #selector(PhoneDisplayLinkTarget.tick))
+                link.add(to: .main, forMode: .common)
+                edgeScroll = link
+            }
+        case .ended, .cancelled, .failed:
+            guard let lifted else { return }
+            let destination = gesture.state == .ended ? destination(at: point) : nil
+            edgeScroll?.invalidate(); edgeScroll = nil; liftedPoint = nil
+            setBattlefieldHighlighted(false)
+            dropLabel.isHidden = true
+            hovered = nil
+            lifted.view.isHighlighted = false
+            self.lifted = nil
+            onLiftChanged?(false)
+            if let destination {
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 1)
+                let card = lifted.card
+                UIView.animate(withDuration: 0.18) {
+                    lifted.view.alpha = 0
+                    lifted.view.transform = CGAffineTransform(scaleX: 0.4, y: 0.4)
+                } completion: { _ in lifted.view.removeFromSuperview() }
+                cardViews[card.uuid] = nil
+                cards.removeAll { $0.uuid == card.uuid }
+                gapIndex = nil
+                layoutCards(animated: true)
+                onMove?(card, destination)
+            } else {
+                // Back into the fan, at the gap it was held over.
+                let center = convert(lifted.view.center, to: scrollView)
+                scrollView.addSubview(lifted.view)
+                lifted.view.center = center
+                var order = cards.filter { $0.uuid != lifted.card.uuid }
+                order.insert(lifted.card, at: min(gapIndex ?? order.count, order.count))
+                let reordered = order.map(\.uuid) != cards.map(\.uuid)
+                cards = order
+                gapIndex = nil
+                layoutCards(animated: true)
+                if reordered { onReorder?(cards) }
+            }
+        default: break
+        }
+    }
+
+    /// While a lifted card is held near the left or right edge, the fan keeps scrolling that way
+    /// (faster nearer the edge), so a card can travel from the top of the library to the bottom.
+    private func scrollAtEdge() {
+        if let point = externalPoint, lifted == nil {
+            // A card dragged in from the board scrolls the fan the same way.
+            guard externalGap != nil else { return }
+            let zone: CGFloat = 70
+            let speed: CGFloat = point.x < zone ? -(zone - point.x) / zone * 18
+                : point.x > bounds.width - zone ? (point.x - (bounds.width - zone)) / zone * 18 : 0
+            let maxOffset = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+            let offset = max(0, min(maxOffset, scrollView.contentOffset.x + speed))
+            guard speed != 0, offset != scrollView.contentOffset.x else { return }
+            scrollView.contentOffset.x = offset
+            let gap = insertionIndex(at: point)
+            if gap != externalGap { externalGap = gap; layoutCards(animated: true) }
+            return
+        }
+        guard let point = liftedPoint, lifted != nil, destination(at: point) == nil else { return }
+        let zone: CGFloat = 70
+        let speed: CGFloat
+        if point.x < zone { speed = -(zone - point.x) / zone * 18 }
+        else if point.x > bounds.width - zone { speed = (point.x - (bounds.width - zone)) / zone * 18 }
+        else { return }
+        let maxOffset = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+        let offset = max(0, min(maxOffset, scrollView.contentOffset.x + speed))
+        guard offset != scrollView.contentOffset.x else { return }
+        scrollView.contentOffset.x = offset
+        // The gap follows the card's place in the scrolled fan.
+        let newGap = insertionIndex(at: point)
+        if newGap != gapIndex {
+            gapIndex = newGap
+            UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.5)
+            layoutCards(animated: true)
+        }
+    }
+
+    private func insertionIndex(at point: CGPoint) -> Int {
+        let x = convert(point, to: scrollView).x
+        let others = cards.filter { $0.uuid != lifted?.card.uuid }
+        return others.filter { (cardViews[$0.uuid]?.center.x ?? 0) < x }.count
+    }
+}
+
+
+/// A card in the browser: the image is clipped to the card's rounded corners, with a thin dark
+/// edge and a soft shadow behind it, so overlapping cards (and the condensed stack) stay distinct.
+final class PhoneBrowserCardView: UIView {
+    let imageView: UIImageView
+    var cornerRadius: CGFloat = 0 { didSet { setNeedsLayout() } }
+    /// Lifted: a bright blue rim.
+    var isHighlighted = false {
+        didSet {
+            imageView.layer.borderWidth = isHighlighted ? 2 : 0.75
+            imageView.layer.borderColor = (isHighlighted ? UIColor(red: 0.35, green: 0.75, blue: 1, alpha: 0.9) : UIColor.black.withAlphaComponent(0.7)).cgColor
+        }
+    }
+    init(image: UIImage?) {
+        imageView = UIImageView(image: image)
+        super.init(frame: .zero)
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerCurve = .continuous
+        addSubview(imageView)
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.6
+        layer.shadowRadius = 5
+        layer.shadowOffset = CGSize(width: -2, height: 2)
+        isHighlighted = false
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        imageView.frame = bounds
+        imageView.layer.cornerRadius = cornerRadius
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).cgPath
+    }
+}
