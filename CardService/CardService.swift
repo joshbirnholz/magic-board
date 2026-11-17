@@ -10,6 +10,7 @@ import Foundation
 import SDWebImage
 import Network
 import ReerJSON
+import zlib
 // https://stackoverflow.com/questions/65816559/using-reachability-library-to-swiftui-based-app-to-notify-when-network-is-lost
 
 class Monitor: ObservableObject {
@@ -280,6 +281,16 @@ public struct CardService {
     ])
   }
   
+  /// The reminder card for a face-down creature that was cloaked or cast with disguise (MKM token 21).
+  public func getMysteriousCreatureCard() -> MTGCard {
+    let id = "241b3b6d-a25f-4a43-b5d6-1d1079e7e498"
+    func url(_ kind: String, _ ext: String = "jpg") -> URL { URL(string: "https://cards.scryfall.io/\(kind)/front/2/4/\(id).\(ext)")! }
+    return .init(scryfallID: UUID(uuidString: id)!, typeLine: "Creature", power: "2", toughness: "2", oracleText: "You can cover a face-down creature with this reminder card. A face-down creature that was cloaked or cast with disguise has ward {2}. (Whenever that creature becomes the target of a spell or ability an opponent controls, counter it unless that player pays {2}.)", flavorText: nil, name: "A Mysterious Creature", loyalty: nil, cardFaces: nil, convertedManaCost: 0, layout: "normal", manaCost: nil, scryfallURL: URL(string: "https://scryfall.com/card/tmkm/21/a-mysterious-creature"), borderColor: .black, isFullArt: false, allParts: nil, collectorNumber: "21", set: "tmkm", colors: [], colorIndicator: nil, producedMana: nil, printedName: nil, printedText: nil, printedTypeLine: nil, flavorName: nil, artist: nil, rarity: .common, oracleID: UUID(uuidString: "6481a124-6859-4f02-9fd3-b1302528dd2e")!, frame: "2015", keywords: ["Ward"], isPromo: false, isFoundInBoosters: false, isFoilAvailable: false, isNonFoilAvailable: true, language: .english, releaseDate: nil, watermark: nil, frameEffects: nil, securityStamp: nil, imageUris: [
+      "small": url("small"), "normal": url("normal"), "large": url("large"), "png": url("png", "png"),
+      "art_crop": url("art_crop"), "border_crop": url("border_crop")
+    ])
+  }
+
   public func getManifestCard() -> MTGCard {
     return .init(scryfallID: UUID(uuidString: "56ae2eb8-5090-412a-ad72-46ec4861d599")!, typeLine: "Card", power: "2", toughness: "2", oracleText: "(You can cover a face-down manifested creature with this reminder card.\nA manifested creature card can be turned face up any time for its mana cost. A face-down card can also be turned face up for its morph cost.)", flavorText: nil, name: "Manifest", loyalty: nil, cardFaces: nil, convertedManaCost: 0, layout: "normal", manaCost: nil, scryfallURL: URL(string: "https://scryfall.com/card/tcmm/56/manifest?utm_source=api"), borderColor: .black, isFullArt: false, allParts: nil, collectorNumber: "56", set: "tcmm", colors: [], colorIndicator: nil, producedMana: nil, printedName: nil, printedText: nil, printedTypeLine: nil, flavorName: nil, artist: nil, rarity: .common, oracleID: UUID(uuidString: "f4f184ef-f456-47d8-9012-095629a5ea4d")!, frame: "2015", keywords: nil, isPromo: false, isFoundInBoosters: false, isFoilAvailable: false, isNonFoilAvailable: true, language: .english, releaseDate: nil, watermark: nil, frameEffects: nil, securityStamp: nil, imageUris: [
       "small": URL(string: "https://cards.scryfall.io/small/front/5/6/56ae2eb8-5090-412a-ad72-46ec4861d599.jpg")!,
@@ -442,7 +453,8 @@ extension MTGCard {
         colorIndicator: face.colorIndicator?.compactMap(MTGColor.init(rawValue:)),
         watermark: face.watermark,
         artist: face.artist,
-        imageUris: face.imageUris
+        imageUris: face.imageUris,
+        flavorName: face.flavorName
       )
     }
 		
@@ -513,6 +525,9 @@ public final class OfflineGameLibrary {
         let images: [String: String]
         let jumpInPackets: [JumpInPacket]?
         let frontCards: [String: [String: String]]?
+        let jumpInBasics: [String: [String: [String]]]?
+        let jumpInDuals: [String: [String: String]]?
+        let oracleTags: [String: [UUID]]?
     }
     public let games: [Game]
     public let jumpInPacketPool: [JumpInPacket]
@@ -520,6 +535,12 @@ public final class OfflineGameLibrary {
     private let images: [String: String]
     /// JumpStart packet theme cards: set code -> theme name -> normal image URL (Scripts/add_front_cards.py).
     private let frontCards: [String: [String: String]]
+    private let jumpInBasics: [String: [String: [String]]]
+    /// Each Jump In set's common two-color lands: set code -> color pair ("UW") -> card key
+    /// (Scripts/add_jumpin_duals.py). DMU's cycle is the fallback, as on the server.
+    private let jumpInDuals: [String: [String: String]]
+    /// Bundled Scryfall Tagger oracle tags (Scripts/add_oracle_tags.py): slug -> oracle IDs.
+    public let bundledOracleTags: [String: [UUID]]
     private let directory: URL?
     /// Where downloaded artwork lives. Not a cache: iOS must not purge it.
     public static let artworkDirectory: URL = {
@@ -541,7 +562,10 @@ public final class OfflineGameLibrary {
             records = catalog.cards.mapValues { MTGCard($0) }
             images = catalog.images
             frontCards = catalog.frontCards ?? [:]
-        } else { games = []; records = [:]; images = [:]; jumpInPacketPool = []; frontCards = [:] }
+            jumpInBasics = catalog.jumpInBasics ?? [:]
+            jumpInDuals = catalog.jumpInDuals ?? [:]
+            bundledOracleTags = catalog.oracleTags ?? [:]
+        } else { games = []; records = [:]; images = [:]; jumpInPacketPool = []; frontCards = [:]; jumpInBasics = [:]; jumpInDuals = [:]; bundledOracleTags = [:] }
     }
     public struct JumpInSlotCard: Decodable { public let name: String; public let probability: Double }
     public struct JumpInPacket: Decodable {
@@ -637,10 +661,33 @@ public final class OfflineGameLibrary {
         while result.count < min(3, eligible.count), let next = take({ _ in true }) { result.append(next) }
         return result.shuffled().map(choice)
     }
+    /// One printing per basic-land illustration, preferring the set's non-full-art cards.
+    public func jumpInBasicPrintings(set: String, name: String) -> [MTGCard] {
+        (jumpInBasics[set.uppercased()]?[name] ?? []).compactMap { records[$0] }
+    }
+
+    /// The common dual for a color pair: the packets' own set's land (a packet sharing more of the
+    /// pair's colors wins in cross-set decks), else DMU's, as the server's Jump In decks do.
+    public func jumpInDual(for pair: Set<String>, sets packets: [JumpInPacket]) -> MTGCard? {
+        let key = String("WUBRG".filter { pair.contains(String($0)) })
+        let ranked = packets.enumerated()
+            .sorted { lhs, rhs in
+                let l = pair.intersection(lhs.element.colors).count, r = pair.intersection(rhs.element.colors).count
+                return l != r ? l > r : lhs.offset < rhs.offset
+            }
+            .map { $0.element.setCode.uppercased() }
+        for code in ranked + ["DMU"] {
+            if let cardKey = jumpInDuals[code]?[key], let card = records[cardKey] { return card }
+        }
+        return nil
+    }
+
     public func jumpInDeck(set: String, first: String, second: String) -> String? {
         guard first != second, let a = jumpInPacket(set: set, choice: first),
               let b = jumpInPacket(set: set, choice: second) else { return nil }
         var deck: [MTGCard] = []
+        let basicNames: Set<String> = ["Plains", "Island", "Swamp", "Mountain", "Forest"]
+        var basicCounts: [String: [String: Int]] = [:]
         for packet in [a, b] {
             var names = packet.fixedCards
             for slot in packet.randomSlots {
@@ -655,6 +702,7 @@ public final class OfflineGameLibrary {
             for name in names {
                 guard let card = card(for: .nameSet(name: name, set: packet.setCode)) ?? card(for: .name(name)) else { return nil }
                 deck.append(card)
+                if basicNames.contains(name) { basicCounts[packet.setCode, default: [:]][name, default: 0] += 1 }
             }
         }
         let ca = Set(a.colors), cb = Set(b.colors), colors = ca.union(cb).sorted()
@@ -669,8 +717,7 @@ public final class OfflineGameLibrary {
         if cb.count == 1 && ca.count == 2 && cb.isDisjoint(with: ca) { for c in ca { duals[cb.union([c]), default: 0] += 1 } }
         let fixing = games.first { $0.kind == "Mana fixing" }?.entries.compactMap { card(forKey: $0.key) } ?? []
         for (pair, count) in duals.sorted(by: { $0.key.sorted().joined() < $1.key.sorted().joined() }) {
-            let land = fixing.first { Set(($0.producedMana ?? []).map(\.rawValue)) == pair && ($0.typeLine ?? "").contains("Land") }
-                ?? fixing.first { $0.name == "Evolving Wilds" }
+            let land = jumpInDual(for: pair, sets: [a, b]) ?? fixing.first { $0.name == "Evolving Wilds" }
             if let land { for _ in 0..<min(count, max(0,40-deck.count)) { deck.append(land) } }
         }
         var weights: [String: Int] = [:]
@@ -693,8 +740,21 @@ public final class OfflineGameLibrary {
             allocations[colors[index % colors.count],default: 0] += 1; index += 1
         }
         for color in colors {
-            guard let name = basics[color], let land = fixing.first(where: { $0.name == name }) else { return nil }
-            for _ in 0..<allocations[color,default: 0] { deck.append(land) }
+            guard let name = basics[color] else { return nil }
+            // In All Sets, a color uses only the sets of packets that actually contain it.
+            let sets = Array(Set([a, b].filter { $0.colors.contains(color) }.map(\.setCode))).sorted()
+            guard !sets.isEmpty else { return nil }
+            for index in 0..<allocations[color, default: 0] { basicCounts[sets[index % sets.count], default: [:]][name, default: 0] += 1 }
+        }
+        // Some packet definitions already include basics. Redistribute those too, so art
+        // balance applies to the complete deck rather than just the generated filler lands.
+        deck.removeAll { basicNames.contains($0.name ?? "") }
+        for (code, names) in basicCounts.sorted(by: { $0.key < $1.key }) {
+            for (name, count) in names.sorted(by: { $0.key < $1.key }) {
+                let arts = jumpInBasicPrintings(set: code, name: name).shuffled()
+                guard !arts.isEmpty else { return nil }
+                for index in 0..<count { deck.append(arts[index % arts.count]) }
+            }
         }
         guard deck.count == 40 else { return nil }
         return deck.compactMap { card in card.name.map { "1 \($0) (\(card.set)) \(card.collectorNumber)" } }.joined(separator: "\n")
@@ -818,5 +878,158 @@ public final class OfflineGameLibrary {
         group.wait()
         let notAttempted = total - done
         if failed + notAttempted > 0 { throw ArtworkDownloadError(failed: failed + notAttempted) }
+    }
+}
+
+
+// MARK: - Scryfall Tagger oracle tags
+
+/// Cards with selected Scryfall Tagger oracle tags (each tag including its descendant tags), used
+/// to handle things automatically, e.g. `tapland` cards enter the battlefield tapped.
+///
+/// Built at runtime from Scryfall's `oracle_tags` bulk data (data.scryfall.io, not rate-limited)
+/// and kept current: at most once a day it checks when Scryfall last updated that file, and
+/// rebuilds the lists only when it changed, so newly tagged cards are recognized without an app
+/// update. The copy bundled in the offline catalog only covers a first launch with no connection.
+public final class OracleTags {
+    public static let shared = OracleTags()
+    /// Keep in sync with TRACKED in Scripts/add_oracle_tags.py.
+    public static let tracked = ["tapland"]
+
+    /// `updated`: when this device last checked; `source`: Scryfall's `updated_at` for the file it was built from.
+    private struct Stored: Codable { var updated: Date; var source: String?; var tags: [String: [UUID]] }
+    private let lock = NSLock()
+    private var tags: [String: Set<UUID>]
+    private var refreshing = false
+    private static let fileURL: URL = {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        return base.appendingPathComponent("OracleTags.json")
+    }()
+
+    private init() {
+        if let data = try? Data(contentsOf: Self.fileURL), let stored = try? JSONDecoder().decode(Stored.self, from: data) {
+            tags = stored.tags.mapValues(Set.init)
+        } else {
+            tags = OfflineGameLibrary.shared.bundledOracleTags.mapValues(Set.init)
+        }
+    }
+
+    /// Whether the card with this oracle ID has the tag (or one of its descendant tags).
+    public func has(_ slug: String, oracleID: UUID?) -> Bool {
+        guard let oracleID else { return false }
+        lock.lock(); defer { lock.unlock() }
+        return tags[slug]?.contains(oracleID) == true
+    }
+
+    /// Checks Scryfall (at most once a day, in the background) and rebuilds the lists when its tag
+    /// file has changed since they were built, or when this device has never built them.
+    public func refreshIfNeeded() {
+        let stored = (try? Data(contentsOf: Self.fileURL)).flatMap { try? JSONDecoder().decode(Stored.self, from: $0) }
+        if let stored, Date().timeIntervalSince(stored.updated) < 24 * 3600 { return }
+        lock.lock()
+        guard !refreshing else { lock.unlock(); return }
+        refreshing = true
+        lock.unlock()
+        DispatchQueue.global(qos: .utility).async { [self] in
+            defer { lock.lock(); refreshing = false; lock.unlock() }
+            guard let entry = try? Self.bulkEntry() else { return }
+            if let stored, stored.source == entry.updatedAt {
+                // Unchanged on Scryfall: just note the check.
+                var checked = stored; checked.updated = Date()
+                if let data = try? JSONEncoder().encode(checked) { try? data.write(to: Self.fileURL, options: .atomic) }
+                return
+            }
+            guard let fresh = try? Self.download(entry.url) else { return }
+            lock.lock(); tags = fresh.mapValues(Set.init); lock.unlock()
+            if let data = try? JSONEncoder().encode(Stored(updated: Date(), source: entry.updatedAt, tags: fresh)) {
+                try? data.write(to: Self.fileURL, options: .atomic)
+            }
+        }
+    }
+
+    /// The `oracle_tags` file's download URL and when Scryfall last updated it (a small request).
+    private static func bulkEntry() throws -> (url: URL, updatedAt: String) {
+        struct Bulk: Decodable { struct Entry: Decodable { let type: String; let updated_at: String?; let jsonl_download_uri: URL? }; let data: [Entry] }
+        let bulk = try JSONDecoder().decode(Bulk.self, from: fetch(URL(string: "https://api.scryfall.com/bulk-data")!))
+        guard let entry = bulk.data.first(where: { $0.type == "oracle_tags" }), let url = entry.jsonl_download_uri else { throw URLError(.badServerResponse) }
+        return (url, entry.updated_at ?? url.lastPathComponent)
+    }
+
+    private static func fetch(_ url: URL) throws -> Data {
+        var request = URLRequest(url: url, timeoutInterval: 120)
+        request.setValue("MagicBoard/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: Result<Data, Error> = .failure(URLError(.unknown))
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let data, (response as? HTTPURLResponse)?.statusCode == 200 { result = .success(data) }
+            else { result = .failure(error ?? URLError(.badServerResponse)) }
+            semaphore.signal()
+        }.resume()
+        semaphore.wait()
+        return try result.get()
+    }
+
+    /// Downloads the bulk file and collects the tracked tags (with their descendants) in two passes
+    /// over its lines, so only the tracked tags' oracle IDs are kept in memory.
+    private static func download(_ url: URL) throws -> [String: [UUID]] {
+        let raw = try fetch(url)
+        let text = try gunzip(raw)
+        let lines = text.split(separator: UInt8(ascii: "\n"))
+        // Pass 1: the tag hierarchy.
+        var slugs: [String: String] = [:], children: [String: [String]] = [:]
+        for line in lines {
+            guard let object = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any],
+                  let id = object["id"] as? String, let slug = object["slug"] as? String else { continue }
+            slugs[slug] = id
+            children[id] = object["child_ids"] as? [String] ?? []
+        }
+        var wanted: [String: String] = [:] // tag id -> tracked slug
+        for slug in tracked {
+            guard let root = slugs[slug] else { continue }
+            var stack = [root]
+            while let id = stack.popLast() {
+                guard wanted[id] == nil else { continue }
+                wanted[id] = slug
+                stack += children[id] ?? []
+            }
+        }
+        // Pass 2: the oracle IDs of the wanted tags.
+        var result: [String: Set<UUID>] = [:]
+        for line in lines {
+            guard let object = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any],
+                  let id = object["id"] as? String, let slug = wanted[id],
+                  let taggings = object["taggings"] as? [[String: Any]] else { continue }
+            for tagging in taggings {
+                if let oracle = (tagging["oracle_id"] as? String).flatMap(UUID.init(uuidString:)) { result[slug, default: []].insert(oracle) }
+            }
+        }
+        guard !result.isEmpty else { throw URLError(.cannotParseResponse) }
+        return result.mapValues { Array($0) }
+    }
+
+    private static func gunzip(_ data: Data) throws -> Data {
+        guard data.starts(with: [0x1f, 0x8b]) else { return data } // already decompressed
+        var stream = z_stream()
+        guard inflateInit2_(&stream, 47, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size)) == Z_OK else { throw URLError(.cannotDecodeRawData) }
+        defer { inflateEnd(&stream) }
+        var output = Data()
+        var buffer = [UInt8](repeating: 0, count: 256 * 1024)
+        var status = Z_OK
+        try data.withUnsafeBytes { raw in
+            stream.next_in = UnsafeMutablePointer(mutating: raw.bindMemory(to: UInt8.self).baseAddress)
+            stream.avail_in = uInt(data.count)
+            repeat {
+                try buffer.withUnsafeMutableBufferPointer { out in
+                    stream.next_out = out.baseAddress
+                    stream.avail_out = uInt(out.count)
+                    status = inflate(&stream, Z_NO_FLUSH)
+                    guard status == Z_OK || status == Z_STREAM_END else { throw URLError(.cannotDecodeRawData) }
+                    output.append(out.baseAddress!, count: out.count - Int(stream.avail_out))
+                }
+            } while status != Z_STREAM_END
+        }
+        return output
     }
 }

@@ -153,3 +153,5 @@ print('Complete:',len(games),'games,',len({c['id'] for c in cards.values()}),'ca
 # Packet theme cards for the packet chooser (keeps them across catalog rebuilds).
 import subprocess, sys
 subprocess.run([sys.executable, str(ROOT/'Scripts'/'add_front_cards.py')], check=True)
+subprocess.run([sys.executable, str(ROOT/'Scripts'/'add_jumpin_basics.py')], check=True)
+subprocess.run([sys.executable, str(ROOT/'Scripts'/'add_jumpin_duals.py')], check=True)
