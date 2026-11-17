@@ -253,6 +253,56 @@ struct PhoneHandFanView: View {
     }
 }
 
+/// Phone Play's opponent hand: the same fan as the local hand (`PhoneHandFanView.slots`), drawn
+/// as card backs, with their commanders face up after the gap. The bar rotates the hand's
+/// container 180°, so it hangs from the top of the screen, facing the opponent.
+///
+/// Hidden cards are identified by their place in the fan, not by card: when the opponent
+/// reorders their hand (or plays a card from the middle of it) the backs never move to show
+/// which card went where, so a sorted hand gives nothing away (lands vs. spells).
+struct PhoneOpponentHandFanView: View {
+    let hand: [CardInstance]
+    let commandZone: [CardInstance]
+    let size: CGSize
+    let onTap: (CardInstance) -> Void
+
+    var body: some View {
+        let slots = PhoneHandFanView.slots(handCount: hand.count, commandCount: commandZone.count, size: size)
+        let width = PhoneHandFanView.cardWidth(for: size)
+        ZStack(alignment: .topLeading) {
+            ForEach(0..<hand.count, id: \.self) { index in
+                HandCardView(isVisible: false, card: hand[index].representation.card)
+                    .aspectRatio(63 / 88, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: width * 0.045, style: .continuous))
+                    .frame(width: width, height: size.height)
+                    .rotationEffect(.degrees(slots[index].angle))
+                    .position(slots[index].center)
+                    .zIndex(Double(index))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Face-down card")
+            }
+            ForEach(Array(commandZone.enumerated()), id: \.element.uuid) { offset, card in
+                let slot = slots[hand.count + offset]
+                PhoneHandCardFace(card: card, height: size.height, inCommandZone: true)
+                    .frame(width: width, height: size.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onTap(card) }
+                    .rotationEffect(.degrees(slot.angle))
+                    .position(slot.center)
+                    .zIndex(Double(hand.count + offset))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(card.representation.name ?? "Card")
+            }
+        }
+        .frame(width: size.width, height: size.height, alignment: .topLeading)
+        // Only the hand's size (and the commanders) animate, never the order of hidden cards.
+        .animation(.easeInOut(duration: 0.2), value: hand.count)
+        .animation(.easeInOut(duration: 0.2), value: commandZone.map(\.uuid))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Opponent's hand, \(hand.count) card\(hand.count == 1 ? "" : "s")")
+    }
+}
+
 /// An image-backed UIKit source lets the native menu zoom start at this exact fan card.
 private struct PhoneHandMenuSource: UIViewRepresentable {
     let card: CardInstance

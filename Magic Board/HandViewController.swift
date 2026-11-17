@@ -237,6 +237,9 @@ struct HandView: View {
         if phoneOverlay {
           PhoneHandFanView(hand: self.hand.value.contents, commandZone: self.commandZone.value.contents,
                            size: size, presentation: phonePresentation, onTap: select(_:))
+        } else if AppDelegate.shared.usesPhoneSession && !isLocalHand {
+          PhoneOpponentHandFanView(hand: self.hand.value.contents, commandZone: self.commandZone.value.contents,
+                                   size: size, onTap: select(_:))
         } else {
       FannedCardHandView(
           hand: self.hand.value.contents,
