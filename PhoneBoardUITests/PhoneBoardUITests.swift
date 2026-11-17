@@ -1,6 +1,205 @@
 import XCTest
 
 final class PhoneBoardUITests: XCTestCase {
+    @MainActor func testTappedPermanentAndTravellingMiniCard() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-permanent-hand"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        // The arriving creature occupies the rightmost slot, behind the expanded stack.
+        app.buttons["phone-stack"].tap()
+        expandPhoneHand(app)
+        app.descendants(matching: .any).matching(identifier: "phone-hand-4").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        let actions = app.tables["phone-hand-actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 5))
+        actions.cells.containing(.staticText, identifier: "Play Tapped").firstMatch.tap()
+        let fish = app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == 'Dandân'"))
+        XCTAssertTrue(fish.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(fish.firstMatch.value as? String, "Tapped")
+        let dark = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        dark.name = "Permanent enters tapped — dark mini-card"; dark.lifetime = .keepAlways; add(dark)
+        fish.firstMatch.tap()
+        XCTAssertEqual(fish.firstMatch.value as? String, "Untapped")
+        let light = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        light.name = "Same permanent untapped — light mini-card"; light.lifetime = .keepAlways; add(light)
+        expandPhoneHand(app)
+        app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.35))
+            // Out above the open hand (which collapses once the card leaves it) onto open battlefield.
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.45)), withVelocity: 250, thenHoldForDuration: 0.1)
+        // A newly inserted mini can expose the generic permanent identifier until its
+        // stat-visibility relay is reflected by layout. Count either battlefield form.
+        let bears = app.buttons.matching(NSPredicate(format: "label == 'Grizzly Bears' AND (identifier == 'phone-creature-card' OR identifier == 'phone-permanent-card')"))
+        expectation(for: NSPredicate(format: "count == 3"), evaluatedWith: bears)
+        waitForExpectations(timeout: 5)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.isHittable)
+        let landed = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        landed.name = "Hand card morphed into battlefield mini-card"; landed.lifetime = .keepAlways; add(landed)
+    }
+
+    /// Targets are chosen only by dragging from a stack card: no targeting mode or bar. Dragging
+    /// onto a card toggles it as a target; dragging onto a pile moves the card there unresolved.
+    @MainActor func testStackCardDragsTargetAndMovesToZones() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-targets"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 15))
+        let before = Int(stack.label.components(separatedBy: " ").last ?? "") ?? 0
+        expandPhoneHand(app)
+        app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        app.tables["phone-hand-actions"].cells.containing(.staticText, identifier: "Play").firstMatch.tap()
+        XCTAssertTrue(stack.waitForExistence(timeout: 5))
+        XCTAssertEqual(stack.label, "Stack · \(before + 1)")
+        XCTAssertFalse(app.buttons["phone-target-done"].exists, "Casting has no targeting bar")
+        XCTAssertEqual(stack.value as? String, "0 target connections")
+
+        let top = app.buttons.matching(identifier: "phone-stack-full-card")
+            .matching(NSPredicate(format: "value BEGINSWITH 'Top of stack'")).firstMatch
+        let enemyBear = app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == 'Grizzly Bears'"))
+            .allElementsBoundByIndex.min { $0.frame.midY < $1.frame.midY }!
+        top.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: enemyBear.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.3)
+        expectation(for: NSPredicate(format: "value == '1 target connections'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(enemyBear.value as? String, "Untapped", "Targeting must not tap the creature")
+        let arc = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        arc.name = "Stack drag — targeted creature"; arc.lifetime = .keepAlways; add(arc)
+        // Arcs stay drawn, from the cards' visible edges, while the stack is collapsed.
+        stack.tap()
+        expectation(for: NSPredicate(format: "value == '1 target connections'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        let collapsedArc = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        collapsedArc.name = "Collapsed stack still shows its target arc"; collapsedArc.lifetime = .keepAlways; add(collapsedArc)
+        stack.tap()
+        // The same drag again removes the target.
+        top.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: enemyBear.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.3)
+        expectation(for: NSPredicate(format: "value == '0 target connections'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        // Your own life total is a target too (it sits in the band over the hand).
+        let ownLife = app.descendants(matching: .any).matching(identifier: "phone-life-local").firstMatch
+        top.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: ownLife.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.3)
+        expectation(for: NSPredicate(format: "value == '1 target connections'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(stack.label, "Stack · \(before + 1)", "Targeting yourself must not move the spell to your hand")
+        // Onto your graveyard: off the stack without resolving.
+        let graveyard = app.buttons["phone-graveyard-a"]
+        let graves = Int(graveyard.value as? String ?? "0") ?? 0
+        top.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: graveyard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.3)
+        expectation(for: NSPredicate(format: "value == '\(graves + 1)'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(stack.label, "Stack · \(before)")
+    }
+
+    /// An instant held over a permanent offers to cast it targeting that permanent.
+    @MainActor func testHandSpellDraggedOntoCreatureCastsTargetingIt() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-targets"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 15))
+        let before = Int(stack.label.components(separatedBy: " ").last ?? "") ?? 0
+        expandPhoneHand(app)
+        let enemyBear = app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == 'Grizzly Bears'"))
+            .allElementsBoundByIndex.min { $0.frame.midY < $1.frame.midY }!
+        app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
+            .press(forDuration: 0.3, thenDragTo: enemyBear.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.8)
+        expectation(for: NSPredicate(format: "label == 'Stack · \(before + 1)'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        expectation(for: NSPredicate(format: "value == '1 target connections'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(app.buttons["phone-target-done"].exists)
+    }
+
+    @MainActor func testArenaStackFansCollapsesAndResolves() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-stack"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 15))
+        XCTAssertEqual(stack.label, "Stack · 4")
+        let cards = app.buttons.matching(identifier: "phone-stack-full-card")
+        XCTAssertEqual(cards.count, 4)
+        let top = cards.matching(NSPredicate(format: "value BEGINSWITH 'Top of stack'")).firstMatch
+        XCTAssertEqual(top.label, "Vision Charm")
+        XCTAssertGreaterThan(top.frame.width, 95)
+        XCTAssertLessThan(top.frame.maxX, app.frame.maxX)
+        let oldest = cards.matching(NSPredicate(format: "label == 'Memory Lapse'")).firstMatch
+        XCTAssertLessThan(oldest.frame.minX, top.frame.minX, "Older spells should fan to the left")
+        let fan = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        fan.name = "Arena stack — four spells"; fan.lifetime = .keepAlways; add(fan)
+        // One chevron-and-count control collapses and expands the stack; there is no list.
+        stack.tap()
+        XCTAssertFalse(app.navigationBars["Stack"].exists)
+        XCTAssertFalse(app.buttons["phone-stack-collapse"].exists)
+        XCTAssertFalse(app.buttons["phone-stack-resolve"].exists)
+        XCTAssertEqual(cards.count, 0)
+        XCTAssertTrue(app.buttons["phone-stack-peek"].exists)
+        XCTAssertEqual(stack.label, "Stack · 4", "Hiding must not resolve anything")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.isHittable)
+        let hidden = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        hidden.name = "Arena stack — collapsed"; hidden.lifetime = .keepAlways; add(hidden)
+        app.buttons["phone-stack-peek"].tap()
+        XCTAssertEqual(cards.count, 4)
+        for _ in 0..<3 { app.buttons["phone-stack-resolve"].tap() }
+        XCTAssertEqual(stack.label, "Stack · 1")
+        XCTAssertEqual(cards.count, 1)
+        XCTAssertEqual(cards.firstMatch.label, "Memory Lapse")
+        let single = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        single.name = "Arena stack — single spell"; single.lifetime = .keepAlways; add(single)
+        app.buttons["phone-stack-resolve"].tap()
+        XCTAssertFalse(stack.exists)
+        XCTAssertFalse(app.buttons["phone-stack-resolve"].exists)
+    }
+
+    @MainActor func testResolutionFliesPermanentAndSpellToTheirZones() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-resolution"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 15))
+        XCTAssertEqual(stack.label, "Stack · 2")
+        let before = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        before.name = "Resolution — permanent ready on stack"; before.lifetime = .keepAlways; add(before)
+        app.buttons["phone-stack-resolve"].tap()
+        XCTAssertEqual(stack.label, "Stack · 1")
+        XCTAssertEqual(app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == 'Grizzly Bears'")).count, 2)
+        let permanent = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        permanent.name = "Resolution — creature landed"; permanent.lifetime = .keepAlways; add(permanent)
+        app.buttons["phone-stack-resolve"].tap()
+        XCTAssertFalse(stack.exists)
+        XCTAssertEqual(app.buttons["phone-graveyard-b"].value as? String, "1")
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "phone-resolution-preview").firstMatch.exists)
+        let spell = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        spell.name = "Resolution — spell in graveyard"; spell.lifetime = .keepAlways; add(spell)
+    }
+
+    /// Discards through the hand card's menu (the open hand covers the HUD piles on small phones,
+    /// so a straight drag from it onto the graveyard isn't a drop there).
+    @MainActor private func discardFirstHandCard(_ app: XCUIApplication) {
+        expandPhoneHand(app)
+        app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        let actions = app.tables["phone-hand-actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 5))
+        actions.cells.containing(.staticText, identifier: "Discard").firstMatch.tap()
+    }
+
+    @MainActor private func browserCards(_ app: XCUIApplication) -> XCUIElementQuery {
+        app.descendants(matching: .any).matching(identifier: "phone-browser-card")
+    }
+
     /// Hand cards can only be picked up from the expanded hand.
     @MainActor private func expandPhoneHand(_ app: XCUIApplication) {
         let hand = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
@@ -34,12 +233,7 @@ final class PhoneBoardUITests: XCTestCase {
         let start = handCard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
         start.press(forDuration: 0.8, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5)))
         XCTAssertTrue(stack.label.contains("2"))
-        stack.tap()
-        XCTAssertTrue(app.navigationBars["Stack"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.tables.cells.count, 2)
-        app.buttons["Resolve Top"].tap()
-        XCTAssertEqual(app.tables.cells.count, 1)
-        app.buttons["Done"].tap()
+        app.buttons["phone-stack-resolve"].tap()
         XCTAssertTrue(stack.label.contains("1"))
         let bearer = app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == 'Grizzly Bears'")).firstMatch
         bearer.press(forDuration: 0.7)
@@ -114,6 +308,505 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["20"].exists)
     }
 
+    /// Lands and stack cards are SwiftUI, so the menu zoom uses a UIKit stand-in in the card's
+    /// place; the real card must reappear (and stay usable) once the menu is gone.
+    @MainActor func testMenusZoomFromLandsAndStackAndRestoreTheCard() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-stack"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        func shot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        let lands = app.descendants(matching: .any).matching(identifier: "phone-local-lands").firstMatch
+        let island = lands.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Island'")).firstMatch
+        XCTAssertTrue(island.waitForExistence(timeout: 5))
+        island.press(forDuration: 0.7)
+        XCTAssertTrue(app.buttons["Switch Control"].waitForExistence(timeout: 5))
+        shot("Land menu open")
+        app.buttons["Done"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Switch Control"].waitForNonExistence(timeout: 5))
+        sleep(1)
+        shot("Land restored after menu")
+        XCTAssertTrue(island.isHittable)
+
+        let top = app.buttons.matching(identifier: "phone-stack-full-card")
+            .matching(NSPredicate(format: "value BEGINSWITH 'Top of stack'")).firstMatch
+        top.tap()
+        XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
+        shot("Stack menu open")
+        app.buttons["Done"].firstMatch.tap()
+        sleep(1)
+        shot("Stack card restored after menu")
+        XCTAssertEqual(app.buttons.matching(identifier: "phone-stack-full-card").count, 4)
+        XCTAssertTrue(top.isHittable)
+
+        expandPhoneHand(app)
+        shot("Expanded hand corners")
+    }
+
+    /// The top card of your library drags off the pile like a hand card: into the hand draws it.
+    @MainActor func testTopCardDragsOffLibraryIntoHandAndGraveyardOntoBattlefield() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let library = app.buttons["phone-library-a"]
+        let graveyard = app.buttons["phone-graveyard-a"]
+        let libraryCount = Int(library.value as? String ?? "0") ?? 0
+        let handCount = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'")).count
+        library.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.93)), withVelocity: 300, thenHoldForDuration: 0.2)
+        expectation(for: NSPredicate(format: "value == '\(libraryCount - 1)'"), evaluatedWith: library)
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'")).count, handCount + 1)
+        // Discard a card, then drag it off the graveyard back onto the battlefield.
+        discardFirstHandCard(app)
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        graveyard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.62)), withVelocity: 300, thenHoldForDuration: 0.2)
+        expectation(for: NSPredicate(format: "value == '0'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Graveyard top card dragged onto the battlefield"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    /// Sagas draw their full card image, sit in the right-hand lane, and stay face up when tapped.
+    @MainActor func testSagaShowsCardImageAndStaysFaceUpWhenTapped() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-saga"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        app.buttons["phone-stack"].tap() // uncover the right side
+        let saga = app.buttons.matching(NSPredicate(format: "label == 'Test Saga'")).firstMatch
+        XCTAssertTrue(saga.waitForExistence(timeout: 5))
+        sleep(1)
+        let before = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        before.name = "Saga untapped"; before.lifetime = .keepAlways; add(before)
+        saga.tap()
+        expectation(for: NSPredicate(format: "value == 'Tapped'"), evaluatedWith: saga)
+        waitForExpectations(timeout: 5)
+        sleep(1)
+        let after = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        after.name = "Saga tapped"; after.lifetime = .keepAlways; add(after)
+    }
+
+    /// A prepare card's menu has a Prepared marker; while prepared, it casts its spell as a copy.
+    @MainActor func testPreparedMarkerCastsThePreparedSpell() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-prepare"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 15))
+        let before = Int(stack.label.components(separatedBy: " ").last ?? "") ?? 0
+        stack.tap() // uncover the right side of the field
+        let scholar = app.buttons.matching(NSPredicate(format: "label == 'Test Scholar'")).firstMatch
+        XCTAssertTrue(scholar.waitForExistence(timeout: 5))
+        scholar.press(forDuration: 0.8)
+        let prepared = app.buttons["card-prepared"]
+        XCTAssertTrue(prepared.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Cast Lesson"].exists, "Nothing to cast until prepared")
+        prepared.tap()
+        // Cast sits directly under the Prepared checkmark once it's checked.
+        let castBelow = app.buttons["Cast Lesson"]
+        XCTAssertTrue(castBelow.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(castBelow.frame.minY, prepared.frame.maxY - 1)
+        let menu = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        menu.name = "Prepared marker checked"; menu.lifetime = .keepAlways; add(menu)
+        app.buttons["Done"].firstMatch.tap()
+        sleep(1)
+        let marked = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        marked.name = "Prepared marker on the mini card"; marked.lifetime = .keepAlways; add(marked)
+        scholar.press(forDuration: 0.8)
+        let cast = app.buttons["Cast Lesson"]
+        XCTAssertTrue(cast.waitForExistence(timeout: 5))
+        cast.tap()
+        expectation(for: NSPredicate(format: "label == 'Stack · \(before + 1)'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+    }
+
+    /// A flashback card in the graveyard shows beside the hand (glowing) and can be cast from there.
+    @MainActor func testFlashbackCardShowsBesideHandAndCasts() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-flashback"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 15))
+        let before = Int(stack.label.components(separatedBy: " ").last ?? "") ?? 0
+        let castable = app.descendants(matching: .any).matching(identifier: "phone-castable-0").firstMatch
+        XCTAssertTrue(castable.waitForExistence(timeout: 5))
+        XCTAssertEqual(castable.label, "Think Twice")
+        let lastHand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'")).allElementsBoundByIndex
+            .map(\.frame.midX).max() ?? 0
+        XCTAssertGreaterThan(castable.frame.midX, lastHand, "Castable cards sit to the right of the hand")
+        expandPhoneHand(app)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Flashback card beside the hand"; shot.lifetime = .keepAlways; add(shot)
+        castable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap()
+        let actions = app.tables["phone-hand-actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 5))
+        actions.cells.containing(.staticText, identifier: "Play").firstMatch.tap()
+        expectation(for: NSPredicate(format: "label == 'Stack · \(before + 1)'"), evaluatedWith: stack)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(castable.exists, "Cast from the graveyard, it leaves the castable cards")
+    }
+
+    /// Holding a graveyard card in its pile sheet can mark it castable; it then shows beside the hand.
+    /// Piles open in the card browser; its "⋯" menu leads to the list sheet, search and look at.
+    @MainActor private func openPileMenuItem(_ app: XCUIApplication, pile: XCUIElement, _ item: String) {
+        pile.tap()
+        let more = app.buttons["phone-browser-more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5), "Tapping a pile opens its browser")
+        more.tap()
+        let entry = app.buttons[item].firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        entry.tap()
+    }
+
+    /// A library's top card kept revealed to this player shows face up in its browser.
+    @MainActor func testRevealedTopCardIsFaceUpInLibraryBrowser() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let library = app.buttons["phone-library-a"]
+        let count = Int(library.value as? String ?? "0") ?? 0
+        openPileMenuItem(app, pile: library, "Keep Top Card Revealed To")
+        app.buttons["Me"].firstMatch.tap()
+        let faceDown = browserCards(app).matching(NSPredicate(format: "label == 'Face-down card'"))
+        expectation(for: NSPredicate(format: "count == \(count - 1)"), evaluatedWith: faceDown)
+        waitForExpectations(timeout: 5)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Library browser with revealed top"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    /// The card menu's arrows button shows a card's other side only on this phone: the card on the
+    /// battlefield keeps its face. Transform, Kamigawa flip and upside-down-back cards.
+    @MainActor func testCardMenuPreviewsOtherSide() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-faces"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let handShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); handShot.name = "Hand ability tile (Cycling)"; handShot.lifetime = .keepAlways; add(handShot)
+        app.buttons["phone-stack"].tap() // uncover the right side of the field
+        let stackCollapsed = NSPredicate(format: "exists == false")
+        expectation(for: stackCollapsed, evaluatedWith: app.buttons["phone-stack-resolve"])
+        waitForExpectations(timeout: 5)
+        for name in ["Test Werewolf", "Test Flipper", "Test Laboratory"] {
+            XCTAssertFalse(app.buttons["phone-stack-resolve"].exists, "The stack stays collapsed (\(name))")
+            let card = app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 5), name)
+            // Its left part: the rightmost card's edge can sit under the collapsed stack's peek strip.
+            card.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 0.8)
+            let other = app.buttons["card-other-side"]
+            XCTAssertTrue(other.waitForExistence(timeout: 5), name)
+            other.tap()
+            sleep(1)
+            XCTAssertEqual(other.label, "Show Current Side")
+            let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Other side: \(name)"; shot.lifetime = .keepAlways; add(shot)
+            app.buttons["Done"].firstMatch.tap()
+            XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch.waitForExistence(timeout: 5),
+                          "The card on the battlefield keeps its face")
+        }
+    }
+
+    /// A hand card dragged onto an open browser goes into that zone at the spot it's dropped; one
+    /// dropped on the browser's dimmed area goes back to the hand instead of behind the browser.
+    @MainActor func testHandCardDragsIntoOpenBrowser() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let graveyard = app.buttons["phone-graveyard-a"]
+        discardFirstHandCard(app)
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        graveyard.tap()
+        let browser = app.descendants(matching: .any).matching(identifier: "phone-zone-browser").firstMatch
+        XCTAssertTrue(browser.waitForExistence(timeout: 5))
+        let fanCard = browserCards(app).firstMatch
+        let handCount = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'")).count
+        expandPhoneHand(app)
+        app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.35))
+            .press(forDuration: 0.1, thenDragTo: fanCard.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)),
+                   withVelocity: 250, thenHoldForDuration: 0.4)
+        expectation(for: NSPredicate(format: "value == '2'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        XCTAssertTrue(browser.exists, "The browser stays open")
+        expectation(for: NSPredicate(format: "count == 2"), evaluatedWith: browserCards(app))
+        waitForExpectations(timeout: 5)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Hand card dropped into the graveyard browser"; shot.lifetime = .keepAlways; add(shot)
+        // Dropped on the dimmed board area of the browser: back to the hand, not played behind it.
+        let battlefieldBefore = app.buttons.matching(NSPredicate(format: "identifier == 'phone-creature-card' OR identifier == 'phone-permanent-card'")).count
+        expandPhoneHand(app)
+        app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.35))
+            // Between the browser's title and its Battlefield zone, above the fan.
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.21)),
+                   withVelocity: 250, thenHoldForDuration: 0.2)
+        sleep(1)
+        XCTAssertEqual(graveyard.value as? String, "2")
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier == 'phone-creature-card' OR identifier == 'phone-permanent-card'")).count, battlefieldBefore)
+        XCTAssertEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'")).count, handCount - 1)
+    }
+
+    /// Debug aid: records the reserved regions (run on an iPhone Duo).
+    @MainActor func testLogReservedRegions() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-log-regions"]
+        app.launch() // the board is landscape-only; no orientation change needed
+        let regions = app.descendants(matching: .any).matching(identifier: "phone-regions").firstMatch
+        XCTAssertTrue(regions.waitForExistence(timeout: 15))
+        sleep(2)
+        let note = XCTAttachment(string: regions.label); note.name = "Reserved regions"; note.lifetime = .keepAlways; add(note)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Regions board"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    /// One creature and two planeswalkers: both walkers show at once, with no row paging.
+    @MainActor func testTwoPlaneswalkersShowWithoutPaging() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-walkers"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        app.buttons["phone-stack"].tap() // uncover the right side of the field
+        sleep(1)
+        for name in ["Test Walker One", "Test Walker Two", "Grizzly Bears"] {
+            let card = app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 5), name)
+            XCTAssertTrue(app.windows.firstMatch.frame.contains(card.frame), "\(name) is on screen")
+        }
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Next battlefield cards'")).firstMatch.exists, "No row pages")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Two planeswalkers and a creature"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    /// Arena's back row: noncreature permanents sit in the land rows, right of the lands, at land size.
+    @MainActor func testNoncreaturePermanentsSitInTheBackRow() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-backrow"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        app.buttons["phone-stack"].tap() // uncover the right side of the field
+        sleep(1)
+        let creatures = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let creatureHeight = creatures.map(\.frame.height).max() ?? 0
+        let midY = app.windows.firstMatch.frame.midY
+        for name in ["Test Mox", "Test Clamp", "Test Anthem"] {
+            let copies = app.buttons.matching(NSPredicate(format: "label == %@", name)).allElementsBoundByIndex
+            XCTAssertEqual(copies.count, 2, "\(name) on both sides")
+            for card in copies {
+                XCTAssertTrue(app.windows.firstMatch.frame.contains(card.frame), "\(name) on screen")
+                XCTAssertLessThan(card.frame.height, creatureHeight, "\(name) at land size")
+                // Own back row below the creatures, the opponent's above.
+                let own = card.frame.midY > midY
+                let ownCreatures = creatures.filter { ($0.frame.midY > midY) == own }
+                if own { XCTAssertTrue(ownCreatures.allSatisfy { card.frame.midY > $0.frame.midY }, "\(name) behind its creatures") }
+                else { XCTAssertTrue(ownCreatures.allSatisfy { card.frame.midY < $0.frame.midY }, "\(name) behind its creatures") }
+            }
+        }
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Back row"; shot.lifetime = .keepAlways; add(shot)
+    }
+
+    @MainActor func testTappingGraveyardOpensItsBrowser() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let graveyard = app.buttons["phone-graveyard-a"]
+        discardFirstHandCard(app)
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        graveyard.tap()
+        let browser = app.descendants(matching: .any).matching(identifier: "phone-zone-browser").firstMatch
+        XCTAssertTrue(browser.waitForExistence(timeout: 5))
+        XCTAssertEqual(browserCards(app).count, 1)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Graveyard browser"; shot.lifetime = .keepAlways; add(shot)
+        app.buttons["phone-browser-done"].firstMatch.tap()
+        XCTAssertFalse(browser.waitForExistence(timeout: 2))
+    }
+
+    @MainActor func testGraveyardCardMarkedCastableShowsBesideHand() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let graveyard = app.buttons["phone-graveyard-a"]
+        discardFirstHandCard(app)
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "phone-castable-0").firstMatch.exists)
+        openPileMenuItem(app, pile: graveyard, "Open List")
+        let cell = app.tables.cells.firstMatch
+        XCTAssertTrue(cell.waitForExistence(timeout: 5))
+        cell.press(forDuration: 1.0)
+        let castable = app.buttons["Castable"]
+        XCTAssertTrue(castable.waitForExistence(timeout: 5))
+        castable.tap()
+        let close = app.buttons["phone-sheet-close"].firstMatch
+        if close.waitForExistence(timeout: 2) { close.tap() } else { app.buttons["Done"].firstMatch.tap() }
+        let beside = app.descendants(matching: .any).matching(identifier: "phone-castable-0").firstMatch
+        XCTAssertTrue(beside.waitForExistence(timeout: 5), "A card marked castable shows beside the hand")
+    }
+
+    /// A castable graveyard card dropped back on its spot stays; dropped among the hand cards, it joins the hand.
+    @MainActor func testCastableCardDraggedIntoHandMovesThere() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-flashback"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        expandPhoneHand(app)
+        let castable = app.descendants(matching: .any).matching(identifier: "phone-castable-0").firstMatch
+        XCTAssertTrue(castable.waitForExistence(timeout: 5))
+        let handCards = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-' AND NOT (identifier CONTAINS 'drag')"))
+        let handCount = handCards.count
+        // A little wiggle that ends where it started changes nothing.
+        castable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+            .press(forDuration: 0.3, thenDragTo: castable.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)), withVelocity: 200, thenHoldForDuration: 0.2)
+        sleep(1)
+        XCTAssertTrue(castable.exists)
+        XCTAssertEqual(handCards.count, handCount)
+        // Among the hand cards: into the hand.
+        let target = app.descendants(matching: .any).matching(identifier: "phone-hand-1").firstMatch
+        castable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+            .press(forDuration: 0.3, thenDragTo: target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.3)
+        expectation(for: NSPredicate(format: "count == \(handCount + 1)"), evaluatedWith: handCards)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(castable.exists)
+        XCTAssertEqual(app.buttons["phone-graveyard-a"].value as? String, "0")
+    }
+
+    /// Search shows the whole library as a scrolling fan (with Shuffle & Done).
+    @MainActor func testSearchBrowserShowsWholeLibrary() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let library = app.buttons["phone-library-a"]
+        let libraryCount = Int(library.value as? String ?? "0") ?? 0
+        openPileMenuItem(app, pile: library, "Search")
+        let browser = app.descendants(matching: .any).matching(identifier: "phone-zone-browser").firstMatch
+        XCTAssertTrue(browser.waitForExistence(timeout: 5))
+        XCTAssertEqual(browserCards(app).count, libraryCount)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Search browser"; shot.lifetime = .keepAlways; add(shot)
+        app.buttons["phone-browser-secondary"].tap() // Shuffle & Done
+        XCTAssertFalse(browser.waitForExistence(timeout: 2))
+    }
+
+    /// "Look at" opens the browser on the top cards (the library sheet closes). Cards drop onto the
+    /// uncovered library pile (Top / Bottom choice) and graveyard; they can be shown to the opponent.
+    @MainActor func testLookAtBrowserMovesCardsToLibraryBottomAndGraveyard() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        let library = app.buttons["phone-library-a"]
+        let graveyard = app.buttons["phone-graveyard-a"]
+        let libraryCount = Int(library.value as? String ?? "0") ?? 0
+        openPileMenuItem(app, pile: library, "Look at")
+        app.buttons["2 cards"].tap()
+        let browser = app.descendants(matching: .any).matching(identifier: "phone-zone-browser").firstMatch
+        XCTAssertTrue(browser.waitForExistence(timeout: 5))
+        let cards = browserCards(app)
+        // The two looked at, then the rest of the library face down.
+        XCTAssertEqual(cards.count, libraryCount)
+        XCTAssertEqual(cards.matching(NSPredicate(format: "label == 'Face-down card'")).count, libraryCount - 2)
+        let show = app.buttons["phone-browser-show-opponent"]
+        show.tap()
+        XCTAssertEqual(show.value as? String, "On")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Look at browser"; shot.lifetime = .keepAlways; add(shot)
+        // Onto the library pile in the uncovered bottom bar: choose Bottom.
+        let faceUp = cards.matching(NSPredicate(format: "label != 'Face-down card'"))
+        XCTAssertEqual(faceUp.count, 2)
+        // The top of the library is on the right, as on Arena.
+        XCTAssertGreaterThan(faceUp.element(boundBy: 0).frame.minX, cards.matching(NSPredicate(format: "label == 'Face-down card'")).element(boundBy: 0).frame.minX)
+        faceUp.element(boundBy: 0).press(forDuration: 0.4, thenDragTo: library, withVelocity: 300, thenHoldForDuration: 0.3)
+        XCTAssertTrue(app.buttons["Bottom"].waitForExistence(timeout: 5))
+        app.buttons["Bottom"].tap()
+        // Scried to the bottom: it's still in the library, now last in the fan (face up).
+        sleep(1)
+        XCTAssertEqual(library.value as? String, "\(libraryCount)")
+        faceUp.element(boundBy: 0).press(forDuration: 0.4, thenDragTo: graveyard, withVelocity: 300, thenHoldForDuration: 0.3)
+        expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: graveyard)
+        waitForExpectations(timeout: 5)
+        app.buttons["phone-browser-done"].tap()
+        XCTAssertFalse(browser.waitForExistence(timeout: 2))
+    }
+
+    /// A Room lies sideways with its locked door marked; its menu locks and unlocks doors.
+    @MainActor func testRoomShowsLockedDoorAndUnlocks() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-room"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        app.buttons["phone-stack"].tap()
+        let room = app.buttons.matching(NSPredicate(format: "label == 'Test Room'")).firstMatch
+        XCTAssertTrue(room.waitForExistence(timeout: 10))
+        expectation(for: NSPredicate(format: "value CONTAINS 'Back Door locked'"), evaluatedWith: room)
+        waitForExpectations(timeout: 10)
+        XCTAssertFalse((room.value as? String ?? "").contains("Front Door locked"))
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Room with a locked door"; shot.lifetime = .keepAlways; add(shot)
+        room.press(forDuration: 0.8)
+        let toggle = app.buttons["card-door-lock-1"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.tap()
+        app.buttons["Done"].firstMatch.tap()
+        expectation(for: NSPredicate(format: "NOT (value CONTAINS 'locked')"), evaluatedWith: room)
+        waitForExpectations(timeout: 5)
+    }
+
+    /// Holding a hand card up to read it and letting go without moving reorders nothing.
+    @MainActor func testHoldingHandCardWithoutMovingKeepsOrder() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        expandPhoneHand(app)
+        func names() -> [String] { (0..<7).map { app.descendants(matching: .any).matching(identifier: "phone-hand-\($0)").firstMatch.label } }
+        let before = names()
+        app.descendants(matching: .any).matching(identifier: "phone-hand-2").firstMatch
+            .coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.3)).press(forDuration: 1.0)
+        sleep(1)
+        XCTAssertEqual(names(), before)
+    }
+
+    /// Planets and Spacecraft draw full-art inside their border; a two-card hand fans like the browser.
+    @MainActor func testPlanetSpacecraftAndSmallHandScreenshot() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-planet"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        app.buttons["phone-stack"].tap()
+        sleep(1)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Planet and Spacecraft"; shot.lifetime = .keepAlways; add(shot)
+        expandPhoneHand(app)
+        sleep(1)
+        let hand = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        hand.name = "Expanded hand fan"; hand.lifetime = .keepAlways; add(hand)
+    }
+
     @MainActor func testLandHoldAndBoardMenuSheet() {
         let app = XCUIApplication()
         app.launchArguments = ["--phone-board-fixture"]
@@ -136,7 +829,9 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
         XCTAssertTrue(app.navigationBars["Battlefield"].waitForExistence(timeout: 5))
-        app.tables.cells.containing(.staticText, identifier: "Load Deck / JumpStart / Jump In").firstMatch.tap()
+        XCTAssertTrue(app.buttons["Reset Decks and Life"].exists, "Reset options sit on the menu's first page")
+        let menuShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); menuShot.name = "Board menu"; menuShot.lifetime = .keepAlways; add(menuShot)
+        app.buttons["Load Deck / JumpStart / Jump In"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Load Deck"].waitForExistence(timeout: 5))
         app.buttons["JumpStart (2020)"].tap()
         XCTAssertTrue(app.buttons["phone-packet-choice"].firstMatch.waitForExistence(timeout: 5))
@@ -149,9 +844,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Deck Ready"].exists)
         XCTAssertFalse(app.buttons["Return to Battlefield"].exists)
         XCTAssertEqual(app.buttons["phone-library-a"].value as? String, "40")
-        app.buttons["phone-stack"].tap()
-        app.buttons["Resolve Top"].tap()
-        app.buttons["Done"].tap()
+        app.buttons["phone-stack-resolve"].tap()
         XCTAssertFalse(app.buttons["phone-stack"].exists)
     }
 
@@ -167,20 +860,16 @@ final class PhoneBoardUITests: XCTestCase {
         let local = bears.allElementsBoundByIndex.max { $0.frame.midY < $1.frame.midY }!
         local.press(forDuration: 0.7)
         let create = app.buttons["Token Copy"]
-        let controls = app.collectionViews.matching(NSPredicate(format: "label == 'Sidebar'")).firstMatch
-        XCTAssertTrue(controls.waitForExistence(timeout: 5))
-        // Short drags held before release avoid flinging past the Create section.
-        for _ in 0..<6 {
-            if create.exists && create.isHittable { break }
-            controls.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
-                .press(forDuration: 0.05,
-                       thenDragTo: controls.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)),
-                       withVelocity: 150, thenHoldForDuration: 0.2)
-        }
+        // A tile at the top of the card menu: no scrolling.
         XCTAssertTrue(create.waitForExistence(timeout: 5))
+        XCTAssertTrue(create.isHittable)
         create.tap()
         expectation(for: NSPredicate { _,_ in bears.count == before + 1 }, evaluatedWith: nil)
         waitForExpectations(timeout: 5)
+        if app.buttons["Done"].firstMatch.exists { app.buttons["Done"].firstMatch.tap() }
+        sleep(1)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Token copy beside its original"; shot.lifetime = .keepAlways; add(shot)
     }
 
     @MainActor func testQuickDragRemovesCreaturesAndOrganizedLands() {
@@ -211,7 +900,7 @@ final class PhoneBoardUITests: XCTestCase {
             XCTAssertTrue(app.navigationBars["Battlefield"].waitForExistence(timeout: 5))
         }
         menu()
-        app.tables.cells.containing(.staticText, identifier: "Load Deck / JumpStart / Jump In").firstMatch.tap()
+        app.buttons["Load Deck / JumpStart / Jump In"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Load Deck"].waitForExistence(timeout: 5))
         if !app.buttons["Jump In!"].isHittable { app.swipeUp() }
         app.staticTexts["Jump In!"].tap()
@@ -230,7 +919,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Return to Battlefield"].exists)
         XCTAssertEqual(app.buttons["phone-library-a"].value as? String, "40")
         menu()
-        app.tables.cells.containing(.staticText, identifier: "Preloaded Games & Artwork").firstMatch.tap()
+        app.buttons["Preloaded Games & Artwork"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Preloaded Games"].waitForExistence(timeout: 5))
         app.buttons["DanDân"].tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ENDSWITH 'of 2 images downloaded for offline play'")).firstMatch.waitForExistence(timeout: 5))
@@ -248,7 +937,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
-        app.tables.cells.containing(.staticText, identifier: "Load Deck / JumpStart / Jump In").firstMatch.tap()
+        app.buttons["Load Deck / JumpStart / Jump In"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Load Deck"].waitForExistence(timeout: 5))
         if !app.buttons["Marvel Super Heroes JumpStart"].isHittable { app.swipeUp() }
         app.buttons["Marvel Super Heroes JumpStart"].tap()
@@ -284,14 +973,16 @@ final class PhoneBoardUITests: XCTestCase {
         let name = handCard(1).label
         // Middle-left of each card's uncovered strip: inside the rotated card, not under its neighbour.
         let names = (0..<7).map { handCard($0).label }
-        // The hand collapses as the card is picked up, so drop it right of the collapsed fan's middle.
+        // The hand stays open while the card is dragged within it, so this reorders in the open hand.
         handCard(1).coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.45))
             .press(forDuration: 0.7, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.56, dy: 0.9)),
                    withVelocity: 300, thenHoldForDuration: 0.4)
         XCTAssertNotEqual(handCard(1).label, name)
         XCTAssertTrue(handCard(6).exists, "Reordering lost a card from the hand")
         XCTAssertEqual(Set((0..<7).map { handCard($0).label }), Set(names))
-        // Picking a card up collapses the rest of the hand (Arena).
+        // Reordering within the hand leaves it open; tapping the battlefield collapses it.
+        XCTAssertEqual(hand.value as? String, "Expanded")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
         expectation(for: NSPredicate(format: "value == 'Compact'"), evaluatedWith: hand)
         waitForExpectations(timeout: 5)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "phone-hand-drag-preview").firstMatch.waitForExistence(timeout: 1.5),
@@ -480,7 +1171,6 @@ final class PhoneBoardUITests: XCTestCase {
         expectation(for: NSPredicate(format: "label == 'End Combat'"), evaluatedWith: untap)
         waitForExpectations(timeout: 5)
         XCTAssertEqual(own("Grizzly Bears").value as? String, "Attacking")
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-combat-glow").firstMatch.exists)
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Combat: attacker glow and End Combat"; shot.lifetime = .keepAlways; add(shot)
         // In combat, tapping another creature makes it attack; tapping again takes it out.
         let attackingSoldiers = app.buttons.matching(identifier: "phone-creature-card")
@@ -496,7 +1186,6 @@ final class PhoneBoardUITests: XCTestCase {
         expectation(for: NSPredicate(format: "label == 'Untap'"), evaluatedWith: untap)
         waitForExpectations(timeout: 5)
         XCTAssertEqual(own("Grizzly Bears").value as? String, "Tapped")
-        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "phone-combat-glow").firstMatch.exists)
     }
 
     /// While the opponent attacks, dragging your creature onto their attacker blocks it, and the
@@ -520,26 +1209,28 @@ final class PhoneBoardUITests: XCTestCase {
         // Right below it: room for the attacker's arrow, no more.
         XCTAssertLessThan(blocker.frame.minY - attacker.frame.maxY, 60)
         XCTAssertGreaterThan(blocker.frame.minY, attacker.frame.maxY)
+        XCTAssertEqual(app.buttons["phone-untap-local"].value as? String, "1 blocking assignments")
         _ = before
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Blocker against attacker"; shot.lifetime = .keepAlways; add(shot)
+        blocker.press(forDuration: 0.7)
+        app.buttons["Stop Blocking"].tap()
+        XCTAssertEqual(app.buttons["phone-untap-local"].value as? String, "0 blocking assignments")
     }
 
+    /// Instants dragged from the hand now target instead of attaching (see
+    /// testHandSpellDraggedOntoCreatureCastsTargetingIt); a battlefield card still attaches.
     @MainActor func testDraggingOntoCardAttachesAndUnattaches() {
         let app = XCUIApplication()
         app.launchArguments = ["--phone-board-fixture"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
-        let handCard = app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch
-        XCTAssertTrue(handCard.waitForExistence(timeout: 15))
-        let bearer = app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label == 'Grizzly Bears'")).allElementsBoundByIndex.max { $0.frame.midY < $1.frame.midY }!
-        expandPhoneHand(app)
-        handCard.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.15))
-            .press(forDuration: 0.7, thenDragTo: bearer.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
-                   withVelocity: 300, thenHoldForDuration: 0.6)
-        let lastHandCard = app.descendants(matching: .any).matching(identifier: "phone-hand-6").firstMatch
-        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: lastHandCard)
-        waitForExpectations(timeout: 5)
-        XCTAssertTrue(app.buttons["phone-stack"].label.contains("1"))
+        XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
+        app.buttons["phone-stack"].tap() // Collapse the stack, clearing the right side of the board.
+        let creatures = app.buttons.matching(identifier: "phone-creature-card")
+        let bearer = creatures.matching(NSPredicate(format: "label == 'Grizzly Bears'")).allElementsBoundByIndex.max { $0.frame.midY < $1.frame.midY }!
+        let soldier = creatures.matching(NSPredicate(format: "label == 'Soldier'")).allElementsBoundByIndex.max { $0.frame.midY < $1.frame.midY }!
+        // Attaching needs a short hover over the target (the blue "Attach" glow) before the drop.
+        soldier.press(forDuration: 0.05, thenDragTo: bearer, withVelocity: .default, thenHoldForDuration: 0.8)
         bearer.press(forDuration: 0.7)
         let pages = app.descendants(matching: .any).matching(identifier: "phone-inspector-pages").firstMatch
         XCTAssertTrue(pages.waitForExistence(timeout: 5))
@@ -547,23 +1238,15 @@ final class PhoneBoardUITests: XCTestCase {
         pages.swipeLeft()
         let unattach = app.buttons["Unattach"]
         XCTAssertTrue(unattach.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["Attach to…"].exists)
-        XCTAssertTrue(app.navigationBars["Memory Lapse"].waitForExistence(timeout: 5))
         unattach.tap()
-        // Close the compact inspector explicitly before targeting the battlefield.
-        app.buttons["Done"].tap()
+        // Unattach may close the inspector on its own (the card leaves this page).
+        let done = app.buttons["Done"].firstMatch
+        if done.waitForExistence(timeout: 1), done.isHittable { done.tap() }
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: pages)
         waitForExpectations(timeout: 5)
-        let moved = app.buttons.matching(identifier: "phone-permanent-card").matching(NSPredicate(format: "label == 'Memory Lapse'")).firstMatch
-        XCTAssertTrue(moved.waitForExistence(timeout: 5))
-        XCTAssertTrue(moved.isHittable)
-        // Attaching needs a short hover over the target (the blue "Attach" glow) before the drop.
-        moved.press(forDuration: 0.05, thenDragTo: bearer, withVelocity: .default, thenHoldForDuration: 0.8)
         bearer.press(forDuration: 0.7)
         XCTAssertTrue(pages.waitForExistence(timeout: 5))
-        pages.swipeLeft()
-        pages.swipeLeft()
-        XCTAssertTrue(unattach.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Unattach"].exists)
     }
 
     @MainActor func testLandTapKeepsPhoneBackgroundAndBattlefieldFixed() {
@@ -696,7 +1379,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         let library = app.buttons["phone-library-a"]
         XCTAssertTrue(library.waitForExistence(timeout: 15))
-        library.tap()
+        openPileMenuItem(app, pile: library, "Open List")
         let close = app.buttons["phone-sheet-close"]
         XCTAssertTrue(close.waitForExistence(timeout: 5))
         close.tap()
@@ -718,7 +1401,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertTrue(isLandscape(), "Board rotated to portrait")
         XCUIDevice.shared.orientation = .landscapeLeft
         sleep(1)
-        library.tap()
+        openPileMenuItem(app, pile: library, "Open List")
         let close = app.buttons["phone-sheet-close"]
         XCTAssertTrue(close.waitForExistence(timeout: 5))
         XCUIDevice.shared.orientation = .portrait
@@ -772,6 +1455,15 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Flying"].waitForExistence(timeout: 5))
         keyword.tap()
         app.buttons["Deathtouch"].tap()
+        for name in ["Exalted"] { // Shadow sits below the menu's fold on the SE.
+            keyword.tap()
+            app.buttons[name].tap()
+            XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 5))
+        }
+        app.buttons["Stun"].tap()
+        app.buttons["counter-add-finality"].tap()
+        XCTAssertTrue(app.staticTexts["Stun"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Finality"].waitForExistence(timeout: 5))
         let menuShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); menuShot.name = "Keyword counters listed"; menuShot.lifetime = .keepAlways; add(menuShot)
         app.buttons["Done"].firstMatch.tap()
         sleep(1)
