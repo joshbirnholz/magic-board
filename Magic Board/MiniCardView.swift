@@ -63,6 +63,8 @@ class MiniCardView: UIView {
       case .cardProperties(let properties):
         self.cardView.image = self.image(for: properties, size: self.cardView.bounds.size)
       }
+      setNeedsLayout()
+      updateFullImageTapShade()
     }
   }
   
@@ -115,6 +117,9 @@ class MiniCardView: UIView {
 		cardView.backgroundColor = .clear
 		cardView.properties = properties
 		cardView.layoutIfNeeded()
+		if cardInstance?.representation.drawsFullCardImage == true {
+			cardView.topAlignArt()
+		}
 		
 		UIGraphicsBeginImageContextWithOptions(cardView.bounds.size, false, 2)
 		defer { UIGraphicsEndImageContext() }
@@ -164,8 +169,12 @@ class MiniCardView: UIView {
 		}
 	}
 	
+	/// Whether the last `updateCard` drew a Saga, Class or Case as its full card image.
+	private var showsFullCardImage = false
+
 	private func updateCard() {
 		bag = DisposeBag()
+		showsFullCardImage = card.drawsFullCardImage && !cardInstance.isPowerToughnessVisible.value
 		
 		let isUndecidedFace: Bool = {
 			var representation = self.card
@@ -174,8 +183,9 @@ class MiniCardView: UIView {
 				representation = rep
 			}
       
-      // Sagas have no good mini-card form: they show their full card image on the battlefield.
-      if representation.typeLine?.contains("Saga") == true {
+      // Sagas, Classes and Cases show their full card image on the battlefield, unless they've
+      // become creatures: then they're normal mini cards with power and toughness.
+      if representation.drawsFullCardImage, !cardInstance.isPowerToughnessVisible.value {
         return true
       }
 			
@@ -235,7 +245,8 @@ class MiniCardView: UIView {
 		} else if isUndecidedFace {
 			
 			DispatchQueue.global(qos: .userInteractive).async { [weak self, card] in
-				var image = card.image(type: .normal)
+				// Scryfall's images have square corners; round them like every other card.
+				var image = card.image(type: .normal).map(Self.roundingCorners(of:))
 				// A Room lies sideways on the battlefield, its two doors side by side.
 				if card.isRoom, let source = image, let cgImage = source.cgImage {
 					image = UIImage(cgImage: cgImage, scale: source.scale, orientation: .right)
@@ -378,6 +389,12 @@ class MiniCardView: UIView {
 		
 		cardInstance.isPowerToughnessVisible
 			.subscribe(onNext: { [weak self] isPowerToughnessVisible in
+				// A Saga, Class or Case that becomes (or stops being) a creature switches between
+				// its full card image and a mini card.
+				if let self, self.card.drawsFullCardImage, self.showsFullCardImage == isPowerToughnessVisible {
+					self.updateCard()
+					return
+				}
 				self?.updateTransform(controllerIdentifier: cardInstance.controllerIdentifier.value, isTapped: cardInstance.isTapped.value, animated: true)
 			}).disposed(by: bag)
 		
@@ -596,6 +613,82 @@ class MiniCardView: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     if !doorLockViews.isEmpty { updateDoorLocks() }
+    layoutCountersOnCard()
+    updateFullImageTapShade()
+  }
+
+  /// Where the card image is actually drawn inside `cardView` (it's aspect-fit in a square).
+  private var drawnImageRect: CGRect? {
+    guard let image = cardView?.image, image.size.width > 0, image.size.height > 0 else { return nil }
+    let bounds = cardView.bounds
+    let scale = min(bounds.width / image.size.width, bounds.height / image.size.height)
+    return CGRect(x: bounds.midX - image.size.width * scale / 2, y: bounds.midY - image.size.height * scale / 2,
+                  width: image.size.width * scale, height: image.size.height * scale)
+  }
+
+  /// The counters column straddles the card's right edge. Full upright card images (sagas,
+  /// classes, cases) are narrower than the square, so pull it in to sit on the drawn card.
+  private lazy var countersTrailingConstraint: NSLayoutConstraint? = contentView.constraints.first {
+    ($0.firstItem === countersStackView && $0.firstAttribute == .trailing) ||
+    ($0.secondItem === countersStackView && $0.secondAttribute == .trailing)
+  }
+  private lazy var countersTrailingDefault: CGFloat = countersTrailingConstraint?.constant ?? 0
+
+  private func layoutCountersOnCard() {
+    guard let constraint = countersTrailingConstraint else { return }
+    var inset: CGFloat = 0
+    if case .image = contents, let drawn = drawnImageRect {
+      inset = cardView.bounds.maxX - drawn.maxX
+    }
+    let sign: CGFloat = constraint.firstItem === countersStackView ? 1 : -1
+    let constant = countersTrailingDefault - sign * inset
+    if abs(constraint.constant - constant) > 0.5 { constraint.constant = constant }
+  }
+
+  /// Rendered mini cards darken themselves when tapped; plain card images get this shade.
+  private lazy var fullImageTapShade: UIView = {
+    let shade = UIView()
+    shade.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+    shade.isUserInteractionEnabled = false
+    shade.layer.cornerCurve = .continuous
+    shade.isHidden = true
+    return shade
+  }()
+
+  private func updateFullImageTapShade() {
+    guard let cardView else { return }
+    let isFaceUpImage: Bool = {
+      guard case .image = contents, let cardInstance else { return false }
+      if case .faceDown = cardInstance.representation { return false }
+      return true
+    }()
+    guard isFaceUpImage, cardInstance?.isTapped.value == true, let drawn = drawnImageRect else {
+      fullImageTapShade.isHidden = true
+      return
+    }
+    if fullImageTapShade.superview !== cardView { cardView.addSubview(fullImageTapShade) }
+    fullImageTapShade.frame = drawn
+    fullImageTapShade.layer.cornerRadius = min(drawn.width, drawn.height) * Self.cornerFraction
+    fullImageTapShade.isHidden = false
+    // Door locks draw their own shade; keep them above this one.
+    doorLockViews.forEach { cardView.bringSubviewToFront($0) }
+  }
+
+  /// A card's corner radius as a fraction of its short side.
+  private static let cornerFraction: CGFloat = 0.0455
+
+  /// The image clipped to a card's rounded corners.
+  static func roundingCorners(of image: UIImage) -> UIImage {
+    let size = image.size
+    guard size.width > 0, size.height > 0 else { return image }
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = image.scale
+    format.opaque = false
+    return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+      let radius = min(size.width, size.height) * cornerFraction
+      UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: radius).addClip()
+      image.draw(in: CGRect(origin: .zero, size: size))
+    }
   }
 
   /// Darkens each locked door of a sideways Room and marks it with a lock.
@@ -704,7 +797,7 @@ class MiniCardView: UIView {
         
         
         self.properties?.isTapped = isTapped
-        
+        self.updateFullImageTapShade()
         
         let scale = self.typeScale * self.layoutScale
         if scale != 1 { transform = transform.scaledBy(x: scale, y: scale) }
@@ -856,6 +949,10 @@ struct SwiftUICardView: View {
       representation = rep
     }
     
+    // Sagas, Classes and Cases show their full card image on the battlefield, unless they've
+    // become creatures.
+    if representation.drawsFullCardImage { return !card.isPowerToughnessVisible.value }
+    
     if case .alternateFace(_, _) = representation {
       return false
     } else if let faces = representation.card.cardFaces, faces.count > 1 {
@@ -902,10 +999,12 @@ struct SwiftUICardView: View {
         configuration: {
           $0.resizable()
           .aspectRatio(63/88, contentMode: .fit)
+          .clipShape(CardCornerShape())
         }
       )
     } else {
-        BattlefieldCardThumbnail(properties: properties, usesLargeText: AppDelegate.shared.usesPhoneSession)
+        BattlefieldCardThumbnail(properties: properties, usesLargeText: AppDelegate.shared.usesPhoneSession,
+                                 topAlignsArt: representation.value.drawsFullCardImage)
         .aspectRatio(480/420, contentMode: .fit)
         .task {
           let image = card.representation.image(type: .art)
@@ -953,7 +1052,7 @@ struct SwiftUICardView: View {
       .drag(card: AppDelegate.shared.usesPhoneSession ? nil : card)
       .overlay {
         if isTapped.value {
-          Color.black.opacity(0.4)
+          CardCornerShape().fill(Color.black.opacity(0.4))
           if AppDelegate.shared.usesPhoneSession {
             GeometryReader { proxy in
               Image(resource: "tap").resizable().renderingMode(.template).scaledToFit()
@@ -985,11 +1084,20 @@ struct SwiftUICardView: View {
 }
 
 
+/// A card's rounded corners, sized from its width.
+private struct CardCornerShape: Shape {
+  func path(in rect: CGRect) -> Path {
+    Path(roundedRect: rect, cornerRadius: rect.width * 0.0455, style: .continuous)
+  }
+}
+
+
 /// Keep UIKit rasterization out of SwiftUI body evaluation. Rebuilding the XIB
 /// while evaluating a body can continually invalidate the hosting view's layout.
 private struct BattlefieldCardThumbnail: UIViewRepresentable {
     let properties: MTGCardView.CardProperties
     let usesLargeText: Bool
+    var topAlignsArt = false
 
     final class Coordinator {
         var properties: MTGCardView.CardProperties?
@@ -1017,6 +1125,7 @@ private struct BattlefieldCardThumbnail: UIViewRepresentable {
         renderer.backgroundColor = .clear
         renderer.properties = properties
         renderer.layoutIfNeeded()
+        if topAlignsArt { renderer.topAlignArt() }
 
         // The XIB lays out in a square canvas. Crop only after rendering to
         // preserve the original title, artwork, and power/toughness positions.
@@ -1028,6 +1137,21 @@ private struct BattlefieldCardThumbnail: UIViewRepresentable {
         let crop = CGRect(x: 0, y: 30 * square.scale, width: 480 * square.scale, height: 420 * square.scale)
         guard let cropped = pixels.cropping(to: crop) else { return }
         imageView.image = UIImage(cgImage: cropped, scale: square.scale, orientation: square.imageOrientation)
+    }
+}
+
+
+extension MTGCardView {
+    /// Crops the art to the art box from its top instead of its middle. Sagas, Classes and Cases
+    /// have tall art whose subject sits at the top; as creature mini cards they show that part.
+    func topAlignArt() {
+        let box = artImageView.bounds.size
+        guard box.width > 0, box.height > 0, let art = artImageView.image, let source = art.cgImage else { return }
+        let width = CGFloat(source.width), height = CGFloat(source.height)
+        let cropHeight = min(height, (width * box.height / box.width).rounded())
+        guard cropHeight < height,
+              let cropped = source.cropping(to: CGRect(x: 0, y: 0, width: width, height: cropHeight)) else { return }
+        artImageView.image = UIImage(cgImage: cropped, scale: art.scale, orientation: art.imageOrientation)
     }
 }
 

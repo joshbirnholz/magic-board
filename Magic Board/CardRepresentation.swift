@@ -595,6 +595,12 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 	
 	/// A Room (Duskmourn): one split card with two doors that lock and unlock — never two faces.
 	var isRoom: Bool { card.layout == "split" && (card.typeLine ?? "").contains("Room") }
+
+	/// Sagas, Classes and Cases have no good mini-card form: the battlefield shows their full,
+	/// upright card image instead.
+	var drawsFullCardImage: Bool {
+		typeLine?.contains("Saga") == true || ["saga", "class", "case"].contains(card.layout)
+	}
 	
 	var canonicalToken: CardRepresentation {
 		guard case .tokenCopy(let inner) = self else { return self }
