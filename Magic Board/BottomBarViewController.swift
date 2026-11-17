@@ -82,6 +82,9 @@ class BottomBarViewController: UIViewController {
 
     private var phoneLifeWidth: NSLayoutConstraint?
     private var phonePileWidths: [NSLayoutConstraint] = []
+    /// Horizontal HUD placement: piles left and life right for the local bar, mirrored for the opponent's.
+    private var phoneLocalSideConstraints: [NSLayoutConstraint] = []
+    private var phoneOpponentSideConstraints: [NSLayoutConstraint] = []
 	
 	private let bag = DisposeBag()
 	
@@ -591,6 +594,28 @@ extension BottomBarViewController {
                 untapButton.trailingAnchor.constraint(equalTo: lifeContainer.leadingAnchor, constant: -8)
             ]
             NSLayoutConstraint.activate(phoneHUDConstraints)
+            // The storyboard's left-to-right pile row (graveyard, library, exile) and the life total
+            // pinned right. The opponent's bar mirrors it: life at the top left, and from the top
+            // right graveyard, library, exile, then the hand.
+            phoneLocalSideConstraints = view.constraints.filter { constraint in
+                let first = constraint.firstItem as? UIView
+                return piles.contains(where: { $0 === first }) && constraint.firstAttribute == .leading
+            } + phoneHUDConstraints.filter { $0.firstItem as? UIView === lifeContainer && $0.firstAttribute == .trailing }
+            if let graveyardPileView, let libraryPileView, let exilePileView {
+                phoneOpponentSideConstraints = [
+                    graveyardPileView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                    libraryPileView.trailingAnchor.constraint(equalTo: graveyardPileView.leadingAnchor, constant: -8),
+                    exilePileView.trailingAnchor.constraint(equalTo: libraryPileView.leadingAnchor, constant: -8),
+                    lifeContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 4)
+                ]
+            }
+        }
+        if isLocal {
+            NSLayoutConstraint.deactivate(phoneOpponentSideConstraints)
+            NSLayoutConstraint.activate(phoneLocalSideConstraints)
+        } else {
+            NSLayoutConstraint.deactivate(phoneLocalSideConstraints)
+            NSLayoutConstraint.activate(phoneOpponentSideConstraints)
         }
         // One metric for both bars: every control gets the same height and the same top/bottom padding.
         let rowHeight = hudHeight
