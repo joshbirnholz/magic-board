@@ -651,6 +651,21 @@ class MiniCardView: UIView {
     }
   }
 
+  /// Noncreature artifacts, enchantments, lands and emblems are drawn a little smaller than creatures.
+  var typeScale: CGFloat {
+    if let typeLine = card.typeLine?.lowercased(), !cardInstance.isPowerToughnessVisible.value,
+       typeLine.contains("artifact") || typeLine.contains("enchantment") || typeLine.contains("land") || typeLine.contains("emblem") {
+      return 0.85
+    }
+    return 1
+  }
+
+  /// Phone Play: the `layoutScale` that draws this card at the same size as `host`, so an
+  /// attachment (Equipment, an Aura) tucked behind its card is never smaller and hidden by it.
+  func layoutScale(matching host: MiniCardView) -> CGFloat {
+    host.typeScale * host.layoutScale / max(0.01, typeScale)
+  }
+
   private func updateTransform(controllerIdentifier: Player.Identifier, isTapped: Bool, animated: Bool) {
     guard updatesTransform else { return }
     if usesPlayerPerspective {
@@ -679,11 +694,8 @@ class MiniCardView: UIView {
         self.properties?.isTapped = isTapped
         
         
-        if let typeLine = self.card.typeLine?.lowercased(), !self.cardInstance.isPowerToughnessVisible.value && (typeLine.contains("artifact") || typeLine.contains("enchantment") || typeLine.contains("land") || typeLine.contains("emblem")) {
-          let scale: CGFloat = 0.85
-          transform = transform.scaledBy(x: scale, y: scale)
-        }
-        if self.layoutScale != 1 { transform = transform.scaledBy(x: self.layoutScale, y: self.layoutScale) }
+        let scale = self.typeScale * self.layoutScale
+        if scale != 1 { transform = transform.scaledBy(x: scale, y: scale) }
         
         self.transform = transform
       },

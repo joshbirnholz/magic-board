@@ -3151,7 +3151,11 @@ extension BoardViewController {
                         // Arena tucks equipment and Auras right behind the card: each one peeks
                         // out a little further to the left (and a touch higher).
                         cardView.center = CGPoint(x: point.x - 34 - CGFloat(layer) * 30, y: point.y - 6 - CGFloat(layer) * 6)
-                        if let parent = self.cardView(for: group.top) { board.insertSubview(cardView, belowSubview: parent) }
+                        if let parent = self.cardView(for: group.top) {
+                            // Same size as its card, so the smaller artifact/enchantment drawing can't hide behind it.
+                            cardView.layoutScale = cardView.layoutScale(matching: parent)
+                            board.insertSubview(cardView, belowSubview: parent)
+                        }
                     }
                 }
             }
@@ -3199,7 +3203,7 @@ extension BoardViewController {
                 for (layer, attachment) in session.game.attachedCards(to: group.top.uuid).enumerated() {
                     guard let attachedView = cardView(for: attachment), let parent = cardView(for: group.top) else { continue }
                     attachedView.isHidden = false
-                    attachedView.layoutScale = scale
+                    attachedView.layoutScale = attachedView.layoutScale(matching: parent)
                     attachedView.center = CGPoint(x: point.x - (34 + CGFloat(layer) * 30) * scale, y: point.y - (6 + CGFloat(layer) * 6) * scale)
                     board.insertSubview(attachedView, belowSubview: parent)
                 }
