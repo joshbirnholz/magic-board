@@ -2,6 +2,16 @@
 
 Updated 2026-11-17 (pile browser, spring-loaded piles, menus, companions, stack copies). Workspace: `/Users/compc/Xcode/Magic Board`.
 
+## 2026-11-17 follow-ups (browser drags)
+
+- **Dragged card over a browser** matches the browser's card size (`PhoneZoneBrowserView.isOverFan`, `fanCardHeight`, used in `movePhoneHandCardPreview`).
+- **Face-up drops stay face up**: a card dropped into an open browser while showing its face (hand cards, face-up battlefield cards) stays face up in its spot, in a library too, until the browser closes (`phoneBrowserSeen`, subtracted in `phoneBrowserFaceDown`; `finishPhoneSpringLoad(_:at:faceUp:)`).
+- **Blue play glow** is drawn in SwiftUI (`PhoneHandPlayGlow` / `PhoneHandPlayGlowOutline` in `PhoneHandCardFace`), above the card but under its cost and ability tiles.
+- **Cast to Stack area**: a hand/pile drag near the right edge shows a "Cast to Stack" strip over the stack's band (`updatePhoneStackCastZone`, `phoneStackCastBand`, id `phone-stack-cast-zone`); releasing over it sends `.castTargeting(id, nil)`.
+- **Floating costs** use a single slash for split/DFC costs (`handCost`).
+- **Play chooser** after a drag is a centered alert (no popover arrow).
+- Verified: builds. Not yet run in the simulator or UI tests.
+
 ## 2026-11-17 follow-ups (third round)
 
 - **Drag into an open browser:** hand and battlefield cards dropped on any open library/graveyard/exile browser (incl. Search and Look at) go into that zone at the drop spot (`phoneBrowserDropZone`, `finishPhoneSpringLoad`); a drop on the browser's dimmed area returns the card instead of landing behind it (`phoneDropBlockedByBrowser`). The fan's drop band is the cards' own band (`fanDropArea`). UI test `testHandCardDragsIntoOpenBrowser`.

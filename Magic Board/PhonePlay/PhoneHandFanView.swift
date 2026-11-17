@@ -307,6 +307,8 @@ struct PhoneHandCardFace: View {
     var faceDown: Bool = false
     /// Castable from the graveyard (purple glow) or exile (orange glow), shown beside the hand.
     var castableFrom: Pile.Location? = nil
+    /// The blue "release to play" outline while the card is dragged (drawn under the ability tiles).
+    var playGlow: PhoneHandPlayGlow? = nil
     private static let exileGlow = Color(red: 1.0, green: 0.55, blue: 0.16)
     private static let graveyardGlow = Color(red: 0.66, green: 0.36, blue: 1.0)
     private static let companionGlow = Color(red: 0.2, green: 0.82, blue: 0.76)
@@ -331,6 +333,7 @@ struct PhoneHandCardFace: View {
                         .shadow(color: color, radius: glow)
                 }
             }
+            .overlay { if let playGlow { PhoneHandPlayGlowOutline(glow: playGlow, width: width) } }
             .overlay(alignment: .topTrailing) { costView(width: width) }
             .overlay(alignment: .topLeading) { abilityTiles(width: width) }
     }
@@ -392,7 +395,8 @@ struct PhoneHandCardFace: View {
     static func handCost(for card: CardInstance, inCommandZone: Bool, castableElsewhere: Bool = false) -> String? {
         // Cast from the graveyard or exile, it costs what its flashback (escape, foretell…) says.
         if castableElsewhere, !card.representation.keywords.contains("Companion"), let alternate = PhoneGame.alternateCastCost(for: card) { return alternate }
-        var cost = card.representation.manaCost
+        // Split cards, double-faced cards and the like show their faces' costs with one slash.
+        var cost = card.representation.manaCost?.replacingOccurrences(of: " // ", with: " / ")
         if card.representation.card.layout == "prepare", case .card(let mtgCard) = card.representation,
            let creature = mtgCard.cardFaces?.first {
             cost = creature.manaCost
@@ -404,6 +408,31 @@ struct PhoneHandCardFace: View {
 }
 
 
+
+/// Whether a dragged hand card shows Arena's blue "release to play" outline.
+final class PhoneHandPlayGlow: ObservableObject {
+    @Published var isVisible = false
+}
+
+/// Arena's blue glow: a bright rim just outside the card with a soft cyan-blue halo (never over
+/// the card). It sits above the card but below its cost and ability tiles.
+private struct PhoneHandPlayGlowOutline: View {
+    @ObservedObject var glow: PhoneHandPlayGlow
+    let width: CGFloat
+
+    var body: some View {
+        let halo = Color(red: 0.2, green: 0.62, blue: 1)
+        RoundedRectangle(cornerRadius: width * 0.05, style: .continuous)
+            .strokeBorder(Color(red: 0.62, green: 0.88, blue: 1), lineWidth: max(2, width * 0.02))
+            .shadow(color: halo, radius: width * 0.06)
+            .shadow(color: halo, radius: width * 0.06)
+            .scaleEffect(x: 1.03, y: 1.022)
+            .opacity(glow.isVisible ? 1 : 0)
+            .animation(.easeInOut(duration: 0.15), value: glow.isVisible)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
 
 /// The hand-only ability icons for a card in hand (abilities that do nothing once it's on the
 /// battlefield), worked out once per card face.

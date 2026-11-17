@@ -1148,6 +1148,12 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         return CGRect(x: 0, y: band.minY - 24, width: bounds.width, height: band.height + 48)
     }
 
+    /// Over the fan, where a card dragged in from the board would drop.
+    func isOverFan(_ point: CGPoint) -> Bool { fanDropArea.contains(point) }
+
+    /// The height of the cards in the fan (a card dragged over it matches them).
+    var fanCardHeight: CGFloat { cardSize.height }
+
     /// Over the browser's dimmed area (not the uncovered bottom bar), where board drops don't fall through.
     func covers(_ point: CGPoint) -> Bool {
         bounds.contains(point) && point.y < bounds.height - uncoveredBottom
