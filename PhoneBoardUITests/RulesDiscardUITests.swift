@@ -16,7 +16,7 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertTrue(banner.waitForExistence(timeout: 5))
         XCTAssertEqual(banner.label, "Choose blockers.")
         XCTAssertEqual(banner.frame.midY, app.frame.midY, accuracy: 24)
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Arena-style battlefield instruction band"
         screenshot.lifetime = .keepAlways
         add(screenshot)
@@ -134,6 +134,8 @@ final class RulesDiscardUITests: XCTestCase {
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
         key.typeText("rules-local-verification-key")
+        // Finish editing before tapping form actions; simulator keyboard geometry can lag rotation.
+        key.typeText("\n")
         let fresh = app.buttons["rules-connect-new"]
         (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         let start = app.buttons["rules-start-ai"]
@@ -144,10 +146,14 @@ final class RulesDiscardUITests: XCTestCase {
                           userInfo: [NSLocalizedDescriptionKey: "The fixture's game button never enabled"])
         }
         start.tap()
-        if information {
-            XCTAssertTrue(app.staticTexts["rules-information-title"].waitForExistence(timeout: 20))
-        } else {
-            XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 20))
+        let ready = information ? app.staticTexts["rules-information-title"] : app.buttons["phone-untap-local"]
+        guard ready.waitForExistence(timeout: 20) else {
+            let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+            screenshot.name = "Fixture did not reach the game"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+            throw NSError(domain: "RulesFixture", code: 3,
+                          userInfo: [NSLocalizedDescriptionKey: "The fixture stayed on setup instead of showing the game"])
         }
         return app
     }
