@@ -114,6 +114,24 @@ final class RulesModeTests: XCTestCase {
         XCTAssertTrue(RulesPhoneAdapter.resolvePendingTarget(.card(attacker), prompt: try prompt("GAME_SELECT"), snapshot: nil, issuedDuring: "p").keep)
     }
 
+    func testPriorityIsPassedAutomaticallyOnlyWhenNothingIsPlayable() throws {
+        func snapshot(playable: [String]) throws -> RulesSnapshot {
+            try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+                "gameId": "g", "playerId": "p", "revision": 1, "turn": 2, "hand": [], "stack": [], "players": [],
+                "playableIds": playable] as [String: Any]))
+        }
+        func prompt(_ method: String, _ message: String) throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "x", "method": method, "revision": 1, "supported": true, "choices": [], "message": message] as [String: Any]))
+        }
+        let idle = try snapshot(playable: []), ready = try snapshot(playable: [UUID().uuidString])
+        XCTAssertTrue(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play instants and activated abilities"), snapshot: idle))
+        XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play instants and activated abilities"), snapshot: ready), "something to respond with")
+        XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play spells and abilities"), snapshot: idle), "your main phase waits")
+        XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Select attackers"), snapshot: idle))
+        XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_ASK", "Play instants?"), snapshot: idle))
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

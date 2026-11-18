@@ -13,6 +13,7 @@ final class RulesPhoneAdapter {
     private var artworkTask: Task<Void, Never>?
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
+    private var autoPassedPromptID: String?
     /// The prompt that was showing when the gesture chose its target (still showing until the engine moves on).
     private var pendingTargetPromptID: String?
     private var hiddenIDs: [String: UUID] = [:]
@@ -41,21 +42,53 @@ final class RulesPhoneAdapter {
     }
 
     private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?) {
-        let label: String
-        if pending != nil { label = "Sending…" }
-        else if prompt?.method == "GAME_SELECT" { label = "Next" }
-        else if prompt != nil { label = "Choose" }
-        else { label = "Waiting" }
+        let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
         // Arena: while choosing targets, the legal targets glow instead of the playable cards.
         presentation.rulesPlayable = Self.highlighted(snapshot: engine.snapshot, prompt: pending == nil ? prompt : nil)
         phone?.displayRules(presentation, connected: status == .connected,
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
-                            primaryLabel: label)
+                            primaryLabel: label, primaryEnabled: enabled)
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID,
+           Self.shouldAutoPass(prompt, snapshot: engine.snapshot), engine.canAnswer {
+            autoPassedPromptID = prompt.id
+            Task { [weak self] in await self?.engine.answer(.boolean(true)) }
+        }
         if let target = pendingTarget, pending == nil {
             let (answer, keep) = Self.resolvePendingTarget(target, prompt: prompt, snapshot: engine.snapshot, issuedDuring: pendingTargetPromptID)
             if !keep { pendingTarget = nil }
             if let answer { Task { [weak self] in await self?.engine.answer(.object(answer)) } }
         }
+    }
+
+    /// The main phase button's label (Arena's wording) and whether it answers the current prompt.
+    static func primaryButton(prompt: RulesPrompt?, snapshot: RulesSnapshot?, pending: Bool) -> (String, Bool) {
+        if pending { return ("Sending…", false) }
+        guard let prompt else {
+            if let snapshot, let active = snapshot.activePlayerId, active != snapshot.playerId { return ("Opponent's\nTurn", false) }
+            return ("Waiting", false)
+        }
+        guard prompt.method == "GAME_SELECT" else { return ("Choose", false) }
+        let message = RulesText.plain(prompt.message ?? "").lowercased()
+        let combat = snapshot?.combat ?? []
+        if message.contains("select attackers") {
+            return (combat.contains { !$0.attackers.isEmpty } ? "Attack" : "No\nAttacks", true)
+        }
+        if message.contains("select blockers") {
+            return (combat.contains { !$0.blockers.isEmpty } ? "Block" : "No\nBlocks", true)
+        }
+        if snapshot?.stack.isEmpty == false { return ("Resolve", true) }
+        if message.contains("play spells") { return ("Next", true) }
+        return ("Pass", true)
+    }
+
+    /// Arena passes priority for you when you have nothing you could do. XMage stops at every
+    /// "Play instants and activated abilities" (each step of the opponent's turn, responses to their
+    /// spells…), so pass those automatically when the engine reports nothing playable. Your own main
+    /// phases ("Play spells…") and attack/block declarations always wait for you.
+    static func shouldAutoPass(_ prompt: RulesPrompt, snapshot: RulesSnapshot?) -> Bool {
+        guard prompt.method == "GAME_SELECT", let snapshot, snapshot.playableIds.isEmpty else { return false }
+        let message = RulesText.plain(prompt.message ?? "").lowercased()
+        return message.contains("instants") && !message.contains("select")
     }
 
     /// What to do with a target chosen by gesture (a spell dragged onto a target, a blocker dragged
@@ -142,8 +175,9 @@ final class RulesPhoneAdapter {
     }
 
     private func refresh() {
+        let (label, enabled) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil)
         phone?.displayRules(presentation, connected: engine.status == .connected,
-                            status: engine.notice, primaryLabel: engine.prompt?.method == "GAME_SELECT" ? "Next" : "Choose")
+                            status: engine.notice, primaryLabel: label, primaryEnabled: enabled)
     }
 
     func project(_ snapshot: RulesSnapshot, refreshArtwork: Bool = true) async throws {

@@ -32,6 +32,8 @@ final class PhoneGameSession: ObservableObject {
     var rulesCommand: ((Command) -> Void)?
     var rulesLeave: (() -> Void)?
     var rulesPrimaryLabel = "Next"
+    /// Whether the main phase button answers the current Rules prompt (passing priority, confirming attackers…).
+    var rulesPrimaryEnabled = false
     private let connection = NearbyGameConnection()
     private var appliedRequests: Set<UUID> = []
     private var pendingEdits: [Request] = []
@@ -422,11 +424,12 @@ final class PhoneGameSession: ObservableObject {
         adapter.attach(to: self)
     }
 
-    func displayRules(_ projection: PhoneGame, connected: Bool, status: String, primaryLabel: String) {
+    func displayRules(_ projection: PhoneGame, connected: Bool, status: String, primaryLabel: String, primaryEnabled: Bool? = nil) {
         guard mode == .rules else { return }
         self.connected = connected
         self.status = status
         rulesPrimaryLabel = primaryLabel
+        rulesPrimaryEnabled = primaryEnabled ?? (primaryLabel == "Next")
         hasSnapshot = true
         adopt(projection)
     }

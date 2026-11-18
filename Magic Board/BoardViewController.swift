@@ -74,6 +74,8 @@ class BoardViewController: UIViewController {
   private var phoneStackContainer: PhoneTouchFilterView?
   /// Rules mode's prompt panel, kept above the board and just above the local phase button (Arena).
   private var rulesPromptHost: UIViewController?
+  /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
+  private var rulesModalHost: UIViewController?
   private var rulesPromptBottom: NSLayoutConstraint?
   private var phoneStackResolveButton: UIButton?
   private var phoneStackCollapsed = false
@@ -2526,6 +2528,24 @@ extension BoardViewController {
         prompt.didMove(toParent: self)
         rulesPromptHost = prompt
         rulesPromptBottom = bottom
+        // Decisions that aren't on the board take over the screen (Arena); the layer hides itself
+        // between them so it never swallows touches meant for the board.
+        let modal = UIHostingController(rootView: RulesPromptModal(session: adapter.engine,
+            exit: { [weak self] in self?.leavePhoneGame(showingStart: true) },
+            onVisibilityChange: { [weak self] visible in self?.rulesModalHost?.view.isHidden = !visible }))
+        modal.view.backgroundColor = .clear
+        modal.view.isHidden = true
+        addChild(modal)
+        view.addSubview(modal.view)
+        modal.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            modal.view.topAnchor.constraint(equalTo: view.topAnchor),
+            modal.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            modal.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            modal.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        modal.didMove(toParent: self)
+        rulesModalHost = modal
     }
 
     /// Keeps the Rules prompt above everything the board re-raises, sitting just above the local
@@ -2541,6 +2561,7 @@ extension BoardViewController {
             if rulesPromptBottom?.constant != constant { rulesPromptBottom?.constant = constant }
         }
         view.bringSubviewToFront(host)
+        if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
     }
 
     private func showConnectionOptions() {

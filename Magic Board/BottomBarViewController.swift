@@ -654,8 +654,8 @@ extension BottomBarViewController {
         let status = phase == .opponentsCombat || phase == .opponentsTurn
         let rulesSession = AppDelegate.shared.phoneSession.flatMap { $0.mode == .rules ? $0 : nil }
         configureUntapButton(label: rulesSession?.rulesPrimaryLabel ?? label, height: controlHeight,
-                             status: rulesSession == nil ? status : rulesSession?.rulesPrimaryLabel != "Next")
-        untapButton.isEnabled = isLocal && (rulesSession.map { $0.connected && $0.rulesPrimaryLabel == "Next" } ?? !status)
+                             status: rulesSession == nil ? status : rulesSession?.rulesPrimaryEnabled != true)
+        untapButton.isEnabled = isLocal && (rulesSession.map { $0.connected && $0.rulesPrimaryEnabled } ?? !status)
         untapButton.accessibilityIdentifier = isLocal ? "phone-untap-local" : "phone-untap-opponent"
         let expanded = isLocal && handViewController?.phonePresentation.isExpanded == true
         // The local hand always draws above the static HUD controls; it never pushes them around.

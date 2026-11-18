@@ -333,6 +333,7 @@
 		AA7714000000000000000001 /* RulesModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7715000000000000000001 /* RulesModeTests.swift */; };
 		AA7716000000000000000001 /* RulesModeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7717000000000000000001 /* RulesModeUITests.swift */; };
 		AA7718000000000000000001 /* RulesDeckImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7719000000000000000001 /* RulesDeckImporter.swift */; };
+		AA771A000000000000000001 /* RulesPromptViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA771B000000000000000001 /* RulesPromptViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -668,6 +669,7 @@
 		AA7715000000000000000001 /* RulesModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesModeTests.swift; sourceTree = "<group>"; };
 		AA7717000000000000000001 /* RulesModeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesModeUITests.swift; sourceTree = "<group>"; };
 		AA7719000000000000000001 /* RulesDeckImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesDeckImporter.swift; sourceTree = "<group>"; };
+		AA771B000000000000000001 /* RulesPromptViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesPromptViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1125,6 +1127,7 @@
 				AA7712000000000000000002 /* RulesGameSession.swift */,
 				AA7712000000000000000003 /* RulesPhoneAdapter.swift */,
 				AA7712000000000000000004 /* RulesConnectionView.swift */,
+				AA771B000000000000000001 /* RulesPromptViews.swift */,
 			);
 			path = RulesPlay;
 			sourceTree = "<group>";
@@ -1649,6 +1652,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA7711000000000000000004 /* RulesConnectionView.swift in Sources */,
+				AA771A000000000000000001 /* RulesPromptViews.swift in Sources */,
 				AA7711000000000000000003 /* RulesPhoneAdapter.swift in Sources */,
 				AA7711000000000000000002 /* RulesGameSession.swift in Sources */,
 				AA7711000000000000000001 /* RulesProtocol.swift in Sources */,
