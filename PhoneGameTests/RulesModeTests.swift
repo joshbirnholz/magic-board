@@ -609,6 +609,25 @@ final class RulesModeTests: XCTestCase {
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(prompt, snapshot: state, holdingPriority: true))
     }
 
+    func testPassCaptionNamesTheNextStep() throws {
+        let me = UUID().uuidString, opponent = UUID().uuidString
+        let prompt = try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+            "id": "p", "method": "GAME_SELECT", "revision": 1, "supported": true, "choices": [],
+            "message": "Play spells and abilities"] as [String: Any]))
+        func label(_ step: String, stack: [[String: Any]] = []) throws -> String {
+            let player: (String) -> [String: Any] = { ["id": $0, "name": $0, "life": 20, "handCount": 0, "libraryCount": 0, "battlefield": [], "graveyard": [], "exile": []] }
+            let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 2,
+                                       "phase": "X", "step": step, "activePlayerId": opponent, "hand": [], "stack": stack,
+                                       "playableIds": [], "players": [player(me), player(opponent)], "combat": []]
+            let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+            return RulesPhoneAdapter.primaryButton(prompt: prompt, snapshot: snapshot, pending: false).0
+        }
+        XCTAssertEqual(try label("BEGIN_COMBAT"), "Pass\nTo Attackers")
+        XCTAssertEqual(try label("DECLARE_ATTACKERS"), "Pass\nTo End of Combat")
+        XCTAssertEqual(try label("POSTCOMBAT_MAIN"), "Pass\nTo End Step")
+        XCTAssertEqual(try label("END_TURN"), "Pass\nTo Your Turn")
+    }
+
     func testOpponentsCombatKeepsAttackersAndUntappedBlockers() async throws {
         let me = UUID().uuidString, opponent = UUID().uuidString
         let attacker = UUID(), blocker = UUID()

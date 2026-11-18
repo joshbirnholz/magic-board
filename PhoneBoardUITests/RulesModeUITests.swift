@@ -78,11 +78,11 @@ final class RulesModeUITests: XCTestCase {
         // Pass priority (the main phase button) through the AI's turn until our main phase, where XMage
         // asks us to play spells and abilities. Who starts is the engine's choice.
         // There's no instruction text during normal play (Arena): the main button's label tells us
-        // where we are. "Pass" is the opponent's turn; "Next" or "To Attackers" is our main phase.
+        // where we are. "Pass" (with a "To …" caption) is the opponent's turn; "Next" is our main phase.
         let next = app.buttons["phone-untap-local"]
         let deadline = Date().addingTimeInterval(90)
         func inOurMainPhase() -> Bool {
-            next.isEnabled && (next.label.contains("Next") || next.label.contains("Attackers"))
+            next.isEnabled && !next.label.contains("Pass") && (next.label.contains("Next") || next.label.contains("Attackers"))
                 && message.exists && message.label.localizedCaseInsensitiveContains("Play spells")
         }
         while !inOurMainPhase(), Date() < deadline {

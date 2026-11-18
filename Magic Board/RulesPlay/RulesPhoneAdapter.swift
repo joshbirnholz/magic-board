@@ -176,7 +176,30 @@ final class RulesPhoneAdapter {
         if combat.contains(where: { !$0.attackers.isEmpty }), !creatures.isEmpty, (snapshot.step ?? "").contains("ATTACKERS") {
             return ("Next\nTo Blockers", true)
         }
+        // Passing with an empty stack moves the game on: say where to, as Arena captions "Next".
+        if let next = nextStep(after: snapshot.step, attacked: combat.contains { !$0.attackers.isEmpty }) {
+            return ("Pass\n\(next)", true)
+        }
         return ("Pass", true)
+    }
+
+    /// The caption for the step that passing priority (with an empty stack) moves to, e.g. "To Attackers".
+    static func nextStep(after step: String?, attacked: Bool) -> String? {
+        switch step ?? "" {
+        case "UNTAP": return "To Upkeep"
+        case "UPKEEP": return "To Draw"
+        case "DRAW": return "To Main 1"
+        case "PRECOMBAT_MAIN": return "To Combat"
+        case "BEGIN_COMBAT": return "To Attackers"
+        // With no attackers, combat skips straight to its end step (rule 508.8).
+        case "DECLARE_ATTACKERS": return attacked ? "To Blockers" : "To End of Combat"
+        case "DECLARE_BLOCKERS", "FIRST_COMBAT_DAMAGE": return "To Damage"
+        case "COMBAT_DAMAGE": return "To End of Combat"
+        case "END_COMBAT": return "To Main 2"
+        case "POSTCOMBAT_MAIN": return "To End Step"
+        case "END_TURN", "CLEANUP": return "To Your Turn"
+        default: return nil
+        }
     }
 
     /// Arena's second button above the main one, if any, during attacker selection.
