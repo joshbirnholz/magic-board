@@ -74,6 +74,7 @@ class BoardViewController: UIViewController {
   private var phoneStackContainer: PhoneTouchFilterView?
   /// Rules mode's prompt panel, kept above the board and just above the local phase button (Arena).
   private var rulesPromptHost: UIViewController?
+  private var rulesBannerHost: UIViewController?
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
   private var rulesPromptBottom: NSLayoutConstraint?
@@ -2556,6 +2557,21 @@ extension BoardViewController {
         prompt.didMove(toParent: self)
         rulesPromptHost = prompt
         rulesPromptBottom = bottom
+        // Arena's centre instruction band never intercepts card taps or combat drags.
+        let banner = UIHostingController(rootView: RulesBoardBanner(session: adapter.engine))
+        banner.view.backgroundColor = .clear
+        banner.view.isUserInteractionEnabled = false
+        if #available(iOS 16.0, *) { banner.sizingOptions = .intrinsicContentSize }
+        addChild(banner)
+        view.addSubview(banner.view)
+        banner.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            banner.view.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            banner.view.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            banner.view.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor, constant: -24)
+        ])
+        banner.didMove(toParent: self)
+        rulesBannerHost = banner
         // Decisions that aren't on the board take over the screen (Arena); the layer hides itself
         // between them so it never swallows touches meant for the board.
         let modal = UIHostingController(rootView: RulesPromptModal(session: adapter.engine,
@@ -2612,6 +2628,7 @@ extension BoardViewController {
             let constant = -(view.safeAreaLayoutGuide.layoutFrame.maxY - top + 8)
             if rulesPromptBottom?.constant != constant { rulesPromptBottom?.constant = constant }
         }
+        if let banner = rulesBannerHost?.view, banner.superview === view { view.bringSubviewToFront(banner) }
         view.bringSubviewToFront(host)
         if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
     }

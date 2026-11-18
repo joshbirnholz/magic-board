@@ -6,6 +6,33 @@ import Foundation
 final class RulesDiscardUITests: XCTestCase {
     private struct Status: Decodable, Sendable { let remaining: Int?; let answers: Int; let complete: Bool }
 
+    @MainActor func testBattlefieldBannerUpdatesWithoutBlockingCombatCardTaps() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address)
+        defer { app.terminate() }
+        let banner = app.staticTexts["rules-board-banner"]
+        XCTAssertTrue(banner.waitForExistence(timeout: 5))
+        XCTAssertEqual(banner.label, "Choose blockers.")
+        XCTAssertEqual(banner.frame.midY, app.frame.midY, accuracy: 24)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Arena-style battlefield instruction band"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        let cards = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let blocker = try XCTUnwrap(cards.first { ($0.value as? String) == "Untapped" && $0.isHittable })
+        blocker.tap()
+        let targetBanner = expectation(for: NSPredicate(format: "label == 'Choose attacker to block'"), evaluatedWith: banner)
+        await fulfillment(of: [targetBanner], timeout: 5)
+        let attackers = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let attacker = try XCTUnwrap(attackers.first { ($0.value as? String) == "Attacking" && $0.isHittable })
+        attacker.tap()
+        let next = app.buttons["phone-untap-local"]
+        let assigned = expectation(for: NSPredicate(format: "value == '1 blocking assignments'"), evaluatedWith: next)
+        await fulfillment(of: [assigned], timeout: 5)
+    }
+
     @MainActor func testRevealedCardsCloseLocallyAndCanShowTheBattlefield() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_INFORMATION_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_INFORMATION_FIXTURE_ADDRESS to the local information fixture")
