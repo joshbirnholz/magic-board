@@ -1549,9 +1549,8 @@ class BoardViewController: UIViewController {
         if phoneMode?.mode == .rules {
             let menu = BoardMenuSheetController(title: "Battlefield", message: nil, preferredStyle: .alert)
             if let engine = phoneMode?.rulesAdapter?.engine, engine.status == .connected, engine.result == nil {
-                menu.addAction(BoardMenuAction(title: engine.holdingPriority ? "Release Full Control" : "Hold Full Control") {
+                menu.addAction(BoardMenuAction(title: engine.holdingPriority ? "Release Full Control" : "Hold Full Control", style: .default) { _ in
                     Task { await engine.controlPriority(engine.holdingPriority ? .release : .hold) }
-                    return nil
                 })
                 if engine.prompt?.method == "GAME_SELECT" {
                     let priorityActions: [(String, RulesPriorityAction)] = [
@@ -1559,15 +1558,13 @@ class BoardViewController: UIViewController {
                         ("Stop at End Step", .endStep), ("Pass Until Your Turn", .yourTurn)
                     ]
                     for (title, action) in priorityActions {
-                        menu.addAction(BoardMenuAction(title: title) {
+                        menu.addAction(BoardMenuAction(title: title, style: .default) { _ in
                             Task { await engine.controlPriority(action) }
-                            return nil
                         })
                     }
                 }
-                menu.addAction(BoardMenuAction(title: "Cancel Auto-Pass") {
+                menu.addAction(BoardMenuAction(title: "Cancel Auto-Pass", style: .default) { _ in
                     Task { await engine.controlPriority(.cancelAutoPass) }
-                    return nil
                 })
             }
             menu.addAction(BoardMenuAction(title: "Connection…") { [weak self] in self?.showConnectionOptions(); return nil })

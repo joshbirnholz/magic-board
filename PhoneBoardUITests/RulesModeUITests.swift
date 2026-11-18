@@ -1,6 +1,7 @@
 import XCTest
 
 final class RulesModeUITests: XCTestCase {
+    override func setUpWithError() throws { continueAfterFailure = false }
     /// Requires the real bridge on localhost with the test connection key.
     @MainActor func testRulesConnectsAndUsesThePhonePlayInterface() throws {
         let app = XCUIApplication()
@@ -221,6 +222,98 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertGreaterThan(played, 0)
         if blocked > 0 { XCTAssertGreaterThan(blocks, 0, "Dragging a blocker onto an attacker never declared a block") }
         if !text(blocked: blocked, blocks: blocks).isEmpty { print(text(blocked: blocked, blocks: blocks)) }
+    }
+
+    /// Uses a deterministic protocol fixture with two attackers, so the drag must answer both
+    /// the blocker selection and the subsequent attacker-target prompt.
+    @MainActor func testRulesBlockDragAnswersTheFollowUpTarget() throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Start BlockPromptFixture and provide RULES_BLOCK_FIXTURE_ADDRESS")
+        }
+        let app = startFixtureGame(endpoint: endpoint)
+        let next = app.buttons["phone-untap-local"]
+        expectation(for: NSPredicate(format: "label CONTAINS 'No'"), evaluatedWith: next)
+        waitForExpectations(timeout: 5)
+        let creatures = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let blocker = try XCTUnwrap(creatures.first { ($0.value as? String) == "Untapped" && $0.isHittable })
+        let attacker = try XCTUnwrap(creatures.first { ($0.value as? String) == "Attacking" && $0.isHittable })
+        blocker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1, thenDragTo: attacker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.7)
+        expectation(for: NSPredicate(format: "label CONTAINS 'Block' AND NOT label CONTAINS 'No'"), evaluatedWith: next)
+        waitForExpectations(timeout: 8)
+        XCTAssertEqual(next.value as? String, "1 blocking assignments")
+        XCTAssertEqual(app.state, .runningForeground)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Rules — blocker assigned by drag through a target prompt"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5))
+        app.buttons["Exit Game"].tap()
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor func testRulesReconnectsAfterAppRelaunchAndClearsSeatOnExit() throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let app = startFixtureGame(endpoint: endpoint)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
+        app.buttons["start-rules"].tap()
+        XCTAssertTrue(app.buttons["rules-connect-new"].waitForExistence(timeout: 5), "The relaunched process should load its saved seat")
+        app.buttons["rules-connect"].tap()
+        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 15), "Reconnect should reopen the existing game without creating a new one")
+        XCTAssertEqual(app.buttons.matching(identifier: "phone-creature-card").count, 3)
+        exitFixtureGame(app)
+        app.buttons["start-rules"].tap()
+        XCTAssertTrue(app.buttons["rules-connect"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["rules-connect-new"].exists, "Explicit Exit Game must delete the retained seat")
+    }
+
+    @MainActor func testRulesFullControlMenuReflectsEngineSetting() throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let app = startFixtureGame(endpoint: endpoint)
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        XCTAssertTrue(app.buttons["Hold Full Control"].waitForExistence(timeout: 5))
+        app.buttons["Hold Full Control"].tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        XCTAssertTrue(app.buttons["Release Full Control"].waitForExistence(timeout: 5))
+        app.buttons["Release Full Control"].tap()
+        exitFixtureGame(app)
+    }
+
+    @MainActor private func startFixtureGame(endpoint: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["--rules-ui-test"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
+        app.buttons["start-rules"].tap()
+        let address = app.textFields["rules-server-address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 5))
+        address.tap()
+        if let value = address.value as? String { address.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        address.typeText(endpoint)
+        let key = app.secureTextFields["rules-connection-key"]
+        key.tap()
+        if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        key.typeText("rules-local-verification-key")
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
+        XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 15))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
+        waitForExpectations(timeout: 5)
+        app.buttons["rules-start-ai"].tap()
+        let next = app.buttons["phone-untap-local"]
+        XCTAssertTrue(next.waitForExistence(timeout: 15))
+        return app
+    }
+
+    @MainActor private func exitFixtureGame(_ app: XCUIApplication) {
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5))
+        app.buttons["Exit Game"].tap()
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
     }
 
     private func text(blocked: Int, blocks: Int) -> String { "Block attempts \(blocked), blocks declared \(blocks)" }
