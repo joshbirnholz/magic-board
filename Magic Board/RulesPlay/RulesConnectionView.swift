@@ -183,6 +183,10 @@ struct RulesConnectionView: View {
     /// Starts, creates or joins a game; packet decks are chosen first.
     private func begin(_ start: PendingStart) {
         if source.usesPackets {
+            if case .join(let table) = start, let format = table.format, format != "Limited" {
+                session.error = "JumpStart and Jump In packets need a Limited game. Choose a deck list to join this \(format) game."
+                return
+            }
             guard !chosenPacketSet.isEmpty else { session.error = "No \(source.rawValue) packets are available in this build."; return }
             pendingStart = start
         } else {
