@@ -249,6 +249,14 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(RulesText.tokenName(card))
     }
 
+    func testRevealedCardsSayWhyFromTheGameLog() throws {
+        let group = try JSONDecoder().decode(RulesSnapshot.CardGroup.self, from: Data(#"{"name":"Revealed cards","cards":[{"id":"f","name":"Forest","faceDown":false,"transformed":false,"counters":[]}]}"#.utf8))
+        let log = ["Computer casts Summon: Fenrir", "Computer reveals Forest (Summon: Fenrir)", "Computer draws a card"]
+        XCTAssertEqual(RulesCardInformationView.reason(for: group, log: log), "Computer reveals Forest (Summon: Fenrir)")
+        XCTAssertNil(RulesCardInformationView.reason(for: group, log: ["Computer draws a card"]))
+        XCTAssertEqual(RulesText.plain("Summon: Fenrir [3fa]"), "Summon: Fenrir")
+    }
+
     func testRulesTextItalicsMatchSpellbook() {
         func italic(_ line: String) -> [String] { RulesOracleText.italicRanges(line).map { String(line[$0]) } }
         XCTAssertEqual(italic("Rat Tail — When this creature dies, create a Treasure token. (It's an artifact.)"),

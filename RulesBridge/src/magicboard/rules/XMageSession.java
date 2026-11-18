@@ -341,11 +341,22 @@ final class XMageSession implements MageClient, AutoCloseable {
     private void handle(ClientCallback callback) {
         Object data = callback.getData();
         String method = callback.getMethod().name();
+        if (callback.getMethod() == ClientCallbackMethod.CHATMESSAGE) {
+            if (data instanceof mage.view.ChatMessage chat && chat.getMessageType() == mage.view.ChatMessage.MessageType.GAME
+                    && chat.getMessage() != null && !chat.getMessage().isBlank()) {
+                output.accept(object("type", "log", "message", chat.getMessage()));
+            }
+            return;
+        }
         if (callback.getMethod() == ClientCallbackMethod.START_GAME) {
             TableClientMessage message = (TableClientMessage) data;
             gameId = message.getGameId();
             playerId = message.getPlayerId();
-            if (joinedGames.add(gameId) && !session.joinGame(gameId)) showError("Could not join the started game.");
+            if (joinedGames.add(gameId)) {
+                if (!session.joinGame(gameId)) showError("Could not join the started game.");
+                // XMage's game log ("Computer reveals Forest") is sent to the game's chat.
+                session.getGameChatId(gameId).ifPresent(session::joinChat);
+            }
             return;
         }
         GameView view = data instanceof GameView ? (GameView) data : data instanceof GameClientMessage ? ((GameClientMessage) data).getGameView()

@@ -249,6 +249,8 @@ enum RulesText {
         text.replacingOccurrences(of: #"<\s*(br|/?div|/?p)[^>]*>"#, with: "\n", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
             .replacingOccurrences(of: #"\n\s*\n+"#, with: "\n", options: .regularExpression)
+            // XMage tags object names with an id suffix ("Summon: Fenrir [3fa]").
+            .replacingOccurrences(of: #" \[[0-9a-f]{3}\]"#, with: "", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ")
             .replacingOccurrences(of: "&mdash;", with: "—")
             .replacingOccurrences(of: "&ndash;", with: "–")

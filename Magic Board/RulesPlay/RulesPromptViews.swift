@@ -322,7 +322,8 @@ struct RulesPromptModal: View {
                 body(for: prompt)
             }
         } else if let group = informationGroup {
-            RulesCardInformationView(group: group, viewBattlefield: { minimized = true },
+            RulesCardInformationView(group: group, reason: RulesCardInformationView.reason(for: group, log: session.gameLog),
+                                     viewBattlefield: { minimized = true },
                                      dismiss: { session.dismissCardInformation(group.id) })
         }
     }
