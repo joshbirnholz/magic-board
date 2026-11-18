@@ -1651,4 +1651,39 @@ final class PhoneBoardUITests: XCTestCase {
         }
     }
 
+    /// The opponent's HUD (life top left, piles top right) comes back unchanged from the background,
+    /// including the size-class change of the snapshot iOS takes there (simulated by the flag).
+    @MainActor func testOpponentHUDSurvivesBackgrounding() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture", "--phone-board-background-traits"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let life = app.descendants(matching: .any).matching(identifier: "phone-life-opponent").firstMatch
+        let graveyard = app.buttons["phone-graveyard-b"]
+        let library = app.buttons["phone-library-b"]
+        XCTAssertTrue(life.waitForExistence(timeout: 15))
+        sleep(2)
+        let before = [life.frame, graveyard.frame, library.frame]
+        func check(_ label: String) {
+            let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Opponent HUD \(label)"; shot.lifetime = .keepAlways; add(shot)
+            let width = app.windows.firstMatch.frame.width
+            XCTAssertLessThan(life.frame.width, width * 0.4, "opponent life too wide \(label)")
+            XCTAssertLessThan(life.frame.midX, width / 2, "opponent life not on the left \(label)")
+            XCTAssertTrue(graveyard.exists && library.exists, "opponent piles missing \(label)")
+            XCTAssertGreaterThan(graveyard.frame.midX, width / 2, "opponent graveyard not on the right \(label)")
+            XCTAssertEqual(life.frame, before[0], "opponent life moved \(label)")
+            XCTAssertEqual(graveyard.frame, before[1], "opponent graveyard moved \(label)")
+            XCTAssertEqual(library.frame, before[2], "opponent library moved \(label)")
+        }
+        check("before")
+        for round in 1...2 {
+            XCUIDevice.shared.press(.home)
+            sleep(3)
+            app.activate()
+            XCTAssertTrue(life.waitForExistence(timeout: 10))
+            sleep(2)
+            check("after background \(round)")
+        }
+    }
+
 }

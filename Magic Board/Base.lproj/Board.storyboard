@@ -956,12 +956,6 @@ Draw a card at the beginning of the next turn’s upkeep.</string>
                             <constraint firstAttribute="trailing" secondItem="bIq-nX-Lx7" secondAttribute="trailing" constant="4" id="vhk-VG-db3"/>
                             <constraint firstAttribute="trailing" secondItem="WfE-Go-eC6" secondAttribute="trailing" constant="-24" id="z2R-eK-f4Y"/>
                         </constraints>
-                        <variation key="default">
-                            <mask key="subviews">
-                                <exclude reference="MuU-Mf-NZQ"/>
-                                <exclude reference="WfE-Go-eC6"/>
-                            </mask>
-                        </variation>
                     </view>
                     <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
                     <size key="freeformSize" width="1024" height="100"/>
