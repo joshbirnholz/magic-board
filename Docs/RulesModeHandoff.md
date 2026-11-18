@@ -36,12 +36,13 @@ The deterministic phone checks use `RulesBridge/tests/BlockPromptFixture.java` a
 - **`98f46cc`: confirmed WebSocket deadlock fixed.** A simultaneous `leave` and socket abort inverted the BridgeMain and WebSocket monitors. `onClose` now queues synchronized detach work instead of waiting inside the socket callback. Twelve race cycles, capacity recovery, two-human privacy and graceful shutdown passed. Thread evidence: `/private/tmp/rules-probe-bridge-threads.txt`.
 - `a3b31b1`: Windows `start-server.ps1` helper includes the correct server directory, 1 GB heap, headless mode and Java 17 remoting flag. Supplied but not executed on Windows.
 
-## Current state (Claude, 1:20 AM, while Codex is at its usage limit until 2:28 AM)
+## Current state (Claude, 2:20 AM, handing back to Codex)
 
-- Codex's manual-trigger work is committed (`94f2753`: automatic/manual trigger ordering setting, ordering UI selection, trigger/mode/alternative-cost/morph probes; 16 Rules unit tests and the ordering/settings UI tests passed). The shared bridge on 17180 (PID 74663, started 11:21 PM) runs that code.
-- Codex's in-progress **PC bridge package** was uncommitted; Claude reviewed and committed it. `XMAGE_HOME=/private/tmp/xmage-rules-runtime/xmage sh RulesBridge/package.sh` builds `RulesBridge/build/MagicBoard-RulesBridge.zip` (jar, WebSocket jar + licence, launchers, source, `PC-SETUP.md`, `SOURCE-COMMIT.txt`) and a `.sha256`; verified on macOS. The PowerShell launchers still haven't run on Windows.
-- Codex's lock from 11:20 PM was stale (no xcodebuild running) and was removed at 1:11 AM.
-- Claude merged `rules-mode` into `rules-mode-claude` and is rerunning all PhoneGameTests and RulesModeUITests (including the full game vs AI) on the merged code. Results go under "Now" in the coordination file.
+Read the coordination file's "Now" and "Ready to merge" first. In short:
+- **Merge `rules-mode-claude` (through `8623b44`)** into `rules-mode`. It adds: two-player UI check with `SecondSeatBot`; Arena-style automatic mana payment with basic lands plus a menu toggle; a fix for auto-pass/auto-pay often not firing (stale `canAnswer` inside the @Published sink); `RULES_UI_TEST_KEY`; an imported-deck UI test; a clear undersized-deck message; card names on their own line in prompt text; tapping an outlined hand card answers choose-from-hand prompts.
+- **Windows PC host is live** (Josh's home server; touch it as little as possible): `compc@100.96.101.108` over Tailscale, key-only SSH, PowerShell. Folder `C:\Users\compc\MagicBoardRules` (XMage bound to 127.0.0.1, bridge on `100.96.101.108:17180`, key in `connection-key.txt`, `pc-run.ps1` starts both via WMI, logs `server.log`/`bridge.log`, Startup-folder entry starts them at login). Java is `C:\Users\compc\.jdks\jbr-21.0.11\bin\java.exe`. To redeploy a newer bridge: copy a fresh `package.sh` zip, stop only the bridge's java process (check its command line), unzip over `MagicBoard-RulesBridge`, start it again.
+- Verified tonight: BridgeSmoke and the simulator full game against the PC over Tailscale (220 s, mana paid automatically).
+- **Open item:** the scry modal (Opt) is unusable; details and the reproducing deck are in the coordination file.
 
 ## Runtime and verification details
 
