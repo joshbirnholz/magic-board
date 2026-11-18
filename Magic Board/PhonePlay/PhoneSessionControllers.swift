@@ -1699,7 +1699,8 @@ struct PhoneAbilityPanel: View {
             if let frame = Self.frame(for: representation.value, colors: colors.value, isCommander: source.isCommander.value) {
                 Image(uiImage: frame).resizable().frame(width: width, height: height)
             }
-            line(representation.value.name ?? "", size: Layout.titleSize, in: Layout.title)
+            // The source's flavor name when it has one (Godzilla series and the like).
+            line(representation.value.flavorName ?? representation.value.name ?? "", size: Layout.titleSize, in: Layout.title)
             line("Ability", size: Layout.typeSize, in: Layout.type)
             rulesText
                 .frame(width: Layout.rules.width * width, height: Layout.rules.height * height, alignment: .leading)

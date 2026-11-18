@@ -1757,41 +1757,38 @@ public extension MTGCardView {
 		let isVehicle = style?.isVehicle == true
 		let isArtifact = style?.isArtifact == true || isVehicle
 		let isHybrid = colors.count == 2 && (properties.isHybrid || properties.objectType == .token)
-		// Each piece is one letter, or two that fade from left to right.
+		// Each piece is one letter, or two that fade from left to right. A "regular/" prefix
+		// takes that letter from the regular frames whatever the source's frame folder.
 		let frame: [String], pinline: [String], rules: [String], typeTitle: [String]
 		if isLand {
-			// Lands: colored land trim, land rules box; two-color lands fade their trim.
-			let trim = colors.count == 1 ? [colors[0] + "l"] : colors.count == 2 ? colors.map { $0 + "l" } : colors.isEmpty ? ["l"] : ["ml"]
-			frame = trim; pinline = trim; rules = ["l"]
-			typeTitle = colors.count == 1 ? colors : colors.count > 2 ? ["m"] : ["l"]
-		} else if isArtifact {
-			// Artifacts and Vehicles keep their rules box; the trim and bars take the colors (gold when multicolored).
-			let body = isVehicle ? "v" : "a"
-			switch colors.count {
-			case 0: frame = ["a"]; pinline = ["a"]; typeTitle = ["a"]
-			case 1: frame = colors; pinline = colors; typeTitle = colors
-			case 2 where isHybrid: frame = colors; pinline = colors; typeTitle = ["c"]
-			case 2: frame = ["m"]; pinline = colors; typeTitle = ["m"]
-			default: frame = ["m"]; pinline = ["m"]; typeTitle = ["m"]
-			}
-			rules = [body]
+			// Lands: the colored land frames throughout (two colors fade); colorless lands use the plain land frame.
+			let land = colors.count == 1 ? [colors[0] + "l"] : colors.count == 2 ? colors.map { $0 + "l" } : colors.isEmpty ? ["l"] : ["ml"]
+			frame = land; pinline = land; rules = land
+			typeTitle = colors.count == 2 ? ["l"] : land
 		} else {
+			// Everything else; an artifact or Vehicle only swaps in its own outer frame.
+			let colorFrame: [String]
 			switch colors.count {
-			case 0: frame = ["c"]; pinline = ["c"]; rules = ["c"]; typeTitle = ["c"]
-			case 1: frame = colors; pinline = colors; rules = colors; typeTitle = colors
+			case 0: colorFrame = [isArtifact ? "a" : "c"]; pinline = colorFrame; rules = colorFrame; typeTitle = colorFrame
+			case 1: colorFrame = colors; pinline = colors; rules = colors; typeTitle = colors
 			// Hybrid: everything fades from one color to the other, under colorless bars.
-			case 2 where isHybrid: frame = colors; pinline = colors; rules = colors; typeTitle = ["c"]
+			case 2 where isHybrid: colorFrame = colors; pinline = colors; rules = colors; typeTitle = ["c"]
 			// Two colors: a gold frame and bars, with the pinlines and rules box fading between the colors.
-			case 2: frame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
-			default: frame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
+			case 2: colorFrame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
+			default: colorFrame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
 			}
+			// The Universes Beyond folder's artifact frame has a Vehicle's rivets, so artifacts always
+			// take the regular artifact or Vehicle frame around their pieces.
+			frame = isVehicle ? ["regular/v"] : isArtifact ? ["regular/a"] : colorFrame
 		}
 		let key = "\(folder)|\(frame)|\(pinline)|\(rules)|\(typeTitle)"
 		if let cached = abilityFrameCache[key] { return cached }
 
-		func image(_ letter: String) -> UIImage? {
-			// Nyx and Universes Beyond have no land / vehicle / colored-land variants: use regular.
-			for candidate in [folder, "regular"] {
+		func image(_ piece: String) -> UIImage? {
+			let parts = piece.split(separator: "/").map(String.init)
+			let letter = parts.last ?? piece
+			// Nyx has no land / vehicle / colored-land variants: use regular.
+			for candidate in parts.count > 1 ? [parts[0]] : [folder, "regular"] {
 				if let url = MagicBoardResources.bundle.url(forResource: letter, withExtension: "webp", subdirectory: "AbilityFrames/\(candidate)"),
 				   let image = UIImage(contentsOfFile: url.path) { return image }
 			}
