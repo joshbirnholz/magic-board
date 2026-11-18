@@ -2951,6 +2951,7 @@ extension BoardViewController {
         updatePhoneRevealedCards(session)
         refreshPhoneBrowser(session)
         updatePhoneOpeningHand(session)
+        updatePhoneRulesChoice(session)
         // Libraries whose top card is kept revealed to this phone's player show it.
         for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
             let viewers = session.game.revealedTops?[bar.player.identifier.rawValue] ?? []
@@ -3954,7 +3955,7 @@ extension BoardViewController {
         switch mode {
         case .pile(let location, let owner): return (location, owner)
         case .search, .look: return (.library, session.player)
-        case .revealed, .openingHand: return nil
+        case .revealed, .openingHand, .rulesChoice: return nil
         }
     }
 
@@ -4733,7 +4734,7 @@ extension BoardViewController {
 
     // MARK: Zone browser (search, scry, surveil, revealed)
 
-    enum PhoneBrowserMode: Equatable { case search, look(Int), revealed, pile(Pile.Location, Player.Identifier), openingHand }
+    enum PhoneBrowserMode: Equatable { case search, look(Int), revealed, pile(Pile.Location, Player.Identifier), openingHand, rulesChoice }
 
     /// After Start Game, this phone's player sees their new seven in the browser, with who goes
     /// first, until they keep (Mulligan deals another seven into it).
@@ -4752,6 +4753,26 @@ extension BoardViewController {
                                      secondaryCaption: "You will return \(returns) card\(returns == 1 ? "" : "s") to the bottom of your library.",
                                      returnZone: false)
         }
+    }
+
+    /// A Rules game's card choice (a library search, choosing among revealed cards…) in the same
+    /// fanned browser as Phone Play's searches: tap a card to choose it; cards that can't be chosen
+    /// are dimmed; an optional choice is finished with the main button's Done.
+    private func updatePhoneRulesChoice(_ session: PhoneGameSession) {
+        guard session.mode == .rules else { return }
+        guard let choice = session.game.rulesChoice else {
+            if phoneBrowserMode == .rulesChoice { closePhoneZoneBrowser() }
+            return
+        }
+        if phoneBrowserMode != .rulesChoice {
+            guard phoneBrowserMode != .openingHand else { return }
+            showPhoneZoneBrowser(.rulesChoice)
+        }
+        guard let browser = phoneBrowser, phoneBrowserMode == .rulesChoice else { return }
+        browser.configureChoice(title: choice.title, subtitle: choice.subtitle)
+        browser.setChoiceStates(selectable: choice.selectable, selected: choice.selected,
+                                identifiers: Dictionary(uniqueKeysWithValues: choice.cardIDs.map { ($0, "rules-prompt-card-\($0.uuidString.lowercased())") }))
+        browser.onTapCard = { card in session.rulesAdapter.map { adapter in Task { await adapter.chooseInBrowser(card.uuid) } } }
     }
 
     private func updatePhoneOpeningHand(_ session: PhoneGameSession) {
@@ -4776,6 +4797,7 @@ extension BoardViewController {
         case .look: return library // the rest of the library follows, face down
         case .revealed: return phoneRevealedToMe.value.contents
         case .openingHand: return session.game.state[player: session.player].hand.cards.value.contents
+        case .rulesChoice: return session.rulesAdapter?.choiceCards ?? []
         case .pile(let location, let owner):
             let pile = location == .library ? session.game.library(owner) : session.game.state[player: owner][location]
             return Array(pile.cards.value.contents.reversed())
@@ -4834,6 +4856,7 @@ extension BoardViewController {
         case .look(let count): title = "Top \(count) of Library"
         case .revealed: title = "Revealed Cards"
         case .openingHand: title = session.game.opening?.firstPlayer == session.player ? "You Go First" : "Opponent Goes First"
+        case .rulesChoice: title = session.game.rulesChoice?.title ?? "Choose"
         case .pile(let location, let owner):
             let name = location == .library ? "Library" : location.rawValue
             title = (owner == session.player ? name : "Opponent's \(name)") + " — \(cards.count)"
@@ -4841,7 +4864,7 @@ extension BoardViewController {
         let browser = PhoneZoneBrowserView(title: title, cards: phoneBrowserDisplayOrder(cards, mode: mode),
                                            done: mode == .openingHand ? "Keep" : "Done",
                                            secondary: mode == .search ? "Shuffle & Done" : mode == .openingHand ? "Mulligan" : nil,
-                                           canShowOpponent: { if case .pile = mode { return false }; return mode != .revealed && mode != .openingHand }())
+                                           canShowOpponent: { if case .pile = mode { return false }; return mode != .revealed && mode != .openingHand && mode != .rulesChoice }())
         if case .pile(let location, let owner) = mode {
             browser.condensesFaceDown = false
             browser.extraMenu = phonePileBrowserMenu(location, owner: owner, session: session)
@@ -4901,7 +4924,7 @@ extension BoardViewController {
             // Back to top-first (the browser shows a library with its top on the right).
             self.phoneBrowserIDs = self.phoneBrowserDisplayOrder(cards, mode: mode).map(\.uuid)
             switch mode {
-            case .revealed: break
+            case .revealed, .rulesChoice: break
             case .openingHand: session.send(.reorderHand(self.phoneBrowserIDs))
             case .pile(let location, let owner):
                 if owner == session.player { session.send(.arrangePile(location, self.phoneBrowserIDs)) }
@@ -4993,7 +5016,7 @@ extension BoardViewController {
     /// A library reads left to right from the bottom to the top (the top card on the right, as on
     /// Arena). Reversing is its own inverse, so this also turns the browser's order back to top-first.
     private func phoneBrowserDisplayOrder(_ cards: [CardInstance], mode: PhoneBrowserMode) -> [CardInstance] {
-        mode == .revealed || mode == .openingHand ? cards : cards.reversed()
+        mode == .revealed || mode == .openingHand || mode == .rulesChoice ? cards : cards.reversed()
     }
 
     /// The browser's "⋯" menu for a pile: the list view, and for your library its search, look at,

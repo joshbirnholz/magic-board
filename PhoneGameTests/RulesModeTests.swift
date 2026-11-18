@@ -23,7 +23,7 @@ final class RulesModeTests: XCTestCase {
                      "Select a card (0 more) to put on the bottom of your library"] {
             let libraryChoice = try prompt(text)
             XCTAssertFalse(libraryChoice.isLondonBottom, text)
-            XCTAssertEqual(libraryChoice.style, .modal, "Library choices must keep their normal card picker")
+            XCTAssertEqual(libraryChoice.style, .browser, "Library choices use the card-choice browser, not the opening hand")
         }
         XCTAssertFalse(try prompt("Select a card (1 more) to put on the bottom of your library", method: "GAME_ASK").isLondonBottom)
     }

@@ -8,7 +8,8 @@ import CardService
 //   piles, cards to pick from a revealed set, game over) take over the screen over a dimmed board,
 //   with large cards and pill buttons.
 
-enum RulesPromptStyle { case compact, modal }
+/// browser: a card choice shown in Phone Play's fanned zone browser on the board.
+enum RulesPromptStyle { case compact, modal, browser }
 
 extension RulesPrompt {
     var style: RulesPromptStyle {
@@ -18,6 +19,10 @@ extension RulesPrompt {
         case "GAME_ASK" where isMulligan: return .compact
         case "GAME_TARGET" where isLondonBottom: return .compact
         case "GAME_TARGET" where isStartingPlayer: return .compact
+        // Choosing among cards (a library search, revealed cards) uses the board's fanned browser;
+        // abilities (trigger order) and face-down cards keep the card picker.
+        case "GAME_TARGET" where cards?.isEmpty == false && cards?.allSatisfy({ $0.ability != true && !$0.faceDown }) == true:
+            return .browser
         case "GAME_TARGET": return (cards?.isEmpty == false || isStartingPlayer) ? .modal : .compact
         default: return .modal
         }
@@ -148,6 +153,13 @@ struct RulesPromptBar: View {
                 EmptyView() // the game-over screen is full screen
             } else if let prompt = session.prompt {
                 if prompt.style == .compact { compact(prompt) }
+                else if prompt.style == .browser {
+                    // The board's browser shows the cards; the question stays available to VoiceOver.
+                    Color.clear.frame(width: 1, height: 1)
+                        .accessibilityElement()
+                        .accessibilityLabel(prompt.plainMessage)
+                        .accessibilityIdentifier("rules-prompt-message")
+                }
             } else if let waiting = waitingMessage {
                 strip {
                     HStack(spacing: 8) {

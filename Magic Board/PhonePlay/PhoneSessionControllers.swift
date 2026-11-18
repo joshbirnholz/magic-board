@@ -988,6 +988,46 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     }
 
     var onCancel: (() -> Void)? { didSet { cancelButton.isHidden = !isOpeningHand || onCancel == nil } }
+
+    /// Tapping a card (Rules games' card choices); nil leaves taps alone.
+    var onTapCard: ((CardInstance) -> Void)?
+
+    /// A Rules game's card choice: the engine's question as the title, no zone to drop on and no
+    /// Done here (an optional choice is finished with the main button, as on Arena).
+    func configureChoice(title: String, subtitle: String?) {
+        configureOpening(title: title, subtitle: subtitle, done: nil, secondary: nil, secondaryCaption: nil, returnZone: false)
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 2
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.6
+        subtitleLabel.font = .systemFont(ofSize: 14)
+        battlefieldZone.isHidden = true
+        setNeedsLayout()
+    }
+
+    private var choiceSelectable: Set<UUID>?
+    private var choiceSelected: Set<UUID> = []
+    private var choiceIdentifiers: [UUID: String] = [:]
+    /// Dims cards that can't be chosen (darkened, not see-through) and rims the chosen ones.
+    func setChoiceStates(selectable: Set<UUID>, selected: Set<UUID>, identifiers: [UUID: String]) {
+        choiceSelectable = selectable
+        choiceSelected = selected
+        choiceIdentifiers = identifiers
+        applyChoiceStates()
+    }
+    private func applyChoiceStates() {
+        guard let selectable = choiceSelectable else { return }
+        for (id, view) in cardViews {
+            view.isDimmed = !selectable.contains(id) && !choiceSelected.contains(id)
+            view.isHighlighted = choiceSelected.contains(id)
+            if let identifier = choiceIdentifiers[id] { view.accessibilityIdentifier = identifier }
+        }
+    }
+    @objc private func tappedCard(_ tap: UITapGestureRecognizer) {
+        guard let view = tap.view as? PhoneBrowserCardView, let card = view.card, let onTapCard else { return }
+        if let selectable = choiceSelectable, !selectable.contains(card.uuid) { return }
+        onTapCard(card)
+    }
     private let cancelButton = UIButton(type: .custom)
 
     init(title: String, cards: [CardInstance], done: String = "Done", secondary: String? = nil, canShowOpponent: Bool = false) {
@@ -1163,6 +1203,12 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             cardViews[id]?.removeFromSuperview(); cardViews[id] = nil
         }
         faceDownIDs = faceDown
+        // A card replaced by a new instance (a Rules projection with its printing now loaded) gets a
+        // fresh view, so its image appears.
+        for card in newCards where cardViews[card.uuid] != nil && cardViews[card.uuid]?.card !== card
+            && cardViews[card.uuid]?.card != nil && cardViews[card.uuid] !== lifted?.view {
+            cardViews[card.uuid]?.removeFromSuperview(); cardViews[card.uuid] = nil
+        }
         cards = newCards
         for card in cards where cardViews[card.uuid] == nil {
             let hidden = faceDown.contains(card.uuid)
@@ -1178,9 +1224,11 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
             hold.minimumPressDuration = 0.15
             view.addGestureRecognizer(hold)
+            view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tappedCard(_:))))
             scrollView.addSubview(view)
             cardViews[card.uuid] = view
         }
+        applyChoiceStates()
         setNeedsLayout()
     }
 
@@ -1556,6 +1604,15 @@ final class PhoneBrowserCardView: UIView {
             imageView.layer.borderColor = (isHighlighted ? UIColor(red: 0.35, green: 0.75, blue: 1, alpha: 0.9) : UIColor.black.withAlphaComponent(0.7)).cgColor
         }
     }
+    /// Can't be chosen: darkened (an opaque shade, so nothing shows through).
+    var isDimmed = false {
+        didSet {
+            guard isDimmed != oldValue else { return }
+            shade.isHidden = !isDimmed
+            accessibilityTraits = isDimmed ? [.button, .notEnabled] : .button
+        }
+    }
+    private let shade = UIView()
     init(image: UIImage?) {
         imageView = UIImageView(image: image)
         super.init(frame: .zero)
@@ -1563,6 +1620,10 @@ final class PhoneBrowserCardView: UIView {
         imageView.clipsToBounds = true
         imageView.layer.cornerCurve = .continuous
         addSubview(imageView)
+        shade.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        shade.isHidden = true
+        shade.isUserInteractionEnabled = false
+        imageView.addSubview(shade)
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.6
         layer.shadowRadius = 5
@@ -1573,6 +1634,7 @@ final class PhoneBrowserCardView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         imageView.frame = bounds
+        shade.frame = imageView.bounds
         imageView.layer.cornerRadius = cornerRadius
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).cgPath
         updateAbilityTiles()

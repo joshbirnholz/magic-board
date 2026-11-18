@@ -81,6 +81,16 @@ struct PhoneGame: Codable {
         var returning: Int? = nil
     }
     var opening: Opening? = nil
+    /// A Rules game's card choice shown in the zone browser (a library search, revealed cards…).
+    struct RulesChoice: Codable, Equatable {
+        var id: String
+        var title: String
+        var subtitle: String?
+        var cardIDs: [UUID]
+        var selectable: Set<UUID>
+        var selected: Set<UUID>
+    }
+    var rulesChoice: RulesChoice? = nil
     /// Hand smoothing for the first hand of a game, as the iPad app does for JumpStart and Jump In:
     /// of two shuffles, the one whose opening seven has a land share closest to the deck's. Only
     /// for decks built from packets (never DanDân or a pasted list), and never for a mulligan.

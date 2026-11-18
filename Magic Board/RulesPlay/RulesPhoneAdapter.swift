@@ -25,6 +25,8 @@ final class RulesPhoneAdapter {
     private(set) var presentation = PhoneGame()
     /// Whether an engine snapshot has reached the board (before that, life totals are Phone Play's defaults).
     private(set) var hasProjected = false
+    /// The cards of the current card-choice prompt, for the board's browser (see PhoneGame.rulesChoice).
+    private(set) var choiceCards: [CardInstance] = []
     /// The payment prompt a land was last chosen for (see updateStatus).
     private var paymentTapped: (promptID: String, message: String?)?
 
@@ -80,6 +82,12 @@ final class RulesPhoneAdapter {
            prompt.id != paid.promptID, prompt.message == paid.message {
             paymentTapped = nil
             phone?.error = "That can't pay this cost. Tap another land, or Cancel."
+        }
+        // A card choice arrives (or ends) without a new board state: project again so the board's
+        // browser opens with the cards (or closes).
+        let choiceID = prompt?.style == .browser && pending == nil ? prompt?.id : nil
+        if choiceID != presentation.rulesChoice?.id, let snapshot = engine.snapshot {
+            Task { [weak self] in try? await self?.project(snapshot, refreshArtwork: true) }
         }
         // The London mulligan's deferred answers (see MulliganChoice).
         if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected {
@@ -370,6 +378,12 @@ final class RulesPhoneAdapter {
         }
     }
 
+    /// A card tapped in the board's card-choice browser.
+    func chooseInBrowser(_ id: UUID) async {
+        guard let prompt = engine.prompt, prompt.style == .browser, engine.canAnswer else { return }
+        await engine.answer(.object(id.uuidString.lowercased()))
+    }
+
     /// Whether this card is one of the current target prompt's choices (so tapping it answers).
     func isTargetPromptChoice(_ id: UUID) -> Bool {
         guard let prompt = engine.prompt, prompt.method == "GAME_TARGET" else { return false }
@@ -475,6 +489,9 @@ final class RulesPhoneAdapter {
         func seat(_ id: String) -> Player.Identifier { id == snapshot.playerId ? .a : .b }
         var allCards = snapshot.hand + snapshot.stack
         for player in snapshot.players { allCards += player.battlefield + player.graveyard + player.exile }
+        // A card choice's cards (a library search) aren't on the board: load their printings too.
+        let choiceSource = engine.prompt?.style == .browser ? engine.prompt?.cards ?? [] : []
+        allCards += choiceSource.filter { card in !allCards.contains { $0.id == card.id } }
         var models: [String: MTGCard] = [:]
         for card in allCards {
             try Task.checkCancellation()
@@ -535,6 +552,18 @@ final class RulesPhoneAdapter {
         let visibleIDs = Set(allCards.map(\.id))
         game.rulesPlayable = Self.highlighted(snapshot: snapshot, prompt: engine.pendingRequest == nil ? engine.prompt : nil)
         game.opening = openingHand(for: engine.pendingRequest == nil ? engine.prompt : nil)
+        // A card choice (library search, revealed cards…) goes to Phone Play's fanned browser.
+        if engine.pendingRequest == nil, let prompt = engine.prompt, prompt.style == .browser, let cards = prompt.cards {
+            choiceCards = try cards.map { try instance($0, owner: .a) }
+            let ids = cards.compactMap { UUID(uuidString: $0.id) }
+            game.rulesChoice = .init(id: prompt.id, title: prompt.plainMessage,
+                                     subtitle: prompt.subMessage.map(RulesText.plain).flatMap { $0.isEmpty ? nil : $0 },
+                                     cardIDs: ids,
+                                     selectable: Set(ids.filter { prompt.isCardSelectable($0.uuidString.lowercased()) }),
+                                     selected: Set((prompt.selectedIds ?? []).compactMap(UUID.init(uuidString:))))
+        } else {
+            choiceCards = []
+        }
         game.stack = try snapshot.stack.reversed().map { card in
             let targets: [PhoneGame.Target] = (card.targets ?? []).compactMap { target in
                 if snapshot.players.contains(where: { $0.id == target }) { return .player(seat(target)) }
