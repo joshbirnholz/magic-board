@@ -251,6 +251,18 @@ final class RulesModeTests: XCTestCase {
         }
     }
 
+    func testAIPicksASecondPacketThatKeepsItToTwoColorsWhenPossible() {
+        let offers: [(name: String, colors: Set<String>)] = [("Dragons", ["R"]), ("Angels", ["W"]), ("Sea", ["U", "G"])]
+        for _ in 0..<20 {
+            // After a white packet, red or white keeps two colours; blue-green would make three.
+            XCTAssertNotEqual(RulesPackets.aiSecondPick(firstColors: ["W"], offers: offers), "Sea")
+        }
+        // Nothing keeps it to two: take the fewest colours.
+        let wide: [(name: String, colors: Set<String>)] = [("Grixis", ["U", "B", "R"]), ("Orzhov", ["W", "B"])]
+        XCTAssertEqual(RulesPackets.aiSecondPick(firstColors: ["W", "U"], offers: wide), "Orzhov")
+        XCTAssertNil(RulesPackets.aiSecondPick(firstColors: ["W"], offers: []))
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

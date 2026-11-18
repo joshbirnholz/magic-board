@@ -40,11 +40,31 @@ enum RulesPackets {
         }
     }
 
-    /// Two random packets, as the AI's own deck.
+    /// A packet's colours ("W", "U"…), from its mana symbols; colourless packets have none.
+    static func colors(_ source: RulesDeckSource, set: String, name: String) -> Set<String> {
+        let symbols = library.packetColorSymbols(kind: kind(source), set: set, name: name)
+        return Set(["W", "U", "B", "R", "G"].filter { symbols.contains("{\($0)}") })
+    }
+
+    /// The AI drafts like a player: a packet from its first three offers, then one from three more,
+    /// keeping to two colours when it can (Josh: "limit itself to a two color deck when possible").
+    static func aiSecondPick(firstColors: Set<String>, offers: [(name: String, colors: Set<String>)]) -> String? {
+        guard !offers.isEmpty else { return nil }
+        let fewest = offers.map { firstColors.union($0.colors).count }.min() ?? 0
+        // Any offer that keeps the deck to two colours is fine; otherwise the fewest colours possible.
+        let limit = max(2, fewest)
+        return offers.filter { firstColors.union($0.colors).count <= limit }.randomElement()?.name
+    }
+
+    /// The AI's own two packets, drafted from its own offers.
     static func randomDeckList(_ source: RulesDeckSource, set: String) -> String? {
         for _ in 0..<5 {
-            guard let first = offers(source, set: set, first: nil).randomElement(),
-                  let second = offers(source, set: set, first: first).filter({ $0 != first }).randomElement(),
+            // First pick: prefer a one- or two-colour packet, so a two-colour deck stays possible.
+            let firstOffers = offers(source, set: set, first: nil)
+            guard let first = (firstOffers.filter { colors(source, set: set, name: $0).count <= 2 }.randomElement() ?? firstOffers.randomElement()) else { continue }
+            let secondOffers = offers(source, set: set, first: first).filter { $0 != first }
+                .map { (name: $0, colors: colors(source, set: set, name: $0)) }
+            guard let second = aiSecondPick(firstColors: colors(source, set: set, name: first), offers: secondOffers),
                   let deck = deckList(source, set: set, first: first, second: second) else { continue }
             return deck
         }
