@@ -10,7 +10,7 @@ extension RulesPrompt {
             if message.contains("select attackers") { return "Choose attackers." }
             if message.contains("select blockers") { return "Choose blockers." }
             return nil
-        case "GAME_TARGET" where style == .compact && !isStartingPlayer:
+        case "GAME_TARGET" where style == .compact && !isStartingPlayer && !isLondonBottom:
             let text = plainMessage.replacingOccurrences(of: "Select ", with: "Choose ", options: .anchored)
             return text.isEmpty ? "Choose a target." : text
         default:

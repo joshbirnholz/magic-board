@@ -25,7 +25,14 @@ extension RulesPrompt {
     var isStartingPlayer: Bool { message?.localizedCaseInsensitiveContains("starting player") == true }
     var isMulligan: Bool { method == "GAME_ASK" && message?.localizedCaseInsensitiveContains("mulligan") == true }
     /// XMage's London mulligan: "Select a card (N more) to put on the bottom of your library".
-    var isLondonBottom: Bool { method == "GAME_TARGET" && message?.localizedCaseInsensitiveContains("bottom of your library") == true }
+    var isLondonBottom: Bool {
+        guard method == "GAME_TARGET" else { return false }
+        // Scry also mentions the bottom of the library. Only XMage's opening-hand question
+        // has this singular, counted form (verified for consecutive mulligans).
+        return RulesText.plain(message ?? "").range(
+            of: #"^Select a card \([1-9][0-9]* more\) to put on the bottom of your library\.?$"#,
+            options: [.regularExpression, .caseInsensitive]) != nil
+    }
     /// XMage's message without markup or the object-id suffixes it appends ("Silence [50d]").
     var plainMessage: String {
         RulesText.plain(message ?? "Choose an action")

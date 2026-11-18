@@ -6,6 +6,47 @@ import Foundation
 final class RulesDiscardUITests: XCTestCase {
     private struct Status: Decodable, Sendable { let remaining: Int?; let answers: Int; let complete: Bool }
 
+    @MainActor func testTwoMulligansReturnOnlyTheKeptHandsCardsToTheLibrary() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_MULLIGAN_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_MULLIGAN_FIXTURE_ADDRESS to MulliganPromptFixture")
+        }
+        let app = try await openFixture(address, opening: true)
+        defer { app.terminate() }
+        app.buttons["Mulligan"].tap()
+        XCTAssertTrue(app.buttons["Keep 6"].waitForExistence(timeout: 5))
+        app.buttons["Mulligan"].tap()
+        let keep = app.buttons["Keep 5"]
+        XCTAssertTrue(keep.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "phone-browser-card").count, 7)
+        keep.tap()
+        for remaining in [2, 1] {
+            let title = remaining == 1 ? "Return 1 Card" : "Return 2 Cards"
+            XCTAssertTrue(app.staticTexts[title].waitForExistence(timeout: 5))
+            let zone = app.descendants(matching: .any)["phone-browser-zone-battlefield"]
+            let card = app.descendants(matching: .any).matching(identifier: "phone-browser-card").firstMatch
+            XCTAssertTrue(card.waitForExistence(timeout: 5))
+            card.press(forDuration: 0.6, thenDragTo: zone, withVelocity: 300, thenHoldForDuration: 0.6)
+        }
+        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 5))
+        var request = URLRequest(url: try XCTUnwrap(URL(string: address + "/observer")))
+        request.setValue("Bearer rules-local-verification-key", forHTTPHeaderField: "Authorization")
+        let observer = URLSession.shared.webSocketTask(with: request)
+        observer.resume()
+        defer { observer.cancel(with: .goingAway, reason: nil) }
+        struct OpeningStatus: Decodable { let mulligans: Int; let returns: Int; let handCount: Int; let complete: Bool }
+        let data: Data
+        switch try await observer.receive() {
+        case .string(let text): data = Data(text.utf8)
+        case .data(let bytes): data = bytes
+        @unknown default: throw NSError(domain: "MulliganFixture", code: 1)
+        }
+        let status = try JSONDecoder().decode(OpeningStatus.self, from: data)
+        XCTAssertTrue(status.complete)
+        XCTAssertEqual(status.mulligans, 2)
+        XCTAssertEqual(status.returns, 3, "One automatic return before the redraw, then two chosen cards from the kept hand")
+        XCTAssertEqual(status.handCount, 5)
+    }
+
     @MainActor func testBattlefieldBannerUpdatesWithoutBlockingCombatCardTaps() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
@@ -118,7 +159,7 @@ final class RulesDiscardUITests: XCTestCase {
         if app.buttons["Exit Game"].waitForExistence(timeout: 3) { app.buttons["Exit Game"].tap() }
     }
 
-    @MainActor private func openFixture(_ address: String, information: Bool = false) async throws -> XCUIApplication {
+    @MainActor private func openFixture(_ address: String, information: Bool = false, opening: Bool = false) async throws -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--rules-ui-test"]
         app.launch()
@@ -146,7 +187,7 @@ final class RulesDiscardUITests: XCTestCase {
                           userInfo: [NSLocalizedDescriptionKey: "The fixture's game button never enabled"])
         }
         start.tap()
-        let ready = information ? app.staticTexts["rules-information-title"] : app.buttons["phone-untap-local"]
+        let ready = information ? app.staticTexts["rules-information-title"] : app.buttons[opening ? "Keep 7" : "phone-untap-local"]
         guard ready.waitForExistence(timeout: 20) else {
             let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
             screenshot.name = "Fixture did not reach the game"

@@ -4,6 +4,30 @@ import CardService
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testLondonMulliganDoesNotCaptureScryOrOtherLibraryDecisions() throws {
+        func prompt(_ text: String, method: String = "GAME_TARGET") throws -> RulesPrompt {
+            let json: [String: Any] = ["id": "p", "method": method, "revision": 1, "message": text,
+                                      "supported": true, "choices": [], "cards": [["id": "card", "name": "Plains",
+                                          "faceDown": false, "transformed": false, "counters": []]]]
+            return try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        for count in [1, 2, 6] {
+            let london = try prompt("Select a card (\(count) more) to put on the bottom of your library")
+            XCTAssertTrue(london.isLondonBottom)
+            XCTAssertEqual(london.style, .compact)
+            XCTAssertNil(london.boardBannerText, "The opening-hand browser owns this decision")
+        }
+        for text in ["Select cards to PUT on the BOTTOM of your library (Scry) (selected 0 of 2)",
+                     "Select cards to put into your graveyard (Surveil)",
+                     "Choose a card to put on the bottom of your library",
+                     "Select a card (0 more) to put on the bottom of your library"] {
+            let libraryChoice = try prompt(text)
+            XCTAssertFalse(libraryChoice.isLondonBottom, text)
+            XCTAssertEqual(libraryChoice.style, .modal, "Library choices must keep their normal card picker")
+        }
+        XCTAssertFalse(try prompt("Select a card (1 more) to put on the bottom of your library", method: "GAME_ASK").isLondonBottom)
+    }
+
     func testCardChoiceUsesEngineEligibilityAndKeepsSelectedCardsDeselectable() throws {
         func prompt(_ fields: [String: Any]) throws -> RulesPrompt {
             var json: [String: Any] = ["id": "p", "method": "GAME_TARGET", "revision": 1,
