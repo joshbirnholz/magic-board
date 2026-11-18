@@ -87,6 +87,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         // the AI supplies attacks. This checks the entire lifecycle, not AI playing strength.
         boolean playedLand = false;
         boolean castCreature = false;
+        boolean resolvedCreature = false;
         boolean choseAbility = false;
         boolean requireAbility = System.getenv("RULES_SMOKE_ABILITY") != null;
         boolean finished = false;
@@ -113,7 +114,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (playable.contains(card.get("id").getAsString())) {
                             object = card.get("id").getAsString();
                             if (card.get("typeLine").getAsString().contains("Land")) playedLand = true;
-                            else castCreature = true;
+                            else if (card.get("typeLine").getAsString().contains("Creature")) castCreature = true;
                             break;
                         }
                     }
@@ -166,6 +167,13 @@ public final class BridgeSmoke implements WebSocket.Listener {
             switch (event.get("type").getAsString()) {
                 case "snapshot" -> {
                     currentState = event;
+                    if (System.getenv("RULES_SMOKE_DECK") == null) {
+                        for (JsonElement entry : event.getAsJsonArray("hand")) {
+                            String name = entry.getAsJsonObject().get("name").getAsString();
+                            if (!Set.of("Plains", "Silvercoat Lion", "Siege Mastodon").contains(name))
+                                throw new AssertionError("Built-in deck loaded an incorrect printing: " + name);
+                        }
+                    }
                     String me = event.get("playerId").getAsString();
                     Set<String> playable = new HashSet<>();
                     event.getAsJsonArray("playableIds").forEach(id -> playable.add(id.getAsString()));
@@ -175,6 +183,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (!player.getAsJsonObject().get("id").getAsString().equals(me)) continue;
                         for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield")) {
                             JsonObject permanent = card.getAsJsonObject();
+                            if (permanent.get("typeLine").getAsString().contains("Creature")) resolvedCreature = true;
                             if (playable.contains(permanent.get("id").getAsString())) playablePermanents.add(permanent.get("name").getAsString());
                         }
                     }
@@ -194,7 +203,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 case "error" -> throw new AssertionError(event);
             }
         }
-        if (!finished || !playedLand || !castCreature) throw new AssertionError("Incomplete game: finished=" + finished + ", land=" + playedLand + ", creature=" + castCreature + ", ability=" + choseAbility + ", decisions=" + decisions);
+        if (!finished || !playedLand || !castCreature || !resolvedCreature) throw new AssertionError("Incomplete game: finished=" + finished + ", land=" + playedLand + ", creatureCast=" + castCreature + ", creatureResolved=" + resolvedCreature + ", ability=" + choseAbility + ", decisions=" + decisions);
         if (requireAbility && !choseAbility) throw new AssertionError("The engine ability chooser was not exercised");
         if (choseAbility) System.out.println("PASS engine ability selection uses UUID responses");
         if (castCreature && myStackObjects.isEmpty()) throw new AssertionError("Our own spells were never attributed to us on the stack");

@@ -194,9 +194,9 @@ final class XMageSession implements MageClient, AutoCloseable {
     private static DeckCardLists simpleDeck() {
         DeckCardLists deck = new DeckCardLists();
         deck.setName("Rules Spike — white creatures");
-        deck.getCards().add(new DeckCardInfo("Plains", "230", "M10", 24));
-        deck.getCards().add(new DeckCardInfo("Silvercoat Lion", "31", "M10", 18));
-        deck.getCards().add(new DeckCardInfo("Siege Mastodon", "30", "M10", 18));
+        deck.getCards().add(CardPrintings.resolve("Plains", "M10", "", 24));
+        deck.getCards().add(CardPrintings.resolve("Silvercoat Lion", "M10", "", 18));
+        deck.getCards().add(CardPrintings.resolve("Siege Mastodon", "M10", "", 18));
         return deck;
     }
 
