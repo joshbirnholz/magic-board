@@ -20,7 +20,8 @@ final class RulesModeUITests: XCTestCase {
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
         key.typeText("rules-local-verification-key")
-        app.buttons["rules-connect"].tap()
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30), app.debugDescription)
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
         waitForExpectations(timeout: 10)
@@ -65,7 +66,8 @@ final class RulesModeUITests: XCTestCase {
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
         key.typeText("rules-local-verification-key")
-        app.buttons["rules-connect"].tap()
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
         waitForExpectations(timeout: 10)
@@ -131,7 +133,8 @@ final class RulesModeUITests: XCTestCase {
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
         key.typeText("rules-local-verification-key")
-        app.buttons["rules-connect"].tap()
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
         waitForExpectations(timeout: 10)
@@ -144,6 +147,10 @@ final class RulesModeUITests: XCTestCase {
         var played = 0, attacked = 0, stuck = 0, lastState = "", blocked = 0, blocks = 0
         let deadline = Date().addingTimeInterval(12 * 60)
         while Date() < deadline {
+            guard app.state == .runningForeground else {
+                XCTFail("The app left the foreground during a game gesture")
+                break
+            }
             if app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists || app.staticTexts["Game Over"].exists { break }
             XCTAssertFalse(app.staticTexts["This choice is not supported yet."].exists, "Unsupported prompt: \(message.exists ? message.label : "")")
             let text = message.exists ? message.label : ""
@@ -169,7 +176,9 @@ final class RulesModeUITests: XCTestCase {
                 if next.label.contains("Attack") && !next.label.contains("Attackers") && text.localizedCaseInsensitiveContains("select attackers") && attacked == 0 {
                     // Declare attackers: tap our creatures (the lower half of the screen).
                     let ours = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex.filter { $0.frame.midY > app.frame.midY }
-                    for creature in ours { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    // Keep a creature untapped until a block has been verified. Attacking with all
+                    // creatures made the old probe try to block with a tapped creature.
+                    for creature in (blocks == 0 ? Array(ours.dropFirst()) : ours) { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
                     if !ours.isEmpty { attacked += 1 }
                 } else if text.localizedCaseInsensitiveContains("select blockers"), blocked < 2, next.label.contains("No") {
                     // Block: drag one of our untapped creatures onto an attacking creature (Phone Play's gesture).
@@ -177,10 +186,12 @@ final class RulesModeUITests: XCTestCase {
                     // An attacking creature carries the orange combat outline ("Attacking").
                     let attacking = app.descendants(matching: .any).matching(identifier: "phone-combat-glow")
                         .matching(NSPredicate(format: "value == 'Attacking'")).firstMatch
-                    if let blocker = creatures.first(where: { $0.frame.midY > app.frame.midY }), attacking.exists {
+                    if let blocker = creatures.first(where: { $0.isHittable && $0.frame.midY > app.frame.midY && ($0.value as? String) == "Untapped" }), attacking.exists {
                         let origin = app.coordinate(withNormalizedOffset: .zero)
                         let target = origin.withOffset(CGVector(dx: attacking.frame.midX, dy: attacking.frame.midY))
-                        blocker.press(forDuration: 0.4, thenDragTo: target, withVelocity: 300, thenHoldForDuration: 0.8)
+                        // A 0.35-second hold opens the card menu; start moving before that threshold.
+                        blocker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                            .press(forDuration: 0.1, thenDragTo: target, withVelocity: 300, thenHoldForDuration: 0.8)
                         blocked += 1
                         Thread.sleep(forTimeInterval: 1.0)
                         if next.label.contains("Block") && !next.label.contains("No") { blocks += 1 }
