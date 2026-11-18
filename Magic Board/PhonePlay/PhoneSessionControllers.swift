@@ -268,18 +268,7 @@ struct PhoneStackCardsView: View {
                     } label: {
                         Group {
                             if let card = item.card, item.isAbility == true {
-                                // An ability: its source card, with the ability's text across it.
-                                HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
-                                    .overlay(alignment: .bottom) {
-                                        Text(item.text)
-                                            .font(.system(size: max(9, width * 0.075), weight: .semibold))
-                                            .foregroundStyle(.white)
-                                            .multilineTextAlignment(.center)
-                                            .lineLimit(5).minimumScaleFactor(0.6)
-                                            .padding(6)
-                                            .frame(maxWidth: .infinity)
-                                            .background(Color.black.opacity(0.82))
-                                    }
+                                PhoneAbilityPanel(source: card, text: item.text, width: width)
                             } else if let card = item.card {
                                 HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
                             } else {
@@ -1669,5 +1658,53 @@ final class PhoneBrowserCardView: UIView {
             tilesHeight = bounds.height
         }
         tilesHost?.frame = bounds
+    }
+}
+
+/// A Rules game's ability on the stack, until it gets Arena's real ability frame: the source's
+/// name and art, the word "Ability", and the ability's text.
+struct PhoneAbilityPanel: View {
+    let source: CardInstance
+    let text: String
+    let width: CGFloat
+    @State private var art: UIImage?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(source.representation.name ?? "")
+                .font(.custom("Beleren2016-Bold", size: max(9, width * 0.075)))
+                .foregroundStyle(.white)
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(white: 0.22))
+            Group {
+                if let art { Image(uiImage: art).resizable().scaledToFill() }
+                else { Color(white: 0.3) }
+            }
+            .frame(width: width, height: width * 0.62)
+            .clipped()
+            Text("Ability")
+                .font(.custom("Beleren2016-Bold", size: max(8, width * 0.06)))
+                .foregroundStyle(.white.opacity(0.85))
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(white: 0.18))
+            addSymbols(string: text, symbolLength: max(8, width * 0.06))
+                .font(.system(size: max(8, width * 0.065)))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+                .minimumScaleFactor(0.5)
+                .padding(8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .background(Color(white: 0.1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(source.representation.name ?? "") ability: \(text)")
+        .task(id: source.uuid) {
+            if let loaded = source.representation.imageIfLoaded(type: .art) { art = loaded; return }
+            let representation = source.representation
+            art = await Task.detached(priority: .userInitiated) { representation.image(type: .art) }.value
+        }
     }
 }
