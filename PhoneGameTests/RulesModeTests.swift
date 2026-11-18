@@ -77,6 +77,21 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(PhoneGame().rulesPlayable, "sandbox games never carry engine playability")
     }
 
+    func testTargetPromptHighlightsLegalTargetsInsteadOfPlayableCards() throws {
+        let playable = UUID(), target = UUID()
+        let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+            "gameId": UUID().uuidString, "playerId": UUID().uuidString, "revision": 1, "turn": 1,
+            "hand": [], "stack": [], "players": [], "playableIds": [playable.uuidString.lowercased()]] as [String: Any]))
+        func prompt(_ method: String) throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": method, "revision": 1, "supported": true, "choices": [],
+                "targets": [target.uuidString.lowercased(), UUID().uuidString.lowercased() + "-not-a-card"]] as [String: Any]))
+        }
+        XCTAssertEqual(RulesPhoneAdapter.highlighted(snapshot: snapshot, prompt: try prompt("GAME_SELECT")), [playable])
+        XCTAssertEqual(RulesPhoneAdapter.highlighted(snapshot: snapshot, prompt: try prompt("GAME_TARGET")), [target])
+        XCTAssertEqual(RulesPhoneAdapter.highlighted(snapshot: snapshot, prompt: nil), [playable])
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

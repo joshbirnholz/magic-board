@@ -44,6 +44,8 @@ final class RulesPhoneAdapter {
         else if prompt?.method == "GAME_SELECT" { label = "Next" }
         else if prompt != nil { label = "Choose" }
         else { label = "Waiting" }
+        // Arena: while choosing targets, the legal targets glow instead of the playable cards.
+        presentation.rulesPlayable = Self.highlighted(snapshot: engine.snapshot, prompt: pending == nil ? prompt : nil)
         phone?.displayRules(presentation, connected: status == .connected,
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
                             primaryLabel: label)
@@ -58,6 +60,12 @@ final class RulesPhoneAdapter {
                 Task { [weak self] in await self?.engine.answer(.object(id)) }
             }
         }
+    }
+
+    /// Cards to outline: a target prompt's legal card targets, otherwise what the engine says is playable now.
+    static func highlighted(snapshot: RulesSnapshot?, prompt: RulesPrompt?) -> Set<UUID> {
+        if prompt?.method == "GAME_TARGET" { return Set((prompt?.targets ?? []).compactMap(UUID.init(uuidString:))) }
+        return Set((snapshot?.playableIds ?? []).compactMap(UUID.init(uuidString:)))
     }
 
     func send(_ action: PhoneAction) async {
@@ -179,7 +187,7 @@ final class RulesPhoneAdapter {
         let oldOrder = presentation.state.player1.hand.cards.value.map(\.uuid)
         game.state.player1.hand.cards.accept(OrderedSet(oldOrder.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !oldOrder.contains($0.uuid) }))
         let visibleIDs = Set(allCards.map(\.id))
-        game.rulesPlayable = Set(snapshot.playableIds.compactMap(UUID.init(uuidString:)))
+        game.rulesPlayable = Self.highlighted(snapshot: snapshot, prompt: engine.pendingRequest == nil ? engine.prompt : nil)
         game.stack = try snapshot.stack.reversed().map { card in
             let targets: [PhoneGame.Target] = (card.targets ?? []).compactMap { target in
                 if snapshot.players.contains(where: { $0.id == target }) { return .player(seat(target)) }

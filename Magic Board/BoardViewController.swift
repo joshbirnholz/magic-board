@@ -4425,11 +4425,12 @@ extension BoardViewController {
     private func updatePhoneCombatGlows(_ session: PhoneGameSession) {
         let combat = session.game.combat
         var wanted: [UUID: UIColor] = [:]
-        // Rules mode: your permanents the engine says can act now glow blue (Arena); combat overrides.
+        // Rules mode: permanents the engine says can act now, or legal targets while choosing them,
+        // glow blue (Arena); combat overrides.
         if session.mode == .rules {
             let field = session.game.state.battlefield.value
             for id in session.game.rulesPlayable ?? [] {
-                if let card = session.game.cards[id], field.contains(card), card.controllerIdentifier.value == session.player { wanted[id] = Self.phonePlayableGlow }
+                if let card = session.game.cards[id], field.contains(card) { wanted[id] = Self.phonePlayableGlow }
             }
         }
         for id in combat?.attackers ?? [] { wanted[id] = .systemOrange }
