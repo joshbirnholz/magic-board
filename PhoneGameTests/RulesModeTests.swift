@@ -235,6 +235,30 @@ final class RulesModeTests: XCTestCase {
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_ASK", "Play instants?"), snapshot: idle))
     }
 
+    func testOpponentSpellTargetsReachTheStackArcs() async throws {
+        let me = UUID().uuidString, opponent = UUID().uuidString
+        let bear = UUID().uuidString, shock = UUID().uuidString, bolt = UUID().uuidString, missing = UUID().uuidString
+        let bearCard: [String: Any] = ["id": bear, "name": "Grizzly Bears", "faceDown": false, "transformed": false, "typeLine": "Creature — Bear",
+                                       "power": "2", "toughness": "2", "tapped": false, "summoningSick": false, "counters": []]
+        func spell(_ id: String, _ name: String, targets: [String]) -> [String: Any] {
+            ["id": id, "name": name, "faceDown": false, "transformed": false, "typeLine": "Instant", "controllerId": opponent,
+             "counters": [], "targets": targets]
+        }
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "phase": "PRECOMBAT_MAIN",
+                                   "activePlayerId": opponent, "playableIds": [], "hand": [],
+                                   "stack": [spell(shock, "Shock", targets: [bear]), spell(bolt, "Lightning Bolt", targets: [me, missing])],
+                                   "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                                                "battlefield": [bearCard]],
+                                               ["id": opponent, "name": "Them", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                                                "battlefield": []]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
+        let stack = Dictionary(uniqueKeysWithValues: adapter.presentation.stack.map { ($0.id.uuidString.lowercased(), $0) })
+        XCTAssertEqual(stack[shock.lowercased()]?.player, .b, "the opponent's spell is drawn from their side")
+        XCTAssertEqual(stack[shock.lowercased()]?.targets, [.card(UUID(uuidString: bear)!)], "a creature target gets an arc")
+        XCTAssertEqual(stack[bolt.lowercased()]?.targets, [.player(.a)], "a player target points at me; unseen objects are dropped")
+    }
+
     func testLandsDontShowEngineZeroStats() async throws {
         let me = UUID().uuidString, land = UUID().uuidString, bear = UUID().uuidString
         func permanent(_ id: String, _ name: String, _ type: String, _ power: String, _ toughness: String) -> [String: Any] {
