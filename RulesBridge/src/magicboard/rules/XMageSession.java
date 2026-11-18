@@ -34,6 +34,7 @@ final class XMageSession implements MageClient, AutoCloseable {
     private final Map<UUID, UUID> lastSeenSeat = new HashMap<>();
     private UUID lastPriorityPlayer;
     private JsonObject prompt;
+    private JsonObject gameOver;
     private List<MultiAmountMessage> amountConstraints;
     private long revision;
     private int lastStateMessage = -1;
@@ -93,6 +94,7 @@ final class XMageSession implements MageClient, AutoCloseable {
         if (tableId != null && gameId == null) output.accept(object("type", "tableJoined", "tableId", tableId, "owner", ownsTable));
         if (snapshot != null) output.accept(snapshot);
         if (prompt != null) output.accept(prompt);
+        if (gameOver != null) output.accept(gameOver);
     }
 
     private void priorityControl(JsonObject request) {
@@ -337,7 +339,8 @@ final class XMageSession implements MageClient, AutoCloseable {
             output.accept(prompt);
         } else if (callback.getMethod() == ClientCallbackMethod.GAME_OVER) {
             prompt = null;
-            output.accept(object("type", "gameOver", "message", ((GameClientMessage) data).getMessage()));
+            gameOver = object("type", "gameOver", "message", ((GameClientMessage) data).getMessage());
+            output.accept(gameOver);
         } else if (callback.getMethod() == ClientCallbackMethod.GAME_ERROR) {
             showError(String.valueOf(data));
         } else if (callback.getMethod() == ClientCallbackMethod.GAME_INFORM_PERSONAL && data instanceof GameClientMessage message

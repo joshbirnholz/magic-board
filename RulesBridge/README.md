@@ -85,14 +85,14 @@ Prompts expose optional `queryType`, `subMessage`, `canCancel`, `specialActionAv
 
 Events include `tables`, `tableJoined`, `snapshot`, `prompt`, `promptCleared`, `gameOver`, `notice`, `engineDisconnected`, and `error`. Snapshots contain only the seat's own hand, public card data and hidden-zone counts. Phase, step and priority may be absent during setup. Phone Play receives a display projection, including anonymous backs for hidden zones; it never receives the opponent's hand identities.
 
-Disconnecting retains the bridge session for up to 15 minutes. Reconnecting resends its latest snapshot and pending prompt. The bridge keeps at most four sessions; a new connection at capacity reclaims the oldest disconnected session, never a connected player. Explicit `leave`, reclamation or expiry closes the XMage session. Bridge/server restarts do not preserve sessions. Resume tokens currently last for the app session; app-relaunch recovery is outstanding.
+Disconnecting retains the bridge session for up to 15 minutes. Reconnecting resends its latest snapshot, pending prompt and final game result if already finished. The bridge keeps at most four sessions; a new connection at capacity reclaims the oldest disconnected session, never a connected player. Explicit `leave`, reclamation or expiry closes the XMage session. Bridge/server restarts do not preserve sessions. The phone stores its endpoint and resume token in the device Keychain, so a relaunched app offers Reconnect. An expired-session response clears the saved seat; Connect then starts fresh. Explicit Exit Game clears the saved seat too. Secure app-relaunch recovery has been typechecked; a physical-device relaunch check is still needed.
 
 ## Remaining work
 
 - Expand end-to-end gesture checks beyond the opening hand and normal Phone Play regression interaction.
 - Command zones and Commander deck setup.
 - Broad gameplay coverage of ordering, modes, alternative costs, special actions and priority controls, and their full phone UI.
-- Registered-account support and app-relaunch recovery. Deck import and two-player format selection are implemented.
+- Registered-account support and device verification of app-relaunch recovery. Deck import and two-player format selection are implemented.
 - Windows execution testing, startup scripts and broader gameplay coverage.
 
 UI reference: [Wizards' mobile Arena gameplay guide and screenshots](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-game-january-2021-01-21), plus the existing Phone Play implementation. Prefer its actual shared controls over a parallel Rules-only battlefield.

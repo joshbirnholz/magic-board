@@ -79,7 +79,10 @@ public final class BridgeMain extends WebSocketServer {
                 String resume = string(request, "resumeToken");
                 if (!resume.isEmpty()) {
                     seat = seats.get(resume);
-                    if (seat == null || !seat.ready) throw new IllegalStateException("This game session expired. Connect as a new session.");
+                    if (seat == null || !seat.ready) {
+                        socket.send(JSON.toJson(object("type", "error", "code", "sessionExpired", "message", "This game session expired. Connect as a new session.")));
+                        return;
+                    }
                     if (seat.socket != null && seat.socket != socket) {
                         connections.remove(seat.socket);
                         seat.socket.close(1000, "Session resumed on another connection");

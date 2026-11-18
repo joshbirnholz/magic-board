@@ -27,10 +27,20 @@ final class RulesGameSession: ObservableObject {
     private let defaults: UserDefaults
     private let transport: URLSession
     private let decoder = JSONDecoder()
+    private struct RetainedSeat: Codable {
+        let endpoint: URL
+        let token: String
+    }
 
     init(defaults: UserDefaults = .standard, transport: URLSession = .shared) {
         self.defaults = defaults
         self.transport = transport
+        let saved = RulesConnectionKey.read(account: "retainedSeat")
+        if let seat = try? JSONDecoder().decode(RetainedSeat.self, from: Data(saved.utf8)),
+           (try? RulesEndpoint.parse(seat.endpoint.absoluteString)) != nil, !seat.token.isEmpty {
+            endpoint = seat.endpoint
+            resumeToken = seat.token
+        }
     }
 
     var canAnswer: Bool { status == .connected && prompt?.supported == true && pendingRequest == nil }
@@ -49,6 +59,7 @@ final class RulesGameSession: ObservableObject {
         guard !key.isEmpty else { error = "Enter the connection key configured on your PC."; return }
         if endpoint != url || !resume {
             resumeToken = nil; snapshot = nil; prompt = nil
+            RulesConnectionKey.delete(account: "retainedSeat")
             tableId = nil; ownsTable = false; tables = []
             result = nil
             holdingPriority = false
@@ -104,11 +115,14 @@ final class RulesGameSession: ObservableObject {
 
     /// Explicitly leave the game; transient disconnects preserve the seat for reconnection.
     func endSession() async {
+        let generation = self.generation
         if let socket {
             try? await send(RulesCommand(type: "leave"), through: socket)
         }
+        guard self.generation == generation else { return }
         disconnect()
         resumeToken = nil; snapshot = nil; prompt = nil
+        RulesConnectionKey.delete(account: "retainedSeat")
         tableId = nil; ownsTable = false; tables = []
         result = nil
         holdingPriority = false
@@ -171,6 +185,7 @@ final class RulesGameSession: ObservableObject {
         let tableId: String?
         let owner: Bool?
         let formats: [String]?
+        let code: String?
     }
 
     private func receive(_ data: Data, socket: URLSessionWebSocketTask) async throws {
@@ -182,6 +197,11 @@ final class RulesGameSession: ObservableObject {
         case "ready":
             guard header.protocolVersion == 1, let token = header.resumeToken else { fail("The bridge sent an invalid connection response."); return }
             resumeToken = token
+            if let endpoint, let data = try? JSONEncoder().encode(RetainedSeat(endpoint: endpoint, token: token)) {
+                if !RulesConnectionKey.write(String(decoding: data, as: UTF8.self), account: "retainedSeat") {
+                    error = "Connected, but this device could not save the game for recovery after an app restart."
+                }
+            }
             if let formats = header.formats { self.formats = formats }
             timeoutTask?.cancel()
             status = .connected
@@ -206,6 +226,11 @@ final class RulesGameSession: ObservableObject {
             if header.requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "error":
             let message = header.message ?? "The rules server reported an error."
+            if header.code == "sessionExpired" {
+                resumeToken = nil
+                RulesConnectionKey.delete(account: "retainedSeat")
+                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; holdingPriority = false
+            }
             if status == .connecting { fail(message); return }
             error = message
             if let requestId = header.requestId, requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
@@ -235,18 +260,19 @@ final class RulesGameSession: ObservableObject {
 }
 
 private enum RulesConnectionKey {
-    private static var query: [String: Any] {
+    private static func query(account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: "MagicBoard.RulesBridge", kSecAttrAccount as String: "connectionKey"]
+         kSecAttrService as String: "MagicBoard.RulesBridge", kSecAttrAccount as String: account]
     }
-    static func read() -> String {
-        var request = query
+    static func read(account: String = "connectionKey") -> String {
+        var request = query(account: account)
         request[kSecReturnData as String] = true
         var item: CFTypeRef?
         guard SecItemCopyMatching(request as CFDictionary, &item) == errSecSuccess, let data = item as? Data else { return "" }
         return String(decoding: data, as: UTF8.self)
     }
-    static func write(_ key: String) -> Bool {
+    static func write(_ key: String, account: String = "connectionKey") -> Bool {
+        let query = query(account: account)
         let attributes = [kSecValueData as String: Data(key.utf8)]
         let result = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if result == errSecSuccess { return true }
@@ -255,5 +281,8 @@ private enum RulesConnectionKey {
         item[kSecValueData as String] = Data(key.utf8)
         item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
+    }
+    static func delete(account: String) {
+        SecItemDelete(query(account: account) as CFDictionary)
     }
 }

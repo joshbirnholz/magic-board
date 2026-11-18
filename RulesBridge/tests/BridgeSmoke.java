@@ -35,7 +35,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         try {
         test.socket = HttpClient.newHttpClient().newWebSocketBuilder()
                 .header("Authorization", "Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))
-                .buildAsync(URI.create("ws://127.0.0.1:17180"), test).join();
+                .buildAsync(URI.create(System.getenv().getOrDefault("RULES_SMOKE_ADDRESS", "ws://127.0.0.1:17180")), test).join();
         test.await("hello");
         test.send("{\"type\":\"connect\",\"protocolVersion\":1}");
         JsonObject ready = test.await("ready");
@@ -66,7 +66,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         test.events.clear();
         test.socket = HttpClient.newHttpClient().newWebSocketBuilder()
                 .header("Authorization", "Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))
-                .buildAsync(URI.create("ws://127.0.0.1:17180"), test).join();
+                .buildAsync(URI.create(System.getenv().getOrDefault("RULES_SMOKE_ADDRESS", "ws://127.0.0.1:17180")), test).join();
         test.await("hello");
         test.send("{\"type\":\"connect\",\"protocolVersion\":1,\"resumeToken\":" + ready.get("resumeToken") + "}");
         test.await("ready");
@@ -186,7 +186,11 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     }
                 }
                 case "prompt" -> nextPrompt = event;
-                case "gameOver" -> finished = true;
+                case "gameOver" -> {
+                    if (event.toString().toLowerCase(Locale.ROOT).contains("server error"))
+                        throw new AssertionError("Engine stopped the game with an error: " + event);
+                    finished = true;
+                }
                 case "error" -> throw new AssertionError(event);
             }
         }
@@ -199,12 +203,15 @@ public final class BridgeSmoke implements WebSocket.Listener {
         if (playablePermanents.contains("Plains")) throw new AssertionError("A basic land's mana ability alone made it playable");
         System.out.println("PASS stack controllers: " + myStackObjects.size() + " ours, " + theirStackObjects.size() + " the AI's");
         System.out.println("PASS full AI game: land play, creature casting, mana, priority and engine game-over (" + decisions + " decisions)");
+        test.send("{\"type\":\"resync\",\"requestId\":\"finished-replay\"}");
+        test.await("gameOver");
+        System.out.println("PASS completed-game replay includes game-over");
         test.send("{\"type\":\"leave\"}");
         test.socket.sendClose(1000, "Done").join();
         CompletableFuture<Integer> unauthorizedClose = new CompletableFuture<>();
         WebSocket unauthorized = HttpClient.newHttpClient().newWebSocketBuilder()
                 .header("Authorization", "Bearer invalid-key")
-                .buildAsync(URI.create("ws://127.0.0.1:17180"), new WebSocket.Listener() {
+                .buildAsync(URI.create(System.getenv().getOrDefault("RULES_SMOKE_ADDRESS", "ws://127.0.0.1:17180")), new WebSocket.Listener() {
                     public CompletionStage<?> onClose(WebSocket socket, int code, String reason) {
                         unauthorizedClose.complete(code);
                         return null;

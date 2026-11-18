@@ -64,11 +64,12 @@ struct RulesConnectionView: View {
                     if session.pendingRequest != nil { ProgressView("Working…") }
                     Button("Disconnect") { session.disconnect() }
                 } else {
-                    Button("Connect") { session.connect(address: address, key: key) }
+                    Button(session.hasRetainedSession ? "Reconnect" : "Connect") { session.connect(address: address, key: key) }
                         .disabled(address.trimmingCharacters(in: .whitespaces).isEmpty || key.isEmpty)
                         .accessibilityIdentifier("rules-connect")
                     if session.hasRetainedSession {
                         Button("Connect as New Session") { session.connect(address: address, key: key, resume: false) }
+                            .accessibilityIdentifier("rules-connect-new")
                     }
                 }
             }
