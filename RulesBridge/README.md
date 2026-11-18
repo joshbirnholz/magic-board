@@ -28,6 +28,8 @@ The bridge uses Java-WebSocket 1.6.0 (MIT); XMage is MIT licensed. The build scr
 
 ## Windows
 
+For a prebuilt bridge bundle, follow [PC-SETUP.md](PC-SETUP.md). It contains the compiled bridge, dependency notice, launchers and source; Java 17 and the pinned XMage installation are still required. Generate a bundle on macOS with `XMAGE_HOME=/path/to/xmage sh package.sh`; output is `build/MagicBoard-RulesBridge.zip` and its SHA-256 file.
+
 Install a Java 17 JDK (including `javac`) and unpack the pinned XMage release. Run these commands in PowerShell, changing the path and key:
 
 ```powershell
@@ -69,9 +71,10 @@ Default bind is loopback (`127.0.0.1`), port 17180. Optional environment variabl
 Real-engine integration checks, after starting both processes (from `RulesBridge/`):
 
 ```sh
-javac --release 17 -cp "build/classes:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/classes tests/*.java
+mkdir -p build/test-classes
+javac --release 17 -encoding UTF-8 -cp "build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/test-classes tests/*.java
 for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
-    java -cp "build/classes:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
+    java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
 
@@ -82,7 +85,7 @@ Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card 
 `BlockPromptFixture` is a separate, deterministic WebSocket fixture for focused phone interaction checks; it does not enforce Magic rules. Start it on loopback port 17183 with the same test connection key:
 
 ```sh
-java -cp "build/classes:lib/*:$XMAGE_HOME/mage-client/lib/*" BlockPromptFixture
+java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" BlockPromptFixture
 ```
 
 Set `TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS=ws://127.0.0.1:17183` when running the Rules UI tests `testRulesBlockDragAnswersTheFollowUpTarget`, `testRulesFullControlMenuReflectsEngineSetting`, `testRulesTriggerOrderingSelectsAnAbilityCard`, or `testRulesReconnectsAfterAppRelaunchAndClearsSeatOnExit`. They skip without that environment variable. The blocking fixture uses two attackers to require both blocker selection and a follow-up target answer; its `/ordering` route supplies two triggered abilities. `CombatSmoke` separately verifies legal blocker assignment with two real XMage human seats.

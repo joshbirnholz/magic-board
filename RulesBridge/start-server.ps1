@@ -15,7 +15,7 @@ if (!(Get-Command java -ErrorAction SilentlyContinue)) { throw 'Install Java 17 
 # XMage reads its config and plugins relative to its server directory.
 Push-Location -LiteralPath $serverDirectory
 try {
-    & java "-Xmx${HeapMB}m" --add-opens=java.base/java.io=ALL-UNNAMED -Djava.awt.headless=true -jar $serverJar
+    & java "-Xmx${HeapMB}m" --add-opens=java.base/java.io=ALL-UNNAMED -Djava.awt.headless=true -Dfile.encoding=UTF-8 -jar $serverJar
     $serverExitCode = $LASTEXITCODE
 } finally {
     Pop-Location
