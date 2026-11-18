@@ -10,6 +10,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - Two-human table creation/discovery/joining, distinct engine seats, and private opening hands.
 - Main menu → connection → shared Phone Play board → opening hand → exit verified in the iOS simulator.
 - Existing Phone Play: 66 unit tests and the sandbox drag/tap UI check passed. Five Rules isolation/schema tests passed.
+- Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
 
 ## Pinned dependencies
@@ -83,7 +84,7 @@ Disconnecting retains the bridge session for 15 minutes. Reconnecting resends it
 ## Remaining work
 
 - Expand end-to-end gesture checks beyond the opening hand and normal Phone Play regression interaction.
-- Stack ownership, command zones, playable highlights, and detailed dynamic rules text.
+- Command zones, playable highlights, and detailed dynamic rules text.
 - Full prompt variants, ordering, pile selection, multi-amount choices, special actions and priority stops.
 - Deck import, format selection and account support.
 - Windows execution testing, startup scripts and broader gameplay coverage.

@@ -94,6 +94,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         JsonObject nextPrompt = resumedPrompt;
         long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(3);
         int decisions = 0;
+        Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
                 JsonObject answer = new JsonObject();
@@ -163,7 +164,16 @@ public final class BridgeSmoke implements WebSocket.Listener {
             JsonObject event = test.events.poll(1, TimeUnit.SECONDS);
             if (event == null) continue;
             switch (event.get("type").getAsString()) {
-                case "snapshot" -> currentState = event;
+                case "snapshot" -> {
+                    currentState = event;
+                    String me = event.get("playerId").getAsString();
+                    for (JsonElement item : event.getAsJsonArray("stack")) {
+                        JsonObject object = item.getAsJsonObject();
+                        if (!object.has("controllerId")) throw new AssertionError("Stack object without a controller: " + object.get("name"));
+                        if (object.get("controllerId").getAsString().equals(me)) myStackObjects.add(object.get("id").getAsString());
+                        else theirStackObjects.add(object.get("id").getAsString());
+                    }
+                }
                 case "prompt" -> nextPrompt = event;
                 case "gameOver" -> finished = true;
                 case "error" -> throw new AssertionError(event);
@@ -172,6 +182,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
         if (!finished || !playedLand || !castCreature) throw new AssertionError("Incomplete game: finished=" + finished + ", land=" + playedLand + ", creature=" + castCreature + ", ability=" + choseAbility + ", decisions=" + decisions);
         if (requireAbility && !choseAbility) throw new AssertionError("The engine ability chooser was not exercised");
         if (choseAbility) System.out.println("PASS engine ability selection uses UUID responses");
+        if (castCreature && myStackObjects.isEmpty()) throw new AssertionError("Our own spells were never attributed to us on the stack");
+        System.out.println("PASS stack controllers: " + myStackObjects.size() + " ours, " + theirStackObjects.size() + " the AI's");
         System.out.println("PASS full AI game: land play, creature casting, mana, priority and engine game-over (" + decisions + " decisions)");
         test.send("{\"type\":\"leave\"}");
         test.socket.sendClose(1000, "Done").join();

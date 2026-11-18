@@ -41,6 +41,8 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     let manaCost: String?
     let colors: [String]?
     let targets: [String]?
+    /// Stack objects only: the bridge's best inference of who controls it.
+    var controllerId: String? = nil
     let counters: [Counter]
 }
 

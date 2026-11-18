@@ -40,6 +40,31 @@ final class RulesModeTests: XCTestCase {
         return try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
     }
 
+    func testStackItemsBelongToTheirController() async throws {
+        let me = UUID().uuidString, opponent = UUID().uuidString
+        let ability = UUID().uuidString, spell = UUID().uuidString
+        func object(_ id: String, _ name: String, ability: Bool, controller: String?) -> [String: Any] {
+            var card: [String: Any] = ["id": id, "name": name, "faceDown": false, "transformed": false, "ability": ability,
+                                       "rules": "Draw a card.", "counters": []]
+            if let controller { card["controllerId"] = controller }
+            return card
+        }
+        func player(_ id: String, _ name: String) -> [String: Any] {
+            ["id": id, "name": name, "life": 20, "handCount": 0, "libraryCount": 0, "battlefield": [], "graveyard": [], "exile": []]
+        }
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 2,
+                                   "phase": "PRECOMBAT_MAIN", "activePlayerId": me, "hand": [], "playableIds": [],
+                                   "stack": [object(ability, "Trigger", ability: true, controller: opponent),
+                                             object(spell, "Divination", ability: false, controller: nil)],
+                                   "players": [player(me, "Me"), player(opponent, "Them")]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
+        let stack = Dictionary(uniqueKeysWithValues: adapter.presentation.stack.map { ($0.id.uuidString.lowercased(), $0) })
+        XCTAssertEqual(stack[ability.lowercased()]?.player, .b, "the opponent's trigger is theirs")
+        XCTAssertEqual(stack[spell.lowercased()]?.player, .a, "without a controller, the active player")
+        XCTAssertEqual(stack[spell.lowercased()]?.card?.ownerIdentifier, .a)
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

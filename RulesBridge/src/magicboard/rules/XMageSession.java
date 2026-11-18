@@ -27,6 +27,11 @@ final class XMageSession implements MageClient, AutoCloseable {
     private UUID tableId;
     private boolean ownsTable;
     private JsonObject snapshot;
+    /** Stack object → controlling player. XMage's stack views don't carry a controller, so it's inferred once and kept. */
+    private final Map<UUID, UUID> stackControllers = new HashMap<>();
+    /** Card or permanent → the player whose zone it was last seen in. */
+    private final Map<UUID, UUID> lastSeenSeat = new HashMap<>();
+    private UUID lastPriorityPlayer;
     private JsonObject prompt;
     private List<MultiAmountMessage> amountConstraints;
     private long revision;
@@ -308,7 +313,38 @@ final class XMageSession implements MageClient, AutoCloseable {
                 "revision", ++revision, "turn", view.getTurn(), "phase", view.getPhase(), "step", view.getStep(),
                 "activePlayer", view.getActivePlayerName(), "activePlayerId", view.getActivePlayerId(), "priorityPlayer", view.getPriorityPlayerName());
         result.add("hand", cards(view.getMyHand().values()));
-        result.add("stack", cards(view.getStack().values()));
+        JsonArray stack = cards(view.getStack().values());
+        Map<UUID, UUID> seen = new HashMap<>();
+        if (playerId != null) view.getMyHand().keySet().forEach(id -> seen.put(id, playerId));
+        for (PlayerView player : view.getPlayers()) {
+            for (CardsView zone : List.of(player.getGraveyard(), player.getExile())) zone.keySet().forEach(id -> seen.put(id, player.getPlayerId()));
+            player.getBattlefield().keySet().forEach(id -> seen.put(id, player.getPlayerId())); // by controller
+        }
+        Set<UUID> onStack = new HashSet<>();
+        int index = 0;
+        for (CardView card : view.getStack().values()) {
+            UUID id = card.getId();
+            onStack.add(id);
+            UUID controller = stackControllers.get(id);
+            if (controller == null && card instanceof StackAbilityView ability && ability.getSourceCard() != null) {
+                // Triggered and activated abilities: whoever controls (or last held) the source.
+                UUID source = ability.getSourceCard().getId();
+                controller = seen.getOrDefault(source, lastSeenSeat.get(source));
+            }
+            // Spells and unattributed abilities: the player who held priority when it was put on the stack.
+            if (controller == null) controller = lastPriorityPlayer;
+            if (controller != null) {
+                stackControllers.put(id, controller);
+                stack.get(index).getAsJsonObject().addProperty("controllerId", controller.toString());
+            }
+            index++;
+        }
+        stackControllers.keySet().retainAll(onStack);
+        lastSeenSeat.putAll(seen);
+        if (lastSeenSeat.size() > 4000) lastSeenSeat.keySet().retainAll(seen.keySet());
+        lastPriorityPlayer = view.getPlayers().stream().filter(player -> player.getName().equals(view.getPriorityPlayerName()))
+                .map(PlayerView::getPlayerId).findFirst().orElse(lastPriorityPlayer);
+        result.add("stack", stack);
         JsonArray playable = new JsonArray();
         if (view.getCanPlayObjects() != null) view.getCanPlayObjects().getObjects().forEach((id, stats) -> {
             if (stats.getPlayableAmount() > 0) playable.add(id.toString());

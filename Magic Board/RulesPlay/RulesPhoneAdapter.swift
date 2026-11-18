@@ -14,7 +14,7 @@ final class RulesPhoneAdapter {
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target?
     private var hiddenIDs: [String: UUID] = [:]
-    private var presentation = PhoneGame()
+    private(set) var presentation = PhoneGame()
 
     init(engine: RulesGameSession) { self.engine = engine }
 
@@ -186,7 +186,8 @@ final class RulesPhoneAdapter {
                 return nil
             }
             let text = card.ability == true ? RulesText.plain(card.rules ?? card.name ?? "Ability") : card.name ?? "Spell"
-            return PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: .a), text: text, player: .a, targets: targets)
+            let controller = card.controllerId.map(seat) ?? snapshot.activePlayerId.map(seat) ?? .a
+            return PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: controller), text: text, player: controller, targets: targets)
         }
         let active = snapshot.activePlayerId.map(seat) ?? snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
         let enginePhase = snapshot.phase ?? ""
