@@ -939,7 +939,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     var isOpeningHand = false {
         didSet {
             battlefieldZone.isHidden = isOpeningHand
-            cancelButton.isHidden = !isOpeningHand
+            cancelButton.isHidden = !isOpeningHand || onCancel == nil
             titleLabel.textAlignment = isOpeningHand ? .center : .natural
             titleLabel.font = UIFont(name: "Beleren2016-Bold", size: isOpeningHand ? 30 : 18) ?? .boldSystemFont(ofSize: isOpeningHand ? 30 : 18)
             scrollView.isScrollEnabled = !isOpeningHand
@@ -947,7 +947,8 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             setNeedsLayout()
         }
     }
-    var onCancel: (() -> Void)?
+    /// Nil hides Cancel (a Rules game's opening hand can't be cancelled; the engine owns the game).
+    var onCancel: (() -> Void)? { didSet { cancelButton.isHidden = !isOpeningHand || onCancel == nil } }
     private let cancelButton = UIButton(type: .custom)
 
     init(title: String, cards: [CardInstance], done: String = "Done", secondary: String? = nil, canShowOpponent: Bool = false) {

@@ -1570,7 +1570,7 @@ class BoardViewController: UIViewController {
                     Task { await engine.setAutoOrderTriggers(!engine.autoOrderTriggers) }
                 })
                 let autoPay = RulesPhoneAdapter.autoPaysMana
-                menu.addAction(BoardMenuAction(title: autoPay ? "Pay Mana Manually" : "Pay Mana Automatically", style: .default) { _ in
+                menu.addAction(BoardMenuAction(title: autoPay ? "Turn Off Mana Auto-Pay" : "Turn On Mana Auto-Pay", style: .default) { _ in
                     RulesPhoneAdapter.autoPaysMana = !autoPay
                 })
             }
@@ -3800,6 +3800,9 @@ extension BoardViewController {
     /// Shows the "Move to Stack" area along the right edge while a dragged card is near it, lit
     /// while the card is over it (nil: hides it).
     private func updatePhoneStackCastZone(at point: CGPoint?) {
+        // Rules mode: XMage decides where a card goes (spells to the stack, permanents to the
+        // battlefield), so there's no separate drop area for "Move to Stack".
+        if phoneMode?.mode == .rules { if phoneStackCastArmed { phoneStackCastArmed = false }; return }
         let band = phoneStackCastBand
         let near = point.map { !band.isEmpty && $0.x >= band.minX - 70 && $0.y >= band.minY - 30 && $0.y <= band.maxY + 30 } ?? false
         let armed = point.map { near && $0.x >= band.minX && $0.y >= band.minY - 20 && $0.y <= band.maxY + 20 } ?? false
@@ -4854,11 +4857,13 @@ extension BoardViewController {
             session.send(.shuffle)
         }
         if mode == .openingHand {
-            browser.isOpeningHand = true
-            browser.onCancel = { [weak self] in
-                self?.closePhoneZoneBrowser()
-                session.send(.cancelStart)
+            if session.mode != .rules {
+                browser.onCancel = { [weak self] in
+                    self?.closePhoneZoneBrowser()
+                    session.send(.cancelStart)
+                }
             }
+            browser.isOpeningHand = true
         }
         phoneBrowser = browser
         phoneBrowserMode = mode
