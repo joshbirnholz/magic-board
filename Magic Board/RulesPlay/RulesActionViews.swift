@@ -54,7 +54,7 @@ struct RulesFastForwardPill: View {
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(.white)
                 .frame(width: 46, height: 26)
-                .background(Capsule().fill(LinearGradient(colors: [Color(red: 1, green: 0.62, blue: 0.3), Color(red: 0.93, green: 0.4, blue: 0.12)], startPoint: .top, endPoint: .bottom)))
+                .background(Capsule().fill(LinearGradient(colors: [Color(red: 1, green: 0.62, blue: 0.3), Color(red: 0.93, green: 0.4, blue: 0.12)], startPoint: .bottom, endPoint: .top)))
                 .overlay(Capsule().strokeBorder(Color.white.opacity(0.7), lineWidth: 1.5))
                 .shadow(color: .orange.opacity(0.5), radius: 4)
         }
@@ -128,7 +128,7 @@ struct RulesArenaButtonStyle: ButtonStyle {
             .background {
                 switch kind {
                 case .outline: Capsule().fill(Color.black.opacity(0.45))
-                default: Capsule().fill(LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom))
+                default: Capsule().fill(LinearGradient(colors: colors, startPoint: .bottom, endPoint: .top))
                 }
             }
             .overlay(Capsule().strokeBorder(Color.white.opacity(kind == .outline ? 0.85 : 0.6), lineWidth: kind == .outline ? 2 : 1))

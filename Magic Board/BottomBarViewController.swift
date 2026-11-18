@@ -842,7 +842,8 @@ extension BottomBarViewController {
             rulesMainGradient = layer
             return layer
         }()
-        gradient.colors = colors.map(\.cgColor)
+        // Arena's pill is darker at the top and brightens toward the bottom.
+        gradient.colors = colors.reversed().map(\.cgColor)
         gradient.isHidden = colors.isEmpty
         gradient.frame = untapButton.bounds
         gradient.cornerRadius = untapButton.bounds.height / 2
