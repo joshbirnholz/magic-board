@@ -342,6 +342,7 @@
 		AA7723000000000000000001 /* RulesCardInformationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7724000000000000000001 /* RulesCardInformationView.swift */; };
 		AA771C000000000000000001 /* RulesPacketPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA771D000000000000000001 /* RulesPacketPicker.swift */; };
 		AA7725000000000000000001 /* RulesBoardBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7726000000000000000001 /* RulesBoardBanner.swift */; };
+		AA771E000000000000000001 /* RulesActionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA771F000000000000000001 /* RulesActionViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -683,6 +684,7 @@
 		AA7724000000000000000001 /* RulesCardInformationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesCardInformationView.swift; sourceTree = "<group>"; };
 		AA771D000000000000000001 /* RulesPacketPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesPacketPicker.swift; sourceTree = "<group>"; };
 		AA7726000000000000000001 /* RulesBoardBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesBoardBanner.swift; sourceTree = "<group>"; };
+		AA771F000000000000000001 /* RulesActionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesActionViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1148,6 +1150,7 @@
 				AA7726000000000000000001 /* RulesBoardBanner.swift */,
 				AA7724000000000000000001 /* RulesCardInformationView.swift */,
 				AA771D000000000000000001 /* RulesPacketPicker.swift */,
+				AA771F000000000000000001 /* RulesActionViews.swift */,
 			);
 			path = RulesPlay;
 			sourceTree = "<group>";
@@ -1680,6 +1683,7 @@
 				AA7725000000000000000001 /* RulesBoardBanner.swift in Sources */,
 				AA7723000000000000000001 /* RulesCardInformationView.swift in Sources */,
 				AA771C000000000000000001 /* RulesPacketPicker.swift in Sources */,
+				AA771E000000000000000001 /* RulesActionViews.swift in Sources */,
 				AA7711000000000000000003 /* RulesPhoneAdapter.swift in Sources */,
 				AA7711000000000000000002 /* RulesGameSession.swift in Sources */,
 				AA7711000000000000000001 /* RulesProtocol.swift in Sources */,

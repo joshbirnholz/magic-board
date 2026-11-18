@@ -79,20 +79,42 @@ final class RulesPhoneAdapter {
     }
 
     /// The main phase button's label (Arena's wording) and whether it answers the current prompt.
+    /// Our creatures that could attack now but haven't been declared, and how many are declared.
+    static func attackers(_ snapshot: RulesSnapshot?) -> (available: [String], declared: [String]) {
+        guard let snapshot, let mine = snapshot.players.first(where: { $0.id == snapshot.playerId }) else { return ([], []) }
+        let declared = (snapshot.combat ?? []).flatMap(\.attackers).filter { id in mine.battlefield.contains { $0.id == id } }
+        let available = mine.battlefield.filter {
+            ($0.typeLine ?? "").contains("Creature") && $0.tapped != true && $0.summoningSick != true && !declared.contains($0.id)
+        }.map(\.id)
+        return (available, declared)
+    }
+
+    /// Our creatures declared as blockers.
+    static func blockers(_ snapshot: RulesSnapshot?) -> [String] {
+        guard let snapshot, let mine = snapshot.players.first(where: { $0.id == snapshot.playerId }) else { return [] }
+        return (snapshot.combat ?? []).flatMap(\.blockers).filter { id in mine.battlefield.contains { $0.id == id } }
+    }
+
+    /// The main button's label (Arena's wording; a second line is the small caption under it, as in
+    /// Arena's "Next / To Combat") and whether it answers the current prompt.
     static func primaryButton(prompt: RulesPrompt?, snapshot: RulesSnapshot?, pending: Bool) -> (String, Bool) {
         if pending { return ("Sending…", false) }
         guard let prompt else {
-            if let snapshot, let active = snapshot.activePlayerId, active != snapshot.playerId { return ("Opponent's\nTurn", false) }
+            if let snapshot, let active = snapshot.activePlayerId, active != snapshot.playerId { return ("Opponent's Turn", false) }
             return ("Waiting", false)
         }
         guard prompt.method == "GAME_SELECT" else { return ("Choose", false) }
         let message = RulesText.plain(prompt.message ?? "").lowercased()
         let combat = snapshot?.combat ?? []
         if message.contains("select attackers") {
-            return (combat.contains { !$0.attackers.isEmpty } ? "Attack" : "No\nAttacks", true)
+            // Arena: "All Attack" until attackers are chosen, then "N Attackers" confirms them.
+            let (available, declared) = attackers(snapshot)
+            if !declared.isEmpty { return ("\(declared.count) Attacker\(declared.count == 1 ? "" : "s")", true) }
+            return (available.isEmpty ? "No Attacks" : "All Attack", true)
         }
         if message.contains("select blockers") {
-            return (combat.contains { !$0.blockers.isEmpty } ? "Block" : "No\nBlocks", true)
+            let declared = blockers(snapshot)
+            return (declared.isEmpty ? "No Blocks" : "\(declared.count) Blocker\(declared.count == 1 ? "" : "s")", true)
         }
         guard let snapshot else { return ("Next", true) }
         if !snapshot.stack.isEmpty { return ("Resolve", true) }
@@ -100,16 +122,55 @@ final class RulesPhoneAdapter {
         let creatures = mine?.battlefield.filter { ($0.typeLine ?? "").contains("Creature") && $0.tapped != true } ?? []
         if snapshot.activePlayerId == snapshot.playerId {
             switch snapshot.step ?? "" {
-            case "PRECOMBAT_MAIN": return (creatures.contains { $0.summoningSick != true } ? "To\nAttackers" : "Next", true)
-            case "POSTCOMBAT_MAIN", "END_TURN", "CLEANUP": return ("End\nTurn", true)
+            case "PRECOMBAT_MAIN": return (creatures.contains { $0.summoningSick != true } ? "Next\nTo Combat" : "Next\nTo Main 2", true)
+            case "POSTCOMBAT_MAIN", "END_TURN", "CLEANUP": return ("End Turn", true)
             default: return ("Next", true)
             }
         }
         // The opponent's turn: once they've attacked, passing takes you to declaring blockers.
         if combat.contains(where: { !$0.attackers.isEmpty }), !creatures.isEmpty, (snapshot.step ?? "").contains("ATTACKERS") {
-            return ("To\nBlockers", true)
+            return ("Next\nTo Blockers", true)
         }
         return ("Pass", true)
+    }
+
+    /// Arena's second button above the main one, if any, during attacker selection.
+    static func secondaryButton(prompt: RulesPrompt?, snapshot: RulesSnapshot?) -> String? {
+        guard let prompt, prompt.method == "GAME_SELECT",
+              RulesText.plain(prompt.message ?? "").lowercased().contains("select attackers") else { return nil }
+        let (available, declared) = attackers(snapshot)
+        if !declared.isEmpty { return "Cancel Attacks" }
+        return available.isEmpty ? nil : "No Attacks"
+    }
+
+    /// The main button: "All Attack" declares every available attacker (then shows "N Attackers"
+    /// to confirm); otherwise it answers the selection (pass, confirm attackers or blockers).
+    func pressMain() async {
+        guard engine.prompt?.method == "GAME_SELECT" else { phone?.error = "Complete the current rules choice first."; return }
+        let (label, _) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil)
+        if label == "All Attack" { await selectInTurn(Self.attackers(engine.snapshot).available); return }
+        await engine.answer(.boolean(true))
+    }
+
+    /// The second button: "No Attacks" confirms with none; "Cancel Attacks" deselects them all.
+    func pressSecondary() async {
+        switch Self.secondaryButton(prompt: engine.prompt, snapshot: engine.snapshot) {
+        case "No Attacks": await engine.answer(.boolean(true))
+        case "Cancel Attacks": await selectInTurn(Self.attackers(engine.snapshot).declared) // selecting again removes it
+        default: break
+        }
+    }
+
+    /// Selects each creature in turn; XMage asks again after each one.
+    private func selectInTurn(_ ids: [String]) async {
+        for id in ids {
+            let before = engine.prompt?.id
+            await engine.answer(.object(id))
+            for _ in 0..<60 where engine.prompt?.id == before || engine.pendingRequest != nil {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+            }
+            guard engine.prompt?.method == "GAME_SELECT" else { break }
+        }
     }
 
     /// Whether basic lands are tapped for you when paying (Arena's default). Turned off from the
@@ -229,8 +290,7 @@ final class RulesPhoneAdapter {
             pendingTarget = target.map(PhoneGame.Target.card)
             await choose(id)
         case .resolve, .untap, .untapAndDraw, .beginCombat, .endCombat, .endTurn:
-            if engine.prompt?.method == "GAME_SELECT" { await engine.answer(.boolean(true)) }
-            else { phone?.error = "Complete the current rules choice first." }
+            await pressMain()
         case .keepHand: await engine.answer(.boolean(false))
         case .mulligan: await engine.answer(.boolean(true))
         case .reorderHand(let ids):

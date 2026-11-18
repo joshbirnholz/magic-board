@@ -137,18 +137,6 @@ struct RulesPromptBar: View {
                 }
                 if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
-        case "GAME_SELECT" where !allAttackers(prompt).isEmpty:
-            // Arena's "All Attack": declare every creature that can attack, then confirm with the main button.
-            strip {
-                Button("All Attack") { attackWithAll(allAttackers(prompt)) }
-                    .buttonStyle(RulesPillButtonStyle(primary: false))
-                    .disabled(!session.canAnswer || attacking)
-                    .accessibilityIdentifier("rules-all-attack")
-                Color.clear.frame(width: 1, height: 1)
-                    .accessibilityElement()
-                    .accessibilityLabel(prompt.plainMessage)
-                    .accessibilityIdentifier("rules-prompt-message")
-            }
         case "GAME_SELECT" where prompt.specialActionAvailable == true:
             // A special action (turning a face-down creature up, suspend…) is possible: offer it.
             strip {
@@ -169,34 +157,6 @@ struct RulesPromptBar: View {
                 .accessibilityElement()
                 .accessibilityLabel(prompt.plainMessage)
                 .accessibilityIdentifier("rules-prompt-message")
-        }
-    }
-
-    @State private var attacking = false
-
-    /// Our untapped creatures that aren't summoning sick and aren't attacking yet, while XMage asks for attackers.
-    private func allAttackers(_ prompt: RulesPrompt) -> [String] {
-        guard RulesText.plain(prompt.message ?? "").localizedCaseInsensitiveContains("select attackers"),
-              let state = session.snapshot, let mine = state.players.first(where: { $0.id == state.playerId }) else { return [] }
-        let declared = Set((state.combat ?? []).flatMap(\.attackers))
-        return mine.battlefield.filter { card in
-            (card.typeLine ?? "").contains("Creature") && card.tapped != true && card.summoningSick != true && !declared.contains(card.id)
-        }.map(\.id)
-    }
-
-    /// Selects each attacker in turn; XMage asks "Select attackers" again after each one.
-    private func attackWithAll(_ ids: [String]) {
-        attacking = true
-        Task {
-            defer { attacking = false }
-            for id in ids {
-                let before = session.prompt?.id
-                await session.answer(.object(id))
-                for _ in 0..<60 where session.prompt?.id == before || session.pendingRequest != nil {
-                    try? await Task.sleep(nanoseconds: 50_000_000)
-                }
-                guard session.prompt?.method == "GAME_SELECT" else { break }
-            }
         }
     }
 
