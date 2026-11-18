@@ -159,3 +159,15 @@ java -Xmx128m -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HO
 The phone test uses `TEST_RUNNER_RULES_MULLIGAN_FIXTURE_ADDRESS=ws://127.0.0.1:17187` and `RulesDiscardUITests/testTwoMulligansReturnOnlyTheKeptHandsCardsToTheLibrary`. It checks the deferred Arena flow (Keep 5 with seven displayed, then drag two chosen cards to Library) against the fixture's independently observed answers.
 
 Question prompts may carry read-only `cards` as context. For example, Explore's graveyard Yes/No question includes the exact revealed card referenced by its `object_id`. The bridge uses only the current seat-filtered revealed/looked-at groups; it does not resolve hidden identities or guess by card name. `PromptContextCardsTest` checks those limits, and the bounded `explore` probe verifies the question's matching card and its eventual move to the graveyard against the real engine.
+
+### Replay captured events through the actual Swift wire models (macOS)
+
+Capture engine snapshots/prompts with `RULES_SMOKE_EVENTS=/absolute/path/events.jsonl` when running `BridgeSmoke`, then run:
+
+```sh
+sh tests/decode-events.sh /absolute/path/events.jsonl
+```
+
+This small command-line tool compiles the app's current `RulesProtocol.swift` directly with Swift, using a module cache under `build/`. It needs Xcode command-line tools; it does not start Xcode, a simulator, a bridge or an engine. It accepts multiple capture files and reports counts plus the exact file/line/field for decoding failures. Missing files, empty/incomplete captures and malformed messages return a nonzero exit code. It checks the wire schema, not game rules or UI behavior.
+
+Verified with 1,124 captured Jump In/Explore events; a deliberately missing `playerId` and a nonexistent file both fail with concise diagnostics.

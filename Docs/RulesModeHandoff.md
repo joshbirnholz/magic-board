@@ -2,8 +2,9 @@
 
 Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coordination record outside git, including active task claims and the shared simulator lock. Claude and Codex are both working; check ownership there before editing shared files.
 
-## Latest integration work (11:08 AM ET)
+## Latest integration work (11:19 AM ET)
 
+- Bridge-only follow-up: `RulesBridge/tests/decode-events.sh` compiles the actual Swift protocol types and checks captured JSONL without a simulator. All 1,124 captured Jump In/Explore events decode; missing-playerId and missing-file negatives fail correctly. Normal ownership restored; Claude holds the simulator lock again.
 - Short card rows are centred with a viewport-sized minimum width; large rows still scroll. The question-image centring and eligible-card-picker interactions both pass (42.6 s combined), after the complete 97-unit/3-UI run.
 - Prompt polish: compact board-target duplicate instruction removed (raw accessibility prompt and player/Done controls preserved); fast-forward skip actions disabled outside an answerable GAME_SELECT. Question images have no button trait. Full 97 units + 3 focused UI pass, log `/private/tmp/rules-question-and-controls-ui.log`.
 - **94aa9db**: question-card context from currently seat-visible revealed/looked-at cards. Pure Java context/privacy tests and a real Merfolk Branchwalker Explore choice pass (matching card in Yes/No prompt, then graveyard). UI now displays that image and acknowledges fully displayed information groups to avoid reopening them; all 97 units and three focused UI checks pass: visible question image/one answer/no duplicate information, banner/disabled skip controls during targeting, and normal sandbox tap/drag.
