@@ -1793,9 +1793,8 @@ public extension MTGCardView {
 			case 2: colorFrame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
 			default: colorFrame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
 			}
-			// The Universes Beyond folder's artifact frame has a Vehicle's rivets, so artifacts always
-			// take the regular artifact or Vehicle frame around their pieces.
-			frame = isVehicle ? ["regular/v"] : isArtifact ? ["regular/a"] : colorFrame
+			// Vehicles share one riveted frame; Universes Beyond Vehicles keep their UB pieces inside it.
+			frame = isVehicle ? ["regular/v"] : isArtifact ? ["a"] : colorFrame
 		}
 		let key = "\(folder)|\(frame)|\(pinline)|\(rules)|\(typeTitle)"
 		if let cached = abilityFrameCache[key] { return cached }
