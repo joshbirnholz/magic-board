@@ -843,12 +843,14 @@ extension BottomBarViewController {
             return layer
         }()
         // Arena's pill: deeper at the top, brightening toward the bottom, with a bright rim and glow.
-        gradient.colors = colors.map(\.cgColor)
-        gradient.isHidden = colors.isEmpty
+        // Waiting (Arena's hourglass): a dark, see-through pill so the button's shape stays visible.
+        gradient.colors = colors.isEmpty ? [UIColor(white: 0.12, alpha: 0.55).cgColor, UIColor(white: 0.2, alpha: 0.55).cgColor]
+            : colors.map(\.cgColor)
+        gradient.isHidden = false
         gradient.frame = untapButton.bounds
         gradient.cornerRadius = untapButton.bounds.height / 2
-        gradient.borderColor = UIColor.white.withAlphaComponent(0.8).cgColor
-        gradient.borderWidth = colors.isEmpty ? 0 : 1.5
+        gradient.borderColor = UIColor.white.withAlphaComponent(colors.isEmpty ? 0.22 : 0.8).cgColor
+        gradient.borderWidth = colors.isEmpty ? 1 : 1.5
         untapButton.layer.cornerRadius = untapButton.bounds.height / 2
         untapButton.layer.shadowColor = (colors.first ?? .clear).cgColor
         untapButton.layer.shadowRadius = 10
