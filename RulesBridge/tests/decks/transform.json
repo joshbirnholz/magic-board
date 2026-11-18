@@ -1,0 +1,20 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Delver reveal and transform",
+    "main": [
+      {
+        "name": "Island",
+        "count": 24
+      },
+      {
+        "name": "Delver of Secrets",
+        "count": 18
+      },
+      {
+        "name": "Opt",
+        "count": 18
+      }
+    ]
+  }
+}

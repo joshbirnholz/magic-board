@@ -170,4 +170,6 @@ sh tests/decode-events.sh /absolute/path/events.jsonl
 
 Run this from the full repository checkout; the standalone server bundle does not include the iOS app source. This small command-line tool compiles the app's current `RulesProtocol.swift` directly with Swift, using a module cache under `build/`. It needs Xcode command-line tools; it does not start Xcode, a simulator, a bridge or an engine. It accepts multiple capture files and reports counts plus the exact file/line/field for decoding failures. Missing files, empty/incomplete captures and malformed messages return a nonzero exit code. It checks the wire schema, not game rules or UI behavior.
 
-Verified with 2,486 captured Jump In, Explore, distributed-damage, equipment, loyalty and flashback events; a deliberately missing `playerId` and a nonexistent file both fail with concise diagnostics.
+Verified with 2,844 captured Jump In, Explore, transform, distributed-damage, equipment, loyalty and flashback events; a deliberately missing `playerId` and a nonexistent file both fail with concise diagnostics.
+
+The bounded `transform` probe casts Delver of Secrets, answers its reveal decision, and requires the engine to expose Insectile Aberration as a transformed 3/2 before returning to priority. Its captured snapshots/prompts also decode with the app's Swift models. It verifies engine/wire state; the physical card-face rendering remains a separate UI check.

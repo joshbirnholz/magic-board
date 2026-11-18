@@ -465,6 +465,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
                                 if (name(card.getAsJsonObject()).equals("Arc Lightning")) observedPrompts.add("DIVIDED_DAMAGE_RESOLVED");
                         for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield")) {
                             JsonObject permanent = card.getAsJsonObject();
+                            if (name(permanent).equals("Insectile Aberration") && permanent.get("transformed").getAsBoolean()
+                                    && permanent.get("power").getAsString().equals("3") && permanent.get("toughness").getAsString().equals("2"))
+                                observedPrompts.add("TRANSFORMED_DELVER_3_2");
                             if (permanent.get("faceDown").getAsBoolean()) faceDownPermanents.add(permanent.get("id").getAsString());
                             if (System.getenv("RULES_SMOKE_SPECIAL_ACTION") != null
                                     && faceDownPermanents.contains(permanent.get("id").getAsString())
