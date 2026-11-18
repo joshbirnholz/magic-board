@@ -9,6 +9,7 @@ import java.util.*;
 final class CardPrintings {
     private record Printing(String name, String set, String number, long release) { }
     private static final class Index {
+        static final Map<String, String> BY_PRINTING = new HashMap<>();
         static final Map<String, List<Printing>> BY_NAME = build();
         private static Map<String, List<Printing>> build() {
             Map<String, List<Printing>> result = new HashMap<>();
@@ -16,6 +17,7 @@ final class CardPrintings {
                 for (ExpansionSet.SetCardInfo card : set.getSetCardInfo()) {
                     if (card.getCardClass() == null || card.getName() == null) continue;
                     Printing printing = new Printing(card.getName(), set.getCode(), card.getCardNumber(), set.getReleaseDate().getTime());
+                    BY_PRINTING.put(printingKey(printing.set, printing.number), printing.name);
                     result.computeIfAbsent(normalize(card.getName()), ignored -> new ArrayList<>()).add(printing);
                 }
             }
@@ -24,6 +26,15 @@ final class CardPrintings {
             result.values().forEach(printings -> printings.sort(preferred));
             return result;
         }
+    }
+
+    static String nameForPrinting(String set, String number) {
+        if (set == null || number == null) return null;
+        return Index.BY_PRINTING.get(printingKey(set, number));
+    }
+
+    private static String printingKey(String set, String number) {
+        return set.toLowerCase(Locale.ROOT) + ":" + number.toLowerCase(Locale.ROOT);
     }
 
     static DeckCardInfo resolve(String name, String set, String number, int count) {

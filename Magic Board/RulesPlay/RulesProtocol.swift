@@ -59,6 +59,11 @@ struct RulesPlayer: Decodable, Identifiable {
 }
 
 struct RulesSnapshot: Decodable {
+    struct CardGroup: Decodable, Identifiable {
+        let name: String
+        let cards: [RulesCard]
+        var id: String { name + ":" + cards.map(\.id).joined(separator: ",") }
+    }
     struct Priority: Decodable {
         let untilNextTurn: Bool
         let untilEndStep: Bool
@@ -87,6 +92,9 @@ struct RulesSnapshot: Decodable {
     let playableIds: [String]
     let combat: [CombatGroup]?
     var priority: Priority? = nil
+    /// Information XMage permits this seat to inspect, separate from answerable prompts.
+    var revealed: [CardGroup]? = nil
+    var lookedAt: [CardGroup]? = nil
 }
 
 enum RulesPriorityAction: String, Encodable {

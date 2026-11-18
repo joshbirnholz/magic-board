@@ -18,6 +18,7 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var notice = ""
     @Published private(set) var holdingPriority = false
     @Published private(set) var autoOrderTriggers = true
+    @Published private(set) var cardInformation: [RulesSnapshot.CardGroup] = []
     @Published var error: String?
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
@@ -28,6 +29,8 @@ final class RulesGameSession: ObservableObject {
     private let defaults: UserDefaults
     private let transport: URLSession
     private let decoder = JSONDecoder()
+    private var dismissedCardInformation: Set<String> = []
+    private var activeCardInformation: Set<String> = []
     private struct RetainedSeat: Codable {
         let endpoint: URL
         let token: String
@@ -65,6 +68,7 @@ final class RulesGameSession: ObservableObject {
             result = nil
             holdingPriority = false
             autoOrderTriggers = true
+            clearCardInformation()
         }
         endpoint = url
         disconnect()
@@ -136,6 +140,19 @@ final class RulesGameSession: ObservableObject {
         result = nil
         holdingPriority = false
         autoOrderTriggers = true
+        clearCardInformation()
+    }
+
+    /// These windows are informational: closing one must never answer an engine prompt.
+    func dismissCardInformation(_ id: String) {
+        dismissedCardInformation.insert(id)
+        cardInformation.removeAll { $0.id == id }
+    }
+
+    private func clearCardInformation() {
+        cardInformation = []
+        dismissedCardInformation = []
+        activeCardInformation = []
     }
 
     private var unreadableReports = 0
@@ -250,6 +267,21 @@ final class RulesGameSession: ObservableObject {
         case "snapshot":
             let next = try decoder.decode(RulesSnapshot.self, from: data)
             if let old = snapshot, old.gameId == next.gameId, old.revision > next.revision { return }
+            if let old = snapshot, old.gameId != next.gameId { clearCardInformation() }
+            // XMage may clear these transient views on the very next priority update. Retain
+            // each permitted view until dismissed so a fast replay can't hide it before rendering.
+            let groups = ((next.revealed ?? []) + (next.lookedAt ?? [])).filter { !$0.cards.isEmpty }
+            let active = Set(groups.map(\.id))
+            // A later reveal of the same unchanged hand is a new opportunity to inspect it.
+            // Replays while that view is still active must respect the player's dismissal.
+            dismissedCardInformation.subtract(active.subtracting(activeCardInformation))
+            activeCardInformation = active
+            for group in groups {
+                guard !dismissedCardInformation.contains(group.id) else { continue }
+                if let index = cardInformation.firstIndex(where: { $0.name == group.name }) {
+                    cardInformation[index] = group
+                } else { cardInformation.append(group) }
+            }
             snapshot = next
         case "tables":
             struct TableList: Decodable { let tables: [RulesTable] }
@@ -274,6 +306,7 @@ final class RulesGameSession: ObservableObject {
                 RulesConnectionKey.delete(account: "retainedSeat")
                 snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; holdingPriority = false; autoOrderTriggers = true
                 result = nil; tables = []
+                clearCardInformation()
             }
             if status == .connecting { fail(message); return }
             error = message

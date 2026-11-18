@@ -37,7 +37,7 @@ public final class CombatSmoke {
         }
     }
 
-    private static void answer(BridgeTwoPlayerSmoke.Client client, JsonObject prompt, boolean attackingSeat) {
+    static void answer(BridgeTwoPlayerSmoke.Client client, JsonObject prompt, boolean attackingSeat) {
         String method = prompt.get("method").getAsString();
         String message = text(prompt, "message").toLowerCase(Locale.ROOT);
         JsonObject me = null;

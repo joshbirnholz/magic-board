@@ -11,7 +11,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - Two-human table creation/discovery/joining, distinct engine seats, and private opening hands.
 - Two human seats playing creatures, declaring attackers and assigning a legal blocker through real engine prompts.
 - A full game against AI completed through the shared Phone Play interface in the iOS simulator, using the corrected creature deck.
-- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. All 89 unit tests pass (68 normal Phone Play + 21 Rules), including automatic mana and combat-defender decoding regressions.
+- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. All 92 unit tests pass (68 normal Phone Play + 24 Rules), including automatic mana and combat-defender decoding regressions.
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
 - Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase, end step and our next turn, stopping and clearing each skip flag, and cancelling auto-pass. Resolve-stack also passed with a real creature spell on the stack, returning to priority with an empty stack and cleared skip flag.
@@ -74,14 +74,16 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 ```sh
 mkdir -p build/test-classes
 javac --release 17 -encoding UTF-8 -cp "build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/test-classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
     java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
 
 `RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
 
-Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs, morph, nonzero X, hybrid mana and library search. Deck fixtures are in `tests/decks/`. The X probe casts Blaze with X=1, the hybrid probe casts Safehold Elite using Plains, and the search probe verifies that the chosen library card reaches the player's hand. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game. For local decoding diagnostics, `RULES_SMOKE_EVENTS=/path/to/events.jsonl` appends snapshot and prompt events from the probe (no authentication or connection events).
+Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs, morph, nonzero X, hybrid mana, library search, equip, loyalty abilities, cleanup discard, instant responses, distributed damage and pile choices. Deck fixtures are in `tests/decks/`. The X probe casts Blaze with X=1, the hybrid probe casts Safehold Elite using Plains, and the search probe verifies that the chosen library card reaches the player's hand. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game. For local decoding diagnostics, `RULES_SMOKE_EVENTS=/path/to/events.jsonl` appends snapshot and prompt events from the probe (no authentication or connection events).
+
+`PrivateLookSmoke` verifies private hand inspection with Gitaxian Probe on two real human seats. Set `RULES_LOOK_PUBLIC=1` to verify public Duress hand reveal instead. The tests check actual card IDs and a receipt-confirmed replay; private look data must never appear on the other seat.
 
 `SecondSeatBot` is a second human seat for the phone's two-player check. Start it against the bridge, then run `testRulesTwoPlayerGameAgainstASecondSeat` with `TEST_RUNNER_RULES_SECOND_SEAT=1`: the phone creates a waiting game, the bot joins and plays simply (keep, play a playable card, pay with lands, pass), the phone starts the game and plays four of its own cards, then exits (which concedes).
 
@@ -97,6 +99,8 @@ java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-c
 
 Set `TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS=ws://127.0.0.1:17183` when running the Rules UI tests `testRulesBlockDragAnswersTheFollowUpTarget`, `testRulesFullControlMenuReflectsEngineSetting`, `testRulesTriggerOrderingSelectsAnAbilityCard`, or `testRulesReconnectsAfterAppRelaunchAndClearsSeatOnExit`. They skip without that environment variable. The blocking fixture uses two attackers to require both blocker selection and a follow-up target answer; its `/ordering` route supplies two triggered abilities. `CombatSmoke` separately verifies legal blocker assignment with two real XMage human seats.
 
+For the bounded malformed-replay unit check, start `MalformedUpdateFixture` on loopback port 17184 with the same classpath/key, then set `TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS=ws://127.0.0.1:17184` for `RulesModeTests.testUnreadableReplaysStopRetryingWithoutDisconnecting`. The fixture deliberately repeats an invalid snapshot and closes the socket if the app asks for more than two replays. The test verifies the connection survives, the retry limit is respected and the player receives a recovery message. It skips without the fixture address.
+
 For the recovery check, build with `CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=-` on the simulator. An unsigned test build cannot access its Keychain. The signed simulator test has verified recovery across process termination/relaunch and deletion of the saved seat on explicit Exit Game. These fixture checks also verify the full-control menu and blocker dragging through a target prompt.
 
 ## Protocol and lifecycle
@@ -111,7 +115,7 @@ The Rules battlefield menu also switches between automatic and manual trigger or
 
 Prompts expose optional `queryType`, `subMessage`, `canCancel`, `specialActionAvailable` and `specialActionLabel`. Trigger ordering is `GAME_TARGET` / `PICK_ABILITY`: choose an ability ID from `cards`, first onto the stack first. Modes and alternative-cost ability menus use `choices`; ability-menu IDs are sent to XMage as UUIDs. Unknown future dialog methods are marked unsupported.
 
-Events include `tables`, `tableJoined`, `snapshot`, `prompt`, `promptCleared`, `gameOver`, `notice`, `engineDisconnected`, and `error`. Snapshots contain only the seat's own hand, public card data and hidden-zone counts. Phase, step and priority may be absent during setup. A combat group may lack `defenderId` briefly after an attacked permanent leaves play; clients must still accept that snapshot. Phone Play receives a display projection, including anonymous backs for hidden zones; it never receives the opponent's hand identities.
+Events include `tables`, `tableJoined`, `snapshot`, `prompt`, `promptCleared`, `gameOver`, `notice`, `engineDisconnected`, and `error`. Snapshots contain the seat's own hand, public card data and hidden-zone counts. Optional `revealed` and `lookedAt` arrays carry named card groups only as permitted by that seat's XMage view. Lightweight looked-at cards include printing identity and a name when the release metadata provides it. Phase, step and priority may be absent during setup. A combat group may lack `defenderId` briefly after an attacked permanent leaves play; clients must still accept that snapshot. Phone Play receives a display projection, including anonymous backs for hidden zones; it never receives the opponent's hand identities.
 
 Disconnecting retains the bridge session for up to 15 minutes. Reconnecting resends its latest snapshot, pending prompt and final game result if already finished. The bridge keeps at most four sessions; a new connection at capacity reclaims the oldest disconnected session, never a connected player. Explicit `leave`, reclamation or expiry closes the XMage session. Bridge/server restarts do not preserve sessions. The phone stores its endpoint and resume token in the device Keychain, so a relaunched app offers Reconnect. An expired-session response clears the saved seat; Connect then starts fresh. Explicit Exit Game clears the saved seat too. Secure relaunch recovery passed in the signed simulator; physical-device verification remains.
 

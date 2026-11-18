@@ -4,6 +4,35 @@ import CardService
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testTransientCardInformationRemainsVisibleAndDismissedReplaysStayClosed() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_RECOVERY_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS to the local fixture")
+        }
+        let engine = RulesGameSession()
+        let previousKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = previousKey }
+        engine.connect(address: address + "/information", key: "rules-local-verification-key", resume: false)
+        let deadline = Date().addingTimeInterval(8)
+        while engine.status != .connected && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        guard engine.status == .connected else { XCTFail("Fixture did not connect: \(engine.error ?? "")"); return }
+        await engine.startAiGame()
+        while engine.notice != "Information replay 1" && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(engine.snapshot?.lookedAt?.count, 0, "The very next snapshot no longer contains the cards")
+        let group = try XCTUnwrap(engine.cardInformation.first)
+        XCTAssertEqual(group.cards.first?.id, "visible", "The transient information must survive until the player can read it")
+        engine.dismissCardInformation(group.id)
+        await engine.refreshTables()
+        while engine.notice != "Information replay 2" && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(engine.notice, "Information replay 2")
+        XCTAssertTrue(engine.cardInformation.isEmpty, "Identical replayed information must stay dismissed")
+        XCTAssertNil(engine.pendingRequest)
+        await engine.refreshTables()
+        while engine.notice != "Information replay 3" && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(engine.cardInformation.first?.id, group.id, "A later reveal of the same hand must be readable again")
+        await engine.endSession()
+        XCTAssertTrue(engine.cardInformation.isEmpty)
+    }
+
     func testUnreadableReplaysStopRetryingWithoutDisconnecting() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_RECOVERY_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS to the malformed-update fixture")
@@ -266,6 +295,22 @@ final class RulesModeTests: XCTestCase {
         let group = try XCTUnwrap(state.combat?.first)
         XCTAssertNil(group.defenderId)
         XCTAssertEqual(group.attackers, ["attacker"])
+    }
+
+    func testLookedAtCardsCanResolveAnImageFromPrintingWithoutAName() throws {
+        let json: [String: Any] = ["gameId": "g", "playerId": "me", "revision": 2, "turn": 1,
+                                  "hand": [], "stack": [], "players": [], "playableIds": [],
+                                  "lookedAt": [["name": "Opponent's hand", "cards": [[
+                                    "id": "visible", "set": "M10", "collectorNumber": "230",
+                                    "faceDown": false, "transformed": false, "counters": []]]]],
+                                  "revealed": []]
+        let state = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+        let card = try XCTUnwrap(state.lookedAt?.first?.cards.first)
+        XCTAssertNil(card.name)
+        XCTAssertEqual(card.set, "M10")
+        XCTAssertEqual(card.collectorNumber, "230")
+        XCTAssertEqual(state.lookedAt?.first?.name, "Opponent's hand")
+        XCTAssertEqual(state.revealed?.count, 0)
     }
 
     func testRulesDeckImportReusesExistingParserAndPreservesSideboard() throws {

@@ -380,6 +380,28 @@ final class XMageSession implements MageClient, AutoCloseable {
                     "untilStackResolved", me.isPassedUntilStackResolved()));
         }
         result.add("hand", cards(view.getMyHand().values()));
+        // These collections are already filtered by XMage for this seat. Never reconstruct
+        // another player's hidden hand from a shared or spectator view.
+        JsonArray revealed = new JsonArray(), lookedAt = new JsonArray();
+        if (view.getRevealed() != null) for (RevealedView group : view.getRevealed()) {
+            JsonObject item = object("name", group.getName() == null ? "Revealed cards" : group.getName());
+            item.add("cards", cards(group.getCards().values())); revealed.add(item);
+        }
+        if (view.getLookedAt() != null) for (LookedAtView group : view.getLookedAt()) {
+            JsonObject item = object("name", group.getName() == null ? "Looked at cards" : group.getName());
+            JsonArray visible = new JsonArray();
+            for (SimpleCardView card : group.getCards().values()) {
+                if (card instanceof CardView full) visible.add(cards(List.of(full)).get(0));
+                else {
+                    JsonObject face = object("id", card.getId(), "set", card.getExpansionSetCode(),
+                            "collectorNumber", card.getCardNumber(), "faceDown", false, "transformed", false,
+                            "name", CardPrintings.nameForPrinting(card.getExpansionSetCode(), card.getCardNumber()));
+                    face.add("counters", new JsonArray()); visible.add(face);
+                }
+            }
+            item.add("cards", visible); lookedAt.add(item);
+        }
+        result.add("revealed", revealed); result.add("lookedAt", lookedAt);
         JsonArray stack = cards(view.getStack().values());
         Map<UUID, UUID> seen = new HashMap<>();
         if (playerId != null) view.getMyHand().keySet().forEach(id -> seen.put(id, playerId));
