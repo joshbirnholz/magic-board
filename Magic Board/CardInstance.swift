@@ -120,6 +120,11 @@ final class CardInstance: NSObject, Codable {
     if representation.keywords.contains("Station") {
       return false
     }
+    // Like a Station card, an uncrewed Vehicle isn't a creature: it sits with the artifacts and
+    // enchantments until it's crewed (showing its power and toughness makes it one).
+    if let type = representation.typeLine, type.contains("Vehicle"), !type.contains("Creature") {
+      return false
+    }
     
 		return representation.power != nil || representation.toughness != nil
 	}

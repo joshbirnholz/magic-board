@@ -525,11 +525,12 @@ final class RulesPhoneAdapter {
             result.isTapped.accept(card.tapped ?? false)
             result.isSummoningSick.accept(card.summoningSick ?? false)
             if let colors = card.colors { result.colors.accept(colors.compactMap(MTGColor.init(rawValue:))) }
-            // XMage reports "0"/"0" for every object, lands included. Only creatures (and vehicles,
-            // which print theirs) show power and toughness; otherwise Phone Play treats the card as a
-            // creature and lands leave the land row.
+            // XMage reports "0"/"0" for every object, lands included. Only creatures show power and
+            // toughness; otherwise Phone Play treats the card as a creature and moves it to the
+            // creature row. A Vehicle is one only while crewed (XMage's type line then says Creature),
+            // so an uncrewed one sits with the artifacts and enchantments.
             let type = (card.typeLine ?? printed.typeLine ?? "")
-            let hasStats = type.contains("Creature") || type.contains("Vehicle")
+            let hasStats = type.contains("Creature")
             if hasStats, let power = card.power { result.power.accept(power) }
             if hasStats, let toughness = card.toughness { result.toughness.accept(toughness) }
             result.isPowerToughnessVisible.accept(hasStats && (card.power != nil || card.toughness != nil))
