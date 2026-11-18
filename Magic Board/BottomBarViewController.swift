@@ -666,6 +666,25 @@ extension BottomBarViewController {
                              status: rulesSession == nil ? status : rulesSession?.rulesPrimaryEnabled != true)
         untapButton.isEnabled = isLocal && (rulesSession.map { $0.connected && $0.rulesPrimaryEnabled } ?? !status)
         untapButton.accessibilityIdentifier = isLocal ? "phone-untap-local" : "phone-untap-opponent"
+        #if !BOARD_CONNECT
+        // Rules mode: hold the main button for Arena's pass shortcuts (XMage's own skip-ahead stops).
+        // Built once per game: replacing the menu on every board refresh could swap it out
+        // while it's open and drop the tapped action.
+        if isLocal, let session = rulesSession, let engine = session.rulesAdapter?.engine, untapButton.menu == nil {
+            func pass(_ title: String, _ image: String, _ action: RulesPriorityAction) -> UIAction {
+                UIAction(title: title, image: UIImage(systemName: image)) { _ in Task { await engine.controlPriority(action) } }
+            }
+            untapButton.menu = UIMenu(title: "Pass Until…", children: [
+                pass("Stack Resolves", "square.stack.3d.up", .resolveStack),
+                pass("Next Main Phase", "arrow.right.to.line", .nextMain),
+                pass("End Step", "forward.end", .endStep),
+                pass("My Next Turn", "forward.end.alt", .yourTurn)
+            ])
+            untapButton.showsMenuAsPrimaryAction = false
+        } else if rulesSession == nil, untapButton.menu != nil {
+            untapButton.menu = nil
+        }
+        #endif
         let expanded = isLocal && handViewController?.phonePresentation.isExpanded == true
         // The local hand always draws above the static HUD controls; it never pushes them around.
         if isLocal, handContainerView.superview === view {

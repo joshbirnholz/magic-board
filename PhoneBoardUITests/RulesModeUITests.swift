@@ -114,6 +114,26 @@ final class RulesModeUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         XCTAssertFalse(app.staticTexts["This choice is not supported yet."].exists)
+        // Arena's pass shortcuts: hold the main button and pass until our next turn.
+        let main = app.buttons["phone-untap-local"]
+        XCTAssertTrue(main.waitForExistence(timeout: 5))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: main)
+        waitForExpectations(timeout: 15)
+        main.press(forDuration: 1.0)
+        let nextTurn = app.buttons["My Next Turn"]
+        XCTAssertTrue(nextTurn.waitForExistence(timeout: 5), "Holding the main button should offer pass shortcuts")
+        nextTurn.tap()
+        // XMage skips ahead to our next turn: the opponent's turn passes without our input, and our
+        // draw step adds a card to the hand before our main phase asks again.
+        let handBefore = hand.count
+        let turnLater = Date().addingTimeInterval(90)
+        while Date() < turnLater {
+            if hand.count > handBefore, message.exists, message.label.localizedCaseInsensitiveContains("Play spells") { break }
+            Thread.sleep(forTimeInterval: 1)
+        }
+        XCTAssertGreaterThan(hand.count, handBefore, "Passing to our next turn should draw a card")
+        XCTAssertTrue(message.exists && message.label.localizedCaseInsensitiveContains("Play spells"),
+                      "Passing to our next turn should come back to our main phase: \(message.exists ? message.label : "")")
     }
     /// Plays a whole game against the XMage AI through the Phone Play interface, the way a person
     /// would: keep, drag playable cards from the hand, tap lands to pay, tap creatures to attack,
