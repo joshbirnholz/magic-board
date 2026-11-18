@@ -288,7 +288,7 @@ struct RulesPromptModal: View {
     var body: some View {
         ZStack {
             if isVisible, !minimized {
-                Color.black.opacity(0.62).ignoresSafeArea()
+                Color.black.opacity(0.78).ignoresSafeArea()
                 content
                     .padding(.horizontal, 24).padding(.vertical, 16)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -503,7 +503,11 @@ struct RulesPromptModal: View {
                             Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
                                 .buttonStyle(.plain)
                                 .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
-                                .opacity(session.prompt?.isCardSelectable(card.id) == false ? 0.45 : 1)
+                                // Dimmed, not see-through: the battlefield under the browser showed through
+                                // cards that can't be chosen (Josh's screenshot).
+                                .brightness(session.prompt?.isCardSelectable(card.id) == false ? -0.4 : 0)
+                                .saturation(session.prompt?.isCardSelectable(card.id) == false ? 0.35 : 1)
+                                .background(RoundedRectangle(cornerRadius: height * 0.045).fill(Color.black))
                                 .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                         } else {
                             RulesChoiceCardFace(card: card, height: height)
