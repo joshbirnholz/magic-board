@@ -2,8 +2,9 @@
 
 Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coordination record outside git, including active task claims and the shared simulator lock. Claude and Codex are both working; check ownership there before editing shared files.
 
-## Latest integration work (11:04 AM ET)
+## Latest integration work (11:08 AM ET)
 
+- Short card rows are centred with a viewport-sized minimum width; large rows still scroll. The question-image centring and eligible-card-picker interactions both pass (42.6 s combined), after the complete 97-unit/3-UI run.
 - Prompt polish: compact board-target duplicate instruction removed (raw accessibility prompt and player/Done controls preserved); fast-forward skip actions disabled outside an answerable GAME_SELECT. Question images have no button trait. Full 97 units + 3 focused UI pass, log `/private/tmp/rules-question-and-controls-ui.log`.
 - **94aa9db**: question-card context from currently seat-visible revealed/looked-at cards. Pure Java context/privacy tests and a real Merfolk Branchwalker Explore choice pass (matching card in Yes/No prompt, then graveyard). UI now displays that image and acknowledges fully displayed information groups to avoid reopening them; all 97 units and three focused UI checks pass: visible question image/one answer/no duplicate information, banner/disabled skip controls during targeting, and normal sandbox tap/drag.
 - Arena round integrated: Claude `334bfc8` (random first player, shared opening-hand browser, no Rules stack drop zone, auto-pay menu wording) and `b58ac00` (main pill, phase row, attack/cancel/fast-forward controls). Latest merge `fb8b888`. All 28 required post-merge Rules units pass. Combined banner UI passes (26.5 s): blocker selection → target instruction → completed blocking. A test-only setup fix dismisses the keyboard before form actions; no app change was needed for the earlier setup stall.
@@ -94,3 +95,11 @@ Read the coordination file's "Now" and "Ready to merge" first.
 Prioritize a stable first build Josh can test on his phone. Finish the current prompt checks and manual-trigger preference, then check physical/LAN setup if a device is available without disrupting the user. Windows startup and networking instructions are in `RulesBridge/README.md`.
 
 Commander command zones/import, registered accounts, broad card coverage, and further Arena polish remain future work. On-device Java/AOT is explicitly deferred. Josh's current instruction is to work autonomously, including Claude's tasks while it is away, and keep the coordination/handoff documents current for whichever agent resumes next.
+
+## Claude return at 11:10 AM ET
+
+Josh authorized Codex to cover Claude’s tasks only until this time, then return to the normal ownership split. All coverage edits are in `/private/tmp/MagicBoard-Rules` on `rules-mode-codex`; Claude’s folder was untouched. Merge that branch into `rules-mode-claude` before resuming. London vs Scry classification, two-mulligan deferred choice, target banner, skip-menu gating, and question-card images are implemented and verified. There are no pending UI source edits from Codex.
+
+The tested batch is being delivered to Josh’s main `rules-mode` checkout under the shared lock, preserving `xcschememanagement.plist`; the outside-git coordination file records the exact delivered commit and runtime PIDs. Windows PC bridge remains `0371f56` (Codex did not touch it). A future **single bridge-only PC update** should include normalization, card eligibility, reveal retention payloads and question context; coordinate that around Josh’s device testing. No XMage restart is needed.
+
+Potential next UI checks: long/full AI game using Jump In cards on device; confirm the new opening-hand flow with more than one mulligan in a real engine game (the deterministic UI and real-engine protocol halves both pass); physical two-phone Rules game remains unverified. Existing prompt regression scripts cover the engine choices independently.
