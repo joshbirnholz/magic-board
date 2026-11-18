@@ -49,7 +49,7 @@ In another terminal, return to this repository's `RulesBridge` directory and run
 
 The server should have anonymous authentication enabled (the pinned release's default). The bridge currently creates a generated XMage username per phone. Registered-account login is not implemented.
 
-Allow the bridge's TCP port **17180** through Windows Firewall on your private network. Keep XMage's Java remoting port **17171** local to the PC. In Magic Board, choose **Connect to Rules Game**, enter `ws://YOUR-PC-ADDRESS:17180` and the matching connection key, then select **Play Against AI**. For two phones, one chooses **Create Two-Player Game**; the other selects that game from **Waiting Games**. The creator then selects **Start Game**. Both use the simple white creature test deck for now. Use a LAN or Tailscale address; do not expose the development bridge publicly. `ws://` does not encrypt the connection itself; Tailscale encrypts its private network traffic. `wss://` requires a TLS terminator in front of this bridge.
+Allow the bridge's TCP port **17180** through Windows Firewall on your private network. Keep XMage's Java remoting port **17171** local to the PC. In Magic Board, choose **Connect to Rules Game**, enter `ws://YOUR-PC-ADDRESS:17180` and the matching connection key, then select **Play Against AI**. For two phones, one chooses **Create Two-Player Game**; the other selects that game from **Waiting Games**. The creator then selects **Start Game**. Import your own deck or use the built-in white creature deck; the AI uses a copy of your selected deck. Use a LAN or Tailscale address; do not expose the development bridge publicly. `ws://` does not encrypt the connection itself; Tailscale encrypts its private network traffic. `wss://` requires a TLS terminator in front of this bridge.
 
 Windows scripts are supplied but have not yet been executed on Windows. Startup/service configuration will follow once the game UI is verified.
 
@@ -64,14 +64,16 @@ sh run.sh
 
 Default bind is loopback (`127.0.0.1`), port 17180. Optional environment variables: `RULES_BRIDGE_BIND`, `RULES_BRIDGE_PORT`, `XMAGE_HOST`, `XMAGE_PORT`. The engine defaults to `127.0.0.1:17171`.
 
-Real-engine integration check, after starting both processes:
+Real-engine integration checks, after starting both processes (from `RulesBridge/`):
 
 ```sh
-javac --release 17 -cp "$XMAGE_HOME/mage-client/lib/*" -d build/classes tests/BridgeSmoke.java
-java -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" BridgeSmoke
-javac --release 17 -cp "$XMAGE_HOME/mage-client/lib/*" -d build/classes tests/BridgeTwoPlayerSmoke.java
-java -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" BridgeTwoPlayerSmoke
+javac --release 17 -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" -d build/classes tests/*.java
+for check in BridgeSmoke BridgeTwoPlayerSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+    java -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
+done
 ```
+
+`RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
 
 ## Protocol and lifecycle
 
