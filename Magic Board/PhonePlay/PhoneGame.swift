@@ -73,6 +73,12 @@ struct PhoneGame: Codable {
         var id = UUID()
         var firstPlayer: Player.Identifier
         var deciding: Set<String> = []
+        /// Rules mode (Arena's London mulligan): the hand size "Keep N" keeps, how many cards a
+        /// mulligan will return, and while returning, how many cards are still to go to the bottom.
+        /// Nil in sandbox games.
+        var keepCount: Int? = nil
+        var mulliganReturns: Int? = nil
+        var returning: Int? = nil
     }
     var opening: Opening? = nil
     /// Hand smoothing for the first hand of a game, as the iPad app does for JumpStart and Jump In:

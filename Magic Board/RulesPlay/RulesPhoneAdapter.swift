@@ -14,6 +14,11 @@ final class RulesPhoneAdapter {
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
+    /// Arena's London mulligan on top of XMage's order: XMage asks for bottom cards right after a
+    /// mulligan, before the next keep question. The app holds that question, shows Keep / Mulligan,
+    /// and only asks for the cards once the player keeps.
+    private enum MulliganChoice { case undecided, keeping, mulliganing }
+    private var mulliganChoice = MulliganChoice.undecided
     /// The prompt that was showing when the gesture chose its target (still showing until the engine moves on).
     private var pendingTargetPromptID: String?
     private var hiddenIDs: [String: UUID] = [:]
@@ -64,6 +69,18 @@ final class RulesPhoneAdapter {
            let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(land)) }
+        }
+        // The London mulligan's deferred answers (see MulliganChoice).
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected {
+            if prompt.isLondonBottom, mulliganChoice == .mulliganing, let card = prompt.targets?.first {
+                autoPassedPromptID = prompt.id
+                Task { [weak self] in await self?.engine.answer(.object(card)) }
+            } else if prompt.isMulligan, mulliganChoice != .undecided {
+                let again = mulliganChoice == .mulliganing
+                autoPassedPromptID = prompt.id
+                mulliganChoice = .undecided
+                Task { [weak self] in await self?.engine.answer(.boolean(again)) }
+            }
         }
         // Who plays first is decided at random (Josh), not asked.
         if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected, prompt.isStartingPlayer,
@@ -212,12 +229,44 @@ final class RulesPhoneAdapter {
 
     /// While XMage asks "Mulligan?", Phone Play's opening-hand browser shows the hand (Keep / Mulligan).
     private func openingHand(for prompt: RulesPrompt?) -> PhoneGame.Opening? {
-        guard let prompt, prompt.isMulligan else { return nil }
+        guard let prompt, prompt.isMulligan || prompt.isLondonBottom else { return nil }
         // The browser's title says who goes first ("You Go First"): the engine's starting player.
         let snapshot = engine.snapshot
         let first: Player.Identifier = snapshot?.activePlayerId.map { $0 == snapshot?.playerId ? .a : .b } ?? .a
-        return PhoneGame.Opening(id: UUID(uuidString: prompt.id) ?? Self.stableID(prompt.id), firstPlayer: first,
-                                 deciding: [phone?.player.rawValue ?? Player.Identifier.a.rawValue])
+        // Returning cards after Keep is a new opening (the browser closed when Keep was tapped).
+        let key = mulliganChoice == .keeping ? prompt.id + "-return" : prompt.id
+        var opening = PhoneGame.Opening(id: UUID(uuidString: key) ?? Self.stableID(key), firstPlayer: first,
+                                        deciding: [phone?.player.rawValue ?? Player.Identifier.a.rawValue])
+        let text = RulesText.plain(prompt.message ?? "")
+        if prompt.isMulligan, let after = Self.firstNumber(in: text, after: "down to") {
+            // "Mulligan down to 6 cards?": you'd keep 7 now, and a mulligan returns 1.
+            opening.keepCount = after + 1
+            opening.mulliganReturns = 7 - after
+        } else if prompt.isLondonBottom {
+            // "Select a card (2 more) to put on the bottom of your library". XMage asks this right
+            // after a mulligan; like Arena, the new seven is shown with Keep / Mulligan first, and
+            // the cards are only chosen once the player keeps.
+            let remaining = Self.firstNumber(in: text, after: "(") ?? 1
+            if mulliganChoice == .keeping {
+                opening.returning = remaining
+            } else {
+                let handSize = engine.snapshot?.hand.count ?? 7
+                opening.keepCount = handSize - remaining
+                opening.mulliganReturns = remaining + 1
+            }
+        }
+        return opening
+    }
+
+    /// Re-applies the current prompt after a Keep / Mulligan choice that XMage hasn't asked about yet.
+    private func refreshMulligan() {
+        updateStatus(engine.status, prompt: engine.prompt, pending: engine.pendingRequest, holdingPriority: engine.holdingPriority)
+    }
+
+    static func firstNumber(in text: String, after marker: String) -> Int? {
+        guard let range = text.range(of: marker) else { return nil }
+        let digits = text[range.upperBound...].drop { !$0.isNumber }.prefix { $0.isNumber }
+        return Int(digits)
     }
 
     /// A UUID derived from a prompt ID that isn't one itself, so the same prompt keeps the same opening.
@@ -281,6 +330,9 @@ final class RulesPhoneAdapter {
         case .castTargeting(let id, let target):
             pendingTarget = target
             await choose(id)
+        case .moveToPlayer(let id, .library, _, bottom: true) where engine.prompt?.isLondonBottom == true:
+            // Dragging a card to the library during the mulligan: XMage's "put on the bottom".
+            await engine.answer(.object(id.uuidString.lowercased()))
         case .attachDroppedCard(let id, let target):
             // Dropped onto a permanent: play it, with that permanent as its target if it needs one
             // (an Aura). A land dropped on another land just plays.
@@ -291,8 +343,25 @@ final class RulesPhoneAdapter {
             await choose(id)
         case .resolve, .untap, .untapAndDraw, .beginCombat, .endCombat, .endTurn:
             await pressMain()
-        case .keepHand: await engine.answer(.boolean(false))
-        case .mulligan: await engine.answer(.boolean(true))
+        case .keepHand:
+            if engine.prompt?.isLondonBottom == true {
+                // Keep this hand: now choose which cards go to the bottom ("Return N Cards").
+                mulliganChoice = .keeping
+                refreshMulligan()
+            } else {
+                mulliganChoice = .undecided
+                await engine.answer(.boolean(false))
+            }
+        case .mulligan:
+            if engine.prompt?.isLondonBottom == true {
+                // Mulligan again: which cards go to the bottom doesn't matter (the hand is shuffled
+                // away), so they're returned automatically and the mulligan is taken.
+                mulliganChoice = .mulliganing
+                refreshMulligan()
+            } else {
+                mulliganChoice = .undecided
+                await engine.answer(.boolean(true))
+            }
         case .reorderHand(let ids):
             let hand = presentation.state.player1.hand.cards.value.contents
             presentation.state.player1.hand.cards.accept(OrderedSet(ids.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !ids.contains($0.uuid) }))

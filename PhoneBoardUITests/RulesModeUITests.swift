@@ -704,8 +704,62 @@ final class RulesModeUITests: XCTestCase {
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
 
+    /// Arena's London mulligan in a Rules game: Mulligan once, drag the returned card to the Library
+    /// zone ("Return 1 Card"), then Keep 6, as a person would.
+    @MainActor func testRulesMulliganReturnsACardByDraggingItToTheLibrary() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--rules-ui-test"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
+        app.buttons["start-rules"].tap()
+        let address = app.textFields["rules-server-address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 5))
+        address.tap()
+        if let value = address.value as? String { address.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        address.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_ADDRESS"] ?? "ws://127.0.0.1:17180")
+        let key = app.secureTextFields["rules-connection-key"]
+        key.tap()
+        if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
+        XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
+        waitForExpectations(timeout: 10)
+        app.buttons["rules-start-ai"].tap()
+        let keep7 = app.buttons["Keep 7"]
+        XCTAssertTrue(keep7.waitForExistence(timeout: 30), "Arena's Keep 7: \(app.buttons.allElementsBoundByIndex.map(\.label))")
+        XCTAssertTrue(app.staticTexts["You will return 1 card to the bottom of your library."].exists)
+        app.buttons["Mulligan"].tap()
+        // Arena: the new seven with Keep 6 / Mulligan; the card to return is chosen only on Keep.
+        let keep6 = app.buttons["Keep 6"]
+        XCTAssertTrue(keep6.waitForExistence(timeout: 20), "After a mulligan: a new seven, Keep 6 / Mulligan")
+        XCTAssertTrue(app.staticTexts["You will return 2 cards to the bottom of your library."].exists)
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "phone-browser-card").count, 7, "The whole new seven is shown")
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Rules mode — Keep 6 after a mulligan"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        keep6.tap()
+        let title = app.staticTexts["Return 1 Card"]
+        XCTAssertTrue(title.waitForExistence(timeout: 20), "Keeping six asks which card goes to the bottom")
+        XCTAssertTrue(app.staticTexts["Drag 1 card to the bottom of your library."].exists)
+        let zone = app.descendants(matching: .any)["phone-browser-zone-battlefield"]
+        XCTAssertTrue(zone.exists, "The Library zone to drag to")
+        let card = app.descendants(matching: .any).matching(identifier: "phone-browser-card").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.press(forDuration: 0.6, thenDragTo: zone, withVelocity: 300, thenHoldForDuration: 0.6)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.waitForExistence(timeout: 20),
+                      "After returning the card, the game starts with the kept six")
+        let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
+        XCTAssertLessThanOrEqual(hand.count, 7, "Six kept, plus at most one draw")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
+    }
+
     /// The opening hand's Keep button: Phone Play's opening-hand browser ("Keep").
     private func keepButton(_ app: XCUIApplication) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label == 'Keep' OR label == 'Keep Hand'")).firstMatch
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Keep'")).firstMatch
     }
 }

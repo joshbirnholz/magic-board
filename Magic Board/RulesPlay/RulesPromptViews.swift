@@ -16,6 +16,7 @@ extension RulesPrompt {
         case "GAME_SELECT", "GAME_PLAY_MANA", "GAME_PLAY_XMANA": return .compact
         // The opening hand uses Phone Play's opening-hand browser; who starts is chosen at random.
         case "GAME_ASK" where isMulligan: return .compact
+        case "GAME_TARGET" where isLondonBottom: return .compact
         case "GAME_TARGET" where isStartingPlayer: return .compact
         case "GAME_TARGET": return (cards?.isEmpty == false || isStartingPlayer) ? .modal : .compact
         default: return .modal
@@ -23,6 +24,8 @@ extension RulesPrompt {
     }
     var isStartingPlayer: Bool { message?.localizedCaseInsensitiveContains("starting player") == true }
     var isMulligan: Bool { method == "GAME_ASK" && message?.localizedCaseInsensitiveContains("mulligan") == true }
+    /// XMage's London mulligan: "Select a card (N more) to put on the bottom of your library".
+    var isLondonBottom: Bool { method == "GAME_TARGET" && message?.localizedCaseInsensitiveContains("bottom of your library") == true }
     /// XMage's message without markup or the object-id suffixes it appends ("Silence [50d]").
     var plainMessage: String {
         RulesText.plain(message ?? "Choose an action")
@@ -123,6 +126,12 @@ struct RulesPromptBar: View {
                     }
                 }
             }
+        case "GAME_TARGET" where prompt.isLondonBottom:
+            // The opening-hand browser shows "Return N Cards"; nothing extra over it.
+            Color.clear.frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityLabel(prompt.plainMessage)
+                .accessibilityIdentifier("rules-prompt-message")
         case "GAME_TARGET":
             strip {
                 RulesSymbolText(text: prompt.plainMessage, size: 17, beleren: true).foregroundStyle(.white)
