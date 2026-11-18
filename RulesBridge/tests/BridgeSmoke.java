@@ -140,6 +140,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         int lifeBeforeResponse = Integer.MAX_VALUE;
         Set<String> chosenPile = new HashSet<>();
         Set<String> dividedTargets = new HashSet<>();
+        String graveyardCast = null;
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
@@ -229,6 +230,19 @@ public final class BridgeSmoke implements WebSocket.Listener {
                                     observedPrompts.add("PERMANENT_ACTIVATED");
                                     specialTrace = 6;
                                     break;
+                                }
+                            }
+                        }
+                    }
+                    String recast = System.getenv("RULES_SMOKE_RECAST");
+                    if (recast != null && currentState.getAsJsonArray("stack").isEmpty()) {
+                        for (JsonElement player : currentState.getAsJsonArray("players")) {
+                            if (!player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) continue;
+                            for (JsonElement item : player.getAsJsonObject().getAsJsonArray("graveyard")) {
+                                JsonObject card = item.getAsJsonObject();
+                                if (name(card).equals(recast) && playable.contains(card.get("id").getAsString())) {
+                                    object = card.get("id").getAsString(); graveyardCast = object;
+                                    observedPrompts.add("GRAVEYARD_CAST_SELECTED"); specialTrace = 6; break;
                                 }
                             }
                         }
@@ -394,6 +408,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
                                 if (card.getAsJsonObject().get("id").getAsString().equals(discardedCard))
                                     observedPrompts.add("CLEANUP_CARD_DISCARDED");
                         }
+                        if (graveyardCast != null) for (JsonElement card : player.getAsJsonObject().getAsJsonArray("exile"))
+                            if (card.getAsJsonObject().get("id").getAsString().equals(graveyardCast)) observedPrompts.add("FLASHBACK_EXILED");
                         if (observedPrompts.contains("OPPONENT_TURN_INSTANT_CAST")
                                 && player.getAsJsonObject().get("life").getAsInt() >= lifeBeforeResponse + 3L)
                             observedPrompts.add("INSTANT_RESPONSE_GAINED_LIFE");
