@@ -110,9 +110,14 @@ struct RulesPromptBar: View {
                 RulesSymbolText(text: prompt.plainMessage, size: 18, beleren: true).foregroundStyle(.white)
                     .accessibilityIdentifier("rules-prompt-message")
                 Text("Tap your lands to pay.").font(.caption).foregroundStyle(.white.opacity(0.7))
+                    .accessibilityHidden(true)
                 HStack {
                     answer("Cancel", .boolean(false), primary: false)
                     if prompt.method == "GAME_PLAY_XMANA" { answer("Done", .boolean(true)) }
+                    // With automatic payment turned off, one tap still pays with a fitting basic land.
+                    if !RulesPhoneAdapter.autoPaysMana, let land = RulesPhoneAdapter.autoPayLand(prompt, snapshot: session.snapshot) {
+                        answer("Auto", .object(land)).accessibilityIdentifier("rules-auto-pay")
+                    }
                 }
             }
         case "GAME_TARGET":
