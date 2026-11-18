@@ -181,6 +181,28 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(sandbox.state.player1.life.value, 22)
     }
 
+    func testAutomaticManaLeavesRestrictedLandsManualAndRecognizesWastes() throws {
+        func pay(name: String, type: String, cost: String, sick: Bool = false) throws -> String? {
+            let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+                "gameId": "g", "playerId": "me", "revision": 1, "turn": 3, "hand": [], "stack": [], "playableIds": [],
+                "players": [["id": "me", "name": "Me", "life": 20, "handCount": 0, "libraryCount": 0,
+                             "graveyard": [], "exile": [], "battlefield": [[
+                                "id": "land", "name": name, "faceDown": false, "transformed": false,
+                                "typeLine": type, "tapped": false, "summoningSick": sick, "counters": []]]]]] as [String: Any]))
+            let prompt = try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": "GAME_PLAY_MANA", "revision": 1, "supported": true,
+                "choices": [], "message": "Pay " + cost] as [String: Any]))
+            return RulesPhoneAdapter.autoPayLand(prompt, snapshot: snapshot)
+        }
+        XCTAssertNil(try pay(name: "Murmuring Bosk", type: "Land — Forest", cost: "{G}"))
+        XCTAssertNil(try pay(name: "Dryad Arbor", type: "Land Creature — Forest Dryad", cost: "{G}", sick: true))
+        XCTAssertNil(try pay(name: "Forest", type: "Basic Land Creature — Forest", cost: "{G}", sick: true))
+        XCTAssertEqual(try pay(name: "Snow-Covered Forest", type: "Basic Snow Land — Forest", cost: "{G}"), "land")
+        XCTAssertEqual(try pay(name: "Wastes", type: "Basic Land", cost: "{C}"), "land")
+        XCTAssertEqual(try pay(name: "Wastes", type: "Basic Land", cost: "{1}"), "land")
+        XCTAssertNil(try pay(name: "Wastes", type: "Basic Land", cost: "{W}"))
+    }
+
     func testRulesAddressValidationAndDefaultPort() throws {
         XCTAssertEqual(try RulesEndpoint.parse("my-pc.local").absoluteString, "ws://my-pc.local:17180")
         XCTAssertEqual(try RulesEndpoint.parse("wss://example.test:443/rules").scheme, "wss")
