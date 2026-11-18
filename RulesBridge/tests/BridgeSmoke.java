@@ -138,6 +138,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
         int lifeBeforeActivation = Integer.MAX_VALUE;
         String discardedCard = null;
         int lifeBeforeResponse = Integer.MAX_VALUE;
+        Set<String> chosenPile = new HashSet<>();
+        Set<String> dividedTargets = new HashSet<>();
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
@@ -248,11 +250,21 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         }
                     }
                 }
-                if (method.equals("GAME_TARGET") && nextPrompt.has("targets")
+                java.util.regex.Matcher selectedCount = java.util.regex.Pattern.compile("selected (\\d+) of (\\d+)")
+                        .matcher(nextPrompt.has("message") ? nextPrompt.get("message").getAsString() : "");
+                boolean hasSelectedCount = selectedCount.find();
+                boolean dividing = method.equals("GAME_TARGET") && nextPrompt.get("message").getAsString().contains("to divide");
+                if (dividing && hasSelectedCount && selectedCount.group(1).equals("0")) dividedTargets.clear();
+                boolean targetsComplete = method.equals("GAME_TARGET") && hasSelectedCount
+                        && Integer.parseInt(selectedCount.group(1)) >= Integer.parseInt(selectedCount.group(2));
+                if (method.equals("GAME_TARGET") && !targetsComplete && nextPrompt.has("targets")
                         && nextPrompt.getAsJsonArray("targets").size() > 0) {
-                    object = nextPrompt.getAsJsonArray("targets").get(0).getAsString();
+                    for (JsonElement target : nextPrompt.getAsJsonArray("targets")) {
+                        if (!dividing || !dividedTargets.contains(target.getAsString())) { object = target.getAsString(); break; }
+                    }
+                    if (dividing && object != null) dividedTargets.add(object);
                 }
-                if (method.equals("GAME_TARGET") && object == null
+                if (method.equals("GAME_TARGET") && !targetsComplete && object == null
                         && !nextPrompt.getAsJsonArray("cards").isEmpty()) {
                     object = nextPrompt.getAsJsonArray("cards").get(0).getAsJsonObject().get("id").getAsString();
                     if (searchOnStack) searchedCard = object;
@@ -307,6 +319,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         paidX = amount > 0;
                     }
                     answer.addProperty("kind", "integer"); answer.addProperty("value", amount);
+                } else if (method.equals("GAME_GET_MULTI_AMOUNT")) {
+                    JsonArray amounts = new JsonArray();
+                    for (JsonElement row : nextPrompt.getAsJsonArray("amounts")) amounts.add(row.getAsJsonObject().get("defaultValue"));
+                    answer.addProperty("kind", "amounts"); answer.add("value", amounts);
                 } else if (method.equals("GAME_PLAY_MANA") || method.equals("GAME_PLAY_XMANA") && !paidX) {
                     for (JsonElement player : currentState.getAsJsonArray("players")) {
                         if (!player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) continue;
@@ -325,6 +341,11 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     boolean yes = method.equals("GAME_SELECT") || method.equals("GAME_PLAY_XMANA")
                             || method.equals("GAME_ASK") && !nextPrompt.get("message").getAsString().toLowerCase().contains("mulligan");
                     answer.addProperty("value", yes);
+                    if (method.equals("GAME_CHOOSE_PILE")) {
+                        chosenPile.clear();
+                        for (JsonElement card : nextPrompt.getAsJsonArray(yes ? "cards" : "secondPile"))
+                            chosenPile.add(card.getAsJsonObject().get("id").getAsString());
+                    }
                 }
                 JsonArray offered = new JsonArray();
                 if (nextPrompt.has("cards")) nextPrompt.getAsJsonArray("cards").forEach(card -> offered.add(card.getAsJsonObject().get("id")));
@@ -361,6 +382,11 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (playable.contains(card.getAsJsonObject().get("id").getAsString())) playableHandCards.add(name(card.getAsJsonObject()));
                     if (searchedCard != null) for (JsonElement card : event.getAsJsonArray("hand"))
                         if (card.getAsJsonObject().get("id").getAsString().equals(searchedCard)) observedPrompts.add("LIBRARY_CARD_TO_HAND");
+                    if (!chosenPile.isEmpty()) {
+                        Set<String> handIds = new HashSet<>();
+                        for (JsonElement card : event.getAsJsonArray("hand")) handIds.add(card.getAsJsonObject().get("id").getAsString());
+                        if (handIds.containsAll(chosenPile)) observedPrompts.add("CHOSEN_PILE_TO_HAND");
+                    }
                     for (JsonElement player : event.getAsJsonArray("players")) {
                         if (!player.getAsJsonObject().get("id").getAsString().equals(me)) continue;
                         if (discardedCard != null && player.getAsJsonObject().get("handCount").getAsInt() <= 7) {
@@ -371,6 +397,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (observedPrompts.contains("OPPONENT_TURN_INSTANT_CAST")
                                 && player.getAsJsonObject().get("life").getAsInt() >= lifeBeforeResponse + 3L)
                             observedPrompts.add("INSTANT_RESPONSE_GAINED_LIFE");
+                        if (observedPrompts.contains("DIVIDED_DAMAGE_SPELL_CAST"))
+                            for (JsonElement card : player.getAsJsonObject().getAsJsonArray("graveyard"))
+                                if (name(card.getAsJsonObject()).equals("Arc Lightning")) observedPrompts.add("DIVIDED_DAMAGE_RESOLVED");
                         for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield")) {
                             JsonObject permanent = card.getAsJsonObject();
                             if (permanent.get("faceDown").getAsBoolean()) faceDownPermanents.add(permanent.get("id").getAsString());
@@ -396,6 +425,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
                             if (name(object).equals("Blaze") && paidX) observedPrompts.add("NONZERO_X_SPELL_CAST");
                             if (name(object).equals("Safehold Elite")) observedPrompts.add("HYBRID_SPELL_CAST");
                             if (name(object).equals("Sylvan Scrying")) searchOnStack = true;
+                            if (name(object).equals("Arc Lightning")) observedPrompts.add("DIVIDED_DAMAGE_SPELL_CAST");
                             if (name(object).equals("Revitalize") && System.getenv("RULES_SMOKE_RESPOND") != null
                                     && !event.get("activePlayerId").equals(event.get("playerId"))
                                     && event.getAsJsonArray("stack").size() >= 2)

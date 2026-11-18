@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: damage",
+    "main": [
+      {
+        "name": "Mountain",
+        "count": 30
+      },
+      {
+        "name": "Arc Lightning",
+        "count": 18
+      },
+      {
+        "name": "Goblin Piker",
+        "count": 12
+      }
+    ],
+    "sideboard": []
+  }
+}

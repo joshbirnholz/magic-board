@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: piles",
+    "main": [
+      {
+        "name": "Island",
+        "count": 36
+      },
+      {
+        "name": "Fact or Fiction",
+        "count": 18
+      },
+      {
+        "name": "Coral Merfolk",
+        "count": 6
+      }
+    ],
+    "sideboard": []
+  }
+}
