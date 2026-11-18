@@ -1669,6 +1669,18 @@ struct PhoneAbilityPanel: View {
     let text: String
     let width: CGFloat
     @State private var art: UIImage?
+    /// Rules mode fills in a placeholder's printing and colors later, in place.
+    @ObservedObject private var representation: ObservableBridge<CardRepresentation>
+    @ObservedObject private var colors: ObservableBridge<[MTGColor]>
+
+    init(source: CardInstance, text: String, width: CGFloat, art: UIImage? = nil) {
+        self.source = source
+        self.text = text
+        self.width = width
+        _art = State(initialValue: art)
+        representation = ObservableBridge(source.representedCardDidChange.map { source.representation }, initialValue: source.representation)
+        colors = ObservableBridge(source.colors)
+    }
 
     private typealias Layout = MTGCardView.AbilityLayout
     private var height: CGFloat { width / Layout.aspect }
@@ -1684,10 +1696,10 @@ struct PhoneAbilityPanel: View {
             .frame(width: Layout.art.width * width, height: Layout.art.height * height)
             .clipped()
             .offset(x: Layout.art.minX * width, y: Layout.art.minY * height)
-            if let frame = Self.frame(for: source) {
+            if let frame = Self.frame(for: representation.value, colors: colors.value, isCommander: source.isCommander.value) {
                 Image(uiImage: frame).resizable().frame(width: width, height: height)
             }
-            line(source.representation.name ?? "", size: Layout.titleSize, in: Layout.title)
+            line(representation.value.name ?? "", size: Layout.titleSize, in: Layout.title)
             line("Ability", size: Layout.typeSize, in: Layout.type)
             rulesText
                 .frame(width: Layout.rules.width * width, height: Layout.rules.height * height, alignment: .leading)
@@ -1696,10 +1708,11 @@ struct PhoneAbilityPanel: View {
         .frame(width: width, height: height, alignment: .topLeading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(source.representation.name ?? "") ability: \(text)")
-        .task(id: source.uuid) {
-            if let loaded = source.representation.imageIfLoaded(type: .art) { art = loaded; return }
-            let representation = source.representation
-            art = await Task.detached(priority: .userInitiated) { representation.image(type: .art) }.value
+        // Keyed by printing too: Rules mode can swap a placeholder for the real printing later.
+        .task(id: "\(source.uuid)|\(representation.value.card.scryfallID)") {
+            let shown = self.representation.value
+            if let loaded = shown.imageIfLoaded(type: .art) { art = loaded; return }
+            art = await Task.detached(priority: .userInitiated) { shown.image(type: .art) }.value
         }
     }
 
@@ -1753,18 +1766,19 @@ struct PhoneAbilityPanel: View {
     }
 
     /// The source's ability frame, colored like its mini card.
-    static func frame(for source: CardInstance) -> UIImage? {
-        let representation = source.representation
+    static func frame(for representation: CardRepresentation, colors engineColors: [MTGColor], isCommander: Bool) -> UIImage? {
+        // The engine's colors when it sent any; otherwise the printing's.
+        let colors = engineColors.isEmpty ? representation.card.colors ?? [] : engineColors
         var properties = MTGCardView.properties(
             includedIcons: .permanent, name: representation.name, manaCost: representation.manaCost,
             typeLine: representation.typeLine, oracleText: representation.oracleText,
-            colorInitials: source.colors.value.map { $0.initial }, fullArt: representation.fullArt,
+            colorInitials: colors.map { $0.initial }, fullArt: representation.fullArt,
             borderColor: representation.borderColor.rawValue, frame: representation.card.frame,
             frameEffects: representation.frameEffects, power: representation.power,
             toughness: representation.toughness, loyalty: representation.loyalty, layout: representation.layout,
             flavorName: representation.flavorName, isAltFace: false, keywords: representation.keywords,
-            securityStamp: representation.card.securityStamp, isCommander: source.isCommander.value)
-        properties.applyFrameColors(source.colors.value, isLand: representation.isLand, defaults: properties.colors)
+            securityStamp: representation.card.securityStamp, isCommander: isCommander)
+        properties.applyFrameColors(colors, isLand: representation.isLand, defaults: properties.colors)
         return MTGCardView.abilityFrame(for: properties)
     }
 }

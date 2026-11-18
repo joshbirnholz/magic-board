@@ -624,7 +624,12 @@ final class RulesPhoneAdapter {
             let controller = card.controllerId.map(seat) ?? snapshot.activePlayerId.map(seat) ?? .a
             // An ability shows its source card's art (Arena), with the ability's text over it.
             let ability = card.ability == true
+            // An ability takes its source's printing and colors when the source is visible, so its
+            // frame and art match the source's mini card.
+            let source = ability ? card.sourceId.flatMap { id in allCards.first { $0.id == id } } : nil
+            if let source, models[card.id] == nil { models[card.id] = models[source.id] }
             let shown = ability && (card.name ?? "").isEmpty ? nil : try instance(card, owner: controller)
+            if let source, let colors = source.colors { shown?.colors.accept(colors.compactMap(MTGColor.init(rawValue:))) }
             var item = PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: shown, text: text, player: controller, targets: targets)
             if ability { item.isAbility = true }
             return item
