@@ -531,7 +531,7 @@ final class RulesModeUITests: XCTestCase {
             // Full-screen decisions: pick the first option or card, as a player might.
             let choice = app.buttons.matching(identifier: "rules-choice").firstMatch
             if choice.exists && choice.isHittable { choice.tap(); Thread.sleep(forTimeInterval: 0.8); continue }
-            let card = app.buttons.matching(identifier: "rules-card-choice").firstMatch
+            let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'rules-prompt-card-'")).firstMatch
             if card.exists && card.isHittable { card.tap(); Thread.sleep(forTimeInterval: 0.8); continue }
             for title in ["Confirm", "Yes", "Done"] where app.buttons[title].exists && app.buttons[title].isHittable {
                 app.buttons[title].tap(); Thread.sleep(forTimeInterval: 0.8); break
