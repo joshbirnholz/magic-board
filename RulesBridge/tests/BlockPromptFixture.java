@@ -21,6 +21,7 @@ public final class BlockPromptFixture extends WebSocketServer {
     private String stage = "select";
     private final String resumeToken = UUID.randomUUID().toString();
     private boolean hasGame;
+    private int pacingAnswers;
     private String initialStage = "select";
     private boolean holdingPriority;
     private boolean autoOrderTriggers = true;
@@ -39,7 +40,8 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/source") ? "sacrifice"
                 : request.getResourceDescriptor().endsWith("/mana") ? "mana"
                 : request.getResourceDescriptor().endsWith("/crew") ? "crew"
-                : request.getResourceDescriptor().endsWith("/ability") ? "ability" : "select";
+                : request.getResourceDescriptor().endsWith("/ability") ? "ability"
+                : request.getResourceDescriptor().endsWith("/pacing") ? "pacing" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -57,7 +59,7 @@ public final class BlockPromptFixture extends WebSocketServer {
             }
             case "listTables" -> { send(socket, object("type", "tables", "tables", new Object[]{})); ack(socket, request); }
             case "createAiGame" -> {
-                revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true;
+                revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true; pacingAnswers = 0;
                 holdingPriority = false; autoOrderTriggers = true;
                 ack(socket, request); snapshot(socket); prompt(socket);
             }
@@ -69,6 +71,13 @@ public final class BlockPromptFixture extends WebSocketServer {
             case "settings" -> { autoOrderTriggers = request.get("autoOrderTriggers").getAsBoolean(); settings(socket); ack(socket, request); }
             case "answer" -> {
                 String value = request.get("value").getAsString();
+                if (stage.equals("pacing")) {
+                    if (!request.get("kind").getAsString().equals("boolean") || !request.get("value").getAsBoolean()) throw new AssertionError("Expected priority pass");
+                    pacingAnswers++; stage = "paced"; revision++;
+                    send(socket, object("type", "promptCleared")); ack(socket, request); snapshot(socket); prompt(socket);
+                    send(socket, object("type", "notice", "message", "Paced answers " + pacingAnswers));
+                    return;
+                }
                 if (!request.get("kind").getAsString().equals("uuid")
                         || (stage.equals("select") && !value.equals(BLOCKER))
                         || (stage.equals("target") && !value.equals(FIRST) && !value.equals(SECOND))
@@ -100,6 +109,12 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void ack(WebSocket socket, JsonObject request) { send(socket, object("type", "ack", "requestId", request.get("requestId"))); }
     private void settings(WebSocket socket) { send(socket, object("type", "prioritySettings", "holdingPriority", holdingPriority, "autoOrderTriggers", autoOrderTriggers)); }
     private void prompt(WebSocket socket) {
+        if (stage.equals("pacing") || stage.equals("paced")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
+                    "revision", revision, "message", stage.equals("pacing") ? "Play instants and activated abilities" : "Play spells and abilities",
+                    "supported", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
+            return;
+        }
         if (stage.equals("ability")) {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
                     "revision", revision, "message", "Play instants and activated abilities", "supported", true,
@@ -172,10 +187,16 @@ public final class BlockPromptFixture extends WebSocketServer {
         }
         JsonObject theirs = object("id", THEM, "name", "Opponent", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(FIRST, true), card(SECOND, true)}, "graveyard", new Object[]{}, "exile", new Object[]{});
+        if (stage.equals("pacing")) {
+            JsonObject spell = card(TRIGGER_FIRST, false);
+            spell.addProperty("name", "Divination"); spell.addProperty("typeLine", "Sorcery"); spell.addProperty("controllerId", THEM);
+            spell.remove("set"); spell.remove("collectorNumber");
+            stack = new JsonObject[]{spell};
+        }
         Object[] combat = (stage.equals("attack") || stage.startsWith("mana")) ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
         send(socket, object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
                 "phase", "COMBAT", "step", stage.equals("attack") ? "DECLARE_ATTACKERS" : "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", stage.equals("attack") ? ME : THEM, "priorityPlayer", "You",
-                "hand", new Object[]{}, "stack", stack, "players", new Object[]{mine, theirs}, "playableIds", new String[]{BLOCKER}, "combat", combat));
+                "hand", new Object[]{}, "stack", stack, "players", new Object[]{mine, theirs}, "playableIds", stage.equals("pacing") ? new String[]{} : new String[]{BLOCKER}, "combat", combat));
     }
     private JsonObject group(String attacker) { return object("defenderId", ME, "attackers", new String[]{attacker}, "blockers", attacker.equals(selectedAttacker) ? new String[]{BLOCKER} : new String[]{}); }
     @Override public void onClose(WebSocket socket, int code, String reason, boolean remote) { }

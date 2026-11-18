@@ -262,6 +262,64 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
     }
 
+    func testOpponentSpellAutoPassWaitsAndRespectsFullControl() async throws {
+        try await withPacingFixture { engine, adapter in
+            try await Task.sleep(nanoseconds: 100_000_000)
+            XCTAssertEqual(engine.snapshot?.stack.count, 1, "Do not resolve the opponent's spell before it can be seen")
+            await engine.controlPriority(.hold)
+            try await self.waitForRulesCondition("hold priority") { engine.holdingPriority && engine.canAnswer }
+            try await Task.sleep(nanoseconds: 900_000_000)
+            XCTAssertEqual(engine.snapshot?.stack.count, 1, "Holding control cancels the scheduled pass")
+            let released = Date()
+            await engine.controlPriority(.release)
+            try await self.waitForRulesCondition("automatic pass after release") { engine.snapshot?.stack.isEmpty == true && engine.prompt?.plainMessage == "Play spells and abilities" && engine.notice == "Paced answers 1" }
+            XCTAssertGreaterThanOrEqual(Date().timeIntervalSince(released), 0.6)
+            XCTAssertEqual(engine.notice, "Paced answers 1")
+            XCTAssertNil(engine.error)
+            XCTAssertTrue(adapter.hasProjected)
+        }
+    }
+
+    func testManualPassCancelsOpponentSpellDelay() async throws {
+        try await withPacingFixture { engine, _ in
+            let pressed = Date()
+            await engine.answer(.boolean(true))
+            try await self.waitForRulesCondition("manual priority pass") { engine.snapshot?.stack.isEmpty == true && engine.prompt?.plainMessage == "Play spells and abilities" && engine.notice == "Paced answers 1" }
+            XCTAssertLessThan(Date().timeIntervalSince(pressed), 0.6, "Manual answers must not wait for the automatic pacing timer")
+            try await Task.sleep(nanoseconds: 900_000_000)
+            XCTAssertEqual(engine.notice, "Paced answers 1")
+            XCTAssertNil(engine.error, "The old timer must not answer a subsequent priority window")
+        }
+    }
+
+    private func withPacingFixture(_ check: @MainActor (RulesGameSession, RulesPhoneAdapter) async throws -> Void) async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let engine = RulesGameSession(), phone = PhoneGameSession()
+        let previousKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = previousKey }
+        let adapter = RulesPhoneAdapter(engine: engine)
+        adapter.attach(to: phone)
+        engine.connect(address: address + "/pacing", key: "rules-local-verification-key", resume: false)
+        try await waitForRulesCondition("fixture connection") { engine.status == .connected }
+        await engine.startAiGame()
+        try await waitForRulesCondition("opponent spell") { engine.prompt?.plainMessage == "Play instants and activated abilities" && engine.snapshot?.stack.count == 1 }
+        do { try await check(engine, adapter) }
+        catch { await engine.endSession(); throw error }
+        XCTAssertNil(phone.error)
+        await engine.endSession()
+    }
+
+    private func waitForRulesCondition(_ message: String, _ condition: () -> Bool) async throws {
+        let deadline = Date().addingTimeInterval(8)
+        while !condition(), Date() < deadline { try await Task.sleep(nanoseconds: 10_000_000) }
+        guard condition() else {
+            XCTFail("Timed out waiting for \(message)")
+            throw NSError(domain: "RulesFixture", code: 1)
+        }
+    }
+
     func testAbilitySourceLinksStayInTheRulesAdapterAndClearWithTheStack() async throws {
         let me = UUID().uuidString, source = UUID().uuidString.lowercased(), ability = UUID().uuidString.lowercased()
         let card: [String: Any] = ["id": source, "name": "Ahriman", "faceDown": false, "transformed": false,

@@ -14,6 +14,7 @@ final class RulesPhoneAdapter {
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
+    private var autoPassTask: Task<Void, Never>?
     /// Arena's London mulligan on top of XMage's order: XMage asks for bottom cards right after a
     /// mulligan, before the next keep question. The app holds that question, shows Keep / Mulligan,
     /// and only asks for the cards once the player keeps.
@@ -55,6 +56,11 @@ final class RulesPhoneAdapter {
     }
 
     private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool) {
+        if (status != .connected || holdingPriority), prompt?.method == "GAME_SELECT" { autoPassedPromptID = nil }
+        if autoPassTask != nil, status != .connected || holdingPriority || pending != nil || prompt?.id != autoPassedPromptID {
+            autoPassTask?.cancel()
+            autoPassTask = nil
+        }
         let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
         // Arena shows the opening hand in a browser (Keep / Mulligan); Phone Play's opening-hand
         // browser is driven by `opening`, one per mulligan question.
@@ -67,7 +73,26 @@ final class RulesPhoneAdapter {
         if let prompt, pending == nil, prompt.id != autoPassedPromptID,
            Self.shouldAutoPass(prompt, snapshot: engine.snapshot, holdingPriority: holdingPriority), status == .connected, prompt.supported {
             autoPassedPromptID = prompt.id
-            Task { [weak self] in await self?.engine.answer(.boolean(true)) }
+            // Let an opponent's spell/ability be seen before an automatic pass resolves it. Manual
+            // responses stay immediate; holding control, disconnecting or a new choice cancels this.
+            let showOpponentStack = engine.snapshot.map { state in
+                state.stack.contains { $0.controllerId != nil && $0.controllerId != state.playerId }
+            } ?? false
+            autoPassTask = Task { [weak self] in
+                do {
+                    if showOpponentStack { try await Task.sleep(nanoseconds: 700_000_000) }
+                    try Task.checkCancellation()
+                } catch { return }
+                guard let self else { return }
+                guard self.engine.status == .connected, self.engine.canAnswer,
+                      self.engine.prompt?.id == prompt.id,
+                      Self.shouldAutoPass(prompt, snapshot: self.engine.snapshot, holdingPriority: self.engine.holdingPriority) else {
+                    if self.autoPassedPromptID == prompt.id { self.autoPassedPromptID = nil; self.autoPassTask = nil }
+                    return
+                }
+                self.autoPassTask = nil // do not cancel the answer when pendingRequest publishes below
+                await self.engine.answer(.boolean(true))
+            }
         }
         // Arena pays mana for you: tap a fitting basic land for each payment prompt. Anything it
         // can't decide plainly (hybrid, X, non-basic lands) is left to the player to tap.

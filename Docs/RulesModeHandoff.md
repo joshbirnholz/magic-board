@@ -4,6 +4,8 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 
 ## Latest Codex takeover (2026-11-18, afternoon)
 
+**Pacing follow-up:** opponent stack objects remain visible for700ms before local automatic passing. The scheduled pass cancels on manual action/full control/disconnect/new prompt and rechecks the actual current prompt before answering. All110 units pass (68Phone+42Rules), including real app receive-loop hold/release and immediate manual/no duplicate checks. A full AI game through Phone Play UI passes (`/private/tmp/rules-opponent-pacing-visible-hand-ui.log`, ~250s), with basic mana automatic. Earlier full-game failure recording revealed the fast-forward menu open while the driver dragged a card behind it; test now taps the visible clipped card image, confirms the fan expanded, and starts a short drag clear of Home gestures. No application change was inferred from that failure. This identifies one automation-flake cause; it does not prove every prior foreground exit is resolved. PC bridge stays1f85661; pacing is app-only.
+
 **Delivered to main `rules-mode`: `1f85661`.** Codex works in `/private/tmp/MagicBoard-Rules` on `rules-mode-codex`; Claude should merge main before resuming. Main's unrelated scheme preference edit is preserved. Nothing was pushed.
 
 Completed in this takeover:
