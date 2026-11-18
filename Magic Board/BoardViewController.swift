@@ -5111,6 +5111,9 @@ extension BoardViewController {
             // A card being dragged (and its Attach glow) always draws above the hand.
             if let indicator = phoneAttachIndicator { view.bringSubviewToFront(indicator) }
             if let preview = phoneDragPreview { view.bringSubviewToFront(preview) }
+            // Hand layout also runs independently after battlefield layout. Keep the Rules
+            // overlay above its transparent hit area; this is a no-op in normal Phone Play.
+            positionRulesPrompt()
         }
         if container.frame != frame { container.frame = frame }
         if hand.view.frame != container.bounds { hand.view.frame = container.bounds }

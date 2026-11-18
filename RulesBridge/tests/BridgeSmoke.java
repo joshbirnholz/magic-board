@@ -288,7 +288,13 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 }
                 if (method.equals("GAME_TARGET") && !targetsComplete && object == null
                         && !nextPrompt.getAsJsonArray("cards").isEmpty()) {
-                    object = nextPrompt.getAsJsonArray("cards").get(0).getAsJsonObject().get("id").getAsString();
+                    for (JsonElement item : nextPrompt.getAsJsonArray("cards")) {
+                        JsonElement id = item.getAsJsonObject().get("id");
+                        if (!nextPrompt.has("selectionIds") || nextPrompt.getAsJsonArray("selectionIds").contains(id)
+                                || nextPrompt.has("selectedIds") && nextPrompt.getAsJsonArray("selectedIds").contains(id)) {
+                            object = id.getAsString(); break;
+                        }
+                    }
                     if (searchOnStack) searchedCard = object;
                 }
                 if (System.getenv("RULES_SMOKE_FORCE_DISCARD") != null && method.equals("GAME_TARGET")

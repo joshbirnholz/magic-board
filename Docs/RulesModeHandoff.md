@@ -1,6 +1,16 @@
-# Rules mode handoff — November 18, 2026 (Codex integration update, 2:40 AM ET)
+# Rules mode handoff — November 18, 2026
 
 Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coordination record outside git, including active task claims and the shared simulator lock. Claude and Codex are both working; check ownership there before editing shared files.
+
+## Latest integration work (10:12 AM ET)
+
+- Claude's new JumpStart/Jump In picker and separate AI deck support are ready on `rules-mode-claude` through `9c04f69` (includes `0371f56`), pending integration after Codex's current information UI task. Claude owns picker/setup UI; Codex owns compatibility and actual separate-deck/retry verification.
+- `a08c5ec` normalizes typographic apostrophes, accents, and split-card separators in the bridge's card-name lookup. Reusable packet audit covers 688 packets / 5117 names: 673 packets resolve every possible variant. Missing names remain in 13 Marvel packets and SOS LOREHOLD/SPELLCRAFT; see `RulesBridge/README.md`. Name coverage does not establish complete rules behavior.
+- Revealed-card inspection UI, legal-choice metadata (`selectionIds`/`selectedIds`), and Rules-only overlay ordering fix are complete. Focused UI passes open → View Battlefield → reopen → Done, with observer confirming zero engine answers.
+- 26 Rules units, eligible-card choice UI, actual Duress discard, and independent nine-card hand discard have passed. Normal Phone Play tap/drag passed again this morning (25 s). Inspector minimize/reopen passed (24 s); the fixture waits for its visible title because underlying board AX controls are hidden by the modal.
+- Use **`sh /private/tmp/magicboard-rules-codex-xcode.sh ...`** for Codex Xcode builds. It atomically acquires the shared lock and exits 75 without starting if occupied. Never split lock acquisition and build into separate calls. A 9:59 AM collision was immediately stopped and documented; Claude's process was preserved.
+- New committed main-branch fix `phone-play` `581b981` (hand ability tile layout) is awaiting merge. Main checkout remains untouched.
+- Claude deployed the PC bridge to `0371f56` this morning; no Codex PC changes. Coordinate any later deployment, and restart only the bridge with the existing Windows helper.
 
 ## Workspace and constraints
 

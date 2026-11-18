@@ -4,6 +4,21 @@ import CardService
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testCardChoiceUsesEngineEligibilityAndKeepsSelectedCardsDeselectable() throws {
+        func prompt(_ fields: [String: Any]) throws -> RulesPrompt {
+            var json: [String: Any] = ["id": "p", "method": "GAME_TARGET", "revision": 1,
+                                      "supported": true, "choices": []]
+            json.merge(fields) { _, value in value }
+            return try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        let eligible = try prompt(["selectionIds": ["instant"], "selectedIds": ["selected"]])
+        XCTAssertTrue(eligible.isCardSelectable("instant"))
+        XCTAssertFalse(eligible.isCardSelectable("land"), "Duress must not offer a displayed land as a legal choice")
+        XCTAssertTrue(eligible.isCardSelectable("selected"), "An already selected card may be removed again")
+        XCTAssertFalse(try prompt(["selectionIds": []]).isCardSelectable("land"))
+        XCTAssertTrue(try prompt([:]).isCardSelectable("legacy"), "Older bridges remain compatible")
+    }
+
     func testRejectedConnectionKeyShowsTheServerReason() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_RECOVERY_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS to the local fixture")

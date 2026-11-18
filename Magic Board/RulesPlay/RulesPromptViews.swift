@@ -240,10 +240,18 @@ struct RulesPromptModal: View {
     @State private var choiceSearch = ""
     @State private var minimized = false
 
+    private var informationGroup: RulesSnapshot.CardGroup? {
+        guard session.status == .connected, session.result == nil else { return nil }
+        if let prompt = session.prompt {
+            guard prompt.method == "GAME_SELECT", prompt.plainMessage.hasPrefix("Play ") else { return nil }
+        }
+        return session.cardInformation.first
+    }
+
     private var isVisible: Bool {
         if session.result != nil { return true }
-        guard let prompt = session.prompt, session.status == .connected else { return false }
-        return prompt.style == .modal
+        guard session.status == .connected else { return false }
+        return session.prompt?.style == .modal || informationGroup != nil
     }
 
     var body: some View {
@@ -256,7 +264,10 @@ struct RulesPromptModal: View {
                     .transition(.opacity)
             } else if isVisible {
                 // Arena lets you hide a decision to look at the board; this brings it back.
-                Button { minimized = false } label: { Label("Back to choice", systemImage: "rectangle.on.rectangle") }
+                Button { minimized = false } label: {
+                    Label(informationGroup == nil ? "Back to choice" : "Revealed Cards",
+                          systemImage: informationGroup == nil ? "rectangle.on.rectangle" : "eye")
+                }
                     .buttonStyle(RulesPillButtonStyle())
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .padding(.bottom, 12)
@@ -273,11 +284,14 @@ struct RulesPromptModal: View {
     @ViewBuilder private var content: some View {
         if let result = session.result {
             gameOver(result)
-        } else if let prompt = session.prompt {
+        } else if let prompt = session.prompt, prompt.style == .modal {
             VStack(spacing: 14) {
                 title(prompt)
                 body(for: prompt)
             }
+        } else if let group = informationGroup {
+            RulesCardInformationView(group: group, viewBattlefield: { minimized = true },
+                                     dismiss: { session.dismissCardInformation(group.id) })
         }
     }
 
@@ -453,7 +467,9 @@ struct RulesPromptModal: View {
                 ForEach(cards) { card in
                     if selectable {
                         Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
-                            .buttonStyle(.plain).disabled(!session.canAnswer)
+                            .buttonStyle(.plain)
+                            .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
+                            .opacity(session.prompt?.isCardSelectable(card.id) == false ? 0.45 : 1)
                             .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                     } else { RulesChoiceCardFace(card: card, height: height) }
                 }
