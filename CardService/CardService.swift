@@ -119,6 +119,12 @@ public struct CardService {
     }
 	}
 	
+	/// A token by name, preferring the token set that goes with `set` (Scryfall's "t" + set code).
+	public func getToken(name: String, set: String?) throws -> MTGCard {
+		if let set, !set.isEmpty, let card = try? Swiftfall.getCard(exact: name, set: "t" + set.lowercased()) { return MTGCard(card) }
+		return try getCard(name: name)
+	}
+	
 	public func getCard(scryfallID: UUID) throws -> MTGCard {
     if let card = OfflineGameLibrary.shared.card(for: .id(scryfallID)) { return card }
     if Monitor.shared.isConnected {

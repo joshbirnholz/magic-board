@@ -9,6 +9,18 @@ struct RulesActionStack: View {
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 6) {
+            // Arena shows unspent mana by your life total; XMage spends it on the next cost first.
+            if let mine = session.snapshot.flatMap({ state in state.players.first { $0.id == state.playerId } }), !mine.floatingMana.isEmpty {
+                HStack(spacing: 4) {
+                    Text("Mana pool").font(.custom("Beleren2016-Bold", size: 13, relativeTo: .caption)).foregroundStyle(.white.opacity(0.8))
+                    RulesSymbolText(text: mine.floatingMana, size: 15, beleren: true).foregroundStyle(.white)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 3)
+                .background(Capsule().fill(Color.black.opacity(0.55)))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Mana pool \(mine.floatingMana)")
+                .accessibilityIdentifier("rules-mana-pool")
+            }
             HStack(spacing: 8) {
                 RulesFastForwardPill(session: session)
                 if let state = session.snapshot, state.activePlayerId != nil {

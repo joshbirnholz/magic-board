@@ -773,9 +773,10 @@ internal class Swiftfall {
     
     
     // exact
-    public static func getCard(exact: String, source: Source = .scryfall) throws -> Card {
+    public static func getCard(exact: String, set: String? = nil, source: Source = .scryfall) throws -> Card {
         let encodeExactly = exact.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
-      let call = "\(source.url)cards/named?exact=\(encodeExactly)"
+      var call = "\(source.url)cards/named?exact=\(encodeExactly)"
+      if let set = set?.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed), !set.isEmpty { call += "&set=\(set)" }
         
         var card: Result<Card>?
         

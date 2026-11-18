@@ -56,6 +56,13 @@ struct RulesPlayer: Decodable, Identifiable {
     let graveyard: [RulesCard]
     let exile: [RulesCard]
     let counters: [RulesCard.Counter]?
+    /// Unspent mana by symbol (W, U, B, R, G, C); nil from older bridges.
+    var manaPool: [String: Int]? = nil
+
+    /// The floating mana as symbols in WUBRG order, e.g. "{B}{C}{C}".
+    var floatingMana: String {
+        ["W", "U", "B", "R", "G", "C"].map { symbol in String(repeating: "{\(symbol)}", count: max(0, manaPool?[symbol] ?? 0)) }.joined()
+    }
 }
 
 struct RulesSnapshot: Decodable {

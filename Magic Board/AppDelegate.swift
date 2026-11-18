@@ -83,6 +83,8 @@ extension AppDelegate {
     func phoneCardActions(_ card: CardInstance) -> [CardManualAction] {
         guard let session = phoneSession else { return [] }
         if session.mode == .rules {
+            // Only when the engine would accept it (XMage refuses anything else).
+            guard session.rulesAdapter?.canChoose(card.uuid) == true else { return [] }
             return [.init(title: "Choose / Activate", dismisses: true, perform: { session.send(.tap(card.uuid)) })]
         }
         var actions: [CardManualAction] = []
