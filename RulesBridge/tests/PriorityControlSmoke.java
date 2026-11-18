@@ -37,6 +37,23 @@ public final class PriorityControlSmoke {
             if (client.state.getAsJsonObject("priority").get("untilNextMain").getAsBoolean()) throw new AssertionError("Main-phase stop did not reset");
             control(client, "cancelAutoPass", stopped, false); client.await("ack");
             System.out.println("PASS engine advances to main phase, stops and clears skip setting; cancellation accepted");
+            control(client, "endStep", stopped, false); client.await("ack");
+            JsonObject end = client.await("prompt");
+            if (!end.get("method").getAsString().equals("GAME_SELECT")
+                    || !client.state.get("step").getAsString().contains("END"))
+                throw new AssertionError("Did not stop in the end step: " + client.state + " / " + end);
+            if (client.state.getAsJsonObject("priority").get("untilEndStep").getAsBoolean())
+                throw new AssertionError("End-step stop did not reset");
+            int previousTurn = client.state.get("turn").getAsInt();
+            control(client, "yourTurn", end, false); client.await("ack");
+            JsonObject ownTurn = client.await("prompt");
+            if (!ownTurn.get("method").getAsString().equals("GAME_SELECT")
+                    || client.state.get("turn").getAsInt() <= previousTurn
+                    || !client.state.get("activePlayerId").equals(client.state.get("playerId")))
+                throw new AssertionError("Did not stop on our next turn: " + client.state + " / " + ownTurn);
+            if (client.state.getAsJsonObject("priority").get("untilYourTurn").getAsBoolean())
+                throw new AssertionError("Next-turn stop did not reset");
+            System.out.println("PASS engine stops at the end step and our next turn, clearing both skip settings");
         }
     }
     private static void control(BridgeTwoPlayerSmoke.Client client, String action, JsonObject prompt, boolean stale) {
