@@ -82,6 +82,12 @@ done
 
 Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs and morph. Deck fixtures are in `tests/decks/`. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game.
 
+`SecondSeatBot` is a second human seat for the phone's two-player check. Start it against the bridge, then run `testRulesTwoPlayerGameAgainstASecondSeat` with `TEST_RUNNER_RULES_SECOND_SEAT=1`: the phone creates a waiting game, the bot joins and plays simply (keep, play a playable card, pay with lands, pass), the phone starts the game and plays four of its own cards, then exits (which concedes).
+
+```sh
+java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" SecondSeatBot
+```
+
 `BlockPromptFixture` is a separate, deterministic WebSocket fixture for focused phone interaction checks; it does not enforce Magic rules. Start it on loopback port 17183 with the same test connection key:
 
 ```sh
