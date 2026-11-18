@@ -1669,6 +1669,15 @@ struct PhoneAbilityPanel: View {
     let width: CGFloat
     @State private var art: UIImage?
 
+    /// Mana symbols inline and reminder text in italics (the Rules text view, as in Current Rules).
+    @ViewBuilder private var abilityText: some View {
+#if BOARD_CONNECT
+        addSymbols(string: text, symbolLength: max(8, width * 0.06)).font(.system(size: max(8, width * 0.065)))
+#else
+        RulesOracleText(text: text, size: max(8, width * 0.065)).font(.system(size: max(8, width * 0.065)))
+#endif
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Text(source.representation.name ?? "")
@@ -1690,8 +1699,7 @@ struct PhoneAbilityPanel: View {
                 .padding(.horizontal, 8).padding(.vertical, 3)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(white: 0.18))
-            addSymbols(string: text, symbolLength: max(8, width * 0.06))
-                .font(.system(size: max(8, width * 0.065)))
+            abilityText
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.leading)
                 .minimumScaleFactor(0.5)

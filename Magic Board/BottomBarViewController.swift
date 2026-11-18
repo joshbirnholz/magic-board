@@ -788,7 +788,9 @@ extension BottomBarViewController {
         if let caption {
             text.append(NSAttributedString(string: "\n" + caption, attributes: [
                 .font: UIFont.systemFont(ofSize: max(8, height * 0.19), weight: .semibold),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.85), .paragraphStyle: paragraph
+                .foregroundColor: UIColor.white.withAlphaComponent(0.92), .paragraphStyle: paragraph,
+                // The same drop shadow as the title (Arena shadows both lines).
+                .shadow: { let s = NSShadow(); s.shadowColor = UIColor.black.withAlphaComponent(0.75); s.shadowOffset = CGSize(width: 0, height: 1.5); s.shadowBlurRadius = 2.5; return s }()
             ]))
         }
         // Arena shows an hourglass on the button while it waits on the other player or the engine,
