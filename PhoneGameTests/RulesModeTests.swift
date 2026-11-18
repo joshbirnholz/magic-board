@@ -150,6 +150,28 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == bear.lowercased() }?.isPowerToughnessVisible.value, true)
     }
 
+    func testManaIsPaidAutomaticallyWithAFittingBasicLand() throws {
+        let me = UUID().uuidString, plains = UUID().uuidString, forest = UUID().uuidString, tapped = UUID().uuidString, dual = UUID().uuidString
+        func land(_ id: String, _ type: String, tapped: Bool = false) -> [String: Any] {
+            ["id": id, "name": type, "faceDown": false, "transformed": false, "typeLine": type, "tapped": tapped, "counters": []]
+        }
+        let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+            "gameId": "g", "playerId": me, "revision": 1, "turn": 3, "hand": [], "stack": [], "playableIds": [],
+            "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                         "battlefield": [land(tapped, "Basic Land — Plains", tapped: true), land(plains, "Basic Land — Plains"),
+                                         land(forest, "Basic Land — Forest"), land(dual, "Land — Plains Forest")]]]] as [String: Any]))
+        func pay(_ message: String, method: String = "GAME_PLAY_MANA") throws -> String? {
+            RulesPhoneAdapter.autoPayLand(try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": method, "revision": 1, "supported": true, "choices": [], "message": message] as [String: Any])), snapshot: snapshot)
+        }
+        XCTAssertEqual(try pay("Pay {1}{W}<div>Silvercoat Lion</div>"), plains, "a white symbol takes the untapped Plains")
+        XCTAssertEqual(try pay("Pay {G}"), forest)
+        XCTAssertNotNil(try pay("Pay {1}"), "generic is paid by some basic land")
+        XCTAssertNil(try pay("Pay {U}"), "no Island: the player pays")
+        XCTAssertNil(try pay("Pay {W/U}"), "hybrid stays manual")
+        XCTAssertNil(try pay("Pay {X}{W}", method: "GAME_PLAY_XMANA"))
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

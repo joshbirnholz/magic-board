@@ -20,7 +20,7 @@ final class RulesModeUITests: XCTestCase {
         let key = app.secureTextFields["rules-connection-key"]
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
-        key.typeText("rules-local-verification-key")
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
         let fresh = app.buttons["rules-connect-new"]
         (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30), app.debugDescription)
@@ -66,7 +66,7 @@ final class RulesModeUITests: XCTestCase {
         let key = app.secureTextFields["rules-connection-key"]
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
-        key.typeText("rules-local-verification-key")
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
         let fresh = app.buttons["rules-connect-new"]
         (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
@@ -133,7 +133,7 @@ final class RulesModeUITests: XCTestCase {
         let key = app.secureTextFields["rules-connection-key"]
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
-        key.typeText("rules-local-verification-key")
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
         let fresh = app.buttons["rules-connect-new"]
         (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
@@ -145,7 +145,7 @@ final class RulesModeUITests: XCTestCase {
         let next = app.buttons["phone-untap-local"]
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         let fan = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
-        var played = 0, attacked = 0, stuck = 0, lastState = "", blocked = 0, blocks = 0
+        var manualPayments = 0, played = 0, attacked = 0, stuck = 0, lastState = "", blocked = 0, blocks = 0
         let deadline = Date().addingTimeInterval(12 * 60)
         while Date() < deadline {
             guard app.state == .runningForeground else {
@@ -167,6 +167,10 @@ final class RulesModeUITests: XCTestCase {
             if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap(); continue }
             if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].exists { app.buttons["Magic Board"].tap(); continue }
             if text.hasPrefix("Pay") {
+                // Basic lands are tapped automatically (Arena); only tap by hand if it doesn't happen.
+                Thread.sleep(forTimeInterval: 2.0)
+                if !(message.exists && message.label == text) { continue }
+                manualPayments += 1
                 // Tap an untapped land to pay, as a person would.
                 // Ours are in the lower half (the opponent's lands are at the top).
                 let land = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS ', untapped'"))
@@ -220,6 +224,7 @@ final class RulesModeUITests: XCTestCase {
         add(screenshot)
         XCTAssertTrue(app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists, "The game didn't finish in time (played \(played) cards)")
         XCTAssertGreaterThan(played, 0)
+        XCTAssertEqual(manualPayments, 0, "The all-Plains deck should pay its mana automatically")
         if blocked > 0 { XCTAssertGreaterThan(blocks, 0, "Dragging a blocker onto an attacker never declared a block") }
         if !text(blocked: blocked, blocks: blocks).isEmpty { print(text(blocked: blocked, blocks: blocks)) }
     }
@@ -315,7 +320,7 @@ final class RulesModeUITests: XCTestCase {
         let key = app.secureTextFields["rules-connection-key"]
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
-        key.typeText("rules-local-verification-key")
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
         let fresh = app.buttons["rules-connect-new"]
         (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 15))
@@ -356,7 +361,7 @@ final class RulesModeUITests: XCTestCase {
         let key = app.secureTextFields["rules-connection-key"]
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
-        key.typeText("rules-local-verification-key")
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
         let fresh = app.buttons["rules-connect-new"]
         (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
         XCTAssertTrue(app.buttons["rules-create-human"].waitForExistence(timeout: 30))

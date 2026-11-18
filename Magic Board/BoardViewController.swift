@@ -1569,6 +1569,10 @@ class BoardViewController: UIViewController {
                 menu.addAction(BoardMenuAction(title: engine.autoOrderTriggers ? "Order Triggers Manually" : "Order Triggers Automatically", style: .default) { _ in
                     Task { await engine.setAutoOrderTriggers(!engine.autoOrderTriggers) }
                 })
+                let autoPay = RulesPhoneAdapter.autoPaysMana
+                menu.addAction(BoardMenuAction(title: autoPay ? "Pay Mana Manually" : "Pay Mana Automatically", style: .default) { _ in
+                    RulesPhoneAdapter.autoPaysMana = !autoPay
+                })
             }
             menu.addAction(BoardMenuAction(title: "Connection…") { [weak self] in self?.showConnectionOptions(); return nil })
             menu.addAction(BoardMenuAction(title: "Exit Game", style: .destructive) { [weak self] _ in self?.exitGame() })
