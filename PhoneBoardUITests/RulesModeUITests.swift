@@ -732,23 +732,26 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(keep7.waitForExistence(timeout: 30), "Arena's Keep 7: \(app.buttons.allElementsBoundByIndex.map(\.label))")
         XCTAssertTrue(app.staticTexts["You will return 1 card to the bottom of your library."].exists)
         app.buttons["Mulligan"].tap()
+        // Arena: the new seven with Keep 6 / Mulligan; the card to return is chosen only on Keep.
+        let keep6 = app.buttons["Keep 6"]
+        XCTAssertTrue(keep6.waitForExistence(timeout: 20), "After a mulligan: a new seven, Keep 6 / Mulligan")
+        XCTAssertTrue(app.staticTexts["You will return 2 cards to the bottom of your library."].exists)
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "phone-browser-card").count, 7, "The whole new seven is shown")
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Rules mode — Keep 6 after a mulligan"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        keep6.tap()
         let title = app.staticTexts["Return 1 Card"]
-        XCTAssertTrue(title.waitForExistence(timeout: 20), "After a mulligan XMage asks for a card to put on the bottom")
+        XCTAssertTrue(title.waitForExistence(timeout: 20), "Keeping six asks which card goes to the bottom")
         XCTAssertTrue(app.staticTexts["Drag 1 card to the bottom of your library."].exists)
         let zone = app.descendants(matching: .any)["phone-browser-zone-battlefield"]
         XCTAssertTrue(zone.exists, "The Library zone to drag to")
         let card = app.descendants(matching: .any).matching(identifier: "phone-browser-card").firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 5))
         card.press(forDuration: 0.6, thenDragTo: zone, withVelocity: 300, thenHoldForDuration: 0.6)
-        let keep6 = app.buttons["Keep 6"]
-        XCTAssertTrue(keep6.waitForExistence(timeout: 20), "Back to Keep / Mulligan with six cards")
-        XCTAssertTrue(app.staticTexts["You will return 2 cards to the bottom of your library."].exists)
-        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        screenshot.name = "Rules mode — Keep 6 after a mulligan"
-        screenshot.lifetime = .keepAlways
-        add(screenshot)
-        keep6.tap()
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.waitForExistence(timeout: 20),
+                      "After returning the card, the game starts with the kept six")
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         XCTAssertLessThanOrEqual(hand.count, 7, "Six kept, plus at most one draw")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
