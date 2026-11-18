@@ -59,6 +59,13 @@ struct RulesPlayer: Decodable, Identifiable {
 }
 
 struct RulesSnapshot: Decodable {
+    struct Priority: Decodable {
+        let untilNextTurn: Bool
+        let untilEndStep: Bool
+        let untilNextMain: Bool
+        let untilYourTurn: Bool
+        let untilStackResolved: Bool
+    }
     struct CombatGroup: Decodable {
         let defenderId: String
         let attackers: [String]
@@ -78,6 +85,11 @@ struct RulesSnapshot: Decodable {
     let players: [RulesPlayer]
     let playableIds: [String]
     let combat: [CombatGroup]?
+    var priority: Priority? = nil
+}
+
+enum RulesPriorityAction: String, Encodable {
+    case hold, release, cancelAutoPass, resolveStack, nextMain, endStep, yourTurn
 }
 
 struct RulesPrompt: Decodable, Identifiable {
@@ -146,6 +158,7 @@ struct RulesCommand: Encodable {
     var value: RulesAnswer? = nil
     var deck: RulesDeck? = nil
     var format: String? = nil
+    var priorityAction: RulesPriorityAction? = nil
 }
 
 enum RulesEndpoint {

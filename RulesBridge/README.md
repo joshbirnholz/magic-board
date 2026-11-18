@@ -9,9 +9,11 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - Per-player snapshots, duplicate command receipts, and reconnect restoring the same pending prompt.
 - Two-human table creation/discovery/joining, distinct engine seats, and private opening hands.
 - Main menu → connection → shared Phone Play board → opening hand → exit verified in the iOS simulator.
-- Existing Phone Play: 66 unit tests and the sandbox drag/tap UI check passed. Five Rules isolation/schema tests passed.
+- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. Twelve Rules isolation/schema tests passed after integration.
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
+- Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase and stopping there, and cancelling auto-pass. Other native pass destinations use the same engine API but still need gameplay coverage.
+- Repeated disconnected-client relaunches reclaim an old detached seat while preserving connected players and newer resumable seats.
 
 ## Pinned dependencies
 
@@ -75,7 +77,11 @@ java -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" BridgeTwoPlayerSmoke
 
 Version 1 uses JSON WebSocket text messages. The WebSocket upgrade requires `Authorization: Bearer <connection key>`. The bridge sends `hello`; the phone sends `connect` with `protocolVersion: 1` and optionally its session-specific `resumeToken`. `ready` returns the resume token. A token identifies one seat, not the combined game.
 
-Commands `createAiGame`, `createHumanGame`, `listTables`, `joinTable`, `startMatch`, `answer`, and `resync` carry a unique `requestId`. `joinTable` also carries `tableId`. Answers carry `promptId`, current snapshot `revision`, `kind` (`boolean`, `uuid`, `integer`, `string`), and a typed `value`. The bridge returns `ack` or `error`. Duplicate request IDs return the original receipt (last 256 retained). Stale prompt IDs/revisions are rejected and the current state is resent.
+Commands `createAiGame`, `createHumanGame`, `listTables`, `joinTable`, `startMatch`, `answer`, `priorityControl`, and `resync` carry a unique `requestId`. `joinTable` also carries `tableId`. Answers carry `promptId`, current snapshot `revision`, `kind` (`boolean`, `uuid`, `integer`, `string`, `amounts`, `special`, `cancel`), and a typed `value`. `special` opens the engine's special-action menu; `cancel` uses the engine-specific cancellation for the current prompt, only when `canCancel` is true. The bridge returns `ack` or `error`. Duplicate request IDs return the original receipt (last 256 retained). Stale prompt IDs/revisions are rejected and the current state is resent.
+
+`priorityControl` accepts `priorityAction`: `hold`, `release`, `cancelAutoPass`, `resolveStack`, `nextMain`, `endStep`, or `yourTurn`. Pass destinations also require the current `promptId` and `revision`, and are accepted only at `GAME_SELECT`. Hold/release/cancel can be used during the opponent's priority. `prioritySettings.holdingPriority` is replayed on reconnect; `snapshot.priority` contains the engine's active pass flags. A normal single pass remains a boolean answer to `GAME_SELECT`.
+
+Prompts expose optional `queryType`, `subMessage`, `canCancel`, `specialActionAvailable` and `specialActionLabel`. Trigger ordering is `GAME_TARGET` / `PICK_ABILITY`: choose an ability ID from `cards`, first onto the stack first. Modes and alternative-cost ability menus use `choices`; ability-menu IDs are sent to XMage as UUIDs. Unknown future dialog methods are marked unsupported.
 
 Events include `tables`, `tableJoined`, `snapshot`, `prompt`, `promptCleared`, `gameOver`, `notice`, `engineDisconnected`, and `error`. Snapshots contain only the seat's own hand, public card data and hidden-zone counts. Phase, step and priority may be absent during setup. Phone Play receives a display projection, including anonymous backs for hidden zones; it never receives the opponent's hand identities.
 
@@ -84,9 +90,9 @@ Disconnecting retains the bridge session for up to 15 minutes. Reconnecting rese
 ## Remaining work
 
 - Expand end-to-end gesture checks beyond the opening hand and normal Phone Play regression interaction.
-- Command zones, playable highlights, and detailed dynamic rules text.
-- Full prompt variants, ordering, pile selection, multi-amount choices, special actions and priority stops.
-- Deck import, format selection and account support.
+- Command zones and Commander deck setup.
+- Broad gameplay coverage of ordering, modes, alternative costs, special actions and priority controls, and their full phone UI.
+- Registered-account support and app-relaunch recovery. Deck import and two-player format selection are implemented.
 - Windows execution testing, startup scripts and broader gameplay coverage.
 
 UI reference: [Wizards' mobile Arena gameplay guide and screenshots](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-game-january-2021-01-21), plus the existing Phone Play implementation. Prefer its actual shared controls over a parallel Rules-only battlefield.

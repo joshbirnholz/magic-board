@@ -16,6 +16,7 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var result: String?
     @Published private(set) var pendingRequest: String?
     @Published private(set) var notice = ""
+    @Published private(set) var holdingPriority = false
     @Published var error: String?
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
@@ -50,6 +51,7 @@ final class RulesGameSession: ObservableObject {
             resumeToken = nil; snapshot = nil; prompt = nil
             tableId = nil; ownsTable = false; tables = []
             result = nil
+            holdingPriority = false
         }
         endpoint = url
         disconnect()
@@ -100,7 +102,7 @@ final class RulesGameSession: ObservableObject {
         pendingRequest = nil
     }
 
-    /// Leaving the screen detaches the phone; the bridge preserves its game for reconnection.
+    /// Explicitly leave the game; transient disconnects preserve the seat for reconnection.
     func endSession() async {
         if let socket {
             try? await send(RulesCommand(type: "leave"), through: socket)
@@ -109,6 +111,7 @@ final class RulesGameSession: ObservableObject {
         resumeToken = nil; snapshot = nil; prompt = nil
         tableId = nil; ownsTable = false; tables = []
         result = nil
+        holdingPriority = false
     }
 
     func startAiGame(deck: RulesDeck? = nil, format: String = "Limited") async {
@@ -132,6 +135,11 @@ final class RulesGameSession: ObservableObject {
         guard canAnswer, let prompt, let snapshot else { return }
         await submit(RulesCommand(type: "answer", requestId: UUID().uuidString, promptId: prompt.id,
                                   revision: snapshot.revision, kind: answer.kind, value: answer))
+    }
+
+    func controlPriority(_ action: RulesPriorityAction) async {
+        await submit(RulesCommand(type: "priorityControl", requestId: UUID().uuidString,
+                                  promptId: prompt?.id, revision: snapshot?.revision, priorityAction: action))
     }
 
     private func submit(_ command: RulesCommand) async {
@@ -191,6 +199,9 @@ final class RulesGameSession: ObservableObject {
             tables = []
         case "prompt": prompt = try decoder.decode(RulesPrompt.self, from: data)
         case "promptCleared": prompt = nil
+        case "prioritySettings":
+            struct Settings: Decodable { let holdingPriority: Bool }
+            holdingPriority = try decoder.decode(Settings.self, from: data).holdingPriority
         case "ack":
             if header.requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "error":

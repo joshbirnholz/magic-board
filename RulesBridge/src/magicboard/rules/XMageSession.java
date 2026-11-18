@@ -26,6 +26,7 @@ final class XMageSession implements MageClient, AutoCloseable {
     private UUID playerId;
     private UUID tableId;
     private boolean ownsTable;
+    private boolean holdingPriority;
     private JsonObject snapshot;
     /** Stack object → controlling player. XMage's stack views don't carry a controller, so it's inferred once and kept. */
     private final Map<UUID, UUID> stackControllers = new HashMap<>();
@@ -70,13 +71,14 @@ final class XMageSession implements MageClient, AutoCloseable {
                 case "joinTable" -> joinTable(UUID.fromString(string(request, "tableId")), request);
                 case "startMatch" -> startMatch();
                 case "answer" -> answer(request);
+                case "priorityControl" -> priorityControl(request);
                 case "resync" -> replay();
                 default -> throw new IllegalArgumentException("Unsupported command.");
             }
             remember(requestId, object("type", "ack", "requestId", requestId));
         } catch (Exception error) {
             remember(requestId, object("type", "error", "requestId", requestId, "message", error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage()));
-            if (string(request, "type").equals("answer")) replay();
+            if (Set.of("answer", "priorityControl").contains(string(request, "type"))) replay();
         }
     }
 
@@ -87,9 +89,27 @@ final class XMageSession implements MageClient, AutoCloseable {
     }
 
     void replay() {
+        output.accept(object("type", "prioritySettings", "holdingPriority", holdingPriority));
         if (tableId != null && gameId == null) output.accept(object("type", "tableJoined", "tableId", tableId, "owner", ownsTable));
         if (snapshot != null) output.accept(snapshot);
         if (prompt != null) output.accept(prompt);
+    }
+
+    private void priorityControl(JsonObject request) {
+        if (gameId == null) throw new IllegalStateException("Start a game before changing priority controls.");
+        String action = string(request, "priorityAction");
+        PlayerAction engineAction = PromptAnswers.priorityAction(action);
+        boolean skip = !Set.of("hold", "release", "cancelAutoPass").contains(action);
+        if (skip) {
+            requireCurrentPrompt(request);
+            if (!string(prompt, "method").equals("GAME_SELECT"))
+                throw new IllegalStateException("You can only auto-pass while you have priority.");
+        }
+        if (!session.sendPlayerAction(engineAction, gameId, null)) throw new IllegalStateException("XMage did not accept the priority control.");
+        if (action.equals("hold")) holdingPriority = true;
+        if (action.equals("release")) holdingPriority = false;
+        output.accept(object("type", "prioritySettings", "holdingPriority", holdingPriority));
+        if (skip) { prompt = null; output.accept(object("type", "promptCleared")); }
     }
 
     private void requireNoTable() {
@@ -207,11 +227,15 @@ final class XMageSession implements MageClient, AutoCloseable {
         }
     }
 
-    private void answer(JsonObject request) {
+    private void requireCurrentPrompt(JsonObject request) {
         if (prompt == null || !string(prompt, "id").equals(string(request, "promptId")))
             throw new IllegalStateException("That choice has expired. Refresh the game.");
         if (request.get("revision") == null || request.get("revision").getAsLong() != revision)
             throw new IllegalStateException("The game has changed. Refresh before answering.");
+    }
+
+    private void answer(JsonObject request) {
+        requireCurrentPrompt(request);
         String kind = string(request, "kind");
         JsonElement value = request.get("value");
         if (value == null) throw new IllegalArgumentException("An answer is required.");
@@ -327,6 +351,12 @@ final class XMageSession implements MageClient, AutoCloseable {
         JsonObject result = object("type", "snapshot", "gameId", gameId, "playerId", playerId,
                 "revision", ++revision, "turn", view.getTurn(), "phase", view.getPhase(), "step", view.getStep(),
                 "activePlayer", view.getActivePlayerName(), "activePlayerId", view.getActivePlayerId(), "priorityPlayer", view.getPriorityPlayerName());
+        if (view.getMyPlayer() != null) {
+            PlayerView me = view.getMyPlayer();
+            result.add("priority", object("untilNextTurn", me.isPassedTurn(), "untilEndStep", me.isPassedUntilEndOfTurn(),
+                    "untilNextMain", me.isPassedUntilNextMain(), "untilYourTurn", me.isPassedAllTurns(),
+                    "untilStackResolved", me.isPassedUntilStackResolved()));
+        }
         result.add("hand", cards(view.getMyHand().values()));
         JsonArray stack = cards(view.getStack().values());
         Map<UUID, UUID> seen = new HashMap<>();
