@@ -167,6 +167,7 @@ struct PhoneHandFanView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityAction { onTap(card) }
             .accessibilityLabel(card.representation.name ?? "Card")
+            .accessibilityValue(presentation.playable.contains(card.uuid) ? "Playable" : "")
             .accessibilityIdentifier(index < hand.count ? "phone-hand-\(index)"
                                      : isCastable ? "phone-castable-\(index - hand.count - commandZone.count)"
                                      : "phone-command-\(index - hand.count)")

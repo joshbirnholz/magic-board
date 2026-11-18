@@ -96,7 +96,7 @@ struct RulesPromptBar: View {
                 }
             }
         }
-        .frame(maxWidth: 320, alignment: .trailing)
+        .frame(maxWidth: 320)
         .disabled(session.pendingRequest != nil)
         .animation(.easeInOut(duration: 0.15), value: session.prompt?.id)
     }
@@ -124,18 +124,32 @@ struct RulesPromptBar: View {
                 }
                 if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
-        default: // GAME_SELECT: the phase button confirms; this just says what the engine wants.
+        case "GAME_SELECT" where prompt.specialActionAvailable == true:
+            // A special action (turning a face-down creature up, suspend…) is possible: offer it.
             strip {
-                if let phase = phaseLine { Text(phase).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.65)) }
-                RulesSymbolText(text: prompt.plainMessage, size: 15).foregroundStyle(.white)
+                Button(prompt.specialActionLabel ?? "Special Action") { Task { await session.answer(.specialAction) } }
+                    .buttonStyle(RulesPillButtonStyle(primary: false))
+                    .disabled(!session.canAnswer)
+                    .accessibilityIdentifier("rules-special-action")
+                Color.clear.frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(prompt.plainMessage)
                     .accessibilityIdentifier("rules-prompt-message")
             }
+        default:
+            // GAME_SELECT: like Arena, no instructions. The highlights show what can be played and
+            // the main button says what passing does (To Attackers, Resolve, End Turn…). The engine's
+            // wording stays available to VoiceOver (and UI tests) without drawing anything.
+            Color.clear.frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityLabel(prompt.plainMessage)
+                .accessibilityIdentifier("rules-prompt-message")
         }
     }
 
     private func strip<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .trailing, spacing: 6) { content() }
-            .multilineTextAlignment(.trailing)
+        VStack(alignment: .center, spacing: 6) { content() }
+            .multilineTextAlignment(.center)
             .padding(.horizontal, 14).padding(.vertical, 10)
             .background(Color.black.opacity(0.62), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.12)))
@@ -225,6 +239,13 @@ struct RulesPromptModal: View {
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("rules-prompt-message")
                 .accessibilityLabel(prompt.plainMessage)
+            if let sub = prompt.subMessage.map(RulesText.plain), !sub.isEmpty {
+                RulesSymbolText(text: sub, size: 15).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
+            }
+            if prompt.queryType == "PICK_ABILITY" {
+                Text("Choose the order: the first one you pick goes on the stack first.")
+                    .font(.caption).foregroundStyle(.white.opacity(0.7))
+            }
             if prompt.style == .modal, prompt.method != "GAME_ASK" || prompt.isMulligan {
                 Button("View Battlefield") { minimized = true }
                     .font(.caption.weight(.semibold))
@@ -295,6 +316,7 @@ struct RulesPromptModal: View {
                     }
                 }.frame(maxWidth: 460)
             }.frame(maxHeight: 220)
+            if prompt.canCancel == true { answer("Cancel", .cancel, primary: false) }
         case "GAME_CHOOSE_PILE":
             HStack(alignment: .top, spacing: 18) {
                 pile("Pile 1", prompt.cards ?? [], answer: true)

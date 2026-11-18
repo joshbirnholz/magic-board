@@ -2515,12 +2515,14 @@ extension BoardViewController {
         addChild(prompt)
         view.addSubview(prompt.view)
         prompt.view.translatesAutoresizingMaskIntoConstraints = false
-        // Arena puts the prompt at the right, just above the main phase button, clear of both hands.
+        // Just above the hand and the main phase button, clear of both hands.
         let bottom = prompt.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -64)
         bottom.priority = .defaultHigh // a tall prompt slides up, but never past the top
         NSLayoutConstraint.activate([
             bottom,
-            prompt.view.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            // Centred above the hand, where Arena shows "Pay {W}" or "Choose a target": clear of the
+            // stack and the main button at the right.
+            prompt.view.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
             prompt.view.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
             prompt.view.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor, constant: -24),
             prompt.view.topAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor, constant: 8)
@@ -2548,12 +2550,36 @@ extension BoardViewController {
         rulesModalHost = modal
     }
 
+    private func showRulesToast(_ message: String) {
+        view.subviews.filter { $0.accessibilityIdentifier == "rules-toast" }.forEach { $0.removeFromSuperview() }
+        let label = PaddedToastLabel()
+        label.text = message
+        label.numberOfLines = 2
+        label.textAlignment = .center
+        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.textColor = .white
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.78)
+        label.layer.cornerRadius = 12
+        label.layer.masksToBounds = true
+        label.accessibilityIdentifier = "rules-toast"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            label.widthAnchor.constraint(lessThanOrEqualToConstant: 360)
+        ])
+        label.alpha = 0
+        UIView.animate(withDuration: 0.15) { label.alpha = 1 }
+        UIView.animate(withDuration: 0.3, delay: 2.2, options: []) { label.alpha = 0 } completion: { _ in label.removeFromSuperview() }
+    }
+
     /// Keeps the Rules prompt above everything the board re-raises, sitting just above the local
     /// phase button (or near the bottom when that button isn't laid out yet).
     private func positionRulesPrompt() {
         guard let host = rulesPromptHost?.view, host.superview === view else { return }
         // Above both the phase button and the top of the hand fan, so no hand card hides under it.
-        let tops = [localPhoneBar?.untapButton, localPhoneBar?.handContainerView].compactMap { $0 }
+        let tops = [localPhoneBar?.handContainerView].compactMap { $0 }
             .filter { $0.window != nil && !$0.isHidden }
             .map { view.convert($0.bounds, from: $0).minY }
         if let top = tops.min() {
@@ -2687,6 +2713,13 @@ extension BoardViewController {
         session.onUpdate = { [weak self] in self?.refreshPhoneBoard() }
         session.$error.compactMap { $0 }.sink { [weak self, weak session] message in
             guard let self else { return }
+            // Rules mode: a refused gesture is a brief note over the board (Arena), not an alert that
+            // stops play. Losing the connection still gets the alert.
+            if session?.mode == .rules, session?.connected == true {
+                self.showRulesToast(message)
+                session?.error = nil
+                return
+            }
             let alert = UIAlertController(title: session?.connected == false && message.localizedCaseInsensitiveContains("disconnected") ? "Disconnected" : "Game", message: message, preferredStyle: .alert)
             alert.addAction(.init(title: "OK", style: .default) { _ in session?.error = nil })
             self.phonePresenter.present(alert, animated: true)
@@ -5828,5 +5861,19 @@ final class PhoneBoardContentView: UIView {
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         if super.point(inside: point, with: event) { return true }
         return subviews.contains { !$0.isHidden && $0.alpha > 0.01 && $0.isUserInteractionEnabled && $0.frame.contains(point) }
+    }
+}
+
+/// A label with room around its text, for the Rules-mode toast.
+private final class PaddedToastLabel: UILabel {
+    private let insets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+    override func drawText(in rect: CGRect) { super.drawText(in: rect.inset(by: insets)) }
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(width: size.width + insets.left + insets.right, height: size.height + insets.top + insets.bottom)
+    }
+    override func textRect(forBounds bounds: CGRect, limitedToNumberOfLines numberOfLines: Int) -> CGRect {
+        let rect = super.textRect(forBounds: bounds.inset(by: insets), limitedToNumberOfLines: numberOfLines)
+        return rect.inset(by: UIEdgeInsets(top: -insets.top, left: -insets.left, bottom: -insets.bottom, right: -insets.right))
     }
 }
