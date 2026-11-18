@@ -1785,7 +1785,7 @@ public extension MTGCardView {
 			// Everything else; an artifact or Vehicle only swaps in its own outer frame.
 			let colorFrame: [String]
 			switch colors.count {
-			case 0: colorFrame = [isArtifact ? "a" : "c"]; pinline = colorFrame; rules = colorFrame; typeTitle = colorFrame
+			case 0: colorFrame = [isVehicle ? "v" : isArtifact ? "a" : "c"]; pinline = colorFrame; rules = colorFrame; typeTitle = colorFrame
 			case 1: colorFrame = colors; pinline = colors; rules = colors; typeTitle = colors
 			// Hybrid: everything fades from one color to the other, under colorless bars.
 			case 2 where isHybrid: colorFrame = colors; pinline = colors; rules = colors; typeTitle = ["c"]
@@ -1793,8 +1793,7 @@ public extension MTGCardView {
 			case 2: colorFrame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
 			default: colorFrame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
 			}
-			// Vehicles share one riveted frame; Universes Beyond Vehicles keep their UB pieces inside it.
-			frame = isVehicle ? ["regular/v"] : isArtifact ? ["a"] : colorFrame
+			frame = isVehicle ? ["v"] : isArtifact ? ["a"] : colorFrame
 		}
 		let key = "\(folder)|\(frame)|\(pinline)|\(rules)|\(typeTitle)"
 		if let cached = abilityFrameCache[key] { return cached }
