@@ -72,6 +72,9 @@ class BoardViewController: UIViewController {
   /// Full-screen holder of the stack's hosting view that only takes touches on drawn stack cards,
   /// so the empty part of the fan's frame doesn't block the battlefield (or its page buttons).
   private var phoneStackContainer: PhoneTouchFilterView?
+  /// Rules mode's prompt panel, kept above the board and just above the local phase button (Arena).
+  private var rulesPromptHost: UIViewController?
+  private var rulesPromptBottom: NSLayoutConstraint?
   private var phoneStackResolveButton: UIButton?
   private var phoneStackCollapsed = false
   private var phoneTargetArcs: PhoneTargetArcsView?
@@ -2505,16 +2508,39 @@ extension BoardViewController {
         attachPhoneSession()
         let prompt = UIHostingController(rootView: RulesPromptBar(session: adapter.engine, exit: { [weak self] in self?.leavePhoneGame(showingStart: true) }))
         prompt.view.backgroundColor = .clear
+        // Grow with longer prompts instead of keeping the first prompt's height (which truncated text).
+        if #available(iOS 16.0, *) { prompt.sizingOptions = .intrinsicContentSize }
         addChild(prompt)
         view.addSubview(prompt.view)
         prompt.view.translatesAutoresizingMaskIntoConstraints = false
+        // Arena puts the prompt at the right, just above the main phase button, clear of both hands.
+        let bottom = prompt.view.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -64)
+        bottom.priority = .defaultHigh // a tall prompt slides up, but never past the top
         NSLayoutConstraint.activate([
-            prompt.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 44),
-            prompt.view.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
-            prompt.view.widthAnchor.constraint(lessThanOrEqualToConstant: 400),
-            prompt.view.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor, constant: -24)
+            bottom,
+            prompt.view.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            prompt.view.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
+            prompt.view.widthAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.widthAnchor, constant: -24),
+            prompt.view.topAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor, constant: 8)
         ])
         prompt.didMove(toParent: self)
+        rulesPromptHost = prompt
+        rulesPromptBottom = bottom
+    }
+
+    /// Keeps the Rules prompt above everything the board re-raises, sitting just above the local
+    /// phase button (or near the bottom when that button isn't laid out yet).
+    private func positionRulesPrompt() {
+        guard let host = rulesPromptHost?.view, host.superview === view else { return }
+        // Above both the phase button and the top of the hand fan, so no hand card hides under it.
+        let tops = [localPhoneBar?.untapButton, localPhoneBar?.handContainerView].compactMap { $0 }
+            .filter { $0.window != nil && !$0.isHidden }
+            .map { view.convert($0.bounds, from: $0).minY }
+        if let top = tops.min() {
+            let constant = -(view.safeAreaLayoutGuide.layoutFrame.maxY - top + 8)
+            if rulesPromptBottom?.constant != constant { rulesPromptBottom?.constant = constant }
+        }
+        view.bringSubviewToFront(host)
     }
 
     private func showConnectionOptions() {
@@ -3339,6 +3365,7 @@ extension BoardViewController {
         updatePhoneTargetArcs()
         updatePhoneCombatLines()
         view.bringSubviewToFront(bottom)
+        positionRulesPrompt()
         for badge in phoneGroupButtons where badge.superview === board { board.bringSubviewToFront(badge) }
         layoutPhoneHandOverlay()
         if let shield = phoneHandShield, !shield.isHidden { view.bringSubviewToFront(shield) }

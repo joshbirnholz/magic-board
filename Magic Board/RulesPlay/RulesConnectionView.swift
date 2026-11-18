@@ -185,6 +185,7 @@ struct RulesPromptBar: View {
                 if let state = session.snapshot {
                     Text("\(turnOwner(state)) · Turn \(state.turn) · \(RulesText.plain((state.step ?? "Starting Game").replacingOccurrences(of: "_", with: " ").capitalized))")
                         .font(.caption).monospacedDigit()
+                        .lineLimit(2).minimumScaleFactor(0.8)
                 }
                 Button { expanded.toggle() } label: { Image(systemName: expanded ? "chevron.up" : "chevron.down") }
                     .accessibilityLabel(expanded ? "Collapse game prompt" : "Expand game prompt")
@@ -207,6 +208,7 @@ struct RulesPromptBar: View {
             } else if expanded, let prompt = session.prompt {
                 Text(RulesText.plain(prompt.message ?? "Choose an action"))
                     .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("rules-prompt-message")
                 if !prompt.supported {
                     Text("This choice is not supported yet.").foregroundStyle(.secondary)
