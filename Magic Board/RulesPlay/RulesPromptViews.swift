@@ -450,24 +450,26 @@ struct RulesPromptModal: View {
     }
 
     private func cardRow(_ cards: [RulesCard], height: CGFloat, selectable: Bool) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 12) {
-                ForEach(cards) { card in
-                    if selectable {
-                        Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
-                            .buttonStyle(.plain)
-                            .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
-                            .opacity(session.prompt?.isCardSelectable(card.id) == false ? 0.45 : 1)
-                            .accessibilityIdentifier("rules-prompt-card-\(card.id)")
-                    } else {
-                        RulesChoiceCardFace(card: card, height: height)
-                            .accessibilityRemoveTraits(.isButton)
-                            .accessibilityIdentifier("rules-context-card-\(card.id)")
+        GeometryReader { geometry in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(cards) { card in
+                        if selectable {
+                            Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
+                                .buttonStyle(.plain)
+                                .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
+                                .opacity(session.prompt?.isCardSelectable(card.id) == false ? 0.45 : 1)
+                                .accessibilityIdentifier("rules-prompt-card-\(card.id)")
+                        } else {
+                            RulesChoiceCardFace(card: card, height: height)
+                                .accessibilityRemoveTraits(.isButton)
+                                .accessibilityIdentifier("rules-context-card-\(card.id)")
+                        }
                     }
                 }
+                .padding(.horizontal, 8)
+                .frame(minWidth: geometry.size.width)
             }
-            .padding(.horizontal, 8)
-            .frame(minWidth: 0)
         }
         .frame(maxWidth: .infinity)
         .frame(height: cards.isEmpty ? 0 : height + 24)

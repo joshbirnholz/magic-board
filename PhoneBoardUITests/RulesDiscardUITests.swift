@@ -17,6 +17,7 @@ final class RulesDiscardUITests: XCTestCase {
         let face = app.descendants(matching: .any)[contextID]
         XCTAssertTrue(face.waitForExistence(timeout: 5))
         XCTAssertEqual(face.label, "Revitalize")
+        XCTAssertEqual(face.frame.midX, app.frame.midX, accuracy: 20, "A short card row should be centred")
         XCTAssertFalse(app.buttons[contextID].exists, "Question context is not a card-selection action")
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Visible card context for a rules question"
