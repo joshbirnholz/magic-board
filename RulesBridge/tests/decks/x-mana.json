@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: x-mana",
+    "main": [
+      {
+        "name": "Mountain",
+        "count": 24
+      },
+      {
+        "name": "Blaze",
+        "count": 18
+      },
+      {
+        "name": "Goblin Piker",
+        "count": 18
+      }
+    ],
+    "sideboard": []
+  }
+}

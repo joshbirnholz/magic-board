@@ -5,15 +5,16 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 ## Verified so far
 
 - Headless login to a stock XMage server on macOS with Java 17.
+- Windows home host verified over Tailscale, including a full simulator AI game, two-seat privacy/combat checks and session recovery. Only the Rules server/bridge services in the approved host folder should be changed.
 - A complete game against AI through the bridge: land play, creature casting, mana, priority and game-over.
 - Per-player snapshots, duplicate command receipts, and reconnect restoring the same pending prompt.
 - Two-human table creation/discovery/joining, distinct engine seats, and private opening hands.
 - Two human seats playing creatures, declaring attackers and assigning a legal blocker through real engine prompts.
 - A full game against AI completed through the shared Phone Play interface in the iOS simulator, using the corrected creature deck.
-- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. Sixteen Rules isolation/schema tests passed after integration.
+- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. All 89 unit tests pass (68 normal Phone Play + 21 Rules), including automatic mana and combat-defender decoding regressions.
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
-- Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase and stopping there, and cancelling auto-pass. Other native pass destinations use the same engine API but still need gameplay coverage.
+- Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase, end step and our next turn, stopping and clearing each skip flag, and cancelling auto-pass. Resolve-stack also passed with a real creature spell on the stack, returning to priority with an empty stack and cleared skip flag.
 - Real-card prompt probes passed: manually ordering Soul Warden triggers; choosing a Blessed Alliance mode and putting it on the stack; casting Reverent Mantra using its white-card exile cost; casting Gathan Raiders face down and turning it face up by paying the discard cost.
 - Repeated disconnected-client relaunches reclaim an old detached seat while preserving connected players and newer resumable seats.
 - Repeated simultaneous leave/socket-abort races preserve other clients, allow new clients and permit graceful bridge shutdown.
@@ -80,7 +81,7 @@ done
 
 `RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
 
-Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs and morph. Deck fixtures are in `tests/decks/`. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game.
+Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs, morph, nonzero X, hybrid mana and library search. Deck fixtures are in `tests/decks/`. The X probe casts Blaze with X=1, the hybrid probe casts Safehold Elite using Plains, and the search probe verifies that the chosen library card reaches the player's hand. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game. For local decoding diagnostics, `RULES_SMOKE_EVENTS=/path/to/events.jsonl` appends snapshot and prompt events from the probe (no authentication or connection events).
 
 `SecondSeatBot` is a second human seat for the phone's two-player check. Start it against the bridge, then run `testRulesTwoPlayerGameAgainstASecondSeat` with `TEST_RUNNER_RULES_SECOND_SEAT=1`: the phone creates a waiting game, the bot joins and plays simply (keep, play a playable card, pay with lands, pass), the phone starts the game and plays four of its own cards, then exits (which concedes).
 
@@ -110,7 +111,7 @@ The Rules battlefield menu also switches between automatic and manual trigger or
 
 Prompts expose optional `queryType`, `subMessage`, `canCancel`, `specialActionAvailable` and `specialActionLabel`. Trigger ordering is `GAME_TARGET` / `PICK_ABILITY`: choose an ability ID from `cards`, first onto the stack first. Modes and alternative-cost ability menus use `choices`; ability-menu IDs are sent to XMage as UUIDs. Unknown future dialog methods are marked unsupported.
 
-Events include `tables`, `tableJoined`, `snapshot`, `prompt`, `promptCleared`, `gameOver`, `notice`, `engineDisconnected`, and `error`. Snapshots contain only the seat's own hand, public card data and hidden-zone counts. Phase, step and priority may be absent during setup. Phone Play receives a display projection, including anonymous backs for hidden zones; it never receives the opponent's hand identities.
+Events include `tables`, `tableJoined`, `snapshot`, `prompt`, `promptCleared`, `gameOver`, `notice`, `engineDisconnected`, and `error`. Snapshots contain only the seat's own hand, public card data and hidden-zone counts. Phase, step and priority may be absent during setup. A combat group may lack `defenderId` briefly after an attacked permanent leaves play; clients must still accept that snapshot. Phone Play receives a display projection, including anonymous backs for hidden zones; it never receives the opponent's hand identities.
 
 Disconnecting retains the bridge session for up to 15 minutes. Reconnecting resends its latest snapshot, pending prompt and final game result if already finished. The bridge keeps at most four sessions; a new connection at capacity reclaims the oldest disconnected session, never a connected player. Explicit `leave`, reclamation or expiry closes the XMage session. Bridge/server restarts do not preserve sessions. The phone stores its endpoint and resume token in the device Keychain, so a relaunched app offers Reconnect. An expired-session response clears the saved seat; Connect then starts fresh. Explicit Exit Game clears the saved seat too. Secure relaunch recovery passed in the signed simulator; physical-device verification remains.
 
@@ -120,6 +121,6 @@ Disconnecting retains the bridge session for up to 15 minutes. Reconnecting rese
 - Command zones and Commander deck setup.
 - Broad gameplay coverage of ordering, modes, alternative costs, special actions and priority controls, and their full phone UI.
 - Registered-account support and device verification of app-relaunch recovery. Deck import and two-player format selection are implemented.
-- Windows execution testing, startup scripts and broader gameplay coverage.
+- Broader gameplay and physical-device coverage (Windows hosting and startup are now configured and tested).
 
 UI reference: [Wizards' mobile Arena gameplay guide and screenshots](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-game-january-2021-01-21), plus the existing Phone Play implementation. Prefer its actual shared controls over a parallel Rules-only battlefield.

@@ -124,7 +124,11 @@ final class RulesPhoneAdapter {
         guard symbols.allSatisfy({ colors.contains($0) || $0 == "C" || Int($0) != nil }) else { return nil }
         let basic: [String: String] = ["Plains": "W", "Island": "U", "Swamp": "B", "Mountain": "R", "Forest": "G", "Wastes": "C"]
         let lands: [(id: String, color: String)] = mine.battlefield.compactMap { card in
-            guard card.tapped != true, let type = card.typeLine, type.contains("Land") else { return nil }
+            guard card.tapped != true, let type = card.typeLine,
+                  type.contains("Basic"), type.contains("Land"), !type.contains("Creature") else { return nil }
+            // Wastes has no land subtype. Nonbasic and creature lands need manual activation:
+            // their abilities can have restrictions or costs that this simple payer cannot assess.
+            if card.name == "Wastes" { return (card.id, "C") }
             let produced = basic.compactMap { type.contains($0.key) ? $0.value : nil }
             return produced.count == 1 ? (card.id, produced[0]) : nil
         }

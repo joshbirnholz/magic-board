@@ -474,6 +474,8 @@ final class RulesModeUITests: XCTestCase {
         guard let deck = ProcessInfo.processInfo.environment["RULES_UI_TEST_DECK"], !deck.isEmpty else {
             throw XCTSkip("Set TEST_RUNNER_RULES_UI_TEST_DECK to a deck list to run this check")
         }
+        let requiredPrompts = (ProcessInfo.processInfo.environment["RULES_UI_TEST_REQUIRED_PROMPTS"] ?? "")
+            .split(separator: "|").map(String.init)
         let app = XCUIApplication()
         // Launch-argument defaults are parsed as property lists: quote the value so its "\n" escapes
         // become line breaks (unquoted, only the first line would arrive).
@@ -527,6 +529,9 @@ final class RulesModeUITests: XCTestCase {
             let toast = app.staticTexts["rules-toast"]
             if toast.exists, seen.last != "toast: " + toast.label { seen.append("toast: " + toast.label) }
             XCTAssertFalse(toast.exists && toast.label.hasPrefix("Couldn't read"), "Unreadable update: \(toast.label)")
+            if !requiredPrompts.isEmpty, played >= 4,
+               requiredPrompts.allSatisfy({ required in seen.contains { $0.localizedCaseInsensitiveContains(required) } }),
+               text.hasPrefix("Play ") { break }
             let state = text + "|" + (next.exists ? next.label : "")
             stuck = state == lastState ? stuck + 1 : 0
             lastState = state
@@ -610,6 +615,9 @@ final class RulesModeUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         XCTAssertGreaterThanOrEqual(played, 4, "Played only \(played) cards; prompts: \(seen)")
+        for required in requiredPrompts {
+            XCTAssertTrue(seen.contains { $0.localizedCaseInsensitiveContains(required) }, "Never reached \(required); prompts: \(seen)")
+        }
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
