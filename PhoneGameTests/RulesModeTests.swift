@@ -92,6 +92,28 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(RulesPhoneAdapter.highlighted(snapshot: snapshot, prompt: nil), [playable])
     }
 
+    func testGestureTargetIsDroppedWhenTheEngineNeedsNoTarget() throws {
+        let attacker = UUID()
+        func prompt(_ method: String, targets: [String] = []) throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": method, "revision": 1, "supported": true, "choices": [], "targets": targets] as [String: Any]))
+        }
+        let id = attacker.uuidString.lowercased()
+        // A lone attacker: XMage assigns the block itself and goes back to selecting blockers.
+        let afterBlock = RulesPhoneAdapter.resolvePendingTarget(.card(attacker), prompt: try prompt("GAME_SELECT"), snapshot: nil)
+        XCTAssertNil(afterBlock.answer); XCTAssertFalse(afterBlock.keep)
+        // Several attackers: XMage asks which one, and the dragged-to attacker answers it.
+        let asked = RulesPhoneAdapter.resolvePendingTarget(.card(attacker), prompt: try prompt("GAME_TARGET", targets: [id]), snapshot: nil)
+        XCTAssertEqual(asked.answer, id); XCTAssertFalse(asked.keep)
+        // An illegal target is dropped rather than sent.
+        let illegal = RulesPhoneAdapter.resolvePendingTarget(.card(attacker), prompt: try prompt("GAME_TARGET", targets: [UUID().uuidString.lowercased()]), snapshot: nil)
+        XCTAssertNil(illegal.answer); XCTAssertFalse(illegal.keep)
+        // Paying mana before targets keeps it for the target prompt.
+        XCTAssertTrue(RulesPhoneAdapter.resolvePendingTarget(.card(attacker), prompt: try prompt("GAME_PLAY_MANA"), snapshot: nil).keep)
+        // The selection the gesture answered is still showing until the engine moves on.
+        XCTAssertTrue(RulesPhoneAdapter.resolvePendingTarget(.card(attacker), prompt: try prompt("GAME_SELECT"), snapshot: nil, issuedDuring: "p").keep)
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

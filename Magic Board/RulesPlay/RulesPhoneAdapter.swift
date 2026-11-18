@@ -12,7 +12,9 @@ final class RulesPhoneAdapter {
     private var projectionTask: Task<Void, Never>?
     private var artworkTask: Task<Void, Never>?
     private let catalog = RulesCardCatalog.shared
-    private var pendingTarget: PhoneGame.Target?
+    private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
+    /// The prompt that was showing when the gesture chose its target (still showing until the engine moves on).
+    private var pendingTargetPromptID: String?
     private var hiddenIDs: [String: UUID] = [:]
     private(set) var presentation = PhoneGame()
 
@@ -49,16 +51,33 @@ final class RulesPhoneAdapter {
         phone?.displayRules(presentation, connected: status == .connected,
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
                             primaryLabel: label)
-        if let target = pendingTarget, prompt?.method == "GAME_TARGET", pending == nil {
+        if let target = pendingTarget, pending == nil {
+            let (answer, keep) = Self.resolvePendingTarget(target, prompt: prompt, snapshot: engine.snapshot, issuedDuring: pendingTargetPromptID)
+            if !keep { pendingTarget = nil }
+            if let answer { Task { [weak self] in await self?.engine.answer(.object(answer)) } }
+        }
+    }
+
+    /// What to do with a target chosen by gesture (a spell dragged onto a target, a blocker dragged
+    /// onto an attacker) once the engine's next prompt arrives. A target prompt consumes it, answering
+    /// only if it's legal there. Back at a plain selection, the engine needed no target (for example a
+    /// block against a lone attacker is assigned automatically), so it's dropped: otherwise it could
+    /// answer some later, unrelated target prompt.
+    static func resolvePendingTarget(_ target: PhoneGame.Target, prompt: RulesPrompt?, snapshot: RulesSnapshot?,
+                                     issuedDuring promptID: String? = nil) -> (answer: String?, keep: Bool) {
+        // Still the prompt the gesture answered (its acknowledgement can arrive before the next prompt).
+        if let promptID, prompt?.id == promptID { return (nil, true) }
+        switch prompt?.method {
+        case "GAME_TARGET":
             let id: String?
             switch target {
             case .card(let card): id = card.uuidString.lowercased()
-            case .player(let player): id = engine.snapshot?.players.first(where: { ($0.id == engine.snapshot?.playerId) == (player == .a) })?.id
+            case .player(let player): id = snapshot?.players.first(where: { ($0.id == snapshot?.playerId) == (player == .a) })?.id
             }
-            pendingTarget = nil
-            if let id, prompt?.targets?.contains(id) == true {
-                Task { [weak self] in await self?.engine.answer(.object(id)) }
-            }
+            guard let id, prompt?.targets?.contains(id) == true else { return (nil, false) }
+            return (id, false)
+        case "GAME_SELECT": return (nil, false)
+        default: return (nil, true) // mana payment, choices… keep it for the target prompt that follows
         }
     }
 
