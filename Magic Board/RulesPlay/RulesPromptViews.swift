@@ -27,6 +27,10 @@ extension RulesPrompt {
         default: return .modal
         }
     }
+    /// XMage also calls its combat shortcut “special”; the main combat button already owns it.
+    var showsSpecialAction: Bool {
+        method == "GAME_SELECT" && specialActionAvailable == true && boardBannerText == nil
+    }
     var isStartingPlayer: Bool { message?.localizedCaseInsensitiveContains("starting player") == true }
     var isMulligan: Bool { method == "GAME_ASK" && message?.localizedCaseInsensitiveContains("mulligan") == true }
     /// XMage's London mulligan: "Select a card (N more) to put on the bottom of your library".
@@ -216,7 +220,7 @@ struct RulesPromptBar: View {
                     }
                 }
             }
-        case "GAME_SELECT" where prompt.specialActionAvailable == true:
+        case "GAME_SELECT" where prompt.showsSpecialAction:
             // A special action (turning a face-down creature up, suspend…) is possible: offer it.
             strip {
                 Button(prompt.specialActionLabel ?? "Special Action") { Task { await session.answer(.specialAction) } }

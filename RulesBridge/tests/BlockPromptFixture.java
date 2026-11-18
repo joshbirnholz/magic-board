@@ -34,7 +34,8 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void send(WebSocket socket, JsonObject value) { socket.send(JSON.toJson(value)); }
     @Override public void onOpen(WebSocket socket, ClientHandshake request) {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
-        initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order" : "select";
+        initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
+                : request.getResourceDescriptor().endsWith("/attack") ? "attack" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -105,7 +106,8 @@ public final class BlockPromptFixture extends WebSocketServer {
             return;
         }
         send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", stage.equals("target") ? "GAME_TARGET" : "GAME_SELECT",
-                "revision", revision, "message", stage.equals("target") ? "Select attacker to block" : "Select blockers", "supported", true,
+                "revision", revision, "message", stage.equals("target") ? "Select attacker to block" : stage.equals("attack") ? "Select attackers" : "Select blockers", "supported", true,
+                "specialActionAvailable", stage.equals("attack"), "specialActionLabel", "All attack",
                 "required", stage.equals("target"), "choices", new Object[]{}, "cards", new Object[]{},
                 "targets", stage.equals("target") ? new String[]{FIRST, SECOND} : new String[]{}));
     }
@@ -119,9 +121,9 @@ public final class BlockPromptFixture extends WebSocketServer {
                 "battlefield", new Object[]{card(BLOCKER, false)}, "graveyard", new Object[]{}, "exile", new Object[]{});
         JsonObject theirs = object("id", THEM, "name", "Opponent", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(FIRST, true), card(SECOND, true)}, "graveyard", new Object[]{}, "exile", new Object[]{});
-        Object[] combat = {group(FIRST), group(SECOND)};
+        Object[] combat = stage.equals("attack") ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
         send(socket, object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
-                "phase", "COMBAT", "step", "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", THEM, "priorityPlayer", "You",
+                "phase", "COMBAT", "step", stage.equals("attack") ? "DECLARE_ATTACKERS" : "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", stage.equals("attack") ? ME : THEM, "priorityPlayer", "You",
                 "hand", new Object[]{}, "stack", new Object[]{}, "players", new Object[]{mine, theirs}, "playableIds", new String[]{BLOCKER}, "combat", combat));
     }
     private JsonObject group(String attacker) { return object("defenderId", ME, "attackers", new String[]{attacker}, "blockers", attacker.equals(selectedAttacker) ? new String[]{BLOCKER} : new String[]{}); }

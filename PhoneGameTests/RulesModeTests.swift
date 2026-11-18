@@ -262,6 +262,16 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
     }
 
+    func testCombatShortcutDoesNotDuplicateRealSpecialActions() throws {
+        func prompt(_ message: String, label: String) throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": "GAME_SELECT", "revision": 1, "supported": true, "choices": [],
+                "message": message, "specialActionAvailable": true, "specialActionLabel": label] as [String: Any]))
+        }
+        XCTAssertFalse(try prompt("Select attackers", label: "All attack").showsSpecialAction)
+        XCTAssertTrue(try prompt("Play spells and abilities", label: "Special action").showsSpecialAction)
+    }
+
     func testRevealedCardsSayWhyFromTheGameLog() throws {
         let group = try JSONDecoder().decode(RulesSnapshot.CardGroup.self, from: Data(#"{"name":"Revealed cards","cards":[{"id":"f","name":"Forest","faceDown":false,"transformed":false,"counters":[]}]}"#.utf8))
         let log = ["Computer casts Summon: Fenrir", "Computer reveals Forest (Summon: Fenrir)", "Computer draws a card"]

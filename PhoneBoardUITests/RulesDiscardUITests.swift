@@ -74,6 +74,20 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertEqual(status.handCount, 5)
     }
 
+    @MainActor func testAttackerSelectionHasOnlyTheMainAllAttackButton() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/attack")
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["rules-board-banner"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["rules-board-banner"].label, "Choose attackers.")
+        XCTAssertEqual(app.buttons["phone-untap-local"].label, "All Attack")
+        XCTAssertTrue(app.buttons["phone-untap-local"].isEnabled)
+        XCTAssertTrue(app.buttons["rules-secondary-action"].exists)
+        XCTAssertFalse(app.buttons["rules-special-action"].exists, "XMage's All attack shortcut must not duplicate the main combat button")
+    }
+
     @MainActor func testBattlefieldBannerUpdatesWithoutBlockingCombatCardTaps() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
@@ -83,12 +97,16 @@ final class RulesDiscardUITests: XCTestCase {
         let banner = app.staticTexts["rules-board-banner"]
         XCTAssertTrue(banner.waitForExistence(timeout: 5))
         XCTAssertEqual(banner.label, "Choose blockers.")
-        XCTAssertEqual(banner.frame.midY, app.frame.midY, accuracy: 24)
+        let cards = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let opponentBottom = try XCTUnwrap(cards.filter { ($0.value as? String) == "Attacking" }.map(\.frame.maxY).max())
+        let localTop = try XCTUnwrap(cards.filter { ($0.value as? String) == "Untapped" }.map(\.frame.minY).min())
+        XCTAssertGreaterThan(localTop, opponentBottom, "The fixture leaves an open combat gap")
+        XCTAssertGreaterThanOrEqual(banner.frame.minY, opponentBottom - 1, "The instruction must not cover attackers' power/toughness")
+        XCTAssertLessThanOrEqual(banner.frame.maxY, localTop + 1, "The instruction must stay above our permanents")
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Arena-style battlefield instruction band"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        let cards = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
         let blocker = try XCTUnwrap(cards.first { ($0.value as? String) == "Untapped" && $0.isHittable })
         blocker.tap()
         let targetBanner = expectation(for: NSPredicate(format: "label == 'Choose attacker to block'"), evaluatedWith: banner)

@@ -75,7 +75,7 @@ class BoardViewController: UIViewController {
   /// Rules mode's prompt panel, kept above the board and just above the local phase button (Arena).
   private var rulesPromptHost: UIViewController?
   private var rulesBannerHost: UIViewController?
-  /// The banner's height on screen: the gap between the two players' permanents (see positionRulesPrompt).
+  /// The banner's vertical position in the gap between the two players' permanents.
   private var rulesBannerCenterY: NSLayoutConstraint?
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?

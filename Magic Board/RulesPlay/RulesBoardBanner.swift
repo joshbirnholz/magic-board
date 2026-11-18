@@ -33,7 +33,8 @@ struct RulesBoardBanner: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 40)
-                    .padding(.vertical, 8)
+                    // Phone Play leaves a narrow gap between the two creature rows.
+                    .padding(.vertical, 2)
                     .frame(maxWidth: .infinity)
                     .background {
                         LinearGradient(stops: [

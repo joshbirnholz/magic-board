@@ -2,6 +2,12 @@
 
 Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coordination record outside git, including active task claims and the shared simulator lock. Claude and Codex are both working; check ownership there before editing shared files.
 
+## Latest Codex takeover (2026-11-18, afternoon)
+
+Merged current `rules-mode` and Claude's `104f606` into `rules-mode-codex`. The screenshot's extra middle “All attack” is the engine's `specialActionLabel`, rendered by RulesPromptBar alongside the main combat action. Combat now uses the main action only; genuine special actions at priority stay available. The battlefield banner is centered between the permanent rows with less vertical padding so it fits the narrow combat gap without hiding attacker P/T. Verified all 105 units plus attacker-button, blocker/banner/card-tap, and normal Phone Play tap/drag UI checks. Log: `/private/tmp/rules-combat-banner-and-duplicate.log`; passing screenshot: `/private/tmp/rules-combat-banner-final/3DCEEA73-B999-40F1-BC87-993895410630.png`.
+
+Capital City investigation continues on an isolated local bridge17182. Latest source DOES offer its costed colored-mana ability while paying; the original scratch driver chooses the first ability (colorless), causing repeated unpaid black. A probe explicitly choosing the colored ability and Black progresses through the nested activation cost. Need a bounded regression and phone verification before calling the reported issue resolved. PC remains Claude's `c066464e`, untouched by Codex. Prompt source names and vehicle placement remain open; ward warning is not authorized.
+
 ## Latest integration work (11:31 AM ET)
 
 - **e71779f**: Rules connection screen rejects packet drafting before joining a non-Limited waiting table, with an actionable deck-list message. The four-line Rules-only guard compiles, and all 29 Rules tests pass after merging Claude’s delivered `1b38549` test update.
