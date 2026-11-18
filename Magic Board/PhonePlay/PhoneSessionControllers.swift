@@ -1670,44 +1670,30 @@ struct PhoneAbilityPanel: View {
     let width: CGFloat
     @State private var art: UIImage?
 
-    /// Mana symbols inline and reminder text in italics (the Rules text view, as in Current Rules).
-    @ViewBuilder private var abilityText: some View {
-#if BOARD_CONNECT
-        addSymbols(string: text, symbolLength: max(8, width * 0.06)).font(.system(size: max(8, width * 0.065)))
-#else
-        RulesOracleText(text: text, size: max(8, width * 0.065)).font(.system(size: max(8, width * 0.065)))
-#endif
-    }
+    private typealias Layout = MTGCardView.AbilityLayout
+    private var height: CGFloat { width / Layout.aspect }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(source.representation.name ?? "")
-                .font(.custom("Beleren2016-Bold", size: max(9, width * 0.075)))
-                .foregroundStyle(.white)
-                .lineLimit(1).minimumScaleFactor(0.6)
-                .padding(.horizontal, 8).padding(.vertical, 5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(white: 0.22))
+        ZStack(alignment: .topLeading) {
+            Color.black
+            // The source's art in the frame's window, under the frame.
             Group {
                 if let art { Image(uiImage: art).resizable().scaledToFill() }
                 else { Color(white: 0.3) }
             }
-            .frame(width: width, height: width * 0.62)
+            .frame(width: Layout.art.width * width, height: Layout.art.height * height)
             .clipped()
-            Text("Ability")
-                .font(.custom("Beleren2016-Bold", size: max(8, width * 0.06)))
-                .foregroundStyle(.white.opacity(0.85))
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(white: 0.18))
-            abilityText
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.leading)
-                .minimumScaleFactor(0.5)
-                .padding(8)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .offset(x: Layout.art.minX * width, y: Layout.art.minY * height)
+            if let frame = Self.frame(for: source) {
+                Image(uiImage: frame).resizable().frame(width: width, height: height)
+            }
+            line(source.representation.name ?? "", size: Layout.titleSize, in: Layout.title)
+            line("Ability", size: Layout.typeSize, in: Layout.type)
+            rulesText
+                .frame(width: Layout.rules.width * width, height: Layout.rules.height * height, alignment: .leading)
+                .offset(x: Layout.rules.minX * width, y: Layout.rules.minY * height)
         }
-        .background(Color(white: 0.1))
+        .frame(width: width, height: height, alignment: .topLeading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(source.representation.name ?? "") ability: \(text)")
         .task(id: source.uuid) {
@@ -1715,5 +1701,70 @@ struct PhoneAbilityPanel: View {
             let representation = source.representation
             art = await Task.detached(priority: .userInitiated) { representation.image(type: .art) }.value
         }
+    }
+
+    /// The name or type line: Beleren, one line, shrunk to fit its bar.
+    private func line(_ string: String, size: CGFloat, in rect: CGRect) -> some View {
+        Text(string)
+            .font(.custom("Beleren2016-Bold", size: size * height))
+            .foregroundStyle(.black)
+            .lineLimit(1).minimumScaleFactor(0.5)
+            .frame(width: rect.width * width, height: rect.height * height, alignment: .leading)
+            .offset(x: rect.minX * width, y: rect.minY * height)
+    }
+
+    /// The rules text in MPlantin (italics for reminder text and ability words) with inline
+    /// symbols, centred in the rules box and shrunk until it fits.
+    private var rulesText: some View {
+        let box = CGSize(width: Layout.rules.width * width, height: Layout.rules.height * height)
+        return ViewThatFits(in: .vertical) {
+            ForEach([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4], id: \.self) { scale in
+                Self.rulesText(text, size: Layout.rulesSize * height * scale)
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: box.width, alignment: .leading)
+            }
+        }
+    }
+
+    static func rulesText(_ string: String, size: CGFloat) -> Text {
+        let regular = Font.custom("MPlantin", size: size)
+        let italic = Font.custom("MPlantin-Italic", size: size)
+        func symbols(_ part: Substring, _ font: Font) -> Text {
+            part.isEmpty ? Text("") : addSymbols(string: String(part), symbolLength: size * 0.85).font(font)
+        }
+        var result = Text("")
+        for (offset, line) in string.components(separatedBy: .newlines).enumerated() {
+            if offset > 0 { result = result + Text("\n").font(regular) }
+#if BOARD_CONNECT
+            let italics: [Range<String.Index>] = []
+#else
+            let italics = RulesOracleText.italicRanges(line)
+#endif
+            var cursor = line.startIndex
+            for range in italics {
+                result = result + symbols(line[cursor..<range.lowerBound], regular) + symbols(line[range], italic)
+                cursor = range.upperBound
+            }
+            result = result + symbols(line[cursor...], regular)
+        }
+        return result
+    }
+
+    /// The source's ability frame, colored like its mini card.
+    static func frame(for source: CardInstance) -> UIImage? {
+        let representation = source.representation
+        var properties = MTGCardView.properties(
+            includedIcons: .permanent, name: representation.name, manaCost: representation.manaCost,
+            typeLine: representation.typeLine, oracleText: representation.oracleText,
+            colorInitials: source.colors.value.map { $0.initial }, fullArt: representation.fullArt,
+            borderColor: representation.borderColor.rawValue, frame: representation.card.frame,
+            frameEffects: representation.frameEffects, power: representation.power,
+            toughness: representation.toughness, loyalty: representation.loyalty, layout: representation.layout,
+            flavorName: representation.flavorName, isAltFace: false, keywords: representation.keywords,
+            securityStamp: representation.card.securityStamp, isCommander: source.isCommander.value)
+        properties.applyFrameColors(source.colors.value, isLand: representation.isLand, defaults: properties.colors)
+        return MTGCardView.abilityFrame(for: properties)
     }
 }
