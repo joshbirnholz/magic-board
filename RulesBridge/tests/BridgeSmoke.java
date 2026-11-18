@@ -141,6 +141,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         Set<String> chosenPile = new HashSet<>();
         Set<String> dividedTargets = new HashSet<>();
         String graveyardCast = null;
+        String cancelCandidate = null, cancelledCard = null;
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
@@ -150,6 +151,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 answer.add("promptId", nextPrompt.get("id"));
                 answer.add("revision", currentState.get("revision"));
                 String method = nextPrompt.get("method").getAsString();
+                if (cancelledCard != null && method.equals("GAME_SELECT") && currentState.getAsJsonArray("stack").isEmpty()) {
+                    for (JsonElement card : currentState.getAsJsonArray("hand"))
+                        if (card.getAsJsonObject().get("id").getAsString().equals(cancelledCard)) observedPrompts.add("CANCELLED_CAST_RECOVERED");
+                }
                 if (method.equals("GAME_SELECT") && resolvingStack && currentState.getAsJsonArray("stack").isEmpty()) {
                     if (currentState.getAsJsonObject("priority").get("untilStackResolved").getAsBoolean())
                         throw new AssertionError("Resolve-stack stop did not reset");
@@ -189,7 +194,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                                     && untappedLands(currentState) < 2) continue;
                             object = card.get("id").getAsString();
                             if (card.get("typeLine").getAsString().contains("Land")) playedLand = true;
-                            else if (card.get("typeLine").getAsString().contains("Creature")) castCreature = true;
+                            else {
+                                cancelCandidate = object;
+                                if (card.get("typeLine").getAsString().contains("Creature")) castCreature = true;
+                            }
                             break;
                         }
                     }
@@ -337,6 +345,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     JsonArray amounts = new JsonArray();
                     for (JsonElement row : nextPrompt.getAsJsonArray("amounts")) amounts.add(row.getAsJsonObject().get("defaultValue"));
                     answer.addProperty("kind", "amounts"); answer.add("value", amounts);
+                } else if (method.equals("GAME_PLAY_MANA") && System.getenv("RULES_SMOKE_CANCEL_ONCE") != null
+                        && cancelledCard == null && cancelCandidate != null) {
+                    cancelledCard = cancelCandidate;
+                    answer.addProperty("kind", "boolean"); answer.addProperty("value", false);
                 } else if (method.equals("GAME_PLAY_MANA") || method.equals("GAME_PLAY_XMANA") && !paidX) {
                     for (JsonElement player : currentState.getAsJsonArray("players")) {
                         if (!player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) continue;
