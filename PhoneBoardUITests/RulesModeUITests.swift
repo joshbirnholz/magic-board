@@ -141,8 +141,8 @@ final class RulesModeUITests: XCTestCase {
         let next = app.buttons["phone-untap-local"]
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         let fan = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
-        var played = 0, attacked = 0, stuck = 0, lastState = ""
-        let deadline = Date().addingTimeInterval(8 * 60)
+        var played = 0, attacked = 0, stuck = 0, lastState = "", blocked = 0, blocks = 0
+        let deadline = Date().addingTimeInterval(12 * 60)
         while Date() < deadline {
             if app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists || app.staticTexts["Game Over"].exists { break }
             XCTAssertFalse(app.staticTexts["This choice is not supported yet."].exists, "Unsupported prompt: \(message.exists ? message.label : "")")
@@ -171,6 +171,21 @@ final class RulesModeUITests: XCTestCase {
                     let ours = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex.filter { $0.frame.midY > app.frame.midY }
                     for creature in ours { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
                     if !ours.isEmpty { attacked += 1 }
+                } else if text.localizedCaseInsensitiveContains("select blockers"), blocked < 2, next.label.contains("No") {
+                    // Block: drag one of our untapped creatures onto an attacking creature (Phone Play's gesture).
+                    let creatures = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+                    // An attacking creature carries the orange combat outline ("Attacking").
+                    let attacking = app.descendants(matching: .any).matching(identifier: "phone-combat-glow")
+                        .matching(NSPredicate(format: "value == 'Attacking'")).firstMatch
+                    if let blocker = creatures.first(where: { $0.frame.midY > app.frame.midY }), attacking.exists {
+                        let origin = app.coordinate(withNormalizedOffset: .zero)
+                        let target = origin.withOffset(CGVector(dx: attacking.frame.midX, dy: attacking.frame.midY))
+                        blocker.press(forDuration: 0.4, thenDragTo: target, withVelocity: 300, thenHoldForDuration: 0.8)
+                        blocked += 1
+                        Thread.sleep(forTimeInterval: 1.0)
+                        if next.label.contains("Block") && !next.label.contains("No") { blocks += 1 }
+                        continue
+                    }
                 } else if text.localizedCaseInsensitiveContains("Play spells"),
                           let card = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
                     if fan.value as? String != "Expanded" { card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap(); Thread.sleep(forTimeInterval: 0.6) }
@@ -193,5 +208,9 @@ final class RulesModeUITests: XCTestCase {
         add(screenshot)
         XCTAssertTrue(app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists, "The game didn't finish in time (played \(played) cards)")
         XCTAssertGreaterThan(played, 0)
+        if blocked > 0 { XCTAssertGreaterThan(blocks, 0, "Dragging a blocker onto an attacker never declared a block") }
+        if !text(blocked: blocked, blocks: blocks).isEmpty { print(text(blocked: blocked, blocks: blocks)) }
     }
+
+    private func text(blocked: Int, blocks: Int) -> String { "Block attempts \(blocked), blocks declared \(blocks)" }
 }

@@ -35,7 +35,7 @@ struct RulesPillButtonStyle: ButtonStyle {
     var primary = true
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .font(.custom("Beleren2016-Bold", size: 17, relativeTo: .headline))
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .padding(.horizontal, 22).padding(.vertical, 10)
@@ -59,9 +59,11 @@ struct RulesPillButtonStyle: ButtonStyle {
 private struct RulesSymbolText: View {
     let text: String
     var size: CGFloat = 15
+    /// Beleren for titles (Arena's headline face); the system font for body text.
+    var beleren = false
     var body: some View {
         addSymbols(string: text, symbolLength: size)
-            .font(.system(size: size))
+            .font(beleren ? .custom("Beleren2016-Bold", size: size, relativeTo: .title3) : .system(size: size))
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -105,7 +107,7 @@ struct RulesPromptBar: View {
         switch prompt.method {
         case "GAME_PLAY_MANA", "GAME_PLAY_XMANA":
             strip {
-                RulesSymbolText(text: prompt.plainMessage, size: 18).foregroundStyle(.white)
+                RulesSymbolText(text: prompt.plainMessage, size: 18, beleren: true).foregroundStyle(.white)
                     .accessibilityIdentifier("rules-prompt-message")
                 Text("Tap your lands to pay.").font(.caption).foregroundStyle(.white.opacity(0.7))
                 HStack {
@@ -115,7 +117,7 @@ struct RulesPromptBar: View {
             }
         case "GAME_TARGET":
             strip {
-                RulesSymbolText(text: prompt.plainMessage, size: 16).foregroundStyle(.white)
+                RulesSymbolText(text: prompt.plainMessage, size: 17, beleren: true).foregroundStyle(.white)
                     .accessibilityIdentifier("rules-prompt-message")
                 Text("Tap a highlighted card.").font(.caption).foregroundStyle(.white.opacity(0.7))
                 let players = session.snapshot?.players.filter { prompt.targets?.contains($0.id) == true } ?? []
@@ -233,8 +235,7 @@ struct RulesPromptModal: View {
 
     private func title(_ prompt: RulesPrompt) -> some View {
         VStack(spacing: 4) {
-            RulesSymbolText(text: prompt.isStartingPlayer ? "Who plays first?" : prompt.isMulligan ? mulliganTitle(prompt) : prompt.plainMessage, size: 22)
-                .font(.title3.weight(.semibold))
+            RulesSymbolText(text: prompt.isStartingPlayer ? "Who plays first?" : prompt.isMulligan ? mulliganTitle(prompt) : prompt.plainMessage, size: 24, beleren: true)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("rules-prompt-message")
@@ -337,7 +338,7 @@ struct RulesPromptModal: View {
         let lost = text.localizedCaseInsensitiveContains("is the winner") && !won
         return VStack(spacing: 16) {
             Text(won ? "Victory" : lost ? "Defeat" : "Game Over")
-                .font(.system(size: 48, weight: .heavy, design: .serif))
+                .font(.custom("Beleren2016-Bold", size: 56, relativeTo: .largeTitle))
                 .foregroundStyle(won ? Color(red: 1, green: 0.8, blue: 0.3) : .white)
             Text(text).font(.callout).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
             if let exit { Button("Exit Game", action: exit).buttonStyle(RulesPillButtonStyle()) }
@@ -346,7 +347,7 @@ struct RulesPromptModal: View {
 
     private func pile(_ title: String, _ cards: [RulesCard], answer value: Bool) -> some View {
         VStack(spacing: 8) {
-            Text("\(title) · \(cards.count)").font(.headline).foregroundStyle(.white)
+            Text("\(title) · \(cards.count)").font(.custom("Beleren2016-Bold", size: 17, relativeTo: .headline)).foregroundStyle(.white)
             cardRow(cards, height: 120, selectable: false).frame(maxWidth: 320)
             answer("Choose \(title)", .boolean(value))
         }
