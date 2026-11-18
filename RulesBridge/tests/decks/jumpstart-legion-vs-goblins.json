@@ -1,0 +1,349 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Legion 1 + Legion 2",
+    "main": [
+      {
+        "count": 1,
+        "name": "Basri's Solidarity",
+        "set": "M21",
+        "collectorNumber": "10"
+      },
+      {
+        "count": 1,
+        "name": "Blessed Sanctuary",
+        "set": "JMP",
+        "collectorNumber": "1"
+      },
+      {
+        "count": 1,
+        "name": "Daybreak Charger",
+        "set": "M21",
+        "collectorNumber": "14"
+      },
+      {
+        "count": 1,
+        "name": "Falconer Adept",
+        "set": "M21",
+        "collectorNumber": "18"
+      },
+      {
+        "count": 1,
+        "name": "Inspired Charge",
+        "set": "JMP",
+        "collectorNumber": "110"
+      },
+      {
+        "count": 1,
+        "name": "Knight of the Tusk",
+        "set": "JMP",
+        "collectorNumber": "114"
+      },
+      {
+        "count": 1,
+        "name": "Legion's Judgment",
+        "set": "M21",
+        "collectorNumber": "24"
+      },
+      {
+        "count": 1,
+        "name": "Makeshift Battalion",
+        "set": "M21",
+        "collectorNumber": "26"
+      },
+      {
+        "count": 1,
+        "name": "Path to Exile",
+        "set": "JMP",
+        "collectorNumber": "127"
+      },
+      {
+        "count": 7,
+        "name": "Plains",
+        "set": "FDN",
+        "collectorNumber": "272"
+      },
+      {
+        "count": 1,
+        "name": "Raise the Alarm",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Selfless Savior",
+        "set": "M21",
+        "collectorNumber": "36"
+      },
+      {
+        "count": 1,
+        "name": "Thriving Heath",
+        "set": "JMP",
+        "collectorNumber": "35"
+      },
+      {
+        "count": 1,
+        "name": "Valorous Steed",
+        "set": "M21",
+        "collectorNumber": "42"
+      },
+      {
+        "count": 1,
+        "name": "Basri's Solidarity",
+        "set": "M21",
+        "collectorNumber": "10"
+      },
+      {
+        "count": 1,
+        "name": "Daybreak Charger",
+        "set": "M21",
+        "collectorNumber": "14"
+      },
+      {
+        "count": 1,
+        "name": "Faith's Fetters",
+        "set": "M21",
+        "collectorNumber": "17"
+      },
+      {
+        "count": 1,
+        "name": "Glorious Anthem",
+        "set": "M21",
+        "collectorNumber": "21"
+      },
+      {
+        "count": 1,
+        "name": "Inspiring Captain",
+        "set": "JMP",
+        "collectorNumber": "111"
+      },
+      {
+        "count": 1,
+        "name": "Legion's Judgment",
+        "set": "M21",
+        "collectorNumber": "24"
+      },
+      {
+        "count": 1,
+        "name": "Makeshift Battalion",
+        "set": "M21",
+        "collectorNumber": "26"
+      },
+      {
+        "count": 7,
+        "name": "Plains",
+        "set": "FDN",
+        "collectorNumber": "272"
+      },
+      {
+        "count": 1,
+        "name": "Raise the Alarm",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Release the Dogs",
+        "set": "JMP",
+        "collectorNumber": "4"
+      },
+      {
+        "count": 1,
+        "name": "Siege Striker",
+        "set": "M21",
+        "collectorNumber": "37"
+      },
+      {
+        "count": 1,
+        "name": "Staunch Shieldmate",
+        "set": "M21",
+        "collectorNumber": "39"
+      },
+      {
+        "count": 1,
+        "name": "Thriving Heath",
+        "set": "JMP",
+        "collectorNumber": "35"
+      },
+      {
+        "count": 1,
+        "name": "Valorous Steed",
+        "set": "M21",
+        "collectorNumber": "42"
+      }
+    ]
+  },
+  "aiDeck": {
+    "name": "Goblins 1 + Goblins 2",
+    "main": [
+      {
+        "count": 1,
+        "name": "Beetleback Chief",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Boggart Brute",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Goblin Arsonist",
+        "set": "M21",
+        "collectorNumber": "147"
+      },
+      {
+        "count": 1,
+        "name": "Goblin Commando",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Goblin Instigator",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Goblin Shortcutter",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Makeshift Munitions",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 7,
+        "name": "Mountain",
+        "set": "FDN",
+        "collectorNumber": "278"
+      },
+      {
+        "count": 1,
+        "name": "Muxus, Goblin Grandee",
+        "set": "JMP",
+        "collectorNumber": "24"
+      },
+      {
+        "count": 1,
+        "name": "Ornery Goblin",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Outnumber",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Shock",
+        "set": "M21",
+        "collectorNumber": "159"
+      },
+      {
+        "count": 1,
+        "name": "Thriving Bluff",
+        "set": "JMP",
+        "collectorNumber": "33"
+      },
+      {
+        "count": 1,
+        "name": "Volley Veteran",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Battle-Rattle Shaman",
+        "set": "M21",
+        "collectorNumber": "130"
+      },
+      {
+        "count": 1,
+        "name": "Beetleback Chief",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Boggart Brute",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Burn Bright",
+        "set": "M21",
+        "collectorNumber": "134"
+      },
+      {
+        "count": 1,
+        "name": "Goblin Arsonist",
+        "set": "M21",
+        "collectorNumber": "147"
+      },
+      {
+        "count": 1,
+        "name": "Goblin Commando",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Goblin Instigator",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Goblin Shortcutter",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Makeshift Munitions",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 7,
+        "name": "Mountain",
+        "set": "FDN",
+        "collectorNumber": "278"
+      },
+      {
+        "count": 1,
+        "name": "Muxus, Goblin Grandee",
+        "set": "JMP",
+        "collectorNumber": "24"
+      },
+      {
+        "count": 1,
+        "name": "Ornery Goblin",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Outnumber",
+        "set": "JMP",
+        "collectorNumber": ""
+      },
+      {
+        "count": 1,
+        "name": "Thriving Bluff",
+        "set": "JMP",
+        "collectorNumber": "33"
+      }
+    ]
+  }
+}

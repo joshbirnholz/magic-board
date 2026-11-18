@@ -1,10 +1,13 @@
 package magicboard.rules;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import mage.view.GameClientMessage;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collection;
+import java.util.UUID;
 
 /** Only presentation-safe options, never the engine's arbitrary serialized option graph. */
 final class PromptMetadata {
@@ -16,6 +19,8 @@ final class PromptMetadata {
         Map<String, Serializable> options = message.getOptions() == null ? Map.of() : message.getOptions();
         if (options.get("queryType") instanceof Enum<?> query) result.addProperty("queryType", query.name());
         if (options.get("secondMessage") instanceof String text) result.addProperty("subMessage", text);
+        copyIds(options, "possibleTargets", "selectionIds", result);
+        copyIds(options, "chosenTargets", "selectedIds", result);
         boolean special = (message.getGameView() != null && message.getGameView().getSpecial())
                 || options.get("specialButton") instanceof String;
         result.addProperty("specialActionAvailable", special);
@@ -32,5 +37,13 @@ final class PromptMetadata {
             result.addProperty("subMessage", message.getChoice().getSubMessage());
         }
         result.addProperty("canCancel", cancel);
+    }
+
+    private static void copyIds(Map<String, Serializable> options, String key, String field, JsonObject result) {
+        if (options.get(key) instanceof Collection<?> values) {
+            JsonArray ids = new JsonArray();
+            for (Object value : values) if (value instanceof UUID id) ids.add(id.toString());
+            result.add(field, ids);
+        }
     }
 }

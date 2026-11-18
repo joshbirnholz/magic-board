@@ -6,6 +6,9 @@ import mage.game.events.PlayerQueryEvent;
 import mage.view.GameClientMessage;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.List;
+import java.io.Serializable;
 
 /** Exercise the released engine's real message/choice objects, including required flags. */
 public final class PromptMetadataTest {
@@ -16,6 +19,14 @@ public final class PromptMetadataTest {
         check(!ordering.get("canCancel").getAsBoolean(), "Required target can be cancelled");
         JsonObject optionalTarget = metadata("GAME_TARGET", new GameClientMessage(null, null, "Up to one", null, null, false));
         check(optionalTarget.get("canCancel").getAsBoolean(), "Optional target cannot be cancelled");
+        UUID allowed = UUID.randomUUID(), selected = UUID.randomUUID();
+        JsonObject cardChoice = metadata("GAME_TARGET", new GameClientMessage(null,
+                Map.of("possibleTargets", new HashSet<Serializable>(List.of(allowed, "private-option-payload")),
+                        "chosenTargets", new HashSet<>(List.of(selected))), "Choose card", null, null, true));
+        check(cardChoice.getAsJsonArray("selectionIds").size() == 1
+                && cardChoice.getAsJsonArray("selectionIds").get(0).getAsString().equals(allowed.toString()), "Legal card IDs lost");
+        check(cardChoice.getAsJsonArray("selectedIds").get(0).getAsString().equals(selected.toString()), "Selected card IDs lost");
+        check(!cardChoice.toString().contains("private-option-payload"), "Arbitrary serialized option leaked");
         JsonObject special = metadata("GAME_SELECT", new GameClientMessage(null, Map.of("specialButton", "Special choice"), "Priority"));
         check(special.get("specialActionAvailable").getAsBoolean(), "Special action unavailable");
         check("Special choice".equals(special.get("specialActionLabel").getAsString()), "Special label lost");

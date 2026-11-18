@@ -72,6 +72,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         if (System.getenv("RULES_SMOKE_DECK") != null) {
             JsonObject config = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("RULES_SMOKE_DECK")))).getAsJsonObject();
             create.add("deck", config.get("deck")); create.add("format", config.get("format"));
+            if (config.has("aiDeck")) create.add("aiDeck", config.get("aiDeck"));
         }
         test.send(create.toString());
         test.await("ack");
@@ -288,7 +289,15 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 }
                 if (method.equals("GAME_TARGET") && !targetsComplete && object == null
                         && !nextPrompt.getAsJsonArray("cards").isEmpty()) {
-                    object = nextPrompt.getAsJsonArray("cards").get(0).getAsJsonObject().get("id").getAsString();
+                    for (JsonElement item : nextPrompt.getAsJsonArray("cards")) {
+                        JsonElement id = item.getAsJsonObject().get("id");
+                        // The UI allows deselection, but this forward-only smoke driver must not
+                        // toggle the first scry card on and off forever.
+                        boolean selected = nextPrompt.has("selectedIds") && nextPrompt.getAsJsonArray("selectedIds").contains(id);
+                        if (!selected && (!nextPrompt.has("selectionIds") || nextPrompt.getAsJsonArray("selectionIds").contains(id))) {
+                            object = id.getAsString(); break;
+                        }
+                    }
                     if (searchOnStack) searchedCard = object;
                 }
                 if (System.getenv("RULES_SMOKE_FORCE_DISCARD") != null && method.equals("GAME_TARGET")

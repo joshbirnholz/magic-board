@@ -127,6 +127,13 @@ struct RulesPrompt: Decodable, Identifiable {
     var subMessage: String? = nil
     var specialActionAvailable: Bool? = nil
     var specialActionLabel: String? = nil
+    var selectionIds: [String]? = nil
+    var selectedIds: [String]? = nil
+
+    func isCardSelectable(_ id: String) -> Bool {
+        guard let selectionIds else { return true } // older bridges do not provide this metadata
+        return selectionIds.contains(id) || selectedIds?.contains(id) == true
+    }
 }
 
 enum RulesAnswer: Encodable {

@@ -74,12 +74,18 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 ```sh
 mkdir -p build/test-classes
 javac --release 17 -encoding UTF-8 -cp "build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/test-classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke MulliganSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
     java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
 
-`RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
+`RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload, with optional `aiDeck` for a distinct opponent deck. The fixture `tests/decks/jumpstart-legion-vs-goblins.json` combines the bundled Legion 1 + 2 and Goblins 1 + 2 packets into two real 40-card decks; its complete AI game, cleanup discard, stack ownership and game-over replay pass.
+
+`MulliganSmoke` takes two real engine mulligans, answers all three individual return-to-library prompts, then keeps five cards and reaches first priority with that five-card hand. It logs the exact prompt wording used by the opening-hand UI.
+
+`SeparateAiDeckSmoke` verifies that an unsupported AI card produces an actionable error, a retry succeeds on the same seat, and a 40-card Plains player deck faces a separate 40-card Island AI deck (observed through the human hand and AI battlefield).
+
+The deterministic Jump In fixture `tests/decks/jumpin-crafting-cats-vs-depths-zombie.json` uses the first positive-probability option in each bundled random slot, with mono-colour basic lands filling each deck to 40. Its complete AI game passes, including Oteclan Landmark scry (two distinct selections), creatures, targeting and result replay. The smoke driver excludes already-selected cards so it progresses through scry rather than toggling a choice repeatedly; the app continues to allow deselection.
 
 Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs, morph, nonzero X, hybrid mana, library search, equip, loyalty abilities, cleanup discard, instant responses, distributed damage and pile choices. Deck fixtures are in `tests/decks/`. The X probe casts Blaze with X=1, the hybrid probe casts Safehold Elite using Plains, and the search probe verifies that the chosen library card reaches the player's hand. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game. For local decoding diagnostics, `RULES_SMOKE_EVENTS=/path/to/events.jsonl` appends snapshot and prompt events from the probe (no authentication or connection events).
 
@@ -128,3 +134,16 @@ Disconnecting retains the bridge session for up to 15 minutes. Reconnecting rese
 - Broader gameplay and physical-device coverage (Windows hosting and startup are now configured and tested).
 
 UI reference: [Wizards' mobile Arena gameplay guide and screenshots](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-game-january-2021-01-21), plus the existing Phone Play implementation. Prefer its actual shared controls over a parallel Rules-only battlefield.
+
+### Bundled packet name compatibility
+
+The audit checks every fixed card and every positive-probability Jump In variant against the installed XMage printing index. It reports unavailable names without substituting cards. This verifies name resolution, not full rules correctness or the legality of a generated deck.
+
+After building and compiling the Java tests above, from `RulesBridge/`:
+
+```sh
+python3 tests/packet-manifest.py > build/packet-compatibility-input.json
+java -Xmx256m -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" magicboard.rules.PacketCompatibilityTest build/packet-compatibility-input.json build/packet-compatibility-report.json
+```
+
+On pinned 1.4.63V2, 673 of 688 bundled packets resolve every possible name after punctuation normalization. Remaining gaps are 13 Marvel Super Heroes packets and the SOS Jump In packets LOREHOLD and SPELLCRAFT. The generated report lists exact names; newer engine releases may change these results.

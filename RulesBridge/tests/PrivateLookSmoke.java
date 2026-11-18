@@ -6,17 +6,19 @@ import java.util.concurrent.TimeUnit;
 public final class PrivateLookSmoke {
     public static void main(String[] args) throws Exception {
         boolean publicReveal = System.getenv("RULES_LOOK_PUBLIC") != null;
+        boolean requireDiscard = System.getenv("RULES_LOOK_DISCARD") != null;
         try (BridgeTwoPlayerSmoke.Client caster = new BridgeTwoPlayerSmoke.Client();
              BridgeTwoPlayerSmoke.Client target = new BridgeTwoPlayerSmoke.Client()) {
             String main = publicReveal ? "[{\"name\":\"Swamp\",\"count\":36},{\"name\":\"Duress\",\"count\":24}]"
                     : "[{\"name\":\"Gitaxian Probe\",\"count\":60}]";
             caster.send("{\"type\":\"createHumanGame\",\"requestId\":\"create\",\"deck\":{\"name\":\"Visibility check\",\"main\":" + main + ",\"sideboard\":[]}}");
             JsonObject table = caster.await("tableJoined"); caster.await("ack");
-            String targetDeck = publicReveal ? ",\"deck\":{\"name\":\"Reveal target\",\"main\":[{\"name\":\"Plains\",\"count\":36},{\"name\":\"Revitalize\",\"count\":24}],\"sideboard\":[]}" : "";
+            String targetDeck = publicReveal ? ",\"deck\":{\"name\":\"Reveal target\",\"main\":[{\"name\":\"Revitalize\",\"count\":60}],\"sideboard\":[]}" : "";
             target.send("{\"type\":\"joinTable\",\"requestId\":\"join\",\"tableId\":" + table.get("tableId") + targetDeck + "}");
             target.await("tableJoined"); target.await("ack");
             caster.command("startMatch"); caster.await("ack");
             boolean sawLook = false, sawPrivateBaseline = false;
+            boolean discarded = false;
             Set<String> shown = new HashSet<>();
             Set<String> shownToTarget = new HashSet<>(), originalHand = new HashSet<>();
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(45);
@@ -27,8 +29,15 @@ public final class PrivateLookSmoke {
                     switch (event.get("type").getAsString()) {
                         case "snapshot" -> {
                             client.state = event;
-                            if (client == target && originalHand.isEmpty())
+                            if (client == target && !sawLook) {
+                                originalHand.clear();
                                 for (JsonElement card : event.getAsJsonArray("hand")) originalHand.add(card.getAsJsonObject().get("id").getAsString());
+                            }
+                            if (client == target && sawLook) for (JsonElement player : event.getAsJsonArray("players")) {
+                                if (!player.getAsJsonObject().get("id").equals(event.get("playerId"))) continue;
+                                for (JsonElement card : player.getAsJsonObject().getAsJsonArray("graveyard"))
+                                    if (originalHand.contains(card.getAsJsonObject().get("id").getAsString())) discarded = true;
+                            }
                             for (JsonElement player : event.getAsJsonArray("players"))
                                 if (player.getAsJsonObject().has("hand")) throw new AssertionError("Unfiltered hand in player summaries");
                             JsonArray looks = event.getAsJsonArray(publicReveal ? "revealed" : "lookedAt");
@@ -38,6 +47,7 @@ public final class PrivateLookSmoke {
                                 for (JsonElement group : looks) for (JsonElement card : group.getAsJsonObject().getAsJsonArray("cards"))
                                     shownToTarget.add(card.getAsJsonObject().get("id").getAsString());
                             if (client == caster && !looks.isEmpty()) {
+                                if (!sawLook) discarded = false;
                                 for (JsonElement group : looks) for (JsonElement card : group.getAsJsonObject().getAsJsonArray("cards"))
                                     shown.add(card.getAsJsonObject().get("id").getAsString());
                                 sawLook = !shown.isEmpty();
@@ -51,15 +61,23 @@ public final class PrivateLookSmoke {
                                 client.answer(event, "uuid", caster.state.get("playerId"));
                             else if (method.equals("GAME_TARGET") && (message.contains("target player") || message.contains("select a player")))
                                 client.answer(event, "uuid", target.state.get("playerId"));
+                            else if (method.equals("GAME_TARGET") && event.has("cards") && !event.getAsJsonArray("cards").isEmpty()) {
+                                if (!event.has("selectionIds") || event.getAsJsonArray("selectionIds").isEmpty())
+                                    throw new AssertionError("Engine's legal card IDs were not exposed");
+                                client.answer(event, "uuid", event.getAsJsonArray("selectionIds").get(0));
+                            }
                             else {
-                                System.out.println("Decision: " + method + " / " + message);
+                                System.out.println("Decision: " + method + " / " + message
+                                        + " cards=" + (event.has("cards") ? event.getAsJsonArray("cards").size() : 0)
+                                        + " targets=" + (event.has("targets") ? event.getAsJsonArray("targets").size() : 0));
                                 CombatSmoke.answer(client, event, false);
                             }
                         }
                         case "error", "gameOver" -> throw new AssertionError(event);
                     }
                 }
-                if (sawLook && !originalHand.isEmpty() && (!publicReveal || !shownToTarget.isEmpty())) {
+                if (sawLook && !originalHand.isEmpty() && (!publicReveal || !shownToTarget.isEmpty())
+                        && (!requireDiscard || discarded)) {
                     if (!shown.equals(originalHand)) throw new AssertionError("Visible hand differs from actual target hand");
                     if (publicReveal && !shownToTarget.equals(originalHand)) throw new AssertionError("Public reveal differs between seats");
                     if (!sawPrivateBaseline) throw new AssertionError("Did not verify hidden baseline before look");
@@ -73,6 +91,7 @@ public final class PrivateLookSmoke {
                         throw new AssertionError("Private look leaked on the other seat's replay");
                     System.out.println(publicReveal ? "PASS public hand reveal reaches both seats with the actual target hand"
                             : "PASS private hand look contains the real target hand, only on the permitted seat");
+                    if (requireDiscard) System.out.println("PASS a revealed opponent card was selected and discarded");
                     return;
                 }
             }
