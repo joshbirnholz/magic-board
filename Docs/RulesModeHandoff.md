@@ -10,13 +10,15 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 - 26 Rules units, eligible-card choice UI, actual Duress discard, and independent nine-card hand discard have passed. Normal Phone Play tap/drag passed again this morning (25 s). Inspector minimize/reopen passed (24 s); the fixture waits for its visible title because underlying board AX controls are hidden by the modal.
 - Use **`sh /private/tmp/magicboard-rules-codex-xcode.sh ...`** for Codex Xcode builds. It atomically acquires the shared lock and exits 75 without starting if occupied. Never split lock acquisition and build into separate calls. A 9:59 AM collision was immediately stopped and documented; Claude's process was preserved.
 - Committed main-branch fix `phone-play` `581b981` (hand ability tile layout) is merged. Main checkout remains untouched.
-- Post-merge units: 96 discovered, 93 passed, 3 fixture-dependent tests skipped (separate focused run pending). Actual engine `SeparateAiDeckSmoke` passes invalid AI deck error → same-session retry → human Plains hand versus AI Island battlefield, using distinct 40-card Limited decks.
+- Post-merge units: all 96 pass (93 in full suite plus all 3 fixture-dependent tests in a configured focused run). Integrated bridge full AI game also passes (127 decisions), including completed-game replay and invalid-key rejection. Actual engine `SeparateAiDeckSmoke` passes invalid AI deck error → same-session retry → human Plains hand versus AI Island battlefield, using distinct 40-card Limited decks.
+- Real bundled packet game passed: Legion 1+2 versus Goblins 1+2, two 40-card Limited decks, 75 decisions to engine game-over with replay. Reproduce via `RULES_SMOKE_DECK=tests/decks/jumpstart-legion-vs-goblins.json` and BridgeSmoke.
+- Shared local bridge updated to integrated `d71f4db`, PID55446 on17180; server unchanged. Isolated17182 uses same build.
 - Claude deployed the PC bridge to `0371f56` this morning; no Codex PC changes. Coordinate any later deployment, and restart only the bridge with the existing Windows helper.
 
 ## Workspace and constraints
 
 - Integration worktree `/private/tmp/MagicBoard-Rules`, branch `rules-mode`. Never push.
-- Never edit the main checkout `/Users/compc/Xcode/Magic Board` or its uncommitted files. Merge its committed `phone-play` fixes here periodically. Latest merged: `dd3c3bd` (opponent HUD recovery), including `d0ac0a8` (DFC hand cost) and earlier deck-parser/Jump-In fixes.
+- Never edit the main checkout `/Users/compc/Xcode/Magic Board` or its uncommitted files. Merge its committed `phone-play` fixes here periodically. Latest merged: `581b981` (hand ability tile layout), following `dd3c3bd` (opponent HUD recovery), including `d0ac0a8` (DFC hand cost) and earlier deck-parser/Jump-In fixes.
 - Claude's worktree `/private/tmp/MagicBoard-Rules-Claude`, branch `rules-mode-claude`. All committed work through `20d1323` is merged. Never edit that folder. When Claude returns, it should merge `rules-mode` into its own branch first.
 - Rules mode must reuse Phone Play's interface. Every engine behavior remains gated to Rules mode; normal Phone Play retains its sandbox actions and persistence.
 - Exactly one Xcode/simulator operation across all workers, including the separate main-checkout Phone Play Claude. Acquire `/private/tmp/magicboard-rules-xcode.lock` with `mkdir`, write `owner`, and stop if acquisition fails. Release when finished. Never take another agent's lock. Check the lock itself for its current owner.
@@ -71,7 +73,7 @@ Read the coordination file's "Now" and "Ready to merge" first.
 
 - Stock XMage release `xmage_1.4.63V2`, runtime `/private/tmp/xmage-rules-runtime/xmage`.
 - Server PID **45605**, port **17171**, `-Xmx1024m`; log `/private/tmp/magicboard-rules-xmage-server.log`. It currently binds all interfaces; keep that remoting port local/private.
-- Shared bridge PID **21254**, `127.0.0.1:17180`, deployed through `ff8132a`; token `rules-local-verification-key`; log `/private/tmp/magicboard-rules-bridge.log`.
+- Shared bridge PID **55446**, `127.0.0.1:17180`, deployed through `d71f4db`; token `rules-local-verification-key`; log `/private/tmp/magicboard-rules-bridge.log`.
 - Temporary Java tests use port **17182** and always stop that isolated bridge. The phone fixture used **17183** and has been stopped. Simulator connection preferences may still point to 17183: use 17180 for the real bridge.
 - DerivedData `/private/tmp/magicboard-rules-dd`; packages `/private/tmp/magicboard-rules-packages`.
 - For Keychain tests use **`CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=-`**. Unsigned test builds could not persist credentials; ad-hoc signing made both recovery and explicit cleanup pass. Do not replace Keychain storage with UserDefaults to work around that test configuration.

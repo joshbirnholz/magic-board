@@ -72,6 +72,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         if (System.getenv("RULES_SMOKE_DECK") != null) {
             JsonObject config = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("RULES_SMOKE_DECK")))).getAsJsonObject();
             create.add("deck", config.get("deck")); create.add("format", config.get("format"));
+            if (config.has("aiDeck")) create.add("aiDeck", config.get("aiDeck"));
         }
         test.send(create.toString());
         test.await("ack");

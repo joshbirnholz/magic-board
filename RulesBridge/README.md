@@ -79,7 +79,7 @@ for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke CombatSmoke Le
 done
 ```
 
-`RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
+`RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload, with optional `aiDeck` for a distinct opponent deck. The fixture `tests/decks/jumpstart-legion-vs-goblins.json` combines the bundled Legion 1 + 2 and Goblins 1 + 2 packets into two real 40-card decks; its complete AI game, cleanup discard, stack ownership and game-over replay pass.
 
 `SeparateAiDeckSmoke` verifies that an unsupported AI card produces an actionable error, a retry succeeds on the same seat, and a 40-card Plains player deck faces a separate 40-card Island AI deck (observed through the human hand and AI battlefield).
 
