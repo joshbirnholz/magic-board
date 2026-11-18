@@ -305,6 +305,10 @@ final class XMageSession implements MageClient, AutoCloseable {
             output.accept(object("type", "gameOver", "message", ((GameClientMessage) data).getMessage()));
         } else if (callback.getMethod() == ClientCallbackMethod.GAME_ERROR) {
             showError(String.valueOf(data));
+        } else if (callback.getMethod() == ClientCallbackMethod.GAME_INFORM_PERSONAL && data instanceof GameClientMessage message
+                && message.getMessage() != null && !message.getMessage().isBlank()) {
+            // Engine messages meant just for this player (for example why an action was refused).
+            showMessage(message.getMessage());
         }
     }
 
