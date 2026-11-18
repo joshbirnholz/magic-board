@@ -147,3 +147,13 @@ java -Xmx256m -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HO
 ```
 
 On pinned 1.4.63V2, 673 of 688 bundled packets resolve every possible name after punctuation normalization. Remaining gaps are 13 Marvel Super Heroes packets and the SOS Jump In packets LOREHOLD and SPELLCRAFT. The generated report lists exact names; newer engine releases may change these results.
+
+### Deterministic multiple-mulligan fixture
+
+`MulliganPromptFixture` runs on loopback port 17187 (or the port in its first argument). It replays the actual `MulliganSmoke` sequence and validates prompt ID, revision and returned card membership. `/observer` reports mulligan count, total returns, final hand size and completion; the key is the same `RULES_BRIDGE_TOKEN` environment variable. The real-engine probe also passes against this fixture, confirming the scripted protocol follows the observed engine sequence. This fixture does not implement Magic rules.
+
+```sh
+java -Xmx128m -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" MulliganPromptFixture
+```
+
+The phone test uses `TEST_RUNNER_RULES_MULLIGAN_FIXTURE_ADDRESS=ws://127.0.0.1:17187` and `RulesDiscardUITests/testTwoMulligansReturnOnlyTheKeptHandsCardsToTheLibrary`. It checks the deferred Arena flow (Keep 5 with seven displayed, then drag two chosen cards to Library) against the fixture's independently observed answers.
