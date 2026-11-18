@@ -341,11 +341,22 @@ final class XMageSession implements MageClient, AutoCloseable {
     private void handle(ClientCallback callback) {
         Object data = callback.getData();
         String method = callback.getMethod().name();
+        if (callback.getMethod() == ClientCallbackMethod.CHATMESSAGE) {
+            if (data instanceof mage.view.ChatMessage chat && chat.getMessageType() == mage.view.ChatMessage.MessageType.GAME
+                    && chat.getMessage() != null && !chat.getMessage().isBlank()) {
+                output.accept(object("type", "log", "message", chat.getMessage()));
+            }
+            return;
+        }
         if (callback.getMethod() == ClientCallbackMethod.START_GAME) {
             TableClientMessage message = (TableClientMessage) data;
             gameId = message.getGameId();
             playerId = message.getPlayerId();
-            if (joinedGames.add(gameId) && !session.joinGame(gameId)) showError("Could not join the started game.");
+            if (joinedGames.add(gameId)) {
+                if (!session.joinGame(gameId)) showError("Could not join the started game.");
+                // XMage's game log ("Computer reveals Forest") is sent to the game's chat.
+                session.getGameChatId(gameId).ifPresent(session::joinChat);
+            }
             return;
         }
         GameView view = data instanceof GameView ? (GameView) data : data instanceof GameClientMessage ? ((GameClientMessage) data).getGameView()
@@ -456,6 +467,12 @@ final class XMageSession implements MageClient, AutoCloseable {
             JsonArray counters = new JsonArray();
             if (player.getCounters() != null) player.getCounters().forEach(counter -> counters.add(object("name", counter.getName(), "count", counter.getCount())));
             item.add("counters", counters);
+            // Floating mana (Arena shows it by the life total); XMage spends it on costs first.
+            if (player.getManaPool() != null) {
+                var pool = player.getManaPool();
+                item.add("manaPool", object("W", pool.getWhite(), "U", pool.getBlue(), "B", pool.getBlack(),
+                        "R", pool.getRed(), "G", pool.getGreen(), "C", pool.getColorless()));
+            }
             players.add(item);
         }
         result.add("players", players);
@@ -522,9 +539,15 @@ final class XMageSession implements MageClient, AutoCloseable {
     private static JsonArray cards(Collection<? extends CardView> cards) {
         JsonArray result = new JsonArray();
         for (CardView card : cards) {
-            JsonObject item = object("id", card.getId(), "name", card.getDisplayName(), "set", card.getExpansionSetCode(),
-                    "collectorNumber", card.getCardNumber(), "faceDown", card.isFaceDown(), "transformed", card.isTransformed(),
-                    "power", card.getPower(), "toughness", card.getToughness(), "ability", card.isAbility(),
+            // A triggered or activated ability on the stack: name and print it as its source card
+            // (XMage leaves the ability's own name and printing empty), so the app can show the
+            // source's art as Arena does.
+            CardView source = card instanceof mage.view.StackAbilityView ability ? ability.getSourceCard() : null;
+            String name = card.getDisplayName() == null || card.getDisplayName().isBlank() ? source == null ? null : source.getDisplayName() : card.getDisplayName();
+            JsonObject item = object("id", card.getId(), "name", name,
+                    "set", source != null ? source.getExpansionSetCode() : card.getExpansionSetCode(),
+                    "collectorNumber", source != null ? source.getCardNumber() : card.getCardNumber(), "faceDown", card.isFaceDown(), "transformed", card.isTransformed(),
+                    "power", card.getPower(), "toughness", card.getToughness(), "ability", card.isAbility() || source != null,
                     "typeLine", card.getTypeText(), "manaCost", card.getManaCostStr(),
                     "rules", String.join("\n", card.getRules() == null ? List.of() : card.getRules()));
             if (card instanceof PermanentView permanent) {

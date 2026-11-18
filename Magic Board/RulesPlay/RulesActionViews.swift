@@ -9,6 +9,18 @@ struct RulesActionStack: View {
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 6) {
+            // Arena shows unspent mana by your life total; XMage spends it on the next cost first.
+            if let mine = session.snapshot.flatMap({ state in state.players.first { $0.id == state.playerId } }), !mine.floatingMana.isEmpty {
+                HStack(spacing: 4) {
+                    Text("Mana pool").font(.custom("Beleren2016-Bold", size: 13, relativeTo: .caption)).foregroundStyle(.white.opacity(0.8))
+                    RulesSymbolText(text: mine.floatingMana, size: 15, beleren: true).foregroundStyle(.white)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 3)
+                .background(Capsule().fill(Color.black.opacity(0.55)))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Mana pool \(mine.floatingMana)")
+                .accessibilityIdentifier("rules-mana-pool")
+            }
             HStack(spacing: 8) {
                 RulesFastForwardPill(session: session)
                 if let state = session.snapshot, state.activePlayerId != nil {
@@ -42,7 +54,7 @@ struct RulesFastForwardPill: View {
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(.white)
                 .frame(width: 46, height: 26)
-                .background(Capsule().fill(LinearGradient(colors: [Color(red: 1, green: 0.62, blue: 0.3), Color(red: 0.93, green: 0.4, blue: 0.12)], startPoint: .top, endPoint: .bottom)))
+                .background(Capsule().fill(LinearGradient(colors: RulesArenaPalette.orange.map(Color.init), startPoint: .top, endPoint: .bottom)))
                 .overlay(Capsule().strokeBorder(Color.white.opacity(0.7), lineWidth: 1.5))
                 .shadow(color: .orange.opacity(0.5), radius: 4)
         }
@@ -102,42 +114,43 @@ struct RulesPhaseRow: View {
 }
 
 /// Arena's pill buttons around the main button: blue ("No Attacks"), outlined ("Cancel Attacks").
+/// Same colors, rim and glow as the main button (RulesArenaPalette), and about its size.
 struct RulesArenaButtonStyle: ButtonStyle {
     enum Kind { case orange, blue, red, outline }
     var kind: Kind
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.custom("Beleren2016-Bold", size: 16, relativeTo: .headline))
+            .font(.custom("Beleren2016-Bold", size: 19, relativeTo: .headline))
             .foregroundStyle(.white)
-            .shadow(color: .black.opacity(0.6), radius: 1, y: 1)
+            .shadow(color: .black.opacity(0.75), radius: 1.5, y: 1.5)
             .lineLimit(1).minimumScaleFactor(0.7)
-            .padding(.horizontal, 18).frame(minWidth: 130, minHeight: 34)
+            .padding(.horizontal, 20).frame(minWidth: 170, minHeight: 42)
             .background {
                 switch kind {
-                case .outline: Capsule().fill(Color.black.opacity(0.45))
+                case .outline: Capsule().fill(Color.black.opacity(0.55))
                 default: Capsule().fill(LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom))
                 }
             }
-            .overlay(Capsule().strokeBorder(Color.white.opacity(kind == .outline ? 0.85 : 0.6), lineWidth: kind == .outline ? 2 : 1))
-            .shadow(color: glow, radius: 6)
+            .overlay(Capsule().strokeBorder(Color.white.opacity(kind == .outline ? 0.85 : 0.8), lineWidth: kind == .outline ? 2 : 1.5))
+            .shadow(color: glow, radius: 9)
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
 
     private var colors: [Color] {
         switch kind {
-        case .orange: return [Color(red: 1, green: 0.72, blue: 0.45), Color(red: 0.92, green: 0.45, blue: 0.2)]
-        case .blue: return [Color(red: 0.5, green: 0.62, blue: 1), Color(red: 0.27, green: 0.35, blue: 0.85)]
-        case .red: return [Color(red: 1, green: 0.55, blue: 0.5), Color(red: 0.88, green: 0.3, blue: 0.3)]
+        case .orange: return RulesArenaPalette.orange.map(Color.init)
+        case .blue: return RulesArenaPalette.blue.map(Color.init)
+        case .red: return RulesArenaPalette.red.map(Color.init)
         case .outline: return []
         }
     }
 
     private var glow: Color {
         switch kind {
-        case .orange: return .orange.opacity(0.5)
-        case .blue: return .blue.opacity(0.5)
-        case .red: return .red.opacity(0.5)
+        case .orange: return Color(RulesArenaPalette.orange[0]).opacity(0.8)
+        case .blue: return Color(RulesArenaPalette.blue[0]).opacity(0.8)
+        case .red: return Color(RulesArenaPalette.red[0]).opacity(0.8)
         case .outline: return .clear
         }
     }

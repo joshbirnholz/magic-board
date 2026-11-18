@@ -33,8 +33,13 @@ class LifeTrackerViewController: UIHostingController<LifeTracker> {
     didSet { if showsMarks != oldValue, value != nil { bindValue() } }
   }
   
+  /// Whether life changes flash and float their amount (Rules games, as on Arena).
+  var showsChanges = false {
+    didSet { if showsChanges != oldValue, value != nil { bindValue() } }
+  }
+
   private func bindValue() {
-    rootView = LifeTracker(life: value, showsMarks: showsMarks)
+    rootView = LifeTracker(life: value, showsMarks: showsMarks, showsChanges: showsChanges)
     view.backgroundColor = .clear
     if #available(iOS 16.4, *), AppDelegate.shared.usesPhoneSession {
       safeAreaRegions = []
@@ -714,6 +719,7 @@ extension BottomBarViewController {
             child.view.isUserInteractionEnabled = isLocal && rulesSession == nil
             if #available(iOS 16.4, *), let tracker = child as? LifeTrackerViewController { tracker.safeAreaRegions = [] }
             (child as? LifeTrackerViewController)?.showsMarks = isLocal && rulesSession == nil
+            (child as? LifeTrackerViewController)?.showsChanges = rulesSession?.rulesAdapter?.hasProjected == true
         }
         guard handContainerView.superview === view else { return }
         // Reduce the original fixed side allowance as the existing piles shrink.
@@ -777,13 +783,27 @@ extension BottomBarViewController {
         let text = NSMutableAttributedString(string: title, attributes: [
             .font: UIFont(name: "Beleren2016-Bold", size: titleSize) ?? .boldSystemFont(ofSize: titleSize),
             .foregroundColor: UIColor.white, .paragraphStyle: paragraph,
-            .shadow: { let s = NSShadow(); s.shadowColor = UIColor.black.withAlphaComponent(0.55); s.shadowOffset = CGSize(width: 0, height: 1); s.shadowBlurRadius = 1.5; return s }()
+            .shadow: { let s = NSShadow(); s.shadowColor = UIColor.black.withAlphaComponent(0.75); s.shadowOffset = CGSize(width: 0, height: 1.5); s.shadowBlurRadius = 2.5; return s }()
         ])
         if let caption {
             text.append(NSAttributedString(string: "\n" + caption, attributes: [
                 .font: UIFont.systemFont(ofSize: max(8, height * 0.19), weight: .semibold),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.85), .paragraphStyle: paragraph
+                .foregroundColor: UIColor.white.withAlphaComponent(0.92), .paragraphStyle: paragraph,
+                // The same drop shadow as the title (Arena shadows both lines).
+                .shadow: { let s = NSShadow(); s.shadowColor = UIColor.black.withAlphaComponent(0.75); s.shadowOffset = CGSize(width: 0, height: 1.5); s.shadowBlurRadius = 2.5; return s }()
             ]))
+        }
+        // Arena shows an hourglass on the button while it waits on the other player or the engine,
+        // instead of status text.
+        let hourglass = waiting && ["Waiting", "Opponent's Turn", "Sending…"].contains(title)
+        if hourglass {
+            let symbol = UIImage(systemName: "hourglass", withConfiguration: UIImage.SymbolConfiguration(pointSize: max(10, height * 0.36), weight: .bold))
+            untapButton.setImage(symbol, for: .normal)
+            untapButton.setImage(symbol, for: .disabled)
+            untapButton.tintColor = UIColor.white.withAlphaComponent(0.85)
+            text.setAttributedString(NSAttributedString(string: ""))
+        } else {
+            untapButton.setImage(nil, for: .disabled)
         }
         untapButton.setAttributedTitle(text, for: .normal)
         untapButton.setAttributedTitle(text, for: .disabled)
@@ -811,11 +831,11 @@ extension BottomBarViewController {
         if waiting {
             colors = []
         } else if title.hasPrefix("No ") {
-            colors = [UIColor(red: 0.5, green: 0.62, blue: 1, alpha: 1), UIColor(red: 0.27, green: 0.35, blue: 0.85, alpha: 1)]
+            colors = RulesArenaPalette.blue
         } else if title.hasSuffix("Attacker") || title.hasSuffix("Attackers") || title.hasSuffix("Blocker") || title.hasSuffix("Blockers") {
-            colors = [UIColor(red: 1, green: 0.55, blue: 0.5, alpha: 1), UIColor(red: 0.88, green: 0.3, blue: 0.3, alpha: 1)]
+            colors = RulesArenaPalette.red
         } else {
-            colors = [UIColor(red: 1, green: 0.72, blue: 0.45, alpha: 1), UIColor(red: 0.92, green: 0.45, blue: 0.2, alpha: 1)]
+            colors = RulesArenaPalette.orange
         }
         untapButton.backgroundColor = .clear
         let gradient = rulesMainGradient ?? {
@@ -824,16 +844,19 @@ extension BottomBarViewController {
             rulesMainGradient = layer
             return layer
         }()
-        gradient.colors = colors.map(\.cgColor)
-        gradient.isHidden = colors.isEmpty
+        // Arena's pill: deeper at the top, brightening toward the bottom, with a bright rim and glow.
+        // Waiting (Arena's hourglass): a dark, see-through pill so the button's shape stays visible.
+        gradient.colors = colors.isEmpty ? [UIColor(white: 0.12, alpha: 0.55).cgColor, UIColor(white: 0.2, alpha: 0.55).cgColor]
+            : colors.map(\.cgColor)
+        gradient.isHidden = false
         gradient.frame = untapButton.bounds
         gradient.cornerRadius = untapButton.bounds.height / 2
-        gradient.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
-        gradient.borderWidth = colors.isEmpty ? 0 : 1
+        gradient.borderColor = UIColor.white.withAlphaComponent(colors.isEmpty ? 0.22 : 0.8).cgColor
+        gradient.borderWidth = colors.isEmpty ? 1 : 1.5
         untapButton.layer.cornerRadius = untapButton.bounds.height / 2
-        untapButton.layer.shadowColor = (colors.last ?? .clear).cgColor
-        untapButton.layer.shadowRadius = 7
-        untapButton.layer.shadowOpacity = colors.isEmpty ? 0 : 0.7
+        untapButton.layer.shadowColor = (colors.first ?? .clear).cgColor
+        untapButton.layer.shadowRadius = 10
+        untapButton.layer.shadowOpacity = colors.isEmpty ? 0 : 0.85
         untapButton.layer.shadowOffset = .zero
         // Keep the gradient matched to the pill after layout.
         DispatchQueue.main.async { [weak self] in
@@ -888,4 +911,12 @@ extension BottomBarViewController {
         let right: [UIView] = [untapButton, life].compactMap { $0 }.filter { !$0.isHidden }
         return (piles.filter { !$0.isHidden }, right)
     }
+}
+
+/// Arena's button colors, top (deeper) to bottom (lighter): shared by the main button and the
+/// SwiftUI buttons beside it.
+enum RulesArenaPalette {
+    static let orange = [UIColor(red: 0.91, green: 0.42, blue: 0.16, alpha: 1), UIColor(red: 0.98, green: 0.6, blue: 0.33, alpha: 1), UIColor(red: 1, green: 0.8, blue: 0.58, alpha: 1)]
+    static let blue = [UIColor(red: 0.24, green: 0.29, blue: 0.82, alpha: 1), UIColor(red: 0.42, green: 0.5, blue: 0.95, alpha: 1), UIColor(red: 0.68, green: 0.74, blue: 1, alpha: 1)]
+    static let red = [UIColor(red: 0.84, green: 0.25, blue: 0.27, alpha: 1), UIColor(red: 0.96, green: 0.45, blue: 0.43, alpha: 1), UIColor(red: 1, green: 0.7, blue: 0.66, alpha: 1)]
 }

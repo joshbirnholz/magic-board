@@ -267,7 +267,9 @@ struct PhoneStackCardsView: View {
                         if let card = item.card { inspect(card) } else { browse() }
                     } label: {
                         Group {
-                            if let card = item.card {
+                            if let card = item.card, item.isAbility == true {
+                                PhoneAbilityPanel(source: card, text: item.text, width: width)
+                            } else if let card = item.card {
                                 HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
                             } else {
                                 RoundedRectangle(cornerRadius: corner)
@@ -988,6 +990,46 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     }
 
     var onCancel: (() -> Void)? { didSet { cancelButton.isHidden = !isOpeningHand || onCancel == nil } }
+
+    /// Tapping a card (Rules games' card choices); nil leaves taps alone.
+    var onTapCard: ((CardInstance) -> Void)?
+
+    /// A Rules game's card choice: the engine's question as the title, no zone to drop on and no
+    /// Done here (an optional choice is finished with the main button, as on Arena).
+    func configureChoice(title: String, subtitle: String?) {
+        configureOpening(title: title, subtitle: subtitle, done: nil, secondary: nil, secondaryCaption: nil, returnZone: false)
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 2
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.6
+        subtitleLabel.font = .systemFont(ofSize: 14)
+        battlefieldZone.isHidden = true
+        setNeedsLayout()
+    }
+
+    private var choiceSelectable: Set<UUID>?
+    private var choiceSelected: Set<UUID> = []
+    private var choiceIdentifiers: [UUID: String] = [:]
+    /// Dims cards that can't be chosen (darkened, not see-through) and rims the chosen ones.
+    func setChoiceStates(selectable: Set<UUID>, selected: Set<UUID>, identifiers: [UUID: String]) {
+        choiceSelectable = selectable
+        choiceSelected = selected
+        choiceIdentifiers = identifiers
+        applyChoiceStates()
+    }
+    private func applyChoiceStates() {
+        guard let selectable = choiceSelectable else { return }
+        for (id, view) in cardViews {
+            view.isDimmed = !selectable.contains(id) && !choiceSelected.contains(id)
+            view.isHighlighted = choiceSelected.contains(id)
+            if let identifier = choiceIdentifiers[id] { view.accessibilityIdentifier = identifier }
+        }
+    }
+    @objc private func tappedCard(_ tap: UITapGestureRecognizer) {
+        guard let view = tap.view as? PhoneBrowserCardView, let card = view.card, let onTapCard else { return }
+        if let selectable = choiceSelectable, !selectable.contains(card.uuid) { return }
+        onTapCard(card)
+    }
     private let cancelButton = UIButton(type: .custom)
 
     init(title: String, cards: [CardInstance], done: String = "Done", secondary: String? = nil, canShowOpponent: Bool = false) {
@@ -1163,6 +1205,12 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             cardViews[id]?.removeFromSuperview(); cardViews[id] = nil
         }
         faceDownIDs = faceDown
+        // A card replaced by a new instance (a Rules projection with its printing now loaded) gets a
+        // fresh view, so its image appears.
+        for card in newCards where cardViews[card.uuid] != nil && cardViews[card.uuid]?.card !== card
+            && cardViews[card.uuid]?.card != nil && cardViews[card.uuid] !== lifted?.view {
+            cardViews[card.uuid]?.removeFromSuperview(); cardViews[card.uuid] = nil
+        }
         cards = newCards
         for card in cards where cardViews[card.uuid] == nil {
             let hidden = faceDown.contains(card.uuid)
@@ -1178,9 +1226,11 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
             hold.minimumPressDuration = 0.15
             view.addGestureRecognizer(hold)
+            view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tappedCard(_:))))
             scrollView.addSubview(view)
             cardViews[card.uuid] = view
         }
+        applyChoiceStates()
         setNeedsLayout()
     }
 
@@ -1556,6 +1606,15 @@ final class PhoneBrowserCardView: UIView {
             imageView.layer.borderColor = (isHighlighted ? UIColor(red: 0.35, green: 0.75, blue: 1, alpha: 0.9) : UIColor.black.withAlphaComponent(0.7)).cgColor
         }
     }
+    /// Can't be chosen: darkened (an opaque shade, so nothing shows through).
+    var isDimmed = false {
+        didSet {
+            guard isDimmed != oldValue else { return }
+            shade.isHidden = !isDimmed
+            accessibilityTraits = isDimmed ? [.button, .notEnabled] : .button
+        }
+    }
+    private let shade = UIView()
     init(image: UIImage?) {
         imageView = UIImageView(image: image)
         super.init(frame: .zero)
@@ -1563,6 +1622,10 @@ final class PhoneBrowserCardView: UIView {
         imageView.clipsToBounds = true
         imageView.layer.cornerCurve = .continuous
         addSubview(imageView)
+        shade.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        shade.isHidden = true
+        shade.isUserInteractionEnabled = false
+        imageView.addSubview(shade)
         layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.6
         layer.shadowRadius = 5
@@ -1573,6 +1636,7 @@ final class PhoneBrowserCardView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         imageView.frame = bounds
+        shade.frame = imageView.bounds
         imageView.layer.cornerRadius = cornerRadius
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).cgPath
         updateAbilityTiles()
@@ -1594,5 +1658,61 @@ final class PhoneBrowserCardView: UIView {
             tilesHeight = bounds.height
         }
         tilesHost?.frame = bounds
+    }
+}
+
+/// A Rules game's ability on the stack, until it gets Arena's real ability frame: the source's
+/// name and art, the word "Ability", and the ability's text.
+struct PhoneAbilityPanel: View {
+    let source: CardInstance
+    let text: String
+    let width: CGFloat
+    @State private var art: UIImage?
+
+    /// Mana symbols inline and reminder text in italics (the Rules text view, as in Current Rules).
+    @ViewBuilder private var abilityText: some View {
+#if BOARD_CONNECT
+        addSymbols(string: text, symbolLength: max(8, width * 0.06)).font(.system(size: max(8, width * 0.065)))
+#else
+        RulesOracleText(text: text, size: max(8, width * 0.065)).font(.system(size: max(8, width * 0.065)))
+#endif
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(source.representation.name ?? "")
+                .font(.custom("Beleren2016-Bold", size: max(9, width * 0.075)))
+                .foregroundStyle(.white)
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(white: 0.22))
+            Group {
+                if let art { Image(uiImage: art).resizable().scaledToFill() }
+                else { Color(white: 0.3) }
+            }
+            .frame(width: width, height: width * 0.62)
+            .clipped()
+            Text("Ability")
+                .font(.custom("Beleren2016-Bold", size: max(8, width * 0.06)))
+                .foregroundStyle(.white.opacity(0.85))
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(white: 0.18))
+            abilityText
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+                .minimumScaleFactor(0.5)
+                .padding(8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .background(Color(white: 0.1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(source.representation.name ?? "") ability: \(text)")
+        .task(id: source.uuid) {
+            if let loaded = source.representation.imageIfLoaded(type: .art) { art = loaded; return }
+            let representation = source.representation
+            art = await Task.detached(priority: .userInitiated) { representation.image(type: .art) }.value
+        }
     }
 }

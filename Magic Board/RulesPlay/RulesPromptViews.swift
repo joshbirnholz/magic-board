@@ -8,7 +8,8 @@ import CardService
 //   piles, cards to pick from a revealed set, game over) take over the screen over a dimmed board,
 //   with large cards and pill buttons.
 
-enum RulesPromptStyle { case compact, modal }
+/// browser: a card choice shown in Phone Play's fanned zone browser on the board.
+enum RulesPromptStyle { case compact, modal, browser }
 
 extension RulesPrompt {
     var style: RulesPromptStyle {
@@ -18,6 +19,10 @@ extension RulesPrompt {
         case "GAME_ASK" where isMulligan: return .compact
         case "GAME_TARGET" where isLondonBottom: return .compact
         case "GAME_TARGET" where isStartingPlayer: return .compact
+        // Choosing among cards (a library search, revealed cards) uses the board's fanned browser;
+        // abilities (trigger order) and face-down cards keep the card picker.
+        case "GAME_TARGET" where cards?.isEmpty == false && cards?.allSatisfy({ $0.ability != true && !$0.faceDown }) == true:
+            return .browser
         case "GAME_TARGET": return (cards?.isEmpty == false || isStartingPlayer) ? .modal : .compact
         default: return .modal
         }
@@ -69,7 +74,7 @@ struct RulesPillButtonStyle: ButtonStyle {
 }
 
 /// Prompt text with mana and tap symbols drawn as symbols.
-private struct RulesSymbolText: View {
+struct RulesSymbolText: View {
     let text: String
     var size: CGFloat = 15
     /// Beleren for titles (Arena's headline face); the system font for body text.
@@ -78,6 +83,52 @@ private struct RulesSymbolText: View {
         addSymbols(string: text, symbolLength: size)
             .font(beleren ? .custom("Beleren2016-Bold", size: size, relativeTo: .title3) : .system(size: size))
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Rules text the way Spellbook's OracleTextView sets it: mana and tap symbols inline, reminder
+/// text in parentheses and ability words ("Rat Tail — ") in italics, a little space between abilities.
+struct RulesOracleText: View {
+    let text: String
+    var size: CGFloat = 17
+
+    var body: some View {
+        content.fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var content: Text {
+        let lines = text.components(separatedBy: .newlines)
+        var result = Text("")
+        for (offset, line) in lines.enumerated() {
+            if offset > 0 { result = result + Text("\n\u{200B}").baselineOffset(line.hasPrefix("•") ? 0 : 5) }
+            result = result + self.line(line)
+        }
+        return result
+    }
+
+    private func line(_ line: String) -> Text {
+        let italics = Self.italicRanges(line)
+        var text = Text("")
+        var cursor = line.startIndex
+        for range in italics {
+            text = text + symbols(String(line[cursor..<range.lowerBound])) + symbols(String(line[range])).italic()
+            cursor = range.upperBound
+        }
+        return text + symbols(String(line[cursor...]))
+    }
+
+    private func symbols(_ string: String) -> Text {
+        string.isEmpty ? Text("") : addSymbols(string: string, symbolLength: size * 0.85)
+    }
+
+    /// Reminder text and ability words, as Spellbook finds them (keyword costs like "Cycling — "
+    /// and Saga chapters stay upright).
+    static func italicRanges(_ line: String) -> [Range<String.Index>] {
+        let exemptions = ["Companion", "Boast", "Cycling", "I", "II", "III", "IV", "I, II", "II, III", "III, IV", "I, II, III",
+                          "II, III, IV", "Visit", "Prize", "villainous choice", "Max speed"].map { $0 + " — " }
+        return line.matches(forRegex: #"(?:\((.*?)\)|^[^"(]+ — )"#, options: .anchorsMatchLines)
+            .filter { match in !exemptions.contains { match.fullMatch.value.hasSuffix($0) } }
+            .map(\.fullMatch.range)
     }
 }
 
@@ -102,6 +153,13 @@ struct RulesPromptBar: View {
                 EmptyView() // the game-over screen is full screen
             } else if let prompt = session.prompt {
                 if prompt.style == .compact { compact(prompt) }
+                else if prompt.style == .browser {
+                    // The board's browser shows the cards; the question stays available to VoiceOver.
+                    Color.clear.frame(width: 1, height: 1)
+                        .accessibilityElement()
+                        .accessibilityLabel(prompt.plainMessage)
+                        .accessibilityIdentifier("rules-prompt-message")
+                }
             } else if let waiting = waitingMessage {
                 strip {
                     HStack(spacing: 8) {
@@ -148,15 +206,13 @@ struct RulesPromptBar: View {
                     .accessibilityElement()
                     .accessibilityLabel(prompt.plainMessage)
                     .accessibilityIdentifier("rules-prompt-message")
-                if !players.isEmpty || prompt.required != true {
+                // Done for an optional choice is the main (phase) button, as on Arena.
+                if !players.isEmpty {
                     strip {
-                        if !players.isEmpty {
-                            HStack { ForEach(players) { player in
-                                answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
-                                    .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
-                            } }
-                        }
-                        if prompt.required != true { answer("Done", .boolean(false), primary: false) }
+                        HStack { ForEach(players) { player in
+                            answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
+                                .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
+                        } }
                     }
                 }
             }
@@ -199,11 +255,10 @@ struct RulesPromptBar: View {
         return [owner, step].compactMap { $0 }.joined(separator: " · ")
     }
 
+    /// Only before the game starts: while the other player (or the AI) acts, the main button's
+    /// hourglass says so, as on Arena (a "… is thinking" strip here flashed up between prompts).
     private var waitingMessage: String? {
-        guard let state = session.snapshot else { return session.status == .connected ? "Waiting for the game…" : nil }
-        let mine = state.players.first { $0.id == state.playerId }?.name
-        if let priority = state.priorityPlayer, !priority.isEmpty, priority != mine { return "\(priority) is thinking…" }
-        return nil
+        session.snapshot == nil && session.status == .connected ? "Waiting for the game…" : nil
     }
 
     private func answer(_ title: String, _ value: RulesAnswer, primary: Bool = true) -> some View {
@@ -243,7 +298,7 @@ struct RulesPromptModal: View {
     var body: some View {
         ZStack {
             if isVisible, !minimized {
-                Color.black.opacity(0.62).ignoresSafeArea()
+                Color.black.opacity(0.78).ignoresSafeArea()
                 content
                     .padding(.horizontal, 24).padding(.vertical, 16)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -277,7 +332,8 @@ struct RulesPromptModal: View {
                 body(for: prompt)
             }
         } else if let group = informationGroup {
-            RulesCardInformationView(group: group, viewBattlefield: { minimized = true },
+            RulesCardInformationView(group: group, reason: RulesCardInformationView.reason(for: group, log: session.gameLog),
+                                     viewBattlefield: { minimized = true },
                                      dismiss: { session.dismissCardInformation(group.id) })
         }
     }
@@ -458,7 +514,11 @@ struct RulesPromptModal: View {
                             Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
                                 .buttonStyle(.plain)
                                 .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
-                                .opacity(session.prompt?.isCardSelectable(card.id) == false ? 0.45 : 1)
+                                // Dimmed, not see-through: the battlefield under the browser showed through
+                                // cards that can't be chosen (Josh's screenshot).
+                                .brightness(session.prompt?.isCardSelectable(card.id) == false ? -0.4 : 0)
+                                .saturation(session.prompt?.isCardSelectable(card.id) == false ? 0.35 : 1)
+                                .background(RoundedRectangle(cornerRadius: height * 0.045).fill(Color.black))
                                 .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                         } else {
                             RulesChoiceCardFace(card: card, height: height)

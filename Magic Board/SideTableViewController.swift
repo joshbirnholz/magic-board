@@ -397,13 +397,19 @@ struct CardControlView: View {
   var body: some View {
     List {
       if PhonePlayBridge.isRulesMode {
-        Section { actionGrid }
+        if !tiles.isEmpty { Section { actionGrid } }
         let details = PhonePlayBridge.rulesDetails(card)
         if !details.isEmpty {
           Section(header: Text("Current State")) { ForEach(details, id: \.self) { Text($0) } }
         }
         if let rules = card.representation.oracleText, !rules.isEmpty {
-          Section(header: Text("Current Rules")) { Text(rules) }
+          Section(header: Text("Current Rules")) {
+#if BOARD_CONNECT
+            Text(rules)
+#else
+            RulesOracleText(text: rules)
+#endif
+          }
         }
       } else {
       // Card-specific rows (Prepared, Room doors) come first: they're why the menu was opened.
@@ -1139,7 +1145,10 @@ private enum PhonePlayBridge {
 		guard let state = AppDelegate.shared.phoneSession?.rulesAdapter?.engine.snapshot,
 		      let current = state.players.flatMap(\.battlefield).first(where: { $0.id == card.uuid.uuidString.lowercased() }) else { return [] }
 		var details: [String] = []
-		if let power = current.power, let toughness = current.toughness { details.append("Power / Toughness: \(power)/\(toughness)") }
+		// Only creatures have power and toughness (XMage reports 0/0 for everything else).
+		if let power = current.power, let toughness = current.toughness, current.typeLine?.contains("Creature") == true {
+			details.append("Power / Toughness: \(power)/\(toughness)")
+		}
 		if let damage = current.damage, damage > 0 { details.append("Damage marked: \(damage)") }
 		for counter in current.counters { details.append("\(counter.name): \(counter.count)") }
 		return details

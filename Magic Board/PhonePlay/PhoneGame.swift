@@ -18,6 +18,8 @@ struct PhoneGame: Codable {
         /// Cast from a graveyard with flashback (or jump-start, harmonize): exiled instead of going
         /// to the graveyard when it resolves or is countered.
         var exileOnResolve: Bool? = nil
+        /// A Rules game's triggered or activated ability, shown as its source card with its text.
+        var isAbility: Bool? = nil
     }
 
     var id = UUID()
@@ -81,6 +83,19 @@ struct PhoneGame: Codable {
         var returning: Int? = nil
     }
     var opening: Opening? = nil
+    /// A Rules game's card choice shown in the zone browser (a library search, revealed cards…).
+    struct RulesChoice: Codable, Equatable {
+        var id: String
+        var title: String
+        var subtitle: String?
+        var cardIDs: [UUID]
+        var selectable: Set<UUID>
+        var selected: Set<UUID>
+        /// Scry or surveil: cards are dragged to the library (bottom) or graveyard, as in Phone Play.
+        enum Kind: String, Codable { case choose, scry, surveil }
+        var kind: Kind? = nil
+    }
+    var rulesChoice: RulesChoice? = nil
     /// Hand smoothing for the first hand of a game, as the iPad app does for JumpStart and Jump In:
     /// of two shuffles, the one whose opening seven has a land share closest to the deck's. Only
     /// for decks built from packets (never DanDân or a pasted list), and never for a mulligan.

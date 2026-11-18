@@ -23,7 +23,7 @@ final class RulesModeTests: XCTestCase {
                      "Select a card (0 more) to put on the bottom of your library"] {
             let libraryChoice = try prompt(text)
             XCTAssertFalse(libraryChoice.isLondonBottom, text)
-            XCTAssertEqual(libraryChoice.style, .modal, "Library choices must keep their normal card picker")
+            XCTAssertEqual(libraryChoice.style, .browser, "Library choices use the card-choice browser, not the opening hand")
         }
         XCTAssertFalse(try prompt("Select a card (1 more) to put on the bottom of your library", method: "GAME_ASK").isLondonBottom)
     }
@@ -233,6 +233,93 @@ final class RulesModeTests: XCTestCase {
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play spells and abilities"), snapshot: idle), "your main phase waits")
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Select attackers"), snapshot: idle))
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_ASK", "Play instants?"), snapshot: idle))
+    }
+
+    func testFloatingManaReadsAsSymbols() throws {
+        let player = try JSONDecoder().decode(RulesPlayer.self, from: Data(#"{"id":"p","name":"Me","life":20,"handCount":0,"libraryCount":0,"battlefield":[],"graveyard":[],"exile":[],"manaPool":{"W":0,"U":0,"B":1,"R":0,"G":0,"C":2}}"#.utf8))
+        XCTAssertEqual(player.floatingMana, "{B}{C}{C}")
+        let old = try JSONDecoder().decode(RulesPlayer.self, from: Data(#"{"id":"p","name":"Me","life":20,"handCount":0,"libraryCount":0,"battlefield":[],"graveyard":[],"exile":[]}"#.utf8))
+        XCTAssertEqual(old.floatingMana, "")
+    }
+
+    func testTokensUseTheirPrintedName() throws {
+        let token = try JSONDecoder().decode(RulesCard.self, from: Data(#"{"id":"t","name":"Treasure Token","set":"FIN","faceDown":false,"transformed":false,"typeLine":"Token Artifact — Treasure","counters":[]}"#.utf8))
+        XCTAssertEqual(RulesText.tokenName(token), "Treasure")
+        let xmageToken = try JSONDecoder().decode(RulesCard.self, from: Data(#"{"id":"t","name":"Food Token","set":"M20","faceDown":false,"transformed":false,"typeLine":"Legendary Artifact  - Food","counters":[]}"#.utf8))
+        XCTAssertEqual(RulesText.typeLine(xmageToken), "Legendary Token Artifact — Food")
+        let card = try JSONDecoder().decode(RulesCard.self, from: Data(#"{"id":"c","name":"Ahriman","faceDown":false,"transformed":false,"typeLine":"Creature — Eye Horror","counters":[]}"#.utf8))
+        XCTAssertNil(RulesText.tokenName(card))
+    }
+
+    func testOptionalBoardChoiceIsFinishedWithTheMainButton() throws {
+        func prompt(required: Bool, message: String = "Choose a creature you control") throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": "GAME_TARGET", "revision": 1, "supported": true, "choices": [], "required": required,
+                "message": message, "targets": [UUID().uuidString.lowercased()]] as [String: Any]))
+        }
+        XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: false), snapshot: nil, pending: false).0, "Done")
+        XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: false), snapshot: nil, pending: false).1, true)
+        XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
+    }
+
+    func testRevealedCardsSayWhyFromTheGameLog() throws {
+        let group = try JSONDecoder().decode(RulesSnapshot.CardGroup.self, from: Data(#"{"name":"Revealed cards","cards":[{"id":"f","name":"Forest","faceDown":false,"transformed":false,"counters":[]}]}"#.utf8))
+        let log = ["Computer casts Summon: Fenrir", "Computer reveals Forest (Summon: Fenrir)", "Computer draws a card"]
+        XCTAssertEqual(RulesCardInformationView.reason(for: group, log: log), "Computer reveals Forest (Summon: Fenrir)")
+        XCTAssertNil(RulesCardInformationView.reason(for: group, log: ["Computer draws a card"]))
+        XCTAssertEqual(RulesText.plain("Summon: Fenrir [3fa]"), "Summon: Fenrir")
+    }
+
+    func testRulesTextItalicsMatchSpellbook() {
+        func italic(_ line: String) -> [String] { RulesOracleText.italicRanges(line).map { String(line[$0]) } }
+        XCTAssertEqual(italic("Rat Tail — When this creature dies, create a Treasure token. (It's an artifact.)"),
+                       ["Rat Tail — ", "(It's an artifact.)"])
+        XCTAssertEqual(italic("Cycling — {2}"), [])
+        XCTAssertEqual(italic("{T}: Add {C}."), [])
+    }
+
+    func testCardRulesReadLikePrintedText() {
+        func rules(_ text: String, _ name: String, _ type: String) -> String { RulesText.cardRules(text, name: name, typeLine: type) }
+        XCTAssertEqual(rules("Rat Tail &mdash; When {this} dies, create a Treasure token.", "Undercity Dire Rat", "Creature — Rat"),
+                       "Rat Tail — When this creature dies, create a Treasure token.")
+        XCTAssertEqual(rules("{this} enters tapped.<br>{T}: Add {W}.", "Insomnia, Crown City", "Land — Town"), "This land enters tapped.\n{T}: Add {W}.")
+        XCTAssertEqual(rules("{this} deals 3 damage to any target.", "Lightning Bolt", "Instant"), "Lightning Bolt deals 3 damage to any target.")
+        XCTAssertEqual(rules("Return {this} from your graveyard to the battlefield.", "Bloodghast", "Creature — Vampire Spirit"),
+                       "Return this card from your graveyard to the battlefield.")
+        XCTAssertEqual(rules("Cycling {2} ({2}, Discard {this}: Draw a card.)", "Capital City", "Land — Town"),
+                       "Cycling {2} ({2}, Discard this card: Draw a card.)")
+        XCTAssertEqual(rules("Whenever {this} attacks, draw a card.", "Syr Konrad, the Grim", "Legendary Creature — Human Knight"),
+                       "Whenever Syr Konrad attacks, draw a card.")
+        XCTAssertEqual(rules("{this} gets +1/+1.", "Acererak the Archlich", "Legendary Creature — Zombie Wizard"), "Acererak gets +1/+1.")
+        XCTAssertEqual(rules("Enchanted creature gets +2/+2. When {this} is put into a graveyard, draw.", "Rancor", "Enchantment — Aura"),
+                       "Enchanted creature gets +2/+2. When this Aura is put into a graveyard, draw.")
+        XCTAssertEqual(rules("{T}, Sacrifice {this}: Add one mana of any color.", "Treasure Token", "Token Artifact — Treasure"),
+                       "{T}, Sacrifice this token: Add one mana of any color.")
+        XCTAssertEqual(RulesText.plain("Tom &amp; Jerry&#39;s &quot;deal&quot;"), "Tom & Jerry's \"deal\"")
+    }
+
+    func testOpponentSpellTargetsReachTheStackArcs() async throws {
+        let me = UUID().uuidString, opponent = UUID().uuidString
+        let bear = UUID().uuidString, shock = UUID().uuidString, bolt = UUID().uuidString, missing = UUID().uuidString
+        let bearCard: [String: Any] = ["id": bear, "name": "Grizzly Bears", "faceDown": false, "transformed": false, "typeLine": "Creature — Bear",
+                                       "power": "2", "toughness": "2", "tapped": false, "summoningSick": false, "counters": []]
+        func spell(_ id: String, _ name: String, targets: [String]) -> [String: Any] {
+            ["id": id, "name": name, "faceDown": false, "transformed": false, "typeLine": "Instant", "controllerId": opponent,
+             "counters": [], "targets": targets]
+        }
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "phase": "PRECOMBAT_MAIN",
+                                   "activePlayerId": opponent, "playableIds": [], "hand": [],
+                                   "stack": [spell(shock, "Shock", targets: [bear]), spell(bolt, "Lightning Bolt", targets: [me, missing])],
+                                   "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                                                "battlefield": [bearCard]],
+                                               ["id": opponent, "name": "Them", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                                                "battlefield": []]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
+        let stack = Dictionary(uniqueKeysWithValues: adapter.presentation.stack.map { ($0.id.uuidString.lowercased(), $0) })
+        XCTAssertEqual(stack[shock.lowercased()]?.player, .b, "the opponent's spell is drawn from their side")
+        XCTAssertEqual(stack[shock.lowercased()]?.targets, [.card(UUID(uuidString: bear)!)], "a creature target gets an arc")
+        XCTAssertEqual(stack[bolt.lowercased()]?.targets, [.player(.a)], "a player target points at me; unseen objects are dropped")
     }
 
     func testLandsDontShowEngineZeroStats() async throws {

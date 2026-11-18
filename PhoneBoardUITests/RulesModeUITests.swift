@@ -166,11 +166,22 @@ final class RulesModeUITests: XCTestCase {
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         let fan = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
         var manualPayments = 0, played = 0, attacked = 0, stuck = 0, lastState = "", blocked = 0, blocks = 0
+        // Arena's life-change cue on either player's life total.
+        let lifeChange = app.descendants(matching: .any).matching(identifier: "life-change")
+            .matching(NSPredicate(format: "label BEGINSWITH 'Life changed'")).firstMatch
+        var sawLifeChange = false, cancelChecked = false
         let deadline = Date().addingTimeInterval(12 * 60)
         while Date() < deadline {
             guard app.state == .runningForeground else {
                 XCTFail("The app left the foreground during a game gesture")
                 break
+            }
+            if !sawLifeChange, lifeChange.exists {
+                sawLifeChange = true
+                let cue = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+                cue.name = "Rules mode — life change (\(lifeChange.label))"
+                cue.lifetime = .keepAlways
+                add(cue)
             }
             if app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists || app.staticTexts["Game Over"].exists { break }
             XCTAssertFalse(app.staticTexts["This choice is not supported yet."].exists, "Unsupported prompt: \(message.exists ? message.label : "")")
@@ -203,7 +214,18 @@ final class RulesModeUITests: XCTestCase {
                     let ours = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex.filter { $0.frame.midY > app.frame.midY }
                     // Keep a creature untapped until a block has been verified. Attacking with all
                     // creatures made the old probe try to block with a tapped creature.
-                    for creature in (blocks == 0 ? Array(ours.dropFirst()) : ours) { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    let attackers = blocks == 0 ? Array(ours.dropFirst()) : ours
+                    for creature in attackers { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    // Once, with two or more declared: Cancel Attacks clears them all, then declare again.
+                    if !cancelChecked, attackers.count >= 2, app.buttons["rules-secondary-action"].waitForExistence(timeout: 3),
+                       app.buttons["rules-secondary-action"].label == "Cancel Attacks" {
+                        cancelChecked = true
+                        app.buttons["rules-secondary-action"].tap()
+                        let cleared = NSPredicate(format: "label == 'All Attack' OR label == 'No Attacks'")
+                        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: cleared, evaluatedWith: next)], timeout: 12), .completed,
+                                       "Cancel Attacks left attackers declared: \(next.label)")
+                        for creature in attackers { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    }
                     if !ours.isEmpty { attacked += 1 }
                 } else if text.localizedCaseInsensitiveContains("select blockers"), blocked < 2, next.label.contains("No") {
                     // Block: drag one of our untapped creatures onto an attacking creature (Phone Play's gesture).
@@ -245,6 +267,7 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists, "The game didn't finish in time (played \(played) cards)")
         XCTAssertGreaterThan(played, 0)
         XCTAssertEqual(manualPayments, 0, "The all-Plains deck should pay its mana automatically")
+        XCTAssertTrue(sawLifeChange, "No life change was shown during a whole game")
         if blocked > 0 { XCTAssertGreaterThan(blocks, 0, "Dragging a blocker onto an attacker never declared a block") }
         if !text(blocked: blocked, blocks: blocks).isEmpty { print(text(blocked: blocked, blocks: blocks)) }
     }

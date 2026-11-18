@@ -19,6 +19,8 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var holdingPriority = false
     @Published private(set) var autoOrderTriggers = true
     @Published private(set) var cardInformation: [RulesSnapshot.CardGroup] = []
+    /// Recent game log lines (newest last), to explain what a reveal or other event was for.
+    @Published private(set) var gameLog: [String] = []
     @Published var error: String?
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
@@ -161,6 +163,7 @@ final class RulesGameSession: ObservableObject {
 
     private func clearCardInformation() {
         cardInformation = []
+        gameLog = []
         dismissedCardInformation = []
         activeCardInformation = []
     }
@@ -321,6 +324,12 @@ final class RulesGameSession: ObservableObject {
             if status == .connecting { fail(message); return }
             error = message
             if let requestId = header.requestId, requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
+        case "log":
+            // XMage's game log ("Computer reveals Forest"): kept to explain reveals and the like.
+            if let line = header.message.map(RulesText.plain), !line.isEmpty {
+                gameLog.append(line)
+                if gameLog.count > 40 { gameLog.removeFirst(gameLog.count - 40) }
+            }
         case "notice": notice = header.message ?? ""
         case "engineDisconnected": fail(header.message ?? "XMage disconnected.")
         case "gameOver": prompt = nil; result = header.message ?? "Game finished"; notice = result ?? "Game finished"
