@@ -14,7 +14,8 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(address.waitForExistence(timeout: 5))
         address.tap()
         if let value = address.value as? String { address.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
-        address.typeText("ws://127.0.0.1:17180")
+        // RULES_UI_TEST_ADDRESS (TEST_RUNNER_RULES_UI_TEST_ADDRESS from xcodebuild) checks a LAN address instead.
+        address.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_ADDRESS"] ?? "ws://127.0.0.1:17180")
         let key = app.secureTextFields["rules-connection-key"]
         key.tap()
         if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
