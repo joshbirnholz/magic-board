@@ -169,7 +169,7 @@ final class RulesModeUITests: XCTestCase {
         // Arena's life-change cue on either player's life total.
         let lifeChange = app.descendants(matching: .any).matching(identifier: "life-change")
             .matching(NSPredicate(format: "label BEGINSWITH 'Life changed'")).firstMatch
-        var sawLifeChange = false
+        var sawLifeChange = false, cancelChecked = false
         let deadline = Date().addingTimeInterval(12 * 60)
         while Date() < deadline {
             guard app.state == .runningForeground else {
@@ -214,7 +214,18 @@ final class RulesModeUITests: XCTestCase {
                     let ours = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex.filter { $0.frame.midY > app.frame.midY }
                     // Keep a creature untapped until a block has been verified. Attacking with all
                     // creatures made the old probe try to block with a tapped creature.
-                    for creature in (blocks == 0 ? Array(ours.dropFirst()) : ours) { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    let attackers = blocks == 0 ? Array(ours.dropFirst()) : ours
+                    for creature in attackers { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    // Once, with two or more declared: Cancel Attacks clears them all, then declare again.
+                    if !cancelChecked, attackers.count >= 2, app.buttons["rules-secondary-action"].waitForExistence(timeout: 3),
+                       app.buttons["rules-secondary-action"].label == "Cancel Attacks" {
+                        cancelChecked = true
+                        app.buttons["rules-secondary-action"].tap()
+                        let cleared = NSPredicate(format: "label == 'All Attack' OR label == 'No Attacks'")
+                        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: cleared, evaluatedWith: next)], timeout: 12), .completed,
+                                       "Cancel Attacks left attackers declared: \(next.label)")
+                        for creature in attackers { creature.tap(); Thread.sleep(forTimeInterval: 0.4) }
+                    }
                     if !ours.isEmpty { attacked += 1 }
                 } else if text.localizedCaseInsensitiveContains("select blockers"), blocked < 2, next.label.contains("No") {
                     // Block: drag one of our untapped creatures onto an attacking creature (Phone Play's gesture).

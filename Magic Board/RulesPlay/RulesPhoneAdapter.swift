@@ -191,7 +191,7 @@ final class RulesPhoneAdapter {
     func pressSecondary() async {
         switch Self.secondaryButton(prompt: engine.prompt, snapshot: engine.snapshot) {
         case "No Attacks": await engine.answer(.boolean(true))
-        case "Cancel Attacks": await selectInTurn(Self.attackers(engine.snapshot).declared) // selecting again removes it
+        case "Cancel Attacks": await cancelAllAttacks() // selecting a declared attacker again removes it
         default: break
         }
     }
@@ -199,13 +199,32 @@ final class RulesPhoneAdapter {
     /// Selects each creature in turn; XMage asks again after each one.
     private func selectInTurn(_ ids: [String]) async {
         for id in ids {
-            let before = engine.prompt?.id
-            await engine.answer(.object(id))
-            for _ in 0..<60 where engine.prompt?.id == before || engine.pendingRequest != nil {
-                try? await Task.sleep(nanoseconds: 50_000_000)
-            }
-            guard engine.prompt?.method == "GAME_SELECT" else { break }
+            guard await selectAndWait(id) else { break }
         }
+    }
+
+    /// Arena's Cancel Attacks: deselects every declared attacker, reading the declared set afresh
+    /// after each one (XMage re-asks after every change).
+    private func cancelAllAttacks() async {
+        for _ in 0..<20 {
+            guard let id = Self.attackers(engine.snapshot).declared.first, await selectAndWait(id) else { break }
+        }
+    }
+
+    /// Answers the selection with one creature, then waits for XMage's next selection prompt and the
+    /// updated board. (The prompt is briefly absent in between: answering then was silently dropped,
+    /// so Cancel Attacks only removed the first attacker.)
+    private func selectAndWait(_ id: String) async -> Bool {
+        let before = engine.prompt?.id
+        let revision = engine.snapshot?.revision
+        await engine.answer(.object(id))
+        for _ in 0..<100 {
+            let settled = engine.pendingRequest == nil && engine.prompt != nil && engine.prompt?.id != before
+                && engine.snapshot?.revision != revision
+            if settled { break }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        return engine.prompt?.method == "GAME_SELECT" && engine.pendingRequest == nil
     }
 
     /// Whether basic lands are tapped for you when paying (Arena's default). Turned off from the
