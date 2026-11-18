@@ -99,7 +99,8 @@ final class RulesPhoneAdapter {
     /// spells…), so pass those automatically when the engine reports nothing playable. Your own main
     /// phases ("Play spells…") and attack/block declarations always wait for you.
     static func shouldAutoPass(_ prompt: RulesPrompt, snapshot: RulesSnapshot?) -> Bool {
-        guard prompt.method == "GAME_SELECT", let snapshot, snapshot.playableIds.isEmpty else { return false }
+        guard prompt.method == "GAME_SELECT", prompt.specialActionAvailable != true,
+              let snapshot, snapshot.playableIds.isEmpty else { return false }
         let message = RulesText.plain(prompt.message ?? "").lowercased()
         return message.contains("instants") && !message.contains("select")
     }

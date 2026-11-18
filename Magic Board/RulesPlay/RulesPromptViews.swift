@@ -124,6 +124,18 @@ struct RulesPromptBar: View {
                 }
                 if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
+        case "GAME_SELECT" where prompt.specialActionAvailable == true:
+            // A special action (turning a face-down creature up, suspend…) is possible: offer it.
+            strip {
+                Button(prompt.specialActionLabel ?? "Special Action") { Task { await session.answer(.specialAction) } }
+                    .buttonStyle(RulesPillButtonStyle(primary: false))
+                    .disabled(!session.canAnswer)
+                    .accessibilityIdentifier("rules-special-action")
+                Color.clear.frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(prompt.plainMessage)
+                    .accessibilityIdentifier("rules-prompt-message")
+            }
         default:
             // GAME_SELECT: like Arena, no instructions. The highlights show what can be played and
             // the main button says what passing does (To Attackers, Resolve, End Turn…). The engine's
@@ -227,6 +239,13 @@ struct RulesPromptModal: View {
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("rules-prompt-message")
                 .accessibilityLabel(prompt.plainMessage)
+            if let sub = prompt.subMessage.map(RulesText.plain), !sub.isEmpty {
+                RulesSymbolText(text: sub, size: 15).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
+            }
+            if prompt.queryType == "PICK_ABILITY" {
+                Text("Choose the order: the first one you pick goes on the stack first.")
+                    .font(.caption).foregroundStyle(.white.opacity(0.7))
+            }
             if prompt.style == .modal, prompt.method != "GAME_ASK" || prompt.isMulligan {
                 Button("View Battlefield") { minimized = true }
                     .font(.caption.weight(.semibold))
@@ -297,6 +316,7 @@ struct RulesPromptModal: View {
                     }
                 }.frame(maxWidth: 460)
             }.frame(maxHeight: 220)
+            if prompt.canCancel == true { answer("Cancel", .cancel, primary: false) }
         case "GAME_CHOOSE_PILE":
             HStack(alignment: .top, spacing: 18) {
                 pile("Pile 1", prompt.cards ?? [], answer: true)

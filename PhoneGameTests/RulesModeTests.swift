@@ -146,8 +146,8 @@ final class RulesModeTests: XCTestCase {
         let adapter = RulesPhoneAdapter(engine: RulesGameSession())
         try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
         let field = adapter.presentation.state.battlefield.value
-        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == land }?.isPowerToughnessVisible.value, false)
-        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == bear }?.isPowerToughnessVisible.value, true)
+        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == land.lowercased() }?.isPowerToughnessVisible.value, false)
+        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == bear.lowercased() }?.isPowerToughnessVisible.value, true)
     }
 
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
