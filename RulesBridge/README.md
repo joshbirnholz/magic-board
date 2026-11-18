@@ -33,14 +33,13 @@ $env:RULES_BRIDGE_TOKEN = 'replace-with-a-private-random-key-of-at-least-16-char
 $env:RULES_BRIDGE_BIND = '0.0.0.0'
 ```
 
-Start the stock XMage server from its server directory. With Java 17, its old Java remoting requires the module access flag below:
+From this repository's `RulesBridge` directory, start the stock XMage server:
 
 ```powershell
-Set-Location "$env:XMAGE_HOME/mage-server"
-java -Xmx1024m --add-opens=java.base/java.io=ALL-UNNAMED -Djava.awt.headless=true -jar ./lib/mage-server-1.4.63.jar
+./start-server.ps1
 ```
 
-In another terminal, return to this repository's `RulesBridge` directory and run:
+This uses a 1 GB heap (`./start-server.ps1 -HeapMB 2048` changes it), the server's own working directory and the Java remoting module-access flag required on Java 17. In another terminal, set the same environment variables, return to `RulesBridge`, and run:
 
 ```powershell
 ./build.ps1
