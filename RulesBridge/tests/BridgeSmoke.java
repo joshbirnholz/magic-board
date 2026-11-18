@@ -291,8 +291,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         && !nextPrompt.getAsJsonArray("cards").isEmpty()) {
                     for (JsonElement item : nextPrompt.getAsJsonArray("cards")) {
                         JsonElement id = item.getAsJsonObject().get("id");
-                        if (!nextPrompt.has("selectionIds") || nextPrompt.getAsJsonArray("selectionIds").contains(id)
-                                || nextPrompt.has("selectedIds") && nextPrompt.getAsJsonArray("selectedIds").contains(id)) {
+                        // The UI allows deselection, but this forward-only smoke driver must not
+                        // toggle the first scry card on and off forever.
+                        boolean selected = nextPrompt.has("selectedIds") && nextPrompt.getAsJsonArray("selectedIds").contains(id);
+                        if (!selected && (!nextPrompt.has("selectionIds") || nextPrompt.getAsJsonArray("selectionIds").contains(id))) {
                             object = id.getAsString(); break;
                         }
                     }

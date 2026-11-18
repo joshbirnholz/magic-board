@@ -1,0 +1,213 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "LCI CRAFTING + FDN CATS",
+    "main": [
+      {
+        "name": "Market Gnome",
+        "count": 1
+      },
+      {
+        "name": "Attentive Sunscribe",
+        "count": 1
+      },
+      {
+        "name": "Oltec Cloud Guard",
+        "count": 1
+      },
+      {
+        "name": "Petrify",
+        "count": 1
+      },
+      {
+        "name": "Clay-Fired Bricks",
+        "count": 1
+      },
+      {
+        "name": "Spring-Loaded Sawblades",
+        "count": 1
+      },
+      {
+        "name": "Tinker's Tote",
+        "count": 1
+      },
+      {
+        "name": "Hidden Courtyard",
+        "count": 1
+      },
+      {
+        "name": "Ojer Taq, Deepest Foundation",
+        "count": 1
+      },
+      {
+        "name": "Kinjalli's Dawnrunner",
+        "count": 1
+      },
+      {
+        "name": "Adaptive Gemguard",
+        "count": 1
+      },
+      {
+        "name": "Oteclan Landmark",
+        "count": 1
+      },
+      {
+        "name": "Ingenious Leonin",
+        "count": 1
+      },
+      {
+        "name": "Dawnwing Marshal",
+        "count": 1
+      },
+      {
+        "name": "Savannah Lions",
+        "count": 1
+      },
+      {
+        "name": "Ajani's Pridemate",
+        "count": 1
+      },
+      {
+        "name": "Prideful Parent",
+        "count": 1
+      },
+      {
+        "name": "Felidar Savior",
+        "count": 1
+      },
+      {
+        "name": "Claws Out",
+        "count": 1
+      },
+      {
+        "name": "Evolving Wilds",
+        "count": 1
+      },
+      {
+        "name": "Arahbo, the First Fang",
+        "count": 1
+      },
+      {
+        "name": "Prayer of Binding",
+        "count": 1
+      },
+      {
+        "name": "Joust Through",
+        "count": 1
+      },
+      {
+        "name": "Helpful Hunter",
+        "count": 1
+      },
+      {
+        "name": "Plains",
+        "count": 16
+      }
+    ]
+  },
+  "aiDeck": {
+    "name": "LCI DEPTHS + FDN ZOMBIE",
+    "main": [
+      {
+        "name": "Stinging Cave Crawler",
+        "count": 1
+      },
+      {
+        "name": "Echo of Dusk",
+        "count": 1
+      },
+      {
+        "name": "Deathcap Marionette",
+        "count": 1
+      },
+      {
+        "name": "Screaming Phantom",
+        "count": 1
+      },
+      {
+        "name": "Primordial Gnawer",
+        "count": 1
+      },
+      {
+        "name": "Rampaging Spiketail",
+        "count": 1
+      },
+      {
+        "name": "Bitter Triumph",
+        "count": 1
+      },
+      {
+        "name": "Hidden Necropolis",
+        "count": 1
+      },
+      {
+        "name": "Aclazotz, Deepest Betrayal",
+        "count": 1
+      },
+      {
+        "name": "Deep-Cavern Bat",
+        "count": 1
+      },
+      {
+        "name": "Bloodthorn Flail",
+        "count": 1
+      },
+      {
+        "name": "Dead Weight",
+        "count": 1
+      },
+      {
+        "name": "Maalfeld Twins",
+        "count": 1
+      },
+      {
+        "name": "Diregraf Ghoul",
+        "count": 1
+      },
+      {
+        "name": "Knight of Malice",
+        "count": 1
+      },
+      {
+        "name": "Vampire Gourmand",
+        "count": 1
+      },
+      {
+        "name": "Crow of Dark Tidings",
+        "count": 1
+      },
+      {
+        "name": "Hungry Ghoul",
+        "count": 1
+      },
+      {
+        "name": "Vampiric Rites",
+        "count": 1
+      },
+      {
+        "name": "Evolving Wilds",
+        "count": 1
+      },
+      {
+        "name": "Liliana, Dreadhorde General",
+        "count": 1
+      },
+      {
+        "name": "Deadly Plot",
+        "count": 1
+      },
+      {
+        "name": "Soul-Shackled Zombie",
+        "count": 1
+      },
+      {
+        "name": "Moment of Craving",
+        "count": 1
+      },
+      {
+        "name": "Swamp",
+        "count": 16
+      }
+    ]
+  }
+}
