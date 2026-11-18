@@ -74,7 +74,7 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 ```sh
 mkdir -p build/test-classes
 javac --release 17 -encoding UTF-8 -cp "build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/test-classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke MulliganSmoke CombatSmoke CombatPrioritySmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest magicboard.rules.PromptContextCardsTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke MulliganSmoke CombatSmoke CombatPrioritySmoke FaceDownPrivacySmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest magicboard.rules.PromptContextCardsTest; do
     java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
@@ -175,3 +175,5 @@ Verified with 2,844 captured Jump In, Explore, transform, distributed-damage, eq
 The bounded `transform` probe casts Delver of Secrets, answers its reveal decision, and requires the engine to expose Insectile Aberration as a transformed 3/2 before returning to priority. Its captured snapshots/prompts also decode with the app's Swift models. It verifies engine/wire state; the physical card-face rendering remains a separate UI check.
 
 `CombatPrioritySmoke` uses two real human seats and verifies an end-step native skip during both attacker selection and blocker selection. It checks only post-command updates from the seat receiving the choice (avoiding stale opponent snapshots) and requires actual engine progress or a retained answerable prompt. Both cases advance correctly on the pinned engine; no application payment/priority behavior was changed for this check. Optional `attackers` / `blockers` arguments select one case.
+
+`FaceDownPrivacySmoke` casts Gathan Raiders face down in a real two-human game and compares both seats. The public permanent is Morph, XMAGE #0, 2/2; the opponent receives no original name/printing, red cost, Human/Warrior subtype or Hellbent text. This complements private-hand and looked-at-card checks. Pass a deck fixture path when running outside the RulesBridge directory.
