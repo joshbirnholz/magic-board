@@ -2,9 +2,11 @@
 
 Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coordination record outside git, including active task claims and the shared simulator lock. Claude and Codex are both working; check ownership there before editing shared files.
 
-## Latest integration work (11:19 AM ET)
+## Latest integration work (11:31 AM ET)
 
-- Bridge-only follow-up: `RulesBridge/tests/decode-events.sh` compiles the actual Swift protocol types and checks captured JSONL without a simulator. All 1,124 captured Jump In/Explore events decode; missing-playerId and missing-file negatives fail correctly. Normal ownership restored; Claude holds the simulator lock again.
+- **e71779f**: Rules connection screen rejects packet drafting before joining a non-Limited waiting table, with an actionable deck-list message. The four-line Rules-only guard compiles, and all 29 Rules tests pass after merging Claude’s delivered `1b38549` test update.
+- **0a4ad1a**: actual Delver reveal/transform probe passes, requiring Insectile Aberration 3/2 with transformed=true. Its 358 events decode with current Swift models; board-side visual follow-up requested from Claude.
+- Bridge-only follow-up: `RulesBridge/tests/decode-events.sh` compiles the actual Swift protocol types and checks captured JSONL without a simulator. All 2,844 captured Jump In, Explore, transform, damage, equipment, loyalty and flashback events decode; missing-playerId and missing-file negatives fail correctly. Normal ownership restored; this tool can run while another agent uses the simulator.
 - Short card rows are centred with a viewport-sized minimum width; large rows still scroll. The question-image centring and eligible-card-picker interactions both pass (42.6 s combined), after the complete 97-unit/3-UI run.
 - Prompt polish: compact board-target duplicate instruction removed (raw accessibility prompt and player/Done controls preserved); fast-forward skip actions disabled outside an answerable GAME_SELECT. Question images have no button trait. Full 97 units + 3 focused UI pass, log `/private/tmp/rules-question-and-controls-ui.log`.
 - **94aa9db**: question-card context from currently seat-visible revealed/looked-at cards. Pure Java context/privacy tests and a real Merfolk Branchwalker Explore choice pass (matching card in Yes/No prompt, then graveyard). UI now displays that image and acknowledges fully displayed information groups to avoid reopening them; all 97 units and three focused UI checks pass: visible question image/one answer/no duplicate information, banner/disabled skip controls during targeting, and normal sandbox tap/drag.
@@ -82,7 +84,7 @@ Read the coordination file's "Now" and "Ready to merge" first.
 
 - Stock XMage release `xmage_1.4.63V2`, runtime `/private/tmp/xmage-rules-runtime/xmage`.
 - Server PID **45605**, port **17171**, `-Xmx1024m`; log `/private/tmp/magicboard-rules-xmage-server.log`. It currently binds all interfaces; keep that remoting port local/private.
-- Shared bridge PID **55446**, `127.0.0.1:17180`, deployed through `d71f4db`; token `rules-local-verification-key`; log `/private/tmp/magicboard-rules-bridge.log`.
+- Shared bridge PID **68567**, `127.0.0.1:17180`, deployed through `94aa9db`; token `rules-local-verification-key`; log `/private/tmp/magicboard-rules-bridge.log`.
 - Temporary Java tests use port **17182** and always stop that isolated bridge. The phone fixture used **17183** and has been stopped. Simulator connection preferences may still point to 17183: use 17180 for the real bridge.
 - DerivedData `/private/tmp/magicboard-rules-dd`; packages `/private/tmp/magicboard-rules-packages`.
 - For Keychain tests use **`CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=-`**. Unsigned test builds could not persist credentials; ad-hoc signing made both recovery and explicit cleanup pass. Do not replace Keychain storage with UserDefaults to work around that test configuration.
