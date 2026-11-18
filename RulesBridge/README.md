@@ -128,3 +128,16 @@ Disconnecting retains the bridge session for up to 15 minutes. Reconnecting rese
 - Broader gameplay and physical-device coverage (Windows hosting and startup are now configured and tested).
 
 UI reference: [Wizards' mobile Arena gameplay guide and screenshots](https://magic.wizards.com/en/news/mtg-arena/mtg-arena-state-game-january-2021-01-21), plus the existing Phone Play implementation. Prefer its actual shared controls over a parallel Rules-only battlefield.
+
+### Bundled packet name compatibility
+
+The audit checks every fixed card and every positive-probability Jump In variant against the installed XMage printing index. It reports unavailable names without substituting cards. This verifies name resolution, not full rules correctness or the legality of a generated deck.
+
+After building and compiling the Java tests above, from `RulesBridge/`:
+
+```sh
+python3 tests/packet-manifest.py > build/packet-compatibility-input.json
+java -Xmx256m -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" magicboard.rules.PacketCompatibilityTest build/packet-compatibility-input.json build/packet-compatibility-report.json
+```
+
+On pinned 1.4.63V2, 673 of 688 bundled packets resolve every possible name after punctuation normalization. Remaining gaps are 13 Marvel Super Heroes packets and the SOS Jump In packets LOREHOLD and SPELLCRAFT. The generated report lists exact names; newer engine releases may change these results.

@@ -4,6 +4,7 @@ import mage.cards.ExpansionSet;
 import mage.cards.Sets;
 import mage.cards.decks.DeckCardInfo;
 import java.util.*;
+import java.text.Normalizer;
 
 /** Resolve deck-list names using the matching XMage release's set metadata, not Scryfall IDs. */
 final class CardPrintings {
@@ -39,7 +40,9 @@ final class CardPrintings {
 
     static DeckCardInfo resolve(String name, String set, String number, int count) {
         List<Printing> choices = Index.BY_NAME.get(normalize(name));
-        if (choices == null && name.contains(" // ")) choices = Index.BY_NAME.get(normalize(name.substring(0, name.indexOf(" // "))));
+        String normalized = normalize(name);
+        if (choices == null && normalized.contains(" // "))
+            choices = Index.BY_NAME.get(normalized.substring(0, normalized.indexOf(" // ")));
         if (choices == null || choices.isEmpty()) throw new IllegalArgumentException("This XMage release does not implement " + name + ".");
         Printing printing = choices.get(0);
         if (!set.isEmpty()) {
@@ -49,5 +52,11 @@ final class CardPrintings {
         return new DeckCardInfo(printing.name, printing.number, printing.set, count);
     }
 
-    private static String normalize(String name) { return name.trim().toLowerCase(Locale.ROOT); }
+    private static String normalize(String name) {
+        // Packet sources use both typographic punctuation and Scryfall split-card separators.
+        // Apply the same key to XMage metadata so the selected printing keeps its canonical name.
+        return Normalizer.normalize(name, Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
+                .replace('’', '\'').replace('‘', '\'')
+                .replaceAll("\\s*/{2,}\\s*", " // ").trim().toLowerCase(Locale.ROOT);
+    }
 }
