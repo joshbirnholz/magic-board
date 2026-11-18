@@ -80,6 +80,7 @@ final class RulesDiscardUITests: XCTestCase {
         }
         let app = try await openFixture(address + "/mana")
         defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["rules-prompt-message"].label.contains("{B}"), "VoiceOver must retain mana costs drawn as inline images")
         let source = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Capital City, 1, untapped'")).firstMatch
         XCTAssertTrue(source.waitForExistence(timeout: 5))
         source.tap()

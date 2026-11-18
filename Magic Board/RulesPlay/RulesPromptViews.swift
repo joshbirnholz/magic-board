@@ -184,6 +184,7 @@ struct RulesPromptBar: View {
             strip {
                 RulesSymbolText(text: prompt.plainMessage, size: 18, beleren: true).foregroundStyle(.white)
                     .accessibilityIdentifier("rules-prompt-message")
+                    .accessibilityLabel(prompt.plainMessage)
                 Text("Tap your lands to pay.").font(.caption).foregroundStyle(.white.opacity(0.7))
                     .accessibilityHidden(true)
                 HStack {
