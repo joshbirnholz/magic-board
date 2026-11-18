@@ -80,7 +80,7 @@ done
 
 `RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
 
-Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs and morph. Deck fixtures are in `tests/decks/`. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game.
+Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs, morph, nonzero X, hybrid mana and library search. Deck fixtures are in `tests/decks/`. The X probe casts Blaze with X=1, the hybrid probe casts Safehold Elite using Plains, and the search probe verifies that the chosen library card reaches the player's hand. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game.
 
 `SecondSeatBot` is a second human seat for the phone's two-player check. Start it against the bridge, then run `testRulesTwoPlayerGameAgainstASecondSeat` with `TEST_RUNNER_RULES_SECOND_SEAT=1`: the phone creates a waiting game, the bot joins and plays simply (keep, play a playable card, pay with lands, pass), the phone starts the game and plays four of its own cards, then exits (which concedes).
 

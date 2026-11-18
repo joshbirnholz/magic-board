@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: search",
+    "main": [
+      {
+        "name": "Forest",
+        "count": 24
+      },
+      {
+        "name": "Sylvan Scrying",
+        "count": 18
+      },
+      {
+        "name": "Grizzly Bears",
+        "count": 18
+      }
+    ],
+    "sideboard": []
+  }
+}
