@@ -76,8 +76,21 @@ final class RulesPhoneAdapter {
         if message.contains("select blockers") {
             return (combat.contains { !$0.blockers.isEmpty } ? "Block" : "No\nBlocks", true)
         }
-        if snapshot?.stack.isEmpty == false { return ("Resolve", true) }
-        if message.contains("play spells") { return ("Next", true) }
+        guard let snapshot else { return ("Next", true) }
+        if !snapshot.stack.isEmpty { return ("Resolve", true) }
+        let mine = snapshot.players.first { $0.id == snapshot.playerId }
+        let creatures = mine?.battlefield.filter { ($0.typeLine ?? "").contains("Creature") && $0.tapped != true } ?? []
+        if snapshot.activePlayerId == snapshot.playerId {
+            switch snapshot.step ?? "" {
+            case "PRECOMBAT_MAIN": return (creatures.contains { $0.summoningSick != true } ? "To\nAttackers" : "Next", true)
+            case "POSTCOMBAT_MAIN", "END_TURN", "CLEANUP": return ("End\nTurn", true)
+            default: return ("Next", true)
+            }
+        }
+        // The opponent's turn: once they've attacked, passing takes you to declaring blockers.
+        if combat.contains(where: { !$0.attackers.isEmpty }), !creatures.isEmpty, (snapshot.step ?? "").contains("ATTACKERS") {
+            return ("To\nBlockers", true)
+        }
         return ("Pass", true)
     }
 
@@ -126,6 +139,11 @@ final class RulesPhoneAdapter {
         case .play(let id, _, _, _, _), .moveToStack(let id), .tap(let id), .attack(let id, _): await choose(id)
         case .castTargeting(let id, let target):
             pendingTarget = target
+            await choose(id)
+        case .attachDroppedCard(let id, let target):
+            // Dropped onto a permanent: play it, with that permanent as its target if it needs one
+            // (an Aura). A land dropped on another land just plays.
+            pendingTarget = .card(target)
             await choose(id)
         case .block(let id, let target):
             pendingTarget = target.map(PhoneGame.Target.card)
@@ -209,9 +227,14 @@ final class RulesPhoneAdapter {
             result.isTapped.accept(card.tapped ?? false)
             result.isSummoningSick.accept(card.summoningSick ?? false)
             if let colors = card.colors { result.colors.accept(colors.compactMap(MTGColor.init(rawValue:))) }
-            if let power = card.power { result.power.accept(power) }
-            if let toughness = card.toughness { result.toughness.accept(toughness) }
-            result.isPowerToughnessVisible.accept(card.power != nil || card.toughness != nil)
+            // XMage reports "0"/"0" for every object, lands included. Only creatures (and vehicles,
+            // which print theirs) show power and toughness; otherwise Phone Play treats the card as a
+            // creature and lands leave the land row.
+            let type = (card.typeLine ?? printed.typeLine ?? "")
+            let hasStats = type.contains("Creature") || type.contains("Vehicle")
+            if hasStats, let power = card.power { result.power.accept(power) }
+            if hasStats, let toughness = card.toughness { result.toughness.accept(toughness) }
+            result.isPowerToughnessVisible.accept(hasStats && (card.power != nil || card.toughness != nil))
             let counterTypes: [String: Counter] = ["+1/+1": .plusOnePlusOne, "-1/-1": .minusOneMinusOne,
                                                  "loyalty": .loyalty, "lore": .lore, "stun": .stun,
                                                  "shield": .shield, "flying": .flying, "finality": .finality]

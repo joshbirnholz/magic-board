@@ -132,6 +132,24 @@ final class RulesModeTests: XCTestCase {
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_ASK", "Play instants?"), snapshot: idle))
     }
 
+    func testLandsDontShowEngineZeroStats() async throws {
+        let me = UUID().uuidString, land = UUID().uuidString, bear = UUID().uuidString
+        func permanent(_ id: String, _ name: String, _ type: String, _ power: String, _ toughness: String) -> [String: Any] {
+            ["id": id, "name": name, "faceDown": false, "transformed": false, "typeLine": type, "power": power, "toughness": toughness,
+             "tapped": false, "summoningSick": false, "counters": []]
+        }
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "phase": "PRECOMBAT_MAIN",
+                                   "activePlayerId": me, "stack": [], "playableIds": [], "hand": [],
+                                   "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                                                "battlefield": [permanent(land, "Plains", "Basic Land — Plains", "0", "0"),
+                                                                permanent(bear, "Grizzly Bears", "Creature — Bear", "2", "2")]]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
+        let field = adapter.presentation.state.battlefield.value
+        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == land }?.isPowerToughnessVisible.value, false)
+        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == bear }?.isPowerToughnessVisible.value, true)
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

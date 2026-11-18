@@ -96,7 +96,7 @@ struct RulesPromptBar: View {
                 }
             }
         }
-        .frame(maxWidth: 320, alignment: .trailing)
+        .frame(maxWidth: 320)
         .disabled(session.pendingRequest != nil)
         .animation(.easeInOut(duration: 0.15), value: session.prompt?.id)
     }
@@ -124,18 +124,20 @@ struct RulesPromptBar: View {
                 }
                 if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
-        default: // GAME_SELECT: the phase button confirms; this just says what the engine wants.
-            strip {
-                if let phase = phaseLine { Text(phase).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.65)) }
-                RulesSymbolText(text: prompt.plainMessage, size: 15).foregroundStyle(.white)
-                    .accessibilityIdentifier("rules-prompt-message")
-            }
+        default:
+            // GAME_SELECT: like Arena, no instructions. The highlights show what can be played and
+            // the main button says what passing does (To Attackers, Resolve, End Turn…). The engine's
+            // wording stays available to VoiceOver (and UI tests) without drawing anything.
+            Color.clear.frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityLabel(prompt.plainMessage)
+                .accessibilityIdentifier("rules-prompt-message")
         }
     }
 
     private func strip<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .trailing, spacing: 6) { content() }
-            .multilineTextAlignment(.trailing)
+        VStack(alignment: .center, spacing: 6) { content() }
+            .multilineTextAlignment(.center)
             .padding(.horizontal, 14).padding(.vertical, 10)
             .background(Color.black.opacity(0.62), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.white.opacity(0.12)))
