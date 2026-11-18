@@ -122,7 +122,10 @@ struct RulesPromptBar: View {
                 Text("Tap a highlighted card.").font(.caption).foregroundStyle(.white.opacity(0.7))
                 let players = session.snapshot?.players.filter { prompt.targets?.contains($0.id) == true } ?? []
                 if !players.isEmpty {
-                    HStack { ForEach(players) { player in answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false) } }
+                    HStack { ForEach(players) { player in
+                        answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
+                            .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
+                    } }
                 }
                 if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
@@ -314,6 +317,7 @@ struct RulesPromptModal: View {
                         .buttonStyle(.plain)
                         .disabled(!session.canAnswer)
                         .accessibilityLabel(RulesText.plain(choice.label))
+                        .accessibilityIdentifier("rules-choice")
                     }
                 }.frame(maxWidth: 460)
             }.frame(maxHeight: 220)
@@ -399,6 +403,7 @@ struct RulesPromptModal: View {
                     if selectable {
                         Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
                             .buttonStyle(.plain).disabled(!session.canAnswer)
+                            .accessibilityIdentifier("rules-card-choice")
                             .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                     } else { RulesChoiceCardFace(card: card, height: height) }
                 }

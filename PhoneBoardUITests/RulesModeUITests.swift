@@ -466,4 +466,120 @@ final class RulesModeUITests: XCTestCase {
     }
 
     private func text(blocked: Int, blocks: Int) -> String { "Block attempts \(blocked), blocks declared \(blocks)" }
+    /// Plays several turns of an imported deck against the AI through the interface, answering
+    /// whatever XMage asks the way a person would (modal choices, cards to pick, targets on the
+    /// board, players). Set TEST_RUNNER_RULES_UI_TEST_DECK to a deck list ("24 Plains\n…"); it's
+    /// pasted via the remembered deck setting. Fails on unsupported, stuck or alert states.
+    @MainActor func testRulesImportedDeckGameAnswersEveryPrompt() throws {
+        guard let deck = ProcessInfo.processInfo.environment["RULES_UI_TEST_DECK"], !deck.isEmpty else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_UI_TEST_DECK to a deck list to run this check")
+        }
+        let app = XCUIApplication()
+        // Launch-argument defaults are parsed as property lists: quote the value so its "\n" escapes
+        // become line breaks (unquoted, only the first line would arrive).
+        app.launchArguments = ["--rules-ui-test", "-rules.deckList", "\"" + deck.replacingOccurrences(of: "\"", with: "") + "\""]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
+        app.buttons["start-rules"].tap()
+        let address = app.textFields["rules-server-address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 5))
+        address.tap()
+        if let value = address.value as? String { address.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        address.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_ADDRESS"] ?? "ws://127.0.0.1:17180")
+        let key = app.secureTextFields["rules-connection-key"]
+        key.tap()
+        if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
+        XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
+        waitForExpectations(timeout: 10)
+        app.buttons["rules-start-ai"].tap()
+        if !app.buttons["phone-untap-local"].waitForExistence(timeout: 30) {
+            if app.keyboards.firstMatch.exists { app.keyboards.buttons["return"].firstMatch.tap() }
+            app.swipeUp(); app.swipeUp()
+            XCTFail("The game didn't start. Texts on screen: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
+            return
+        }
+
+        let message = app.descendants(matching: .any)["rules-prompt-message"]
+        let next = app.buttons["phone-untap-local"]
+        let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
+        let fan = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
+        var played = 0, stuck = 0, lastState = "", attackedTurn = ""
+        var seen: [String] = []
+        let deadline = Date().addingTimeInterval(10 * 60)
+        while Date() < deadline {
+            if app.staticTexts["Victory"].exists || app.staticTexts["Defeat"].exists || app.staticTexts["Game Over"].exists { break }
+            if played >= 10 { break }
+            if app.alerts.firstMatch.exists {
+                XCTFail("Unexpected alert: \(app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label))")
+                app.alerts.firstMatch.buttons.firstMatch.tap(); continue
+            }
+            XCTAssertFalse(app.staticTexts["This choice is not supported yet."].exists, "Unsupported prompt: \(message.exists ? message.label : "")")
+            let text = message.exists ? message.label : ""
+            if !text.isEmpty, seen.last != text { seen.append(text) }
+            let state = text + "|" + (next.exists ? next.label : "")
+            stuck = state == lastState ? stuck + 1 : 0
+            lastState = state
+            XCTAssertLessThan(stuck, 40, "Stuck at: \(state)")
+            if stuck >= 40 { break }
+            if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap(); continue }
+            if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].exists { app.buttons["Magic Board"].tap(); continue }
+            // Full-screen decisions: pick the first option or card, as a player might.
+            let choice = app.buttons.matching(identifier: "rules-choice").firstMatch
+            if choice.exists && choice.isHittable { choice.tap(); Thread.sleep(forTimeInterval: 0.8); continue }
+            let card = app.buttons.matching(identifier: "rules-card-choice").firstMatch
+            if card.exists && card.isHittable { card.tap(); Thread.sleep(forTimeInterval: 0.8); continue }
+            for title in ["Confirm", "Yes", "Done"] where app.buttons[title].exists && app.buttons[title].isHittable {
+                app.buttons[title].tap(); Thread.sleep(forTimeInterval: 0.8); break
+            }
+            // Targets on the board glow ("Playable"): tap one; otherwise target the opponent.
+            if text.localizedCaseInsensitiveContains("target") || text.localizedCaseInsensitiveContains("select") && !text.localizedCaseInsensitiveContains("attackers") && !text.localizedCaseInsensitiveContains("blockers") {
+                let glow = app.descendants(matching: .any).matching(identifier: "phone-combat-glow").matching(NSPredicate(format: "value == 'Playable'")).firstMatch
+                if glow.exists {
+                    app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: glow.frame.midX, dy: glow.frame.midY)).tap()
+                    Thread.sleep(forTimeInterval: 0.8); continue
+                }
+                if app.buttons["rules-target-opponent"].exists { app.buttons["rules-target-opponent"].tap(); Thread.sleep(forTimeInterval: 0.8); continue }
+            }
+            if text.hasPrefix("Pay") {
+                Thread.sleep(forTimeInterval: 2.0)
+                if !(message.exists && message.label == text) { continue }
+                let land = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS ', untapped'"))
+                    .allElementsBoundByIndex.first { $0.frame.midY > app.frame.midY }
+                if let land { land.tap(); Thread.sleep(forTimeInterval: 0.6); continue }
+            }
+            if next.exists, next.isEnabled {
+                if text.localizedCaseInsensitiveContains("select attackers"), attackedTurn != state {
+                    attackedTurn = state
+                    for creature in app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex where creature.frame.midY > app.frame.midY {
+                        creature.tap(); Thread.sleep(forTimeInterval: 0.4)
+                    }
+                } else if text.localizedCaseInsensitiveContains("Play spells"),
+                          let playable = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
+                    if fan.value as? String != "Expanded" { playable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap(); Thread.sleep(forTimeInterval: 0.6) }
+                    if let target = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
+                        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
+                            .press(forDuration: 0.3, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.35)), withVelocity: 300, thenHoldForDuration: 0.4)
+                        played += 1
+                        Thread.sleep(forTimeInterval: 1.0)
+                        continue
+                    }
+                }
+                next.tap()
+            }
+            Thread.sleep(forTimeInterval: 0.6)
+        }
+        print("Imported-deck prompts seen: \(seen)")
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Rules mode — imported deck game"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        XCTAssertGreaterThanOrEqual(played, 4, "Played only \(played) cards; prompts: \(seen)")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
+    }
 }

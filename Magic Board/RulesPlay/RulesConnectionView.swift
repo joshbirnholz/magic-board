@@ -161,6 +161,14 @@ struct RulesConnectionView: View {
 
     private func preparedDeck(for format: String) throws -> RulesDeck? {
         let deck = try RulesDeckImporter.parse(deckList)
+        // XMage refuses an undersized deck with no reason given ("could not seat you"), so say why.
+        if let deck {
+            let cards = deck.main.reduce(0) { $0 + $1.count }
+            let minimum = format == "Limited" ? 40 : 60
+            if cards < minimum {
+                throw RulesDeckImporter.Failure.message("This deck has \(cards) card\(cards == 1 ? "" : "s"). \(format) needs at least \(minimum).")
+            }
+        }
         if deck == nil && format != "Limited" {
             throw RulesDeckImporter.Failure.message("Import a deck to play this format, or use Limited with the built-in deck.")
         }
@@ -171,7 +179,11 @@ struct RulesConnectionView: View {
 /// The existing Phone Play board remains visible and interactive beneath engine choices.
 enum RulesText {
     static func plain(_ text: String) -> String {
-        text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        // XMage puts the card name in its own <div> ("Choose mode…<div>Blessed Alliance</div>"):
+        // keep it on its own line instead of running it into the sentence.
+        text.replacingOccurrences(of: #"<\s*(br|/?div|/?p)[^>]*>"#, with: "\n", options: [.regularExpression, .caseInsensitive])
+            .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\n\s*\n+"#, with: "\n", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ")
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&lt;", with: "<")

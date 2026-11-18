@@ -226,6 +226,18 @@ final class RulesModeTests: XCTestCase {
         XCTAssertThrowsError(try RulesDeckImporter.parse("Commander\n1 Atraxa, Praetors' Voice\nDeck\n99 Plains"))
     }
 
+    func testPlainNameOnlyDeckListImports() throws {
+        let deck = try XCTUnwrap(RulesDeckImporter.parse("22 Plains\n10 Silvercoat Lion\n8 Blessed Alliance\n8 Pacifism\n6 Reverent Mantra\n6 Soul Warden"))
+        XCTAssertEqual(deck.main.reduce(0) { $0 + $1.count }, 60)
+        XCTAssertEqual(Set(deck.main.map(\.name)), ["Plains", "Silvercoat Lion", "Blessed Alliance", "Pacifism", "Reverent Mantra", "Soul Warden"])
+        print("RULES-DECK-JSON " + String(decoding: try JSONEncoder().encode(deck), as: UTF8.self))
+    }
+
+    func testEngineMarkupKeepsTheCardNameOnItsOwnLine() {
+        let text = RulesText.plain("Choose mode (selected 0 of 3, min 1)<div style='font-size:11pt'><font color='#F0E68C'>Blessed Alliance</font></div>")
+        XCTAssertEqual(text.trimmingCharacters(in: .whitespacesAndNewlines), "Choose mode (selected 0 of 3, min 1)\nBlessed Alliance")
+    }
+
     func testBattlefieldCharacteristicsPreservePrintedImageAndLeavePrintedModelUnchanged() throws {
         let template = try RulesPhoneAdapter.placeholder(name: "Test card", typeLine: "Artifact", rules: "Printed text", manaCost: "{2}")
         var printedJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(template)) as? [String: Any])
