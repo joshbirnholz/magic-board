@@ -33,8 +33,13 @@ class LifeTrackerViewController: UIHostingController<LifeTracker> {
     didSet { if showsMarks != oldValue, value != nil { bindValue() } }
   }
   
+  /// Whether life changes flash and float their amount (Rules games, as on Arena).
+  var showsChanges = false {
+    didSet { if showsChanges != oldValue, value != nil { bindValue() } }
+  }
+
   private func bindValue() {
-    rootView = LifeTracker(life: value, showsMarks: showsMarks)
+    rootView = LifeTracker(life: value, showsMarks: showsMarks, showsChanges: showsChanges)
     view.backgroundColor = .clear
     if #available(iOS 16.4, *), AppDelegate.shared.usesPhoneSession {
       safeAreaRegions = []
@@ -714,6 +719,7 @@ extension BottomBarViewController {
             child.view.isUserInteractionEnabled = isLocal && rulesSession == nil
             if #available(iOS 16.4, *), let tracker = child as? LifeTrackerViewController { tracker.safeAreaRegions = [] }
             (child as? LifeTrackerViewController)?.showsMarks = isLocal && rulesSession == nil
+            (child as? LifeTrackerViewController)?.showsChanges = rulesSession?.rulesAdapter?.hasProjected == true
         }
         guard handContainerView.superview === view else { return }
         // Reduce the original fixed side allowance as the existing piles shrink.
