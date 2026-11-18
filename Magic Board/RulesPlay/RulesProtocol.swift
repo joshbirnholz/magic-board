@@ -102,10 +102,15 @@ struct RulesPrompt: Decodable, Identifiable {
     let secondPile: [RulesCard]?
     let amounts: [Amount]?
     let canCancel: Bool?
+    var queryType: String? = nil
+    var subMessage: String? = nil
+    var specialActionAvailable: Bool? = nil
+    var specialActionLabel: String? = nil
 }
 
 enum RulesAnswer: Encodable {
     case boolean(Bool), object(String), number(Int), choice(String), amounts([Int])
+    case specialAction, cancel
     var kind: String {
         switch self {
         case .boolean: return "boolean"
@@ -113,6 +118,8 @@ enum RulesAnswer: Encodable {
         case .number: return "integer"
         case .choice: return "string"
         case .amounts: return "amounts"
+        case .specialAction: return "special"
+        case .cancel: return "cancel"
         }
     }
     func encode(to encoder: Encoder) throws {
@@ -122,6 +129,7 @@ enum RulesAnswer: Encodable {
         case .object(let value), .choice(let value): try container.encode(value)
         case .number(let value): try container.encode(value)
         case .amounts(let values): try container.encode(values)
+        case .specialAction, .cancel: try container.encode(true)
         }
     }
 }
