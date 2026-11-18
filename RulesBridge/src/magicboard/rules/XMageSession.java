@@ -484,7 +484,8 @@ final class XMageSession implements MageClient, AutoCloseable {
             result.addProperty("max", message.getMax());
             result.addProperty("required", message.isFlag());
             PromptMetadata.apply(method, message, result);
-            result.add("cards", message.getCardsView1() == null ? new JsonArray() : cards(message.getCardsView1().values()));
+            JsonArray suppliedCards = message.getCardsView1() == null ? new JsonArray() : cards(message.getCardsView1().values());
+            result.add("cards", PromptContextCards.forQuestion(method, message.getMessage(), snapshot, suppliedCards));
             result.add("secondPile", message.getCardsView2() == null ? new JsonArray() : cards(message.getCardsView2().values()));
             JsonArray targets = new JsonArray();
             if (message.getTargets() != null) message.getTargets().forEach(id -> targets.add(id.toString()));

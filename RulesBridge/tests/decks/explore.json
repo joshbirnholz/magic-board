@@ -1,0 +1,16 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Nonland explore choice",
+    "main": [
+      {
+        "name": "Forest",
+        "count": 18
+      },
+      {
+        "name": "Merfolk Branchwalker",
+        "count": 22
+      }
+    ]
+  }
+}

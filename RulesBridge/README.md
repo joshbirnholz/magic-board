@@ -74,7 +74,7 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 ```sh
 mkdir -p build/test-classes
 javac --release 17 -encoding UTF-8 -cp "build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/test-classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke MulliganSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke MulliganSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest magicboard.rules.PromptContextCardsTest; do
     java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
@@ -157,3 +157,5 @@ java -Xmx128m -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HO
 ```
 
 The phone test uses `TEST_RUNNER_RULES_MULLIGAN_FIXTURE_ADDRESS=ws://127.0.0.1:17187` and `RulesDiscardUITests/testTwoMulligansReturnOnlyTheKeptHandsCardsToTheLibrary`. It checks the deferred Arena flow (Keep 5 with seven displayed, then drag two chosen cards to Library) against the fixture's independently observed answers.
+
+Question prompts may carry read-only `cards` as context. For example, Explore's graveyard Yes/No question includes the exact revealed card referenced by its `object_id`. The bridge uses only the current seat-filtered revealed/looked-at groups; it does not resolve hidden identities or guess by card name. `PromptContextCardsTest` checks those limits, and the bounded `explore` probe verifies the question's matching card and its eventual move to the graveyard against the real engine.

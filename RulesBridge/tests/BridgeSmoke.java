@@ -141,6 +141,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         int lifeBeforeResponse = Integer.MAX_VALUE;
         Set<String> chosenPile = new HashSet<>();
         Set<String> dividedTargets = new HashSet<>();
+        Set<String> exploredNonlands = new HashSet<>();
         String graveyardCast = null;
         String cancelCandidate = null, cancelledCard = null;
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
@@ -174,6 +175,12 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     test.send(control.toString());
                     resolvingStack = true; nextPrompt = null; decisions++;
                     continue;
+                }
+                if (method.equals("GAME_ASK") && !exploredNonlands.isEmpty()
+                        && nextPrompt.get("message").getAsString().toLowerCase(Locale.ROOT).contains("graveyard")) {
+                    observedPrompts.add("EXPLORE_GRAVEYARD_CHOICE");
+                    for (JsonElement card : nextPrompt.getAsJsonArray("cards"))
+                        if (exploredNonlands.contains(card.getAsJsonObject().get("id").getAsString())) observedPrompts.add("EXPLORE_QUESTION_HAS_CARD");
                 }
                 if (observedPrompts.add(method)) System.out.println("Prompt type: " + method + " / " + nextPrompt.get("message"));
                 if (nextPrompt.has("queryType")) {
@@ -408,6 +415,17 @@ public final class BridgeSmoke implements WebSocket.Listener {
             switch (event.get("type").getAsString()) {
                 case "snapshot" -> {
                     currentState = event;
+                    for (String field : List.of("lookedAt", "revealed")) {
+                        if (!event.has(field) || event.get(field).isJsonNull()) continue;
+                        for (JsonElement item : event.getAsJsonArray(field)) {
+                            JsonObject group = item.getAsJsonObject();
+                            if (!group.get("name").getAsString().equals("Explored card")) continue;
+                            for (JsonElement entry : group.getAsJsonArray("cards")) {
+                                JsonObject card = entry.getAsJsonObject();
+                                if (!card.get("typeLine").getAsString().contains("Land")) exploredNonlands.add(card.get("id").getAsString());
+                            }
+                        }
+                    }
                     if (System.getenv("RULES_SMOKE_DECK") == null) {
                         for (JsonElement entry : event.getAsJsonArray("hand")) {
                             String name = name(entry.getAsJsonObject());
@@ -429,6 +447,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     }
                     for (JsonElement player : event.getAsJsonArray("players")) {
                         if (!player.getAsJsonObject().get("id").getAsString().equals(me)) continue;
+                        if (observedPrompts.contains("EXPLORE_GRAVEYARD_CHOICE"))
+                            for (JsonElement card : player.getAsJsonObject().getAsJsonArray("graveyard"))
+                                if (exploredNonlands.contains(card.getAsJsonObject().get("id").getAsString())) observedPrompts.add("EXPLORED_CARD_TO_GRAVEYARD");
                         if (discardedCard != null && player.getAsJsonObject().get("handCount").getAsInt() <= 7) {
                             for (JsonElement card : player.getAsJsonObject().getAsJsonArray("graveyard"))
                                 if (card.getAsJsonObject().get("id").getAsString().equals(discardedCard))
