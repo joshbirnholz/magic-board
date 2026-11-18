@@ -159,7 +159,8 @@ struct PhoneHandFanView: View {
         let isCastable = index >= hand.count + commandZone.count
         return PhoneHandCardFace(card: card, height: size.height, inCommandZone: isCommand,
                                  castableFrom: isCastable ? (presentation.castableInExile.contains(card.uuid) ? .exile
-                                    : presentation.castableCompanions.contains(card.uuid) ? .sideboard : .graveyard) : nil)
+                                    : presentation.castableCompanions.contains(card.uuid) ? .sideboard : .graveyard) : nil,
+                                 playable: presentation.playable.contains(card.uuid))
             .background(PhoneHandMenuSource(card: card, presentation: presentation)
                 .frame(width: cardWidth, height: size.height))
             .contentShape(Rectangle())
@@ -359,6 +360,8 @@ struct PhoneHandCardFace: View {
     var castableFrom: Pile.Location? = nil
     /// The blue "release to play" outline while the card is dragged (drawn under the ability tiles).
     var playGlow: PhoneHandPlayGlow? = nil
+    /// Rules mode: the engine says this card can be played now, so it keeps Arena's blue outline at rest.
+    var playable: Bool = false
     private static let exileGlow = Color(red: 1.0, green: 0.55, blue: 0.16)
     private static let graveyardGlow = Color(red: 0.66, green: 0.36, blue: 1.0)
     private static let companionGlow = Color(red: 0.2, green: 0.82, blue: 0.76)
@@ -383,6 +386,7 @@ struct PhoneHandCardFace: View {
                         .shadow(color: color, radius: glow)
                 }
             }
+            .overlay { if playable { PhoneHandPlayRim(width: width) } }
             .overlay { if let playGlow { PhoneHandPlayGlowOutline(glow: playGlow, width: width) } }
             .overlay(alignment: .topTrailing) { costView(width: width) }
             .overlay(alignment: .topLeading) { abilityTiles(width: width) }
@@ -443,14 +447,25 @@ private struct PhoneHandPlayGlowOutline: View {
     let width: CGFloat
 
     var body: some View {
+        PhoneHandPlayRim(width: width)
+            .opacity(glow.isVisible ? 1 : 0)
+            .animation(.easeInOut(duration: 0.15), value: glow.isVisible)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The blue rim and halo itself: shown while dragging to play, and at rest on Rules-mode playable cards.
+private struct PhoneHandPlayRim: View {
+    let width: CGFloat
+
+    var body: some View {
         let halo = Color(red: 0.2, green: 0.62, blue: 1)
         RoundedRectangle(cornerRadius: width * 0.05, style: .continuous)
             .strokeBorder(Color(red: 0.62, green: 0.88, blue: 1), lineWidth: max(2, width * 0.02))
             .shadow(color: halo, radius: width * 0.06)
             .shadow(color: halo, radius: width * 0.06)
             .scaleEffect(x: 1.03, y: 1.022)
-            .opacity(glow.isVisible ? 1 : 0)
-            .animation(.easeInOut(duration: 0.15), value: glow.isVisible)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }

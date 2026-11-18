@@ -65,6 +65,18 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(stack[spell.lowercased()]?.card?.ownerIdentifier, .a)
     }
 
+    func testEnginePlayableCardsReachThePresentationOnlyInRulesMode() async throws {
+        let me = UUID().uuidString, land = UUID().uuidString
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 1,
+                                   "phase": "PRECOMBAT_MAIN", "activePlayerId": me, "stack": [], "playableIds": [land.lowercased()],
+                                   "hand": [["id": land, "name": "Plains", "faceDown": false, "transformed": false, "typeLine": "Basic Land — Plains", "counters": []]],
+                                   "players": [["id": me, "name": "Me", "life": 20, "handCount": 1, "libraryCount": 0, "battlefield": [], "graveyard": [], "exile": []]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
+        XCTAssertEqual(adapter.presentation.rulesPlayable, [UUID(uuidString: land)!])
+        XCTAssertNil(PhoneGame().rulesPlayable, "sandbox games never carry engine playability")
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

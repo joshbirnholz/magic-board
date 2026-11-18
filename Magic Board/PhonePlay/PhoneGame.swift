@@ -53,6 +53,8 @@ struct PhoneGame: Codable {
     var shuffles: [String: Int]? = nil
     /// Libraries whose top card stays revealed: owner → the players who can see it.
     var revealedTops: [String: [String]]? = nil
+    /// Rules mode only: cards the engine says this phone's player can play or activate now. Always nil in sandbox games.
+    var rulesPlayable: Set<UUID>? = nil
     /// Cards marked as a player's companion (shown beside the hand while in the sideboard).
     var companions: [UUID: Player.Identifier]? = nil
     struct PacketSelection: Codable {

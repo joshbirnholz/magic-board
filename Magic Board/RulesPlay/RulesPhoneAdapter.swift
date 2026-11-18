@@ -179,6 +179,7 @@ final class RulesPhoneAdapter {
         let oldOrder = presentation.state.player1.hand.cards.value.map(\.uuid)
         game.state.player1.hand.cards.accept(OrderedSet(oldOrder.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !oldOrder.contains($0.uuid) }))
         let visibleIDs = Set(allCards.map(\.id))
+        game.rulesPlayable = Set(snapshot.playableIds.compactMap(UUID.init(uuidString:)))
         game.stack = try snapshot.stack.reversed().map { card in
             let targets: [PhoneGame.Target] = (card.targets ?? []).compactMap { target in
                 if snapshot.players.contains(where: { $0.id == target }) { return .player(seat(target)) }

@@ -2811,6 +2811,8 @@ extension BoardViewController {
             if inExile != presentation.castableInExile { presentation.castableInExile = inExile }
             let companions = Set(castable.filter { session.game.state[player: session.player].sideboard.cards.value.contains($0) }.map(\.uuid))
             if companions != presentation.castableCompanions { presentation.castableCompanions = companions }
+            let playable = session.mode == .rules ? session.game.rulesPlayable ?? [] : []
+            if playable != presentation.playable { presentation.playable = playable }
         }
         for cardView in board.subviews.compactMap({ $0 as? MiniCardView }) where !fieldIDs.contains(cardView.cardInstance.uuid) {
             cardInstanceDisposeBags[cardView.cardInstance.uuid] = nil

@@ -87,6 +87,8 @@ final class PhoneHandPresentation: ObservableObject {
     @Published var castableInExile: Set<UUID> = []
     /// Companions waiting in the sideboard (teal glow).
     @Published var castableCompanions: Set<UUID> = []
+    /// Rules mode: hand cards the engine says can be played now (Arena's blue outline).
+    @Published var playable: Set<UUID> = []
     /// Reports a hand card drag to the board (window coordinates). The board answers whether the
     /// finger is over the hand, where the card is reordered rather than played.
     var onCardDrag: ((CardInstance, PhoneHandDragPhase, CGPoint) -> Bool)?
