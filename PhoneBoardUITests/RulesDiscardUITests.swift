@@ -74,6 +74,27 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertEqual(status.handCount, 5)
     }
 
+    @MainActor func testLongCrewInstructionStaysBetweenTheCardRows() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/crew")
+        defer { app.terminate() }
+        let banner = app.staticTexts["rules-board-banner"]
+        XCTAssertTrue(banner.waitForExistence(timeout: 5))
+        XCTAssertTrue(banner.label.contains("Sky Skiff"))
+        XCTAssertTrue(banner.label.contains("selected power 0 of 1"), "The engine's crew requirement must remain available")
+        let cards = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let opponentBottom = try XCTUnwrap(cards.filter { ($0.value as? String) == "Attacking" }.map(\.frame.maxY).max())
+        let localTop = try XCTUnwrap(cards.filter { ($0.value as? String) == "Untapped" }.map(\.frame.minY).min())
+        XCTAssertGreaterThanOrEqual(banner.frame.minY, opponentBottom - 1)
+        XCTAssertLessThanOrEqual(banner.frame.maxY, localTop + 1)
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Crew instruction between permanent rows"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     @MainActor func testFloatingManaDoesNotReportAFailedPaymentTap() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

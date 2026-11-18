@@ -3199,6 +3199,15 @@ extension BoardViewController {
         // Identical non-land permanents are laid out one by one when that fits without shrinking
         // the cards or paging a row; otherwise (or for 5+ copies) they stack. Lands keep their stacking.
         var splitDuplicates = false
+        // Reserve the instruction's actual height between the two rows in Rules games. A wrapped
+        // crew/target restriction needs more room than “Choose blockers.”; sandbox layout is unchanged.
+        var instructionGap: CGFloat = 4
+        if session.rulesAdapter?.engine.prompt?.boardBannerText != nil, let banner = rulesBannerHost?.view {
+            let width = max(1, view.safeAreaLayoutGuide.layoutFrame.width - 24)
+            let size = banner.systemLayoutSizeFitting(CGSize(width: width, height: 0),
+                withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
+            instructionGap = max(4, size.height + 8)
+        }
         func groups(for player: Player.Identifier, row: PhoneBattlefieldLayout.Row, ignoringTapped: Bool = false) -> [PhoneCardGroup] {
             func visible(_ groups: [PhoneCardGroup]) -> [PhoneCardGroup] {
                 groups.filter {
@@ -3247,7 +3256,7 @@ extension BoardViewController {
             let bottomSpill: CGFloat = CGFloat(maxLayers - 1) * 18 + rotationSpill
             let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? attachmentStep * CGFloat(attachmentCount) : 0) + rotationSpill
             func extent(in rect: CGRect) -> CGFloat {
-                let heightFit = max(24, (rect.height / 2 - 4) / (1 + (topSpill + bottomSpill) / 500))
+                let heightFit = max(24, (rect.height / 2 - instructionGap) / (1 + (topSpill + bottomSpill) / 500))
                 return min(heightFit, PhoneBattlefieldLayout.cardExtent(screenWidth: rect.width, screenHeight: view.bounds.height, groups: largestRow))
             }
             // The column must fit its largest row without paging (cards shrink within it if needed);

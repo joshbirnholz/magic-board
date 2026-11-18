@@ -37,7 +37,8 @@ public final class BlockPromptFixture extends WebSocketServer {
         initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
                 : request.getResourceDescriptor().endsWith("/attack") ? "attack"
                 : request.getResourceDescriptor().endsWith("/source") ? "sacrifice"
-                : request.getResourceDescriptor().endsWith("/mana") ? "mana" : "select";
+                : request.getResourceDescriptor().endsWith("/mana") ? "mana"
+                : request.getResourceDescriptor().endsWith("/crew") ? "crew" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -114,6 +115,13 @@ public final class BlockPromptFixture extends WebSocketServer {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_TARGET", "queryType", "PICK_ABILITY",
                     "revision", revision, "message", "Pick triggered ability (goes to the stack first)", "supported", true,
                     "required", true, "choices", new Object[]{}, "cards", new Object[]{first, second}, "targets", new Object[]{}));
+            return;
+        }
+        if (stage.equals("crew")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_TARGET",
+                    "revision", revision, "message", "Select another untapped creature you control (selected 0) (selected power 0 of 1)",
+                    "subMessage", "Sky Skiff", "supported", true, "required", true,
+                    "choices", new Object[]{}, "cards", new Object[]{}, "targets", new String[]{BLOCKER}));
             return;
         }
         if (stage.equals("sacrifice")) {
