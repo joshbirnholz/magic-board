@@ -478,6 +478,9 @@ final class RulesModeUITests: XCTestCase {
         // Launch-argument defaults are parsed as property lists: quote the value so its "\n" escapes
         // become line breaks (unquoted, only the first line would arrive).
         app.launchArguments = ["--rules-ui-test", "-rules.deckList", "\"" + deck.replacingOccurrences(of: "\"", with: "") + "\""]
+        // TEST_RUNNER_RULES_UI_TEST_MANUAL_MANA=1 turns automatic payment off, to exercise the Auto button.
+        let manualMana = ProcessInfo.processInfo.environment["RULES_UI_TEST_MANUAL_MANA"] == "1"
+        if manualMana { app.launchArguments += ["-rules.autoPayMana", "NO"] }
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -508,7 +511,7 @@ final class RulesModeUITests: XCTestCase {
         let next = app.buttons["phone-untap-local"]
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         let fan = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
-        var played = 0, stuck = 0, lastState = "", attackedTurn = "", activatedTurn = "", allAttacks = 0, activations = 0
+        var played = 0, stuck = 0, lastState = "", attackedTurn = "", activatedTurn = "", allAttacks = 0, activations = 0, autoButton = 0
         var seen: [String] = []
         let deadline = Date().addingTimeInterval(10 * 60)
         while Date() < deadline {
@@ -553,6 +556,10 @@ final class RulesModeUITests: XCTestCase {
                 }
                 if app.buttons["rules-target-opponent"].exists { app.buttons["rules-target-opponent"].tap(); Thread.sleep(forTimeInterval: 0.8); continue }
             }
+            if text.hasPrefix("Pay"), app.buttons["rules-auto-pay"].exists {
+                app.buttons["rules-auto-pay"].tap(); autoButton += 1
+                Thread.sleep(forTimeInterval: 0.8); continue
+            }
             if text.hasPrefix("Pay") {
                 Thread.sleep(forTimeInterval: 2.0)
                 if !(message.exists && message.label == text) { continue }
@@ -596,7 +603,8 @@ final class RulesModeUITests: XCTestCase {
             }
             Thread.sleep(forTimeInterval: 0.6)
         }
-        print("Imported-deck prompts seen: \(seen); All Attack used \(allAttacks)×, permanents activated \(activations)×")
+        print("Imported-deck prompts seen: \(seen); All Attack used \(allAttacks)×, permanents activated \(activations)×, Auto pay tapped \(autoButton)×")
+        if manualMana { XCTAssertGreaterThan(autoButton, 0, "With automatic payment off, the Auto button should have paid") }
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Rules mode — imported deck game"
         screenshot.lifetime = .keepAlways

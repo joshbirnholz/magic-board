@@ -106,7 +106,7 @@ final class RulesPhoneAdapter {
     /// Whether basic lands are tapped for you when paying (Arena's default). Turned off from the
     /// battlefield menu ("Pay Mana Manually"), for when the automatic choice would be wrong.
     static var autoPaysMana: Bool {
-        get { UserDefaults.standard.object(forKey: "rules.autoPayMana") as? Bool ?? true }
+        get { UserDefaults.standard.object(forKey: "rules.autoPayMana") == nil ? true : UserDefaults.standard.bool(forKey: "rules.autoPayMana") }
         set { UserDefaults.standard.set(newValue, forKey: "rules.autoPayMana") }
     }
 
