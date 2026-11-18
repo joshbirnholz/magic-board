@@ -134,6 +134,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         Set<String> faceDownPermanents = new HashSet<>();
         String searchedCard = null;
         boolean searchOnStack = false, paidX = false;
+        boolean resolvingStack = false;
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
@@ -143,9 +144,24 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 answer.add("promptId", nextPrompt.get("id"));
                 answer.add("revision", currentState.get("revision"));
                 String method = nextPrompt.get("method").getAsString();
+                if (method.equals("GAME_SELECT") && resolvingStack && currentState.getAsJsonArray("stack").isEmpty()) {
+                    if (currentState.getAsJsonObject("priority").get("untilStackResolved").getAsBoolean())
+                        throw new AssertionError("Resolve-stack stop did not reset");
+                    observedPrompts.add("STACK_RESOLVED_STOP");
+                }
                 if (coverageOnly && method.equals("GAME_SELECT") && observedPrompts.containsAll(requiredPrompts)) {
                     System.out.println("PASS required prompts answered and engine returned to priority: " + observedPrompts);
                     return;
+                }
+                if (System.getenv("RULES_SMOKE_RESOLVE_STACK") != null && !resolvingStack
+                        && method.equals("GAME_SELECT") && !currentState.getAsJsonArray("stack").isEmpty()) {
+                    JsonObject control = new JsonObject();
+                    control.addProperty("type", "priorityControl"); control.addProperty("requestId", UUID.randomUUID().toString());
+                    control.addProperty("priorityAction", "resolveStack");
+                    control.add("promptId", nextPrompt.get("id")); control.add("revision", currentState.get("revision"));
+                    test.send(control.toString());
+                    resolvingStack = true; nextPrompt = null; decisions++;
+                    continue;
                 }
                 if (observedPrompts.add(method)) System.out.println("Prompt type: " + method + " / " + nextPrompt.get("message"));
                 if (nextPrompt.has("queryType")) {

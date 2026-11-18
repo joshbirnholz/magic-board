@@ -14,7 +14,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. All 89 unit tests pass (68 normal Phone Play + 21 Rules), including automatic mana and combat-defender decoding regressions.
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
-- Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase, end step and our next turn, stopping and clearing each skip flag, and cancelling auto-pass. Resolve-stack still needs a dedicated gameplay check.
+- Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase, end step and our next turn, stopping and clearing each skip flag, and cancelling auto-pass. Resolve-stack also passed with a real creature spell on the stack, returning to priority with an empty stack and cleared skip flag.
 - Real-card prompt probes passed: manually ordering Soul Warden triggers; choosing a Blessed Alliance mode and putting it on the stack; casting Reverent Mantra using its white-card exile cost; casting Gathan Raiders face down and turning it face up by paying the discard cost.
 - Repeated disconnected-client relaunches reclaim an old detached seat while preserving connected players and newer resumable seats.
 - Repeated simultaneous leave/socket-abort races preserve other clients, allow new clients and permit graceful bridge shutdown.
