@@ -237,6 +237,17 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(decoded.priorityPlayer)
     }
 
+    func testCombatSnapshotSurvivesADefenderLeavingPlay() throws {
+        let json: [String: Any] = ["gameId": "g", "playerId": "me", "revision": 4, "turn": 8,
+                                  "phase": "COMBAT", "step": "COMBAT_DAMAGE", "hand": [], "stack": [],
+                                  "players": [], "playableIds": [],
+                                  "combat": [["attackers": ["attacker"], "blockers": []]]]
+        let state = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+        let group = try XCTUnwrap(state.combat?.first)
+        XCTAssertNil(group.defenderId)
+        XCTAssertEqual(group.attackers, ["attacker"])
+    }
+
     func testRulesDeckImportReusesExistingParserAndPreservesSideboard() throws {
         let deck = try XCTUnwrap(RulesDeckImporter.parse("Deck\n24 Plains (M10) 230\n18 Silvercoat Lion (M10) 31\n18 Siege Mastodon (M10) 30\n\nSideboard\n2 Pacifism (M10) 22"))
         XCTAssertEqual(deck.main.reduce(0) { $0 + $1.count }, 60)

@@ -25,7 +25,15 @@ public final class BridgeSmoke implements WebSocket.Listener {
     public CompletionStage<?> onText(WebSocket socket, CharSequence data, boolean last) {
         fragments.append(data);
         if (last) {
-            events.add(JsonParser.parseString(fragments.toString()).getAsJsonObject());
+            JsonObject event = JsonParser.parseString(fragments.toString()).getAsJsonObject();
+            String type = event.get("type").getAsString();
+            if (System.getenv("RULES_SMOKE_EVENTS") != null && Set.of("snapshot", "prompt").contains(type)) {
+                try {
+                    java.nio.file.Files.writeString(java.nio.file.Path.of(System.getenv("RULES_SMOKE_EVENTS")), event + "\n",
+                            java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (java.io.IOException error) { throw new java.io.UncheckedIOException(error); }
+            }
+            events.add(event);
             fragments.setLength(0);
         }
         socket.request(1);

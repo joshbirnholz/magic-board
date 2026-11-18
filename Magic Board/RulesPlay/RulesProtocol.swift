@@ -67,7 +67,8 @@ struct RulesSnapshot: Decodable {
         let untilStackResolved: Bool
     }
     struct CombatGroup: Decodable {
-        let defenderId: String
+        // XMage can retain attackers briefly after their defending permanent leaves play.
+        let defenderId: String?
         let attackers: [String]
         let blockers: [String]
     }
