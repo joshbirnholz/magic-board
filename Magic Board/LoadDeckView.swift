@@ -48,8 +48,8 @@ struct LoadDeckView: View {
                         Button(set.name) { startPacketGame?("JumpStart", set.code) }
                     }
                     NavigationLink("Jump In!") {
-                        List(OfflineGameLibrary.shared.jumpInSetOptions, id: \.self) { set in
-                            Button(set == "ALL" ? "All Sets" : set) { startPacketGame?("Jump In", set) }
+                        JumpInSetGrid(sets: OfflineGameLibrary.shared.jumpInSetOptions) { set in
+                            Button { startPacketGame?("Jump In", set) } label: { JumpInSetTile(code: set) }
                         }.navigationTitle("Jump-In")
                     }
                 }
