@@ -4,6 +4,26 @@ import CardService
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testUnreadableReplaysStopRetryingWithoutDisconnecting() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_RECOVERY_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS to the malformed-update fixture")
+        }
+        let engine = RulesGameSession()
+        let previousKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = previousKey }
+        engine.connect(address: address, key: "rules-local-verification-key", resume: false)
+        let deadline = Date().addingTimeInterval(8)
+        while engine.status != .connected && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(engine.status, .connected)
+        await engine.startAiGame()
+        while engine.notice != "Replay count 2" && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(engine.notice, "Replay count 2")
+        XCTAssertTrue(engine.error?.contains("Reconnect or update") == true)
+        try await Task.sleep(nanoseconds: 250_000_000)
+        XCTAssertEqual(engine.status, .connected, "A fourth malformed update would make the fixture close an unbounded replay loop")
+        XCTAssertNil(engine.pendingRequest)
+        await engine.endSession()
+    }
     func testRulesModeRestoresUnauthorizedEditsAndLeavesSandboxSaveAlone() async throws {
         let original = try JSONEncoder().encode(GameState.current)
         let phone = PhoneGameSession()

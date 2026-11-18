@@ -70,6 +70,7 @@ final class RulesGameSession: ObservableObject {
         disconnect()
         defaults.set(url.absoluteString, forKey: "rules.bridgeAddress")
         connectionKey = key
+        unreadableReports = 0
         status = .connecting
         notice = "Connecting to your rules server…"
         error = nil
@@ -149,9 +150,19 @@ final class RulesGameSession: ObservableObject {
         @unknown default: detail = "unknown"
         }
         print("Rules: couldn't read a \(type) (\(detail))")
+        // A replay can contain the same incompatible payload. Bound retries for this connection
+        // so it cannot become a tight request/replay loop, and don't let a delayed task resync a
+        // different connection after the player reconnects.
+        guard unreadableReports < 3 else { return }
         unreadableReports += 1
-        if unreadableReports <= 3 { self.error = "Couldn't read a game update (\(type): \(detail)). Refreshing." }
-        Task { await submit(RulesCommand(type: "resync", requestId: UUID().uuidString)) }
+        let generation = self.generation
+        self.error = "Couldn't read a game update (\(type): \(detail)). \(unreadableReports < 3 ? "Refreshing." : "Reconnect or update the rules bridge.")"
+        if unreadableReports < 3 {
+            Task { [weak self] in
+                guard let self, self.generation == generation else { return }
+                await self.submit(RulesCommand(type: "resync", requestId: UUID().uuidString))
+            }
+        }
     }
 
     func startAiGame(deck: RulesDeck? = nil, format: String = "Limited") async {
