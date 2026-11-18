@@ -82,19 +82,25 @@ public struct ArchidektDeck: Decodable, Sendable {
   let categories: [Category]
 }
 
-public struct MoxfieldDeck: Decodable {
+public struct MoxfieldDeck: Decodable, Sendable {
 	struct CardInfo: Decodable {
 		struct Card: Decodable {
 			let scryfallID: UUID?
 			let set: String
 			let name: String
+
+			enum CodingKeys: String, CodingKey {
+				case scryfallID = "scryfall_id"
+				case set
+				case name
+			}
 		}
 		let quantity: Int
 		let card: Card
 		
 		var cardCount: DeckParser.CardCount {
 			if let id = card.scryfallID {
-				return DeckParser.CardCount(identifier: .id(id), count: quantity)
+				return DeckParser.CardCount(identifier: .idName(id, card.name), count: quantity)
 			} else {
 				return DeckParser.CardCount(identifier: .nameSet(name: card.name, set: card.set), count: quantity)
 			}
@@ -137,8 +143,16 @@ public struct DeckParser {
 	}
 	
 	public struct CardCount: Hashable, Equatable {
+		init(identifier: MTGCardIdentifier, count: Int, foil: Bool = false, alter: URL? = nil) {
+			self.identifier = identifier
+			self.count = count
+			self.foil = foil
+			self.alter = alter
+		}
+		
 		public var identifier: MTGCardIdentifier
 		public var count: Int
+		public var foil: Bool
 		public var alter: URL?
 	}
 	
@@ -178,6 +192,9 @@ public struct DeckParser {
 		"in": "inv",
 		"ps": "pls",
 		"7e": "7ed",
+		"8e": "8ed",
+		"eo2": "e02",
+		"nms": "nem",
 		"ap": "apc",
 		"od": "ody",
 		"dar": "dom",
@@ -354,7 +371,7 @@ public struct DeckParser {
 		return cardGroups
 	}
 	
-	public static func parse(deckstatsDecklist: String) -> [CardGroup] {
+	public static func parse(deckstatsDecklist: String, keepOriginalGroups: Bool = false) -> [CardGroup] {
 		let regex = #"(?:^\/\/(\S+)$|^([0-9]+) (?:\[(.+)\] (.+)$|(.+)$))|(.+$)"#
 		
 		var commanderLines: [String] = []
@@ -398,7 +415,7 @@ public struct DeckParser {
 			switch groups.count {
 			case 1:
 				let value = groups[0].value.trimmingCharacters(in: .whitespacesAndNewlines)
-				let newGroup = CardGroup(name: CardGroup.name(for: value, defaultToMain: true), cardCounts: [])
+				let newGroup = CardGroup(name: keepOriginalGroups ? value : CardGroup.name(for: value, defaultToMain: true), cardCounts: [])
 				cardGroups.append(newGroup)
 			case 2:
 				if cardGroups.isEmpty {
@@ -407,6 +424,7 @@ public struct DeckParser {
 				}
 				
 				let count = groups[0].value
+				let isFoil = groups[1].value.lowercased().contains("!foil")
 				var alterURL: URL?
 				let name: String = {
 					var value = groups[1].value
@@ -431,7 +449,7 @@ public struct DeckParser {
 					}
 				}()
 				guard let number = Int(count) else { continue }
-				var cardCount = CardCount(identifier: .name(name), count: number)
+				var cardCount = CardCount(identifier: .name(name), count: number, foil: isFoil)
 				cardCount.alter = alterURL
 				cardGroups[cardGroups.count-1].cardCounts.append(cardCount)
 			case 3:
@@ -441,6 +459,7 @@ public struct DeckParser {
 				}
 				
 				let count = groups[0].value
+				let isFoil = groups[2].value.lowercased().contains("!foil")
 				var alterURL: URL?
 				let name: String = {
 					var value = groups[2].value
@@ -473,9 +492,9 @@ public struct DeckParser {
 				var cardCount: CardCount
 				
 				if setComponents.count > 1, let collectorNumber = setComponents.last {
-					cardCount = CardCount(identifier: .collectorNumberSet(collectorNumber: collectorNumber, set: set, name: name), count: number)
+					cardCount = CardCount(identifier: .collectorNumberSet(collectorNumber: collectorNumber, set: set, name: name), count: number, foil: isFoil)
 				} else {
-					cardCount = CardCount(identifier: .nameSet(name: name, set: set), count: number)
+					cardCount = CardCount(identifier: .nameSet(name: name, set: set), count: number, foil: isFoil)
 				}
 				
 				cardCount.alter = alterURL
