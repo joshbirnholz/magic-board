@@ -136,6 +136,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
         boolean searchOnStack = false, paidX = false;
         boolean resolvingStack = false;
         int lifeBeforeActivation = Integer.MAX_VALUE;
+        String discardedCard = null;
+        int lifeBeforeResponse = Integer.MAX_VALUE;
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
@@ -178,6 +180,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     for (JsonElement entry : currentState.getAsJsonArray("hand")) {
                         JsonObject card = entry.getAsJsonObject();
                         if (playable.contains(card.get("id").getAsString())) {
+                            if (System.getenv("RULES_SMOKE_FORCE_DISCARD") != null) continue;
+                            if (System.getenv("RULES_SMOKE_RESPOND") != null && name(card).equals("Revitalize")) continue;
                             if (requiredPrompts.contains("NONZERO_X_SPELL_CAST") && name(card).equals("Blaze")
                                     && untappedLands(currentState) < 2) continue;
                             object = card.get("id").getAsString();
@@ -228,6 +232,22 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         }
                     }
                 }
+                if (System.getenv("RULES_SMOKE_RESPOND") != null && method.equals("GAME_SELECT")
+                        && !currentState.get("activePlayerId").equals(currentState.get("playerId"))
+                        && !currentState.getAsJsonArray("stack").isEmpty()) {
+                    Set<String> playable = new HashSet<>();
+                    currentState.getAsJsonArray("playableIds").forEach(id -> playable.add(id.getAsString()));
+                    for (JsonElement card : currentState.getAsJsonArray("hand")) {
+                        if (name(card.getAsJsonObject()).equals("Revitalize")
+                                && playable.contains(card.getAsJsonObject().get("id").getAsString())) {
+                            object = card.getAsJsonObject().get("id").getAsString();
+                            for (JsonElement player : currentState.getAsJsonArray("players"))
+                                if (player.getAsJsonObject().get("id").equals(currentState.get("playerId")))
+                                    lifeBeforeResponse = player.getAsJsonObject().get("life").getAsInt();
+                            break;
+                        }
+                    }
+                }
                 if (method.equals("GAME_TARGET") && nextPrompt.has("targets")
                         && nextPrompt.getAsJsonArray("targets").size() > 0) {
                     object = nextPrompt.getAsJsonArray("targets").get(0).getAsString();
@@ -237,6 +257,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     object = nextPrompt.getAsJsonArray("cards").get(0).getAsJsonObject().get("id").getAsString();
                     if (searchOnStack) searchedCard = object;
                 }
+                if (System.getenv("RULES_SMOKE_FORCE_DISCARD") != null && method.equals("GAME_TARGET")
+                        && object != null && nextPrompt.get("message").getAsString().toLowerCase(Locale.ROOT).contains("discard"))
+                    discardedCard = object;
                 // Morph's turn-face-up special action is attached to the permanent in XMage;
                 // selecting that permanent opens its cost prompts, just like tapping it in the app.
                 if (System.getenv("RULES_SMOKE_SPECIAL_ACTION") != null && method.equals("GAME_SELECT")
@@ -340,6 +363,14 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (card.getAsJsonObject().get("id").getAsString().equals(searchedCard)) observedPrompts.add("LIBRARY_CARD_TO_HAND");
                     for (JsonElement player : event.getAsJsonArray("players")) {
                         if (!player.getAsJsonObject().get("id").getAsString().equals(me)) continue;
+                        if (discardedCard != null && player.getAsJsonObject().get("handCount").getAsInt() <= 7) {
+                            for (JsonElement card : player.getAsJsonObject().getAsJsonArray("graveyard"))
+                                if (card.getAsJsonObject().get("id").getAsString().equals(discardedCard))
+                                    observedPrompts.add("CLEANUP_CARD_DISCARDED");
+                        }
+                        if (observedPrompts.contains("OPPONENT_TURN_INSTANT_CAST")
+                                && player.getAsJsonObject().get("life").getAsInt() >= lifeBeforeResponse + 3L)
+                            observedPrompts.add("INSTANT_RESPONSE_GAINED_LIFE");
                         for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield")) {
                             JsonObject permanent = card.getAsJsonObject();
                             if (permanent.get("faceDown").getAsBoolean()) faceDownPermanents.add(permanent.get("id").getAsString());
@@ -365,6 +396,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                             if (name(object).equals("Blaze") && paidX) observedPrompts.add("NONZERO_X_SPELL_CAST");
                             if (name(object).equals("Safehold Elite")) observedPrompts.add("HYBRID_SPELL_CAST");
                             if (name(object).equals("Sylvan Scrying")) searchOnStack = true;
+                            if (name(object).equals("Revitalize") && System.getenv("RULES_SMOKE_RESPOND") != null
+                                    && !event.get("activePlayerId").equals(event.get("playerId"))
+                                    && event.getAsJsonArray("stack").size() >= 2)
+                                observedPrompts.add("OPPONENT_TURN_INSTANT_CAST");
                         }
                         else theirStackObjects.add(object.get("id").getAsString());
                     }
