@@ -20,6 +20,7 @@ public final class BridgeMain extends WebSocketServer {
     private final Map<WebSocket, Seat> connections = new HashMap<>();
     private final Set<WebSocket> authorized = ConcurrentHashMap.newKeySet();
     private final ScheduledExecutorService cleanup = Executors.newSingleThreadScheduledExecutor();
+    private final CompletableFuture<Void> started = new CompletableFuture<>();
 
     private static final class Seat {
         final String resumeToken = UUID.randomUUID() + "-" + UUID.randomUUID();
@@ -49,6 +50,7 @@ public final class BridgeMain extends WebSocketServer {
         this.engineHost = engineHost;
         this.enginePort = enginePort;
         setConnectionLostTimeout(30);
+        setReuseAddr(true);
         setMaxPendingConnections(8);
         cleanup.scheduleWithFixedDelay(this::expire, 30, 30, TimeUnit.SECONDS);
     }
@@ -88,7 +90,7 @@ public final class BridgeMain extends WebSocketServer {
                     seat.engine.queue.execute(seat.engine::replay);
                     return;
                 }
-                if (seats.size() >= 4) throw new IllegalStateException("The bridge already has four active sessions.");
+                makeRoomForSession();
                 Seat created = new Seat(socket);
                 seats.put(created.resumeToken, created);
                 connections.put(socket, created);
@@ -122,6 +124,15 @@ public final class BridgeMain extends WebSocketServer {
         if (seat.socket != null) connections.remove(seat.socket);
         seat.engine.close();
     }
+    private void makeRoomForSession() {
+        expire();
+        if (seats.size() < 4) return;
+        Seat oldest = seats.values().stream()
+                .filter(seat -> seat.socket == null || !seat.socket.isOpen())
+                .min(Comparator.comparingLong(seat -> seat.detachedAt)).orElse(null);
+        if (oldest == null) throw new IllegalStateException("Four players are currently connected. Disconnect a player before starting another session.");
+        remove(oldest);
+    }
     private synchronized void expire() {
         long now = System.currentTimeMillis();
         for (Seat seat : new ArrayList<>(seats.values()))
@@ -135,8 +146,14 @@ public final class BridgeMain extends WebSocketServer {
             if (!seat.ready) remove(seat);
         }
     }
-    @Override public void onError(WebSocket socket, Exception error) { System.err.println("Rules transport: " + error.getClass().getSimpleName()); }
-    @Override public void onStart() { System.out.println("Rules bridge listening on " + getAddress() + "; XMage " + engineHost + ":" + enginePort); }
+    @Override public void onError(WebSocket socket, Exception error) {
+        if (socket == null) started.completeExceptionally(error);
+        System.err.println("Rules transport: " + error.getClass().getSimpleName());
+    }
+    @Override public void onStart() {
+        started.complete(null);
+        System.out.println("Rules bridge listening on " + getAddress() + "; XMage " + engineHost + ":" + enginePort);
+    }
 
     public static void main(String[] args) throws Exception {
         String token = System.getenv("RULES_BRIDGE_TOKEN");
@@ -152,5 +169,12 @@ public final class BridgeMain extends WebSocketServer {
             try { server.stop(1000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
         }));
         server.start();
+        try { server.started.get(15, TimeUnit.SECONDS); }
+        catch (Exception error) {
+            System.err.println("Rules bridge could not start. Check the bind address and whether port " + port + " is already in use.");
+            // A failed WebSocket bind leaves the cleanup executor alive. Exit the process so a
+            // Windows service or shell reports failure instead of appearing to run a dead bridge.
+            System.exit(1);
+        }
     }
 }

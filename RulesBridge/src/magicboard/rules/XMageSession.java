@@ -218,11 +218,22 @@ final class XMageSession implements MageClient, AutoCloseable {
         String method = string(prompt, "method");
         boolean sent;
         switch (kind) {
+            case "special" -> {
+                if (!prompt.has("specialActionAvailable") || !prompt.get("specialActionAvailable").getAsBoolean())
+                    throw new IllegalArgumentException("No special action is available.");
+                sent = session.sendPlayerString(gameId, "special");
+            }
+            case "cancel" -> {
+                if (!prompt.has("canCancel") || !prompt.get("canCancel").getAsBoolean())
+                    throw new IllegalArgumentException("This choice cannot be cancelled.");
+                sent = method.equals("GAME_CHOOSE_CHOICE")
+                        ? session.sendPlayerString(gameId, null) : session.sendPlayerBoolean(gameId, false);
+            }
             case "boolean" -> {
                 if (method.equals("GAME_GET_MULTI_AMOUNT")) {
                     if (!Boolean.TRUE.equals(prompt.has("canCancel") && prompt.get("canCancel").getAsBoolean()) || value.getAsBoolean())
                         throw new IllegalArgumentException("This distribution cannot be cancelled.");
-                } else if (!Set.of("GAME_ASK", "GAME_SELECT", "GAME_PLAY_MANA", "GAME_PLAY_XMANA", "GAME_CHOOSE_PILE", "GAME_TARGET").contains(method))
+                } else if (!Set.of("GAME_ASK", "GAME_SELECT", "GAME_PLAY_MANA", "GAME_PLAY_XMANA", "GAME_CHOOSE_PILE", "GAME_TARGET", "GAME_CHOOSE_ABILITY").contains(method))
                     throw new IllegalArgumentException("This prompt does not accept a boolean.");
                 sent = session.sendPlayerBoolean(gameId, value.getAsBoolean());
             }
@@ -394,6 +405,7 @@ final class XMageSession implements MageClient, AutoCloseable {
             result.addProperty("min", message.getMin());
             result.addProperty("max", message.getMax());
             result.addProperty("required", message.isFlag());
+            PromptMetadata.apply(method, message, result);
             result.add("cards", message.getCardsView1() == null ? new JsonArray() : cards(message.getCardsView1().values()));
             result.add("secondPile", message.getCardsView2() == null ? new JsonArray() : cards(message.getCardsView2().values()));
             JsonArray targets = new JsonArray();
@@ -420,10 +432,11 @@ final class XMageSession implements MageClient, AutoCloseable {
             }
         } else if (data instanceof AbilityPickerView picker) {
             result.addProperty("message", picker.getMessage());
+            result.addProperty("canCancel", true); // Desktop AbilityPicker.popupMenuCanceled sends false.
             picker.getChoices().forEach((id, label) -> choices.add(object("id", id, "label", label)));
         }
         result.add("choices", choices);
-        result.addProperty("supported", true);
+        result.addProperty("supported", PromptMetadata.METHODS.contains(method));
         return result;
     }
 

@@ -11,19 +11,31 @@ public final class BridgeTwoPlayerSmoke {
         final StringBuilder fragments = new StringBuilder();
         WebSocket socket;
         JsonObject state;
+        JsonObject ready;
+        final CompletableFuture<Void> closed = new CompletableFuture<>();
+        public CompletionStage<?> onClose(WebSocket socket, int code, String reason) {
+            closed.complete(null);
+            return null;
+        }
         public CompletionStage<?> onText(WebSocket socket, CharSequence text, boolean last) {
             fragments.append(text);
             if (last) { events.add(JsonParser.parseString(fragments.toString()).getAsJsonObject()); fragments.setLength(0); }
             socket.request(1);
             return null;
         }
-        Client() throws Exception {
+        Client() throws Exception { this(null); }
+        Client(String resume) throws Exception {
             socket = HttpClient.newHttpClient().newWebSocketBuilder()
                     .header("Authorization", "Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))
-                    .buildAsync(URI.create("ws://127.0.0.1:17180"), this).join();
-            await("hello");
-            send("{\"type\":\"connect\",\"protocolVersion\":1}");
-            await("ready");
+                    .buildAsync(URI.create(System.getenv().getOrDefault("RULES_SMOKE_ADDRESS", "ws://127.0.0.1:17180")), this).join();
+            try {
+                await("hello");
+                JsonObject connect = new JsonObject();
+                connect.addProperty("type", "connect"); connect.addProperty("protocolVersion", 1);
+                if (resume != null) connect.addProperty("resumeToken", resume);
+                send(connect.toString());
+                ready = await("ready");
+            } catch (Exception | AssertionError error) { socket.abort(); throw error; }
         }
         void send(String text) { socket.sendText(text, true).join(); }
         void command(String type) { send("{\"type\":\"" + type + "\",\"requestId\":\"" + UUID.randomUUID() + "\"}"); }
