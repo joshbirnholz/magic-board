@@ -222,4 +222,44 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(printed.typeLine, "Artifact")
         XCTAssertEqual(printed.oracleText, "Printed text")
     }
+
+    func testEngineMainPhasesDoNotCreateCombat() {
+        XCTAssertEqual(RulesPhoneAdapter.phonePhase("PRECOMBAT_MAIN"), .main)
+        XCTAssertEqual(RulesPhoneAdapter.phonePhase("POSTCOMBAT_MAIN"), .ending)
+        XCTAssertEqual(RulesPhoneAdapter.phonePhase("COMBAT"), .combat)
+    }
+
+    func testHoldingPrioritySuppressesAutomaticPass() throws {
+        let prompt = try JSONDecoder().decode(RulesPrompt.self, from: Data(#"{"id":"priority","method":"GAME_SELECT","revision":1,"message":"Play instants and activated abilities","supported":true,"choices":[]}"#.utf8))
+        let state = try JSONDecoder().decode(RulesSnapshot.self, from: Data(#"{"gameId":"game","playerId":"me","revision":1,"turn":1,"hand":[],"stack":[],"players":[],"playableIds":[]}"#.utf8))
+        XCTAssertTrue(RulesPhoneAdapter.shouldAutoPass(prompt, snapshot: state))
+        XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(prompt, snapshot: state, holdingPriority: true))
+    }
+
+    func testOpponentsCombatKeepsAttackersAndUntappedBlockers() async throws {
+        let me = UUID().uuidString, opponent = UUID().uuidString
+        let attacker = UUID(), blocker = UUID()
+        func creature(_ id: UUID) -> [String: Any] {
+            ["id": id.uuidString, "name": "Silvercoat Lion", "typeLine": "Creature — Cat", "power": "2", "toughness": "2",
+             "faceDown": false, "transformed": false, "tapped": false, "counters": []]
+        }
+        func player(_ id: String, cards: [[String: Any]]) -> [String: Any] {
+            ["id": id, "name": id, "life": 20, "handCount": 0, "libraryCount": 0, "battlefield": cards, "graveyard": [], "exile": []]
+        }
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 4, "turn": 4,
+                                   "phase": "COMBAT", "step": "DECLARE_BLOCKERS", "activePlayerId": opponent,
+                                   "hand": [], "stack": [], "playableIds": [],
+                                   "players": [player(me, cards: [creature(blocker)]), player(opponent, cards: [creature(attacker)])],
+                                   "combat": [["defenderId": me, "attackers": [attacker.uuidString], "blockers": []]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)), refreshArtwork: false)
+        let game = adapter.presentation
+        XCTAssertEqual(game.attackingPlayer, .b)
+        XCTAssertEqual(game.combat?.attackers, [attacker])
+        XCTAssertEqual(game.cards[blocker]?.controllerIdentifier.value, .a)
+        XCTAssertEqual(game.cards[blocker]?.isTapped.value, false)
+        XCTAssertEqual(game.cards[blocker]?.isPhoneCreature, true)
+        XCTAssertNil(game.attachments[blocker])
+    }
+
 }

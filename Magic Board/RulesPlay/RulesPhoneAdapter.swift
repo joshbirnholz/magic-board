@@ -33,15 +33,15 @@ final class RulesPhoneAdapter {
                 catch { self.phone?.error = "Unable to display the rules game: \(error.localizedDescription)" }
             }
         }.store(in: &subscriptions)
-        Publishers.CombineLatest3(engine.$status, engine.$prompt, engine.$pendingRequest)
-            .sink { [weak self] status, prompt, pending in
+        Publishers.CombineLatest4(engine.$status, engine.$prompt, engine.$pendingRequest, engine.$holdingPriority)
+            .sink { [weak self] status, prompt, pending, holding in
                 guard let self else { return }
-                self.updateStatus(status, prompt: prompt, pending: pending)
+                self.updateStatus(status, prompt: prompt, pending: pending, holdingPriority: holding)
             }.store(in: &subscriptions)
         engine.$error.compactMap { $0 }.sink { [weak phone] in phone?.error = $0 }.store(in: &subscriptions)
     }
 
-    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?) {
+    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool) {
         let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
         // Arena: while choosing targets, the legal targets glow instead of the playable cards.
         presentation.rulesPlayable = Self.highlighted(snapshot: engine.snapshot, prompt: pending == nil ? prompt : nil)
@@ -49,7 +49,7 @@ final class RulesPhoneAdapter {
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
                             primaryLabel: label, primaryEnabled: enabled)
         if let prompt, pending == nil, prompt.id != autoPassedPromptID,
-           Self.shouldAutoPass(prompt, snapshot: engine.snapshot), engine.canAnswer {
+           Self.shouldAutoPass(prompt, snapshot: engine.snapshot, holdingPriority: holdingPriority), engine.canAnswer {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.boolean(true)) }
         }
@@ -98,8 +98,8 @@ final class RulesPhoneAdapter {
     /// "Play instants and activated abilities" (each step of the opponent's turn, responses to their
     /// spells…), so pass those automatically when the engine reports nothing playable. Your own main
     /// phases ("Play spells…") and attack/block declarations always wait for you.
-    static func shouldAutoPass(_ prompt: RulesPrompt, snapshot: RulesSnapshot?) -> Bool {
-        guard prompt.method == "GAME_SELECT", prompt.specialActionAvailable != true,
+    static func shouldAutoPass(_ prompt: RulesPrompt, snapshot: RulesSnapshot?, holdingPriority: Bool = false) -> Bool {
+        guard !holdingPriority, prompt.method == "GAME_SELECT", prompt.specialActionAvailable != true,
               let snapshot, snapshot.playableIds.isEmpty else { return false }
         let message = RulesText.plain(prompt.message ?? "").lowercased()
         return message.contains("instants") && !message.contains("select")
@@ -277,7 +277,7 @@ final class RulesPhoneAdapter {
         }
         let active = snapshot.activePlayerId.map(seat) ?? snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
         let enginePhase = snapshot.phase ?? ""
-        let phase: PhoneGame.Turn.Phase = enginePhase.contains("COMBAT") ? .combat : enginePhase.contains("POST") ? .ending : .main
+        let phase = Self.phonePhase(enginePhase)
         game.turn = .init(player: active, phase: phase, number: snapshot.turn)
         if phase == .combat {
             var combat = PhoneGame.Combat(player: active)
@@ -309,6 +309,14 @@ final class RulesPhoneAdapter {
                     try? await self.project(snapshot, refreshArtwork: false)
                 }
             }
+        }
+    }
+
+    static func phonePhase(_ enginePhase: String) -> PhoneGame.Turn.Phase {
+        switch enginePhase {
+        case "COMBAT": return .combat
+        case "POSTCOMBAT_MAIN", "ENDING": return .ending
+        default: return .main
         }
     }
 
