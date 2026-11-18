@@ -88,7 +88,7 @@ public final class BridgeMain extends WebSocketServer {
                     seat.engine.queue.execute(seat.engine::replay);
                     return;
                 }
-                if (seats.size() >= 4) throw new IllegalStateException("The bridge already has four active sessions.");
+                makeRoomForSession();
                 Seat created = new Seat(socket);
                 seats.put(created.resumeToken, created);
                 connections.put(socket, created);
@@ -121,6 +121,15 @@ public final class BridgeMain extends WebSocketServer {
         seats.remove(seat.resumeToken);
         if (seat.socket != null) connections.remove(seat.socket);
         seat.engine.close();
+    }
+    private void makeRoomForSession() {
+        expire();
+        if (seats.size() < 4) return;
+        Seat oldest = seats.values().stream()
+                .filter(seat -> seat.socket == null || !seat.socket.isOpen())
+                .min(Comparator.comparingLong(seat -> seat.detachedAt)).orElse(null);
+        if (oldest == null) throw new IllegalStateException("Four players are currently connected. Disconnect a player before starting another session.");
+        remove(oldest);
     }
     private synchronized void expire() {
         long now = System.currentTimeMillis();
