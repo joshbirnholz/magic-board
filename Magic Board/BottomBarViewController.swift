@@ -99,6 +99,9 @@ class BottomBarViewController: UIViewController {
 	@IBOutlet weak var handContainerView: HandViewControllerContainerView!
 	
   @IBOutlet weak var untapButton: UIButton!
+  /// Rules mode: the main button's Arena pill width and gradient (see configureRulesMainButton).
+  private var rulesMainWidth: NSLayoutConstraint?
+  private var rulesMainGradient: CAGradientLayer?
   /// The storyboard's untap symbol, restored after combat.
   var phoneUntapImage: UIImage?
   
@@ -662,8 +665,12 @@ extension BottomBarViewController {
         }
         let status = phase == .opponentsCombat || phase == .opponentsTurn
         let rulesSession = AppDelegate.shared.phoneSession.flatMap { $0.mode == .rules ? $0 : nil }
-        configureUntapButton(label: rulesSession?.rulesPrimaryLabel ?? label, height: controlHeight,
-                             status: rulesSession == nil ? status : rulesSession?.rulesPrimaryEnabled != true)
+        if let rulesSession, isLocal {
+            configureRulesMainButton(rulesSession.rulesPrimaryLabel, enabled: rulesSession.rulesPrimaryEnabled, height: controlHeight)
+        } else {
+            configureUntapButton(label: rulesSession?.rulesPrimaryLabel ?? label, height: controlHeight,
+                                 status: rulesSession == nil ? status : rulesSession?.rulesPrimaryEnabled != true)
+        }
         untapButton.isEnabled = isLocal && (rulesSession.map { $0.connected && $0.rulesPrimaryEnabled } ?? !status)
         untapButton.accessibilityIdentifier = isLocal ? "phone-untap-local" : "phone-untap-opponent"
         #if !BOARD_CONNECT
@@ -754,6 +761,89 @@ extension BottomBarViewController {
     /// in Beleren (Arena), and before the game it reads "Start Game"; otherwise it shows its
     /// untap symbol. `label` is the text to show (lines split by "\n"), nil for the symbol.
     /// A `status` (the opponent's turn or combat) is gray and not tappable.
+    /// Rules mode: Arena's main button. A wide pill with a Beleren title and, on a second line, a
+    /// small caption ("Next / To Combat"). Orange to act, blue for "No Attacks/Blocks", red to
+    /// confirm attackers or blockers; "Opponent's Turn" is plain text with no button behind it.
+    func configureRulesMainButton(_ label: String, enabled: Bool, height: CGFloat) {
+        untapButton.setImage(nil, for: .normal)
+        let lines = label.components(separatedBy: "\n")
+        let title = lines.first ?? label
+        let caption = lines.count > 1 ? lines[1] : nil
+        let waiting = !enabled
+        let titleSize = max(10, height * 0.34)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.lineHeightMultiple = 0.85
+        let text = NSMutableAttributedString(string: title, attributes: [
+            .font: UIFont(name: "Beleren2016-Bold", size: titleSize) ?? .boldSystemFont(ofSize: titleSize),
+            .foregroundColor: UIColor.white, .paragraphStyle: paragraph,
+            .shadow: { let s = NSShadow(); s.shadowColor = UIColor.black.withAlphaComponent(0.55); s.shadowOffset = CGSize(width: 0, height: 1); s.shadowBlurRadius = 1.5; return s }()
+        ])
+        if let caption {
+            text.append(NSAttributedString(string: "\n" + caption, attributes: [
+                .font: UIFont.systemFont(ofSize: max(8, height * 0.19), weight: .semibold),
+                .foregroundColor: UIColor.white.withAlphaComponent(0.85), .paragraphStyle: paragraph
+            ]))
+        }
+        untapButton.setAttributedTitle(text, for: .normal)
+        untapButton.setAttributedTitle(text, for: .disabled)
+        untapButton.titleLabel?.numberOfLines = 2
+        untapButton.titleLabel?.adjustsFontSizeToFitWidth = true
+        untapButton.titleLabel?.minimumScaleFactor = 0.5
+        untapButton.titleLabel?.textAlignment = .center
+        untapButton.accessibilityLabel = label.replacingOccurrences(of: "\n", with: " ")
+        untapButton.accessibilityValue = nil
+        // Wider than Phone Play's square button, as Arena's pill.
+        if rulesMainWidth == nil {
+            // Replace the storyboard's width/aspect constraints (deactivated, not re-prioritised:
+            // changing an installed required constraint's priority raises an exception).
+            let owners: [UIView] = [untapButton as UIView] + [untapButton.superview].compactMap { $0 }
+            for owner in owners {
+                for constraint in owner.constraints where (constraint.firstItem as? UIView) === untapButton && constraint.firstAttribute == .width {
+                    constraint.isActive = false
+                }
+            }
+            let width = untapButton.widthAnchor.constraint(equalTo: untapButton.heightAnchor, multiplier: 2.6)
+            width.isActive = true
+            rulesMainWidth = width
+        }
+        let colors: [UIColor]
+        if waiting {
+            colors = []
+        } else if title.hasPrefix("No ") {
+            colors = [UIColor(red: 0.5, green: 0.62, blue: 1, alpha: 1), UIColor(red: 0.27, green: 0.35, blue: 0.85, alpha: 1)]
+        } else if title.hasSuffix("Attacker") || title.hasSuffix("Attackers") || title.hasSuffix("Blocker") || title.hasSuffix("Blockers") {
+            colors = [UIColor(red: 1, green: 0.55, blue: 0.5, alpha: 1), UIColor(red: 0.88, green: 0.3, blue: 0.3, alpha: 1)]
+        } else {
+            colors = [UIColor(red: 1, green: 0.72, blue: 0.45, alpha: 1), UIColor(red: 0.92, green: 0.45, blue: 0.2, alpha: 1)]
+        }
+        untapButton.backgroundColor = .clear
+        let gradient = rulesMainGradient ?? {
+            let layer = CAGradientLayer()
+            untapButton.layer.insertSublayer(layer, at: 0)
+            rulesMainGradient = layer
+            return layer
+        }()
+        gradient.colors = colors.map(\.cgColor)
+        gradient.isHidden = colors.isEmpty
+        gradient.frame = untapButton.bounds
+        gradient.cornerRadius = untapButton.bounds.height / 2
+        gradient.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
+        gradient.borderWidth = colors.isEmpty ? 0 : 1
+        untapButton.layer.cornerRadius = untapButton.bounds.height / 2
+        untapButton.layer.shadowColor = (colors.last ?? .clear).cgColor
+        untapButton.layer.shadowRadius = 7
+        untapButton.layer.shadowOpacity = colors.isEmpty ? 0 : 0.7
+        untapButton.layer.shadowOffset = .zero
+        // Keep the gradient matched to the pill after layout.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let gradient = self.rulesMainGradient else { return }
+            gradient.frame = self.untapButton.bounds
+            gradient.cornerRadius = self.untapButton.bounds.height / 2
+            self.untapButton.layer.cornerRadius = self.untapButton.bounds.height / 2
+        }
+    }
+
     func configureUntapButton(label: String?, height: CGFloat, status: Bool = false) {
         if phoneUntapImage == nil { phoneUntapImage = untapButton.image(for: .normal) }
         let combat = label == "End\nCombat"

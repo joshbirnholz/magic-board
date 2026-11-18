@@ -76,6 +76,9 @@ class BoardViewController: UIViewController {
   private var rulesPromptHost: UIViewController?
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
+  /// Arena's phase row, second button and fast-forward pill, just above the main button.
+  private var rulesActionHost: UIViewController?
+  private var rulesActionConstraints: [NSLayoutConstraint] = []
   private var rulesPromptBottom: NSLayoutConstraint?
   private var phoneStackResolveButton: UIButton?
   private var phoneStackCollapsed = false
@@ -2574,6 +2577,14 @@ extension BoardViewController {
         ])
         modal.didMove(toParent: self)
         rulesModalHost = modal
+        let actions = UIHostingController(rootView: RulesActionStack(session: adapter.engine, adapter: adapter))
+        actions.view.backgroundColor = .clear
+        if #available(iOS 16.0, *) { actions.sizingOptions = .intrinsicContentSize }
+        addChild(actions)
+        view.addSubview(actions.view)
+        actions.view.translatesAutoresizingMaskIntoConstraints = false
+        actions.didMove(toParent: self)
+        rulesActionHost = actions
     }
 
     private func showRulesToast(_ message: String) {
@@ -2613,6 +2624,18 @@ extension BoardViewController {
             if rulesPromptBottom?.constant != constant { rulesPromptBottom?.constant = constant }
         }
         view.bringSubviewToFront(host)
+        // Arena's controls sit right above the main (phase) button.
+        if let actions = rulesActionHost?.view, actions.superview === view, let button = localPhoneBar?.untapButton, button.window != nil {
+            if rulesActionConstraints.isEmpty || rulesActionConstraints.first?.secondItem as? UIView !== button {
+                NSLayoutConstraint.deactivate(rulesActionConstraints)
+                rulesActionConstraints = [
+                    actions.bottomAnchor.constraint(equalTo: button.topAnchor, constant: -6),
+                    actions.trailingAnchor.constraint(equalTo: button.trailingAnchor)
+                ]
+                NSLayoutConstraint.activate(rulesActionConstraints)
+            }
+            view.bringSubviewToFront(actions)
+        }
         if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
     }
 

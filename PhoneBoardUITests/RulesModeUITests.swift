@@ -608,8 +608,8 @@ final class RulesModeUITests: XCTestCase {
                 if text.localizedCaseInsensitiveContains("select attackers"), attackedTurn != state {
                     attackedTurn = state
                     // Arena's "All Attack" declares every creature that can attack.
-                    if app.buttons["rules-all-attack"].exists {
-                        app.buttons["rules-all-attack"].tap(); allAttacks += 1
+                    if next.label.hasPrefix("All Attack") {
+                        next.tap(); allAttacks += 1
                         Thread.sleep(forTimeInterval: 2.0)
                     } else {
                         for creature in app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex where creature.frame.midY > app.frame.midY {
