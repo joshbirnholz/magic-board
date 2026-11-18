@@ -11,7 +11,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - Two-human table creation/discovery/joining, distinct engine seats, and private opening hands.
 - Two human seats playing creatures, declaring attackers and assigning a legal blocker through real engine prompts.
 - A full game against AI completed through the shared Phone Play interface in the iOS simulator, using the corrected creature deck.
-- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. All 92 unit tests pass (68 normal Phone Play + 24 Rules), including automatic mana and combat-defender decoding regressions.
+- Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. All 93 unit tests pass (68 normal Phone Play + 25 Rules), including automatic mana and combat-defender decoding regressions.
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
 - Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase, end step and our next turn, stopping and clearing each skip flag, and cancelling auto-pass. Resolve-stack also passed with a real creature spell on the stack, returning to priority with an empty stack and cleared skip flag.

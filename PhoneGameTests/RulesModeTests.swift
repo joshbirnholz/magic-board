@@ -4,6 +4,21 @@ import CardService
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testRejectedConnectionKeyShowsTheServerReason() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_RECOVERY_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS to the local fixture")
+        }
+        let engine = RulesGameSession()
+        let previousKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = previousKey }
+        engine.connect(address: address, key: "deliberately-invalid-test-key", resume: false)
+        let deadline = Date().addingTimeInterval(8)
+        while engine.status != .disconnected && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(engine.status, .disconnected)
+        XCTAssertTrue(engine.error?.localizedCaseInsensitiveContains("key") == true, engine.error ?? "No rejection message")
+        XCTAssertFalse(engine.hasRetainedSession)
+    }
+
     func testTransientCardInformationRemainsVisibleAndDismissedReplaysStayClosed() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_RECOVERY_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_RECOVERY_FIXTURE_ADDRESS to the local fixture")

@@ -112,7 +112,17 @@ final class RulesGameSession: ObservableObject {
                 }
             } catch {
                 guard !Task.isCancelled, let self, self.generation == generation else { return }
-                self.fail("Connection lost. \(error.localizedDescription)")
+                let reason = socket.closeReason.flatMap { String(data: $0, encoding: .utf8) }?
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if let reason, !reason.isEmpty {
+                    if socket.closeCode == .policyViolation && reason.localizedCaseInsensitiveContains("key") {
+                        self.fail("The rules server rejected the connection key. Check that it matches the key on your PC.")
+                    } else {
+                        self.fail("The rules server closed the connection: \(reason)")
+                    }
+                } else {
+                    self.fail("Connection lost. \(error.localizedDescription)")
+                }
             }
         }
     }

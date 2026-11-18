@@ -15,7 +15,7 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 
 A playable prototype exists. A complete AI game now finishes through the actual Phone Play interface with the intended white creature deck, rather than just through a Java driver.
 
-- **All 92 unit tests pass** (68 Phone Play + 24 Rules), including the latest Phone Play merges, basic-land payment guard and combat-defender decoding regression.
+- **All 93 unit tests pass** (68 Phone Play + 25 Rules), including the latest Phone Play merges, basic-land payment guard and combat-defender decoding regression.
 - Real engine AI lifecycle: land play, creature casting/resolution, mana, stack ownership, priority, game-over and replay of the final result. The smoke test rejects server-error endings.
 - Real two-human seats: create/discover/join/start, separate private seven-card hands, creature play, attackers and legal blocker assignment (`CombatSmoke`). This is protocol/engine verification, not two physical phones.
 - Phone UI full game against AI passed with the corrected default deck (`/private/tmp/magicboard-rules-blocking-integration.log`, xcresult timestamp 22:07:33). The AI offered no block in that run, so it does not establish blocker-gesture coverage.
@@ -36,11 +36,12 @@ The deterministic phone checks use `RulesBridge/tests/BlockPromptFixture.java` a
 - **`98f46cc`: confirmed WebSocket deadlock fixed.** A simultaneous `leave` and socket abort inverted the BridgeMain and WebSocket monitors. `onClose` now queues synchronized detach work instead of waiting inside the socket callback. Twelve race cycles, capacity recovery, two-human privacy and graceful shutdown passed. Thread evidence: `/private/tmp/rules-probe-bridge-threads.txt`.
 - `a3b31b1`: Windows `start-server.ps1` helper includes the correct server directory, 1 GB heap, headless mode and Java 17 remoting flag. The Windows host has since been set up and verified by Claude; see the current-state section below.
 
-## Current state (Codex integration, 3:34 AM)
+## Current state (Codex integration, 3:51 AM)
 
 Read the coordination file's "Now" and "Ready to merge" first.
 - Revealed/looked-at views now flow from the seat-filtered engine snapshot to optional `revealed`/`lookedAt` card groups. `session.cardInformation` retains the transient groups until `dismissCardInformation(id)`; older replays stay dismissed, a later reveal of the same cards reopens, and fresh/expired sessions clear them. All 92 units pass, including actual WebSocket retention and recovery tests.
 - Two real seats verify private Gitaxian Probe hand inspection goes only to its permitted seat, while public Duress hand reveal goes to both, with the actual target hand and receipt-confirmed replay. `PrivateLookSmoke` reproduces these; set `RULES_LOOK_PUBLIC=1` for the public variant. Printing-name fallback for lightweight card views passes `CardPrintingsTest`.
+- Server WebSocket close reasons now reach the user, including a rejected-key explanation; the real WebSocket wrong-key fixture unit passes. The existing normal Phone Play tapped-card/hand-drag UI regression also passes (22 s), after merging Claude's Rules-only main-button pass menu `7427ca1`.
 - Claude has been asked to add the information-window UI; no board/prompt UI files were changed by Codex for this feature.
 - **Merged `rules-mode-claude` through `20d1323`** into `rules-mode` and verified all 87 units. It adds: two-player UI check with `SecondSeatBot`; Arena-style automatic mana payment with basic lands plus a menu toggle; a fix for auto-pass/auto-pay often not firing (stale `canAnswer` inside the @Published sink); `RULES_UI_TEST_KEY`; an imported-deck UI test; a clear undersized-deck message; card names on their own line in prompt text; tapping an outlined hand card answers choose-from-hand prompts.
 - **Windows PC host is live** (Josh's home server; touch it as little as possible): `compc@100.96.101.108` over Tailscale, key-only SSH, PowerShell. Folder `C:\Users\compc\MagicBoardRules` (XMage bound to 127.0.0.1, bridge on `100.96.101.108:17180`, key in `connection-key.txt`, `pc-run.ps1` starts both via WMI, logs `server.log`/`bridge.log`, Startup-folder entry starts them at login). Java is `C:\Users\compc\.jdks\jbr-21.0.11\bin\java.exe`. To redeploy a newer bridge: copy a fresh `package.sh` zip, stop only the bridge's java process (check its command line), unzip over `MagicBoard-RulesBridge`, start it again.
@@ -59,7 +60,7 @@ Read the coordination file's "Now" and "Ready to merge" first.
 
 - Stock XMage release `xmage_1.4.63V2`, runtime `/private/tmp/xmage-rules-runtime/xmage`.
 - Server PID **45605**, port **17171**, `-Xmx1024m`; log `/private/tmp/magicboard-rules-xmage-server.log`. It currently binds all interfaces; keep that remoting port local/private.
-- Shared bridge PID **74663**, `127.0.0.1:17180`, deployed through `94f2753`; token `rules-local-verification-key`; log `/private/tmp/magicboard-rules-bridge.log`.
+- Shared bridge PID **21254**, `127.0.0.1:17180`, deployed through `ff8132a`; token `rules-local-verification-key`; log `/private/tmp/magicboard-rules-bridge.log`.
 - Temporary Java tests use port **17182** and always stop that isolated bridge. The phone fixture used **17183** and has been stopped. Simulator connection preferences may still point to 17183: use 17180 for the real bridge.
 - DerivedData `/private/tmp/magicboard-rules-dd`; packages `/private/tmp/magicboard-rules-packages`.
 - For Keychain tests use **`CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=-`**. Unsigned test builds could not persist credentials; ad-hoc signing made both recovery and explicit cleanup pass. Do not replace Keychain storage with UserDefaults to work around that test configuration.
