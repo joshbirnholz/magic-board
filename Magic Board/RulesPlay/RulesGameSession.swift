@@ -97,7 +97,13 @@ final class RulesGameSession: ObservableObject {
                     case .data(let bytes): data = bytes
                     @unknown default: continue
                     }
-                    try await self.receive(data, socket: socket)
+                    do {
+                        try await self.receive(data, socket: socket)
+                    } catch let error as DecodingError {
+                        // One unreadable update shouldn't end the game: report which field, then ask
+                        // the bridge for the current state again.
+                        self.reportUnreadable(error, data: data)
+                    }
                 }
             } catch {
                 guard !Task.isCancelled, let self, self.generation == generation else { return }
@@ -129,6 +135,23 @@ final class RulesGameSession: ObservableObject {
         result = nil
         holdingPriority = false
         autoOrderTriggers = true
+    }
+
+    private var unreadableReports = 0
+
+    private func reportUnreadable(_ error: DecodingError, data: Data) {
+        let type = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["type"] as? String ?? "message"
+        let detail: String
+        switch error {
+        case .keyNotFound(let key, let context): detail = "missing \((context.codingPath + [key]).map(\.stringValue).joined(separator: "."))"
+        case .valueNotFound(_, let context), .typeMismatch(_, let context), .dataCorrupted(let context):
+            detail = "bad value at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
+        @unknown default: detail = "unknown"
+        }
+        print("Rules: couldn't read a \(type) (\(detail))")
+        unreadableReports += 1
+        if unreadableReports <= 3 { self.error = "Couldn't read a game update (\(type): \(detail)). Refreshing." }
+        Task { await submit(RulesCommand(type: "resync", requestId: UUID().uuidString)) }
     }
 
     func startAiGame(deck: RulesDeck? = nil, format: String = "Limited") async {

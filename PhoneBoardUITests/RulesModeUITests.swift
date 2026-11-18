@@ -510,7 +510,7 @@ final class RulesModeUITests: XCTestCase {
         let next = app.buttons["phone-untap-local"]
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         let fan = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
-        var played = 0, stuck = 0, lastState = "", attackedTurn = ""
+        var played = 0, stuck = 0, lastState = "", attackedTurn = "", activatedTurn = "", allAttacks = 0, activations = 0
         var seen: [String] = []
         let deadline = Date().addingTimeInterval(10 * 60)
         while Date() < deadline {
@@ -523,6 +523,9 @@ final class RulesModeUITests: XCTestCase {
             XCTAssertFalse(app.staticTexts["This choice is not supported yet."].exists, "Unsupported prompt: \(message.exists ? message.label : "")")
             let text = message.exists ? message.label : ""
             if !text.isEmpty, seen.last != text { seen.append(text) }
+            let toast = app.staticTexts["rules-toast"]
+            if toast.exists, seen.last != "toast: " + toast.label { seen.append("toast: " + toast.label) }
+            XCTAssertFalse(toast.exists && toast.label.hasPrefix("Couldn't read"), "Unreadable update: \(toast.label)")
             if !requiredPrompts.isEmpty, played >= 4,
                requiredPrompts.allSatisfy({ required in seen.contains { $0.localizedCaseInsensitiveContains(required) } }),
                text.hasPrefix("Play ") { break }
@@ -565,9 +568,24 @@ final class RulesModeUITests: XCTestCase {
             if next.exists, next.isEnabled {
                 if text.localizedCaseInsensitiveContains("select attackers"), attackedTurn != state {
                     attackedTurn = state
-                    for creature in app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex where creature.frame.midY > app.frame.midY {
-                        creature.tap(); Thread.sleep(forTimeInterval: 0.4)
+                    // Arena's "All Attack" declares every creature that can attack.
+                    if app.buttons["rules-all-attack"].exists {
+                        app.buttons["rules-all-attack"].tap(); allAttacks += 1
+                        Thread.sleep(forTimeInterval: 2.0)
+                    } else {
+                        for creature in app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex where creature.frame.midY > app.frame.midY {
+                            creature.tap(); Thread.sleep(forTimeInterval: 0.4)
+                        }
                     }
+                } else if text.localizedCaseInsensitiveContains("Play spells"), activatedTurn != state,
+                          !hand.allElementsBoundByIndex.contains(where: { ($0.value as? String) == "Playable" }),
+                          app.descendants(matching: .any).matching(identifier: "phone-combat-glow").matching(NSPredicate(format: "value == 'Playable'")).firstMatch.exists {
+                    // Nothing to play from hand: use a permanent's ability (equip, loyalty…) as a player would.
+                    activatedTurn = state
+                    let glow = app.descendants(matching: .any).matching(identifier: "phone-combat-glow").matching(NSPredicate(format: "value == 'Playable'")).firstMatch
+                    app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: glow.frame.midX, dy: glow.frame.midY)).tap()
+                    activations += 1
+                    Thread.sleep(forTimeInterval: 1.0); continue
                 } else if text.localizedCaseInsensitiveContains("Play spells"),
                           let playable = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
                     if fan.value as? String != "Expanded" { playable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap(); Thread.sleep(forTimeInterval: 0.6) }
@@ -583,7 +601,7 @@ final class RulesModeUITests: XCTestCase {
             }
             Thread.sleep(forTimeInterval: 0.6)
         }
-        print("Imported-deck prompts seen: \(seen)")
+        print("Imported-deck prompts seen: \(seen); All Attack used \(allAttacks)×, permanents activated \(activations)×")
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Rules mode — imported deck game"
         screenshot.lifetime = .keepAlways
