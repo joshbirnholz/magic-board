@@ -311,7 +311,12 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         }
                     }
                 }
-                if (System.getenv("RULES_SMOKE_SPECIAL_ACTION") != null && method.equals("GAME_SELECT")
+                if (System.getenv("RULES_SMOKE_CANCEL_CHOICE") != null && cancelledCard == null && cancelCandidate != null
+                        && Set.of("GAME_CHOOSE_ABILITY", "GAME_CHOOSE_CHOICE").contains(method)
+                        && nextPrompt.has("canCancel") && nextPrompt.get("canCancel").getAsBoolean()) {
+                    cancelledCard = cancelCandidate;
+                    answer.addProperty("kind", "cancel"); answer.addProperty("value", true);
+                } else if (System.getenv("RULES_SMOKE_SPECIAL_ACTION") != null && method.equals("GAME_SELECT")
                         && !observedPrompts.contains("MORPH_REVEALED") && nextPrompt.has("specialActionAvailable")
                         && nextPrompt.get("specialActionAvailable").getAsBoolean()
                         && nextPrompt.has("specialActionLabel") && nextPrompt.get("specialActionLabel").getAsString().equals("Special action")) {
