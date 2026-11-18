@@ -473,8 +473,10 @@ struct PhoneHandAbilityTileStack: View {
     var body: some View {
         let icons = faceDown ? [] : PhoneHandAbilityTiles.icons(for: card)
         if !icons.isEmpty {
-            let size = height * 63 / 88 * 0.2
-            VStack(spacing: size * 0.08) {
+            // Arena: square tiles about a sixth of the card's width, stacked almost touching down its
+            // left edge, hanging a little under half off the frame, starting just below the art box's top.
+            let size = height * 63 / 88 / 6
+            VStack(spacing: size * 0.05) {
                 ForEach(Array(icons.enumerated()), id: \.offset) { _, icon in
                     // Arena's hand tile: a dark rounded square shading from charcoal to black, a thin
                     // rim lit from above, and the ability's symbol in a pale-to-deep gold gradient.
@@ -496,7 +498,7 @@ struct PhoneHandAbilityTileStack: View {
                     .shadow(color: .black.opacity(0.6), radius: 1.5, y: 1)
                 }
             }
-            .offset(x: -size * 0.4, y: height * 0.16)
+            .offset(x: -size * 0.4, y: height * 0.145)
             .accessibilityHidden(true)
         }
     }
