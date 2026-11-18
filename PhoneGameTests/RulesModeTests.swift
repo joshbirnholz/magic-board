@@ -251,6 +251,17 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(RulesText.tokenName(card))
     }
 
+    func testOptionalBoardChoiceIsFinishedWithTheMainButton() throws {
+        func prompt(required: Bool, message: String = "Choose a creature you control") throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": "GAME_TARGET", "revision": 1, "supported": true, "choices": [], "required": required,
+                "message": message, "targets": [UUID().uuidString.lowercased()]] as [String: Any]))
+        }
+        XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: false), snapshot: nil, pending: false).0, "Done")
+        XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: false), snapshot: nil, pending: false).1, true)
+        XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
+    }
+
     func testRevealedCardsSayWhyFromTheGameLog() throws {
         let group = try JSONDecoder().decode(RulesSnapshot.CardGroup.self, from: Data(#"{"name":"Revealed cards","cards":[{"id":"f","name":"Forest","faceDown":false,"transformed":false,"counters":[]}]}"#.utf8))
         let log = ["Computer casts Summon: Fenrir", "Computer reveals Forest (Summon: Fenrir)", "Computer draws a card"]

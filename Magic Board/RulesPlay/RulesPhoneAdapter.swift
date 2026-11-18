@@ -131,6 +131,9 @@ final class RulesPhoneAdapter {
             if let snapshot, let active = snapshot.activePlayerId, active != snapshot.playerId { return ("Opponent's Turn", false) }
             return ("Waiting", false)
         }
+        // Arena: an optional choice on the board ("Choose up to…", "you may…") is finished with the
+        // main button, not a button floating over the cards.
+        if prompt.method == "GAME_TARGET", prompt.required != true, !prompt.isLondonBottom { return ("Done", true) }
         guard prompt.method == "GAME_SELECT" else { return ("Choose", false) }
         let message = RulesText.plain(prompt.message ?? "").lowercased()
         let combat = snapshot?.combat ?? []
@@ -174,6 +177,10 @@ final class RulesPhoneAdapter {
     /// The main button: "All Attack" declares every available attacker (then shows "N Attackers"
     /// to confirm); otherwise it answers the selection (pass, confirm attackers or blockers).
     func pressMain() async {
+        if let prompt = engine.prompt, prompt.method == "GAME_TARGET", prompt.required != true, !prompt.isLondonBottom {
+            await engine.answer(.boolean(false)) // Done: no (more) choices
+            return
+        }
         guard engine.prompt?.method == "GAME_SELECT" else { phone?.error = "Complete the current rules choice first."; return }
         let (label, _) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil)
         if label == "All Attack" { await selectInTurn(Self.attackers(engine.snapshot).available); return }

@@ -194,15 +194,13 @@ struct RulesPromptBar: View {
                     .accessibilityElement()
                     .accessibilityLabel(prompt.plainMessage)
                     .accessibilityIdentifier("rules-prompt-message")
-                if !players.isEmpty || prompt.required != true {
+                // Done for an optional choice is the main (phase) button, as on Arena.
+                if !players.isEmpty {
                     strip {
-                        if !players.isEmpty {
-                            HStack { ForEach(players) { player in
-                                answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
-                                    .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
-                            } }
-                        }
-                        if prompt.required != true { answer("Done", .boolean(false), primary: false) }
+                        HStack { ForEach(players) { player in
+                            answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
+                                .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
+                        } }
                     }
                 }
             }
