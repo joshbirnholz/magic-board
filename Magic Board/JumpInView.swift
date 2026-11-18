@@ -72,11 +72,11 @@ struct JumpInView: View {
   var body: some View {
     Group {
       if let supportedSets {
-        List(supportedSets, id: \.self) { setCode in
+        JumpInSetGrid(sets: supportedSets) { setCode in
           NavigationLink {
             JumpInChoosePacketView(playerIdentifier: playerIdentifier, setCode: setCode, pack1Name: nil, dismiss: dismiss)
           } label: {
-            Text(setCode == "ALL" ? "All Sets" : setCode)
+            JumpInSetTile(code: setCode)
           }
         }
       } else if let errorMessage { Text(errorMessage).padding() }

@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5DA0F0022F10000000A1B2C3 /* JumpInSetGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA0F0012F10000000A1B2C3 /* JumpInSetGrid.swift */; };
+		5DA0F0032F10000000A1B2C3 /* JumpInSetGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA0F0012F10000000A1B2C3 /* JumpInSetGrid.swift */; };
+		5DA0F0072F10000000A1B2C3 /* SwiftDraw in Frameworks */ = {isa = PBXBuildFile; productRef = 5DA0F0052F10000000A1B2C3 /* SwiftDraw */; };
+		5DA0F0082F10000000A1B2C3 /* SwiftDraw in Frameworks */ = {isa = PBXBuildFile; productRef = 5DA0F0062F10000000A1B2C3 /* SwiftDraw */; };
 		5B1E7C2A2F00000400A1B2C3 /* MagicBoardResources in Frameworks */ = {isa = PBXBuildFile; productRef = 5B1E7C2A2F00000300A1B2C3 /* MagicBoardResources */; };
 		292BDA8A53AA4E6F8E2A7AA3 /* PhoneGameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C364DE93CB541A29A2C64A7 /* PhoneGameTests.swift */; };
 		51E7BAB92FDF495BA61D38B4 /* PhoneGame.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB5F5A04F13427BBB1062DB /* PhoneGame.swift */; };
@@ -408,6 +412,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5DA0F0012F10000000A1B2C3 /* JumpInSetGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JumpInSetGrid.swift; sourceTree = "<group>"; };
 		1C364DE93CB541A29A2C64A7 /* PhoneGameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneGameTests.swift; sourceTree = "<group>"; };
 		222710FF09A14CD79A0BB052 /* PhoneGameSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneGameSession.swift; sourceTree = "<group>"; };
 		2442DA5CAF974A3BB3C94020 /* PhoneSessionControllers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSessionControllers.swift; sourceTree = "<group>"; };
@@ -668,6 +673,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5DA0F0082F10000000A1B2C3 /* SwiftDraw in Frameworks */,
 				5411A9662AE0B5FF00697E9F /* RxRelay in Frameworks */,
 				5439CF95246A7D3A0060A1EA /* CardView.framework in Frameworks */,
 				5411A9622AE0B5FF00697E9F /* RxBlocking in Frameworks */,
@@ -699,6 +705,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5DA0F0072F10000000A1B2C3 /* SwiftDraw in Frameworks */,
 				5411A95C2AE0B5F900697E9F /* RxRelay in Frameworks */,
 				544F295F241723AD00B6B3C8 /* CardService.framework in Frameworks */,
 				5411A9582AE0B5F900697E9F /* RxBlocking in Frameworks */,
@@ -1034,6 +1041,7 @@
 				54A0A16E2410D41600A1BBB8 /* CountersViewController.swift */,
 				54BC670F28C4156A000E971B /* JumpStartView.swift */,
 				54F8A4972E8D8DA600F72BEF /* JumpInView.swift */,
+				5DA0F0012F10000000A1B2C3 /* JumpInSetGrid.swift */,
 				547CD3D223F9EF2800AECA85 /* PickerCell.swift */,
 				546E05282405BB8A00ACF842 /* PileViewController.swift */,
 				54BC671228C415A5000E971B /* LoadDeckView.swift */,
@@ -1144,6 +1152,7 @@
 				5411A9632AE0B5FF00697E9F /* RxCocoa */,
 				5411A9652AE0B5FF00697E9F /* RxRelay */,
 				5411A9672AE0B5FF00697E9F /* RxSwift */,
+				5DA0F0062F10000000A1B2C3 /* SwiftDraw */,
 			);
 			productName = MagicBoardConnect;
 			productReference = 542CF68D2415888500D453CA /* Board Connect.app */;
@@ -1217,6 +1226,7 @@
 				5411A95D2AE0B5F900697E9F /* RxSwift */,
 				54B822302AED97440059998E /* Vapor */,
 				54B822332AED97630059998E /* Leaf */,
+				5DA0F0052F10000000A1B2C3 /* SwiftDraw */,
 			);
 			productName = "Magic Board";
 			productReference = 54BECD1923F4FA1D00AE82A9 /* Magic Board.app */;
@@ -1302,6 +1312,7 @@
 				54B8222F2AED97440059998E /* XCRemoteSwiftPackageReference "vapor" */,
 				54B822322AED97630059998E /* XCRemoteSwiftPackageReference "leaf" */,
 				54F8A4742E8B251A00F72BEF /* XCRemoteSwiftPackageReference "ReerJSON" */,
+				5DA0F0042F10000000A1B2C3 /* XCRemoteSwiftPackageReference "SwiftDraw" */,
 				5B1E7C2A2F00000200A1B2C3 /* XCLocalSwiftPackageReference "../MagicBoardResources" */,
 			);
 			productRefGroup = 54BECD1A23F4FA1D00AE82A9 /* Products */;
@@ -1522,6 +1533,7 @@
 				542CF6C224158BAF00D453CA /* HandViewController.swift in Sources */,
 				542CF6C324158BAF00D453CA /* CardInstance+NSItemProvider.swift in Sources */,
 				54F8A4992E8D8DAA00F72BEF /* JumpInView.swift in Sources */,
+				5DA0F0022F10000000A1B2C3 /* JumpInSetGrid.swift in Sources */,
 				542CF6AE24158B7100D453CA /* InsetLabel.swift in Sources */,
 				542CF6B424158B7100D453CA /* Observable+Misc.swift in Sources */,
 				542CF6B124158B7100D453CA /* UIColor+Blended.swift in Sources */,
@@ -1665,6 +1677,7 @@
 				54A0A1732411CA7800A1BBB8 /* CardImageViewController.swift in Sources */,
 				54BECD1F23F4FA1D00AE82A9 /* SceneDelegate.swift in Sources */,
 				54F8A49A2E8E16DC00F72BEF /* JumpInView.swift in Sources */,
+				5DA0F0032F10000000A1B2C3 /* JumpInSetGrid.swift in Sources */,
 				54795DBB2419A32900B5CA36 /* ConnectSceneDelegate.swift in Sources */,
 				54A0A16B2410875000A1BBB8 /* Counter.swift in Sources */,
 				54A0A180241375ED00A1BBB8 /* HandViewController.swift in Sources */,
@@ -2263,6 +2276,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		5DA0F0042F10000000A1B2C3 /* XCRemoteSwiftPackageReference "SwiftDraw" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swhitty/SwiftDraw";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.29.0;
+			};
+		};
 		5411A9532AE0A95600697E9F /* XCRemoteSwiftPackageReference "RxSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ReactiveX/RxSwift";
@@ -2314,6 +2335,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5DA0F0052F10000000A1B2C3 /* SwiftDraw */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5DA0F0042F10000000A1B2C3 /* XCRemoteSwiftPackageReference "SwiftDraw" */;
+			productName = SwiftDraw;
+		};
+		5DA0F0062F10000000A1B2C3 /* SwiftDraw */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5DA0F0042F10000000A1B2C3 /* XCRemoteSwiftPackageReference "SwiftDraw" */;
+			productName = SwiftDraw;
+		};
 		5B1E7C2A2F00000300A1B2C3 /* MagicBoardResources */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MagicBoardResources;
