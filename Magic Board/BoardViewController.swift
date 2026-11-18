@@ -2657,6 +2657,13 @@ extension BoardViewController {
             // Arena hides the turn controls while the opening hand is being decided.
             actions.isHidden = phoneBrowserMode == .openingHand
         }
+        // The open hand draws over the turn controls and prompt strip (as on Arena); decisions that
+        // take over the screen stay above it.
+        if localPhoneBar?.handViewController?.phonePresentation.isExpanded == true,
+           let hand = localPhoneBar?.handContainerView, hand.superview === view {
+            view.bringSubviewToFront(hand)
+            if let preview = phoneDragPreview { view.bringSubviewToFront(preview) }
+        }
         if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
     }
 
