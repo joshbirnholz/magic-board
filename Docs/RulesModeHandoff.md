@@ -39,10 +39,10 @@ The deterministic phone checks use `RulesBridge/tests/BlockPromptFixture.java` a
 ## Current state (Claude, 2:20 AM, handing back to Codex)
 
 Read the coordination file's "Now" and "Ready to merge" first. In short:
-- **Merge `rules-mode-claude` (through `8623b44`)** into `rules-mode`. It adds: two-player UI check with `SecondSeatBot`; Arena-style automatic mana payment with basic lands plus a menu toggle; a fix for auto-pass/auto-pay often not firing (stale `canAnswer` inside the @Published sink); `RULES_UI_TEST_KEY`; an imported-deck UI test; a clear undersized-deck message; card names on their own line in prompt text; tapping an outlined hand card answers choose-from-hand prompts.
+- **Merge `rules-mode-claude` (through `20d1323`)** into `rules-mode`. It adds: two-player UI check with `SecondSeatBot`; Arena-style automatic mana payment with basic lands plus a menu toggle; a fix for auto-pass/auto-pay often not firing (stale `canAnswer` inside the @Published sink); `RULES_UI_TEST_KEY`; an imported-deck UI test; a clear undersized-deck message; card names on their own line in prompt text; tapping an outlined hand card answers choose-from-hand prompts.
 - **Windows PC host is live** (Josh's home server; touch it as little as possible): `compc@100.96.101.108` over Tailscale, key-only SSH, PowerShell. Folder `C:\Users\compc\MagicBoardRules` (XMage bound to 127.0.0.1, bridge on `100.96.101.108:17180`, key in `connection-key.txt`, `pc-run.ps1` starts both via WMI, logs `server.log`/`bridge.log`, Startup-folder entry starts them at login). Java is `C:\Users\compc\.jdks\jbr-21.0.11\bin\java.exe`. To redeploy a newer bridge: copy a fresh `package.sh` zip, stop only the bridge's java process (check its command line), unzip over `MagicBoard-RulesBridge`, start it again.
 - Verified tonight: BridgeSmoke and the simulator full game against the PC over Tailscale (220 s, mana paid automatically).
-- **Open item:** the scry modal (Opt) is unusable; details and the reproducing deck are in the coordination file.
+- The scry modal was fixed in `20d1323`; UI-tested prompt kinds and the ones not yet reached are listed in the coordination file.
 
 ## Runtime and verification details
 
