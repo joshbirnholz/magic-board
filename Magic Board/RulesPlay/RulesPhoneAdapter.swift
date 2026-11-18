@@ -170,6 +170,12 @@ final class RulesPhoneAdapter {
         }
     }
 
+    /// Whether this card is one of the current target prompt's choices (so tapping it answers).
+    func isTargetPromptChoice(_ id: UUID) -> Bool {
+        guard let prompt = engine.prompt, prompt.method == "GAME_TARGET" else { return false }
+        return prompt.targets?.contains(id.uuidString.lowercased()) == true
+    }
+
     /// Cards to outline: a target prompt's legal card targets, otherwise what the engine says is playable now.
     static func highlighted(snapshot: RulesSnapshot?, prompt: RulesPrompt?) -> Set<UUID> {
         if prompt?.method == "GAME_TARGET" { return Set((prompt?.targets ?? []).compactMap(UUID.init(uuidString:))) }

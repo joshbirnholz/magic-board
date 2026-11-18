@@ -538,6 +538,11 @@ final class RulesModeUITests: XCTestCase {
             }
             // Targets on the board glow ("Playable"): tap one; otherwise target the opponent.
             if text.localizedCaseInsensitiveContains("target") || text.localizedCaseInsensitiveContains("select") && !text.localizedCaseInsensitiveContains("attackers") && !text.localizedCaseInsensitiveContains("blockers") {
+                // A card to choose from our hand (an alternative cost, a discard…) is outlined in the hand.
+                if let handChoice = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
+                    handChoice.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
+                    Thread.sleep(forTimeInterval: 0.8); continue
+                }
                 let glow = app.descendants(matching: .any).matching(identifier: "phone-combat-glow").matching(NSPredicate(format: "value == 'Playable'")).firstMatch
                 if glow.exists {
                     app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: glow.frame.midX, dy: glow.frame.midY)).tap()
