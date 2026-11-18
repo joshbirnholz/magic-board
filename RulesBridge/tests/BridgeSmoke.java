@@ -94,7 +94,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         JsonObject nextPrompt = resumedPrompt;
         long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(3);
         int decisions = 0;
-        Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>();
+        Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
                 JsonObject answer = new JsonObject();
@@ -167,6 +167,17 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 case "snapshot" -> {
                     currentState = event;
                     String me = event.get("playerId").getAsString();
+                    Set<String> playable = new HashSet<>();
+                    event.getAsJsonArray("playableIds").forEach(id -> playable.add(id.getAsString()));
+                    for (JsonElement card : event.getAsJsonArray("hand"))
+                        if (playable.contains(card.getAsJsonObject().get("id").getAsString())) playableHandCards.add(card.getAsJsonObject().get("name").getAsString());
+                    for (JsonElement player : event.getAsJsonArray("players")) {
+                        if (!player.getAsJsonObject().get("id").getAsString().equals(me)) continue;
+                        for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield")) {
+                            JsonObject permanent = card.getAsJsonObject();
+                            if (playable.contains(permanent.get("id").getAsString())) playablePermanents.add(permanent.get("name").getAsString());
+                        }
+                    }
                     for (JsonElement item : event.getAsJsonArray("stack")) {
                         JsonObject object = item.getAsJsonObject();
                         if (!object.has("controllerId")) throw new AssertionError("Stack object without a controller: " + object.get("name"));
@@ -183,6 +194,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
         if (requireAbility && !choseAbility) throw new AssertionError("The engine ability chooser was not exercised");
         if (choseAbility) System.out.println("PASS engine ability selection uses UUID responses");
         if (castCreature && myStackObjects.isEmpty()) throw new AssertionError("Our own spells were never attributed to us on the stack");
+        System.out.println("INFO playable hand cards: " + playableHandCards + "; playable permanents: " + playablePermanents);
+        if (playableHandCards.isEmpty()) throw new AssertionError("No hand card was ever reported playable");
+        if (playablePermanents.contains("Plains")) throw new AssertionError("A basic land's mana ability alone made it playable");
         System.out.println("PASS stack controllers: " + myStackObjects.size() + " ours, " + theirStackObjects.size() + " the AI's");
         System.out.println("PASS full AI game: land play, creature casting, mana, priority and engine game-over (" + decisions + " decisions)");
         test.send("{\"type\":\"leave\"}");

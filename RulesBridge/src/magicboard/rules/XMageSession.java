@@ -351,7 +351,10 @@ final class XMageSession implements MageClient, AutoCloseable {
         result.add("stack", stack);
         JsonArray playable = new JsonArray();
         if (view.getCanPlayObjects() != null) view.getCanPlayObjects().getObjects().forEach((id, stats) -> {
-            if (stats.getPlayableAmount() > 0) playable.add(id.toString());
+            // On the battlefield, ignore basic mana abilities so untapped lands don't all look playable
+            // (Arena doesn't highlight them). Elsewhere, playing a land counts.
+            boolean permanent = view.getPlayers().stream().anyMatch(player -> player.getBattlefield().containsKey(id));
+            if (permanent ? stats.getPlayableImportantAmount() > 0 : stats.getPlayableAmount() > 0) playable.add(id.toString());
         });
         result.add("playableIds", playable);
         JsonArray players = new JsonArray();

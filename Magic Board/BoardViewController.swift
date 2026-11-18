@@ -4419,9 +4419,19 @@ extension BoardViewController {
         }
     }
 
+    /// The hand's playable rim colour (`PhoneHandPlayRim`), for Rules-mode permanents.
+    private static let phonePlayableGlow = UIColor(red: 0.2, green: 0.62, blue: 1, alpha: 1)
+
     private func updatePhoneCombatGlows(_ session: PhoneGameSession) {
         let combat = session.game.combat
         var wanted: [UUID: UIColor] = [:]
+        // Rules mode: your permanents the engine says can act now glow blue (Arena); combat overrides.
+        if session.mode == .rules {
+            let field = session.game.state.battlefield.value
+            for id in session.game.rulesPlayable ?? [] {
+                if let card = session.game.cards[id], field.contains(card), card.controllerIdentifier.value == session.player { wanted[id] = Self.phonePlayableGlow }
+            }
+        }
         for id in combat?.attackers ?? [] { wanted[id] = .systemOrange }
         // Blockers glow gold, matching their golden lines (Arena).
         for id in combat?.blockers.keys.map({ $0 }) ?? [] { wanted[id] = PhoneCombatLinesView.gold }
@@ -4448,7 +4458,7 @@ extension BoardViewController {
             }()
             glow.layer.borderColor = color.cgColor
             glow.layer.shadowColor = color.cgColor
-            glow.accessibilityValue = color == .systemOrange ? "Attacking" : "Blocking"
+            glow.accessibilityValue = color == .systemOrange ? "Attacking" : color == Self.phonePlayableGlow ? "Playable" : "Blocking"
             // The outline belongs to the card's unrotated coordinate space. It inherits the
             // card's in-flight tap/flying transform rather than jumping to the model angle.
             let host = phoneOutlineHost(mini)
