@@ -529,6 +529,9 @@ final class RulesModeUITests: XCTestCase {
             return
         }
 
+        // TEST_RUNNER_RULES_UI_TEST_MANUAL_TRIGGERS=1: switch to ordering triggers by hand from the
+        // battlefield menu at our first main phase.
+        var manualTriggersPending = ProcessInfo.processInfo.environment["RULES_UI_TEST_MANUAL_TRIGGERS"] == "1"
         let message = app.descendants(matching: .any)["rules-prompt-message"]
         let next = app.buttons["phone-untap-local"]
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
@@ -557,6 +560,15 @@ final class RulesModeUITests: XCTestCase {
             lastState = state
             XCTAssertLessThan(stuck, 40, "Stuck at: \(state)")
             if stuck >= 40 { break }
+            if manualTriggersPending, text.localizedCaseInsensitiveContains("Play spells") {
+                manualTriggersPending = false
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+                let manual = app.buttons["Order Triggers Manually"]
+                XCTAssertTrue(manual.waitForExistence(timeout: 5), "The battlefield menu should offer manual trigger ordering")
+                if manual.exists { manual.tap() }
+                Thread.sleep(forTimeInterval: 1.0)
+                continue
+            }
             if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap(); continue }
             if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].exists { app.buttons["Magic Board"].tap(); continue }
             // Full-screen decisions: pick the first option or card, as a player might.
