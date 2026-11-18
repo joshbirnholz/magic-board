@@ -12,6 +12,8 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var tables: [RulesTable] = []
     @Published private(set) var tableId: String?
     @Published private(set) var ownsTable = false
+    @Published private(set) var formats: [String] = ["Limited"]
+    @Published private(set) var result: String?
     @Published private(set) var pendingRequest: String?
     @Published private(set) var notice = ""
     @Published var error: String?
@@ -31,6 +33,7 @@ final class RulesGameSession: ObservableObject {
     }
 
     var canAnswer: Bool { status == .connected && prompt?.supported == true && pendingRequest == nil }
+    var hasRetainedSession: Bool { resumeToken != nil }
     var connectionKey: String {
         get { RulesConnectionKey.read() }
         set {
@@ -46,6 +49,7 @@ final class RulesGameSession: ObservableObject {
         if endpoint != url || !resume {
             resumeToken = nil; snapshot = nil; prompt = nil
             tableId = nil; ownsTable = false; tables = []
+            result = nil
         }
         endpoint = url
         disconnect()
@@ -104,20 +108,21 @@ final class RulesGameSession: ObservableObject {
         disconnect()
         resumeToken = nil; snapshot = nil; prompt = nil
         tableId = nil; ownsTable = false; tables = []
+        result = nil
     }
 
-    func startAiGame() async {
-        await submit(RulesCommand(type: "createAiGame", requestId: UUID().uuidString))
+    func startAiGame(deck: RulesDeck? = nil, format: String = "Limited") async {
+        await submit(RulesCommand(type: "createAiGame", requestId: UUID().uuidString, deck: deck, format: format))
     }
 
-    func createHumanGame() async {
-        await submit(RulesCommand(type: "createHumanGame", requestId: UUID().uuidString))
+    func createHumanGame(deck: RulesDeck? = nil, format: String = "Limited") async {
+        await submit(RulesCommand(type: "createHumanGame", requestId: UUID().uuidString, deck: deck, format: format))
     }
     func refreshTables() async {
         await submit(RulesCommand(type: "listTables", requestId: UUID().uuidString))
     }
-    func join(_ table: RulesTable) async {
-        await submit(RulesCommand(type: "joinTable", requestId: UUID().uuidString, tableId: table.id))
+    func join(_ table: RulesTable, deck: RulesDeck? = nil) async {
+        await submit(RulesCommand(type: "joinTable", requestId: UUID().uuidString, tableId: table.id, deck: deck))
     }
     func startMatch() async {
         await submit(RulesCommand(type: "startMatch", requestId: UUID().uuidString))
@@ -157,6 +162,7 @@ final class RulesGameSession: ObservableObject {
         let message: String?
         let tableId: String?
         let owner: Bool?
+        let formats: [String]?
     }
 
     private func receive(_ data: Data, socket: URLSessionWebSocketTask) async throws {
@@ -168,6 +174,7 @@ final class RulesGameSession: ObservableObject {
         case "ready":
             guard header.protocolVersion == 1, let token = header.resumeToken else { fail("The bridge sent an invalid connection response."); return }
             resumeToken = token
+            if let formats = header.formats { self.formats = formats }
             timeoutTask?.cancel()
             status = .connected
             notice = "Connected to XMage"
@@ -187,11 +194,13 @@ final class RulesGameSession: ObservableObject {
         case "ack":
             if header.requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "error":
-            error = header.message ?? "The rules server reported an error."
-            if header.requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
+            let message = header.message ?? "The rules server reported an error."
+            if status == .connecting { fail(message); return }
+            error = message
+            if let requestId = header.requestId, requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "notice": notice = header.message ?? ""
         case "engineDisconnected": fail(header.message ?? "XMage disconnected.")
-        case "gameOver": prompt = nil; notice = header.message ?? "Game finished"
+        case "gameOver": prompt = nil; result = header.message ?? "Game finished"; notice = result ?? "Game finished"
         default: break
         }
     }

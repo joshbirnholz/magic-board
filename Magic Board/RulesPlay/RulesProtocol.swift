@@ -1,10 +1,23 @@
 import Foundation
 
+struct RulesDeck: Codable {
+    struct Card: Codable {
+        let name: String
+        let set: String?
+        let collectorNumber: String?
+        let count: Int
+    }
+    let name: String
+    let main: [Card]
+    let sideboard: [Card]
+}
+
 struct RulesTable: Decodable, Identifiable {
     let id: String
     let name: String
     let players: Int
     let capacity: Int
+    let format: String?
 }
 
 /// Rules-only presentation values. These never enter PhoneGame or its editable state patches.
@@ -26,6 +39,8 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     let ability: Bool?
     let typeLine: String?
     let manaCost: String?
+    let colors: [String]?
+    let targets: [String]?
     let counters: [Counter]
 }
 
@@ -38,6 +53,7 @@ struct RulesPlayer: Decodable, Identifiable {
     let battlefield: [RulesCard]
     let graveyard: [RulesCard]
     let exile: [RulesCard]
+    let counters: [RulesCard.Counter]?
 }
 
 struct RulesSnapshot: Decodable {
@@ -64,6 +80,12 @@ struct RulesSnapshot: Decodable {
 
 struct RulesPrompt: Decodable, Identifiable {
     struct Choice: Decodable, Identifiable { let id: String; let label: String }
+    struct Amount: Decodable {
+        let label: String
+        let min: Int
+        let max: Int
+        let defaultValue: Int
+    }
     let id: String
     let method: String
     let revision: Int
@@ -75,16 +97,20 @@ struct RulesPrompt: Decodable, Identifiable {
     let choices: [Choice]
     let cards: [RulesCard]?
     let targets: [String]?
+    let secondPile: [RulesCard]?
+    let amounts: [Amount]?
+    let canCancel: Bool?
 }
 
 enum RulesAnswer: Encodable {
-    case boolean(Bool), object(String), number(Int), choice(String)
+    case boolean(Bool), object(String), number(Int), choice(String), amounts([Int])
     var kind: String {
         switch self {
         case .boolean: return "boolean"
         case .object: return "uuid"
         case .number: return "integer"
         case .choice: return "string"
+        case .amounts: return "amounts"
         }
     }
     func encode(to encoder: Encoder) throws {
@@ -93,6 +119,7 @@ enum RulesAnswer: Encodable {
         case .boolean(let value): try container.encode(value)
         case .object(let value), .choice(let value): try container.encode(value)
         case .number(let value): try container.encode(value)
+        case .amounts(let values): try container.encode(values)
         }
     }
 }
@@ -107,6 +134,8 @@ struct RulesCommand: Encodable {
     var revision: Int? = nil
     var kind: String? = nil
     var value: RulesAnswer? = nil
+    var deck: RulesDeck? = nil
+    var format: String? = nil
 }
 
 enum RulesEndpoint {

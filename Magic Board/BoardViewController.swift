@@ -2498,7 +2498,7 @@ extension BoardViewController {
         AppDelegate.shared.phoneSession = session
         session.beginRules(adapter)
         attachPhoneSession()
-        let prompt = UIHostingController(rootView: RulesPromptBar(session: adapter.engine))
+        let prompt = UIHostingController(rootView: RulesPromptBar(session: adapter.engine, exit: { [weak self] in self?.leavePhoneGame(showingStart: true) }))
         prompt.view.backgroundColor = .clear
         addChild(prompt)
         view.addSubview(prompt.view)

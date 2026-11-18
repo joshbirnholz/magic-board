@@ -27,13 +27,16 @@ public final class BridgeMain extends WebSocketServer {
         volatile WebSocket socket;
         volatile long detachedAt;
         volatile boolean ready;
+        volatile JsonObject readyEvent;
         Seat(WebSocket socket) {
             this.socket = socket;
             engine = new XMageSession(event -> {
                 if (string(event, "type").equals("ready")) {
-                    ready = true;
                     event.addProperty("resumeToken", resumeToken);
+                    readyEvent = event.deepCopy();
+                    ready = true;
                 }
+                if (string(event, "type").equals("engineDisconnected")) ready = false;
                 WebSocket target = this.socket;
                 if (target != null && target.isOpen()) target.send(JSON.toJson(event));
             });
@@ -81,8 +84,7 @@ public final class BridgeMain extends WebSocketServer {
                     }
                     seat.socket = socket;
                     connections.put(socket, seat);
-                    socket.send(JSON.toJson(object("type", "ready", "protocolVersion", 1, "resumeToken", seat.resumeToken,
-                            "engineVersion", seat.engine.getVersion().toString())));
+                    socket.send(JSON.toJson(seat.readyEvent));
                     seat.engine.queue.execute(seat.engine::replay);
                     return;
                 }
@@ -93,7 +95,7 @@ public final class BridgeMain extends WebSocketServer {
                 created.engine.queue.execute(() -> {
                     try { created.engine.connect(engineHost, enginePort, "MB" + UUID.randomUUID().toString().substring(0, 8), System.getenv().getOrDefault("XMAGE_PASSWORD", "")); }
                     catch (Exception error) {
-                        socket.send(JSON.toJson(object("type", "error", "message", error.getMessage())));
+                        if (socket.isOpen()) socket.send(JSON.toJson(object("type", "error", "message", error.getMessage())));
                         remove(created);
                         socket.close(1011, "XMage connection failed");
                     }
@@ -128,7 +130,10 @@ public final class BridgeMain extends WebSocketServer {
     @Override public synchronized void onClose(WebSocket socket, int code, String reason, boolean remote) {
         authorized.remove(socket);
         Seat seat = connections.remove(socket);
-        if (seat != null && seat.socket == socket) { seat.socket = null; seat.detachedAt = System.currentTimeMillis(); }
+        if (seat != null && seat.socket == socket) {
+            seat.socket = null; seat.detachedAt = System.currentTimeMillis();
+            if (!seat.ready) remove(seat);
+        }
     }
     @Override public void onError(WebSocket socket, Exception error) { System.err.println("Rules transport: " + error.getClass().getSimpleName()); }
     @Override public void onStart() { System.out.println("Rules bridge listening on " + getAddress() + "; XMage " + engineHost + ":" + enginePort); }

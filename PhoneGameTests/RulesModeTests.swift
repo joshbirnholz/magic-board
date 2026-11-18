@@ -64,6 +64,11 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(json["kind"] as? String, "boolean")
         XCTAssertEqual(json["value"] as? Bool, false)
         XCTAssertEqual(json["revision"] as? Int, 3)
+        let distribution = RulesCommand(type: "answer", requestId: "distribution", promptId: "prompt", revision: 3,
+                                        kind: RulesAnswer.amounts([10, 2]).kind, value: .amounts([10, 2]))
+        let amounts = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(distribution)) as? [String: Any])
+        XCTAssertEqual(amounts["kind"] as? String, "amounts")
+        XCTAssertEqual(amounts["value"] as? [Int], [10, 2])
     }
 
     func testRulesSnapshotBeforeStartingPlayerHasNoPhaseOrPriority() throws {
@@ -76,5 +81,35 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(decoded.phase)
         XCTAssertNil(decoded.step)
         XCTAssertNil(decoded.priorityPlayer)
+    }
+
+    func testRulesDeckImportReusesExistingParserAndPreservesSideboard() throws {
+        let deck = try XCTUnwrap(RulesDeckImporter.parse("Deck\n24 Plains (M10) 230\n18 Silvercoat Lion (M10) 31\n18 Siege Mastodon (M10) 30\n\nSideboard\n2 Pacifism (M10) 22"))
+        XCTAssertEqual(deck.main.reduce(0) { $0 + $1.count }, 60)
+        XCTAssertEqual(deck.main.first?.name, "Plains")
+        XCTAssertEqual(deck.main.first?.collectorNumber, "230")
+        XCTAssertEqual(deck.sideboard.first?.name, "Pacifism")
+        XCTAssertEqual(deck.sideboard.first?.count, 2)
+        XCTAssertNil(try RulesDeckImporter.parse("   "))
+        XCTAssertThrowsError(try RulesDeckImporter.parse("Commander\n1 Atraxa, Praetors' Voice\nDeck\n99 Plains"))
+    }
+
+    func testBattlefieldCharacteristicsPreservePrintedImageAndLeavePrintedModelUnchanged() throws {
+        let template = try RulesPhoneAdapter.placeholder(name: "Test card", typeLine: "Artifact", rules: "Printed text", manaCost: "{2}")
+        var printedJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(template)) as? [String: Any])
+        printedJSON["imageUris"] = ["normal": "https://example.test/printed-card.jpg"]
+        let printed = try JSONDecoder().decode(MTGCard.self, from: JSONSerialization.data(withJSONObject: printedJSON))
+        let raw: [String: Any] = ["id": UUID().uuidString, "name": "Test card", "faceDown": false, "transformed": false,
+                                  "typeLine": "Artifact Creature — Construct", "rules": "Flying\nGranted ability", "colors": ["U"],
+                                  "counters": [["name": "+1/+1", "count": 1]], "power": "5", "toughness": "6"]
+        let engine = try JSONDecoder().decode(RulesCard.self, from: JSONSerialization.data(withJSONObject: raw))
+        let displayed = try RulesCardCharacteristics.applying(engine, to: printed)
+        XCTAssertEqual(displayed.scryfallID, printed.scryfallID)
+        XCTAssertEqual(displayed.imageURL(type: .normal), URL(string: "https://example.test/printed-card.jpg"))
+        XCTAssertEqual(displayed.typeLine, "Artifact Creature — Construct")
+        XCTAssertEqual(displayed.oracleText, "Flying\nGranted ability")
+        XCTAssertEqual(displayed.colors, [.blue])
+        XCTAssertEqual(printed.typeLine, "Artifact")
+        XCTAssertEqual(printed.oracleText, "Printed text")
     }
 }

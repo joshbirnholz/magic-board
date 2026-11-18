@@ -811,6 +811,10 @@ class MiniCardView: UIView {
 		let attributedString = NSMutableAttributedString()
 		
 		func string(for power: String) -> String {
+            #if !BOARD_CONNECT
+            // XMage's effective stats already include counters and continuous effects.
+            if AppDelegate.shared.phoneSession?.mode == .rules { return power }
+            #endif
 			var string = power
 			
 			if let value = Int(string) {

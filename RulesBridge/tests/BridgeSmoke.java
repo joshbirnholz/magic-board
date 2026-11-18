@@ -32,6 +32,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
     }
     public static void main(String[] args) throws Exception {
         BridgeSmoke test = new BridgeSmoke();
+        try {
         test.socket = HttpClient.newHttpClient().newWebSocketBuilder()
                 .header("Authorization", "Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))
                 .buildAsync(URI.create("ws://127.0.0.1:17180"), test).join();
@@ -40,7 +41,13 @@ public final class BridgeSmoke implements WebSocket.Listener {
         JsonObject ready = test.await("ready");
         System.out.println("PASS headless XMage login: " + ready.get("engineVersion"));
         String request = UUID.randomUUID().toString();
-        test.send("{\"type\":\"createAiGame\",\"requestId\":\"" + request + "\"}");
+        JsonObject create = new JsonObject();
+        create.addProperty("type", "createAiGame"); create.addProperty("requestId", request);
+        if (System.getenv("RULES_SMOKE_DECK") != null) {
+            JsonObject config = JsonParser.parseString(java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("RULES_SMOKE_DECK")))).getAsJsonObject();
+            create.add("deck", config.get("deck")); create.add("format", config.get("format"));
+        }
+        test.send(create.toString());
         test.await("ack");
         JsonObject state = test.await("snapshot");
         if (System.getenv("RULES_SMOKE_SNAPSHOT") != null)
@@ -80,6 +87,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
         // the AI supplies attacks. This checks the entire lifecycle, not AI playing strength.
         boolean playedLand = false;
         boolean castCreature = false;
+        boolean choseAbility = false;
+        boolean requireAbility = System.getenv("RULES_SMOKE_ABILITY") != null;
         boolean finished = false;
         JsonObject currentState = resumed;
         JsonObject nextPrompt = resumedPrompt;
@@ -93,6 +102,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 answer.add("promptId", nextPrompt.get("id"));
                 answer.add("revision", currentState.get("revision"));
                 String method = nextPrompt.get("method").getAsString();
+                if (method.equals("GAME_CHOOSE_ABILITY")) choseAbility = true;
                 String object = null;
                 if (method.equals("GAME_SELECT") && currentState.get("step").getAsString().contains("MAIN")) {
                     Set<String> playable = new HashSet<>();
@@ -101,9 +111,18 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         JsonObject card = entry.getAsJsonObject();
                         if (playable.contains(card.get("id").getAsString())) {
                             object = card.get("id").getAsString();
-                            if (card.get("name").getAsString().equals("Plains")) playedLand = true;
+                            if (card.get("typeLine").getAsString().contains("Land")) playedLand = true;
                             else castCreature = true;
                             break;
+                        }
+                    }
+                    if (requireAbility && !choseAbility) {
+                        for (JsonElement player : currentState.getAsJsonArray("players")) {
+                            if (!player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) continue;
+                            for (JsonElement entry : player.getAsJsonObject().getAsJsonArray("battlefield")) {
+                                JsonObject card = entry.getAsJsonObject();
+                                if (card.get("typeLine").getAsString().contains("Land") && !card.get("tapped").getAsBoolean()) { object = card.get("id").getAsString(); break; }
+                            }
                         }
                     }
                 }
@@ -125,15 +144,18 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (!player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) continue;
                         for (JsonElement entry : player.getAsJsonObject().getAsJsonArray("battlefield")) {
                             JsonObject card = entry.getAsJsonObject();
-                            if (card.get("name").getAsString().equals("Plains") && !card.get("tapped").getAsBoolean()) { object = card.get("id").getAsString(); break; }
+                            if (card.get("typeLine").getAsString().contains("Land") && !card.get("tapped").getAsBoolean()) { object = card.get("id").getAsString(); break; }
                         }
                     }
                     if (object != null) { answer.addProperty("kind", "uuid"); answer.addProperty("value", object); }
                     else { answer.addProperty("kind", "boolean"); answer.addProperty("value", false); }
                 } else {
                     answer.addProperty("kind", "boolean");
-                    answer.addProperty("value", method.equals("GAME_SELECT") || method.equals("GAME_PLAY_XMANA"));
+                    boolean yes = method.equals("GAME_SELECT") || method.equals("GAME_PLAY_XMANA")
+                            || method.equals("GAME_ASK") && !nextPrompt.get("message").getAsString().toLowerCase().contains("mulligan");
+                    answer.addProperty("value", yes);
                 }
+                if (decisions < 20) System.out.println("Decision " + decisions + ": " + method + " / " + nextPrompt.get("message") + " -> " + answer.get("kind") + " " + answer.get("value"));
                 test.send(answer.toString());
                 nextPrompt = null;
                 decisions++;
@@ -147,7 +169,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 case "error" -> throw new AssertionError(event);
             }
         }
-        if (!finished || !playedLand || !castCreature) throw new AssertionError("Incomplete game: finished=" + finished + ", land=" + playedLand + ", creature=" + castCreature + ", decisions=" + decisions);
+        if (!finished || !playedLand || !castCreature) throw new AssertionError("Incomplete game: finished=" + finished + ", land=" + playedLand + ", creature=" + castCreature + ", ability=" + choseAbility + ", decisions=" + decisions);
+        if (requireAbility && !choseAbility) throw new AssertionError("The engine ability chooser was not exercised");
+        if (choseAbility) System.out.println("PASS engine ability selection uses UUID responses");
         System.out.println("PASS full AI game: land play, creature casting, mana, priority and engine game-over (" + decisions + " decisions)");
         test.send("{\"type\":\"leave\"}");
         test.socket.sendClose(1000, "Done").join();
@@ -163,5 +187,11 @@ public final class BridgeSmoke implements WebSocket.Listener {
         if (unauthorizedClose.get(5, TimeUnit.SECONDS) != 1008) throw new AssertionError("Unauthorized connection accepted");
         unauthorized.abort();
         System.out.println("PASS invalid connection key rejected");
+        } finally {
+            if (test.socket != null && !test.socket.isOutputClosed()) {
+                try { test.send("{\"type\":\"leave\"}"); } catch (Exception ignored) { }
+                test.socket.abort();
+            }
+        }
     }
 }

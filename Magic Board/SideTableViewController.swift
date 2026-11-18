@@ -398,6 +398,13 @@ struct CardControlView: View {
     List {
       if PhonePlayBridge.isRulesMode {
         Section { actionGrid }
+        let details = PhonePlayBridge.rulesDetails(card)
+        if !details.isEmpty {
+          Section(header: Text("Current State")) { ForEach(details, id: \.self) { Text($0) } }
+        }
+        if let rules = card.representation.oracleText, !rules.isEmpty {
+          Section(header: Text("Current Rules")) { Text(rules) }
+        }
       } else {
       // Card-specific rows (Prepared, Room doors) come first: they're why the menu was opened.
       if card.representation.card.layout == "prepare" || card.representation.isRoom {
@@ -1121,12 +1128,22 @@ extension MTGCard.RelatedCard {
 private enum PhonePlayBridge {
 #if BOARD_CONNECT
 	static var isRulesMode: Bool { false }
+	@MainActor static func rulesDetails(_ card: CardInstance) -> [String] { [] }
 	static func battlefieldContains(_ card: CardInstance) -> Bool? { nil }
 	static func sendCounter(_ id: UUID, _ counter: Counter, _ delta: Int) -> Bool { false }
 	static func controlsCard(_ card: CardInstance) -> Bool { false }
 	static func castPrepared(_ id: UUID) {}
 #else
 	static var isRulesMode: Bool { AppDelegate.shared.phoneSession?.mode == .rules }
+	@MainActor static func rulesDetails(_ card: CardInstance) -> [String] {
+		guard let state = AppDelegate.shared.phoneSession?.rulesAdapter?.engine.snapshot,
+		      let current = state.players.flatMap(\.battlefield).first(where: { $0.id == card.uuid.uuidString.lowercased() }) else { return [] }
+		var details: [String] = []
+		if let power = current.power, let toughness = current.toughness { details.append("Power / Toughness: \(power)/\(toughness)") }
+		if let damage = current.damage, damage > 0 { details.append("Damage marked: \(damage)") }
+		for counter in current.counters { details.append("\(counter.name): \(counter.count)") }
+		return details
+	}
 	/// Whether the card is on Phone Play's battlefield (nil outside Phone Play).
 	static func battlefieldContains(_ card: CardInstance) -> Bool? {
 		AppDelegate.shared.phoneSession.map { $0.game.state.battlefield.value.contains(card) }

@@ -11,7 +11,7 @@ final class RulesPhoneAdapter {
     private var subscriptions: Set<AnyCancellable> = []
     private var projectionTask: Task<Void, Never>?
     private var artworkTask: Task<Void, Never>?
-    private let catalog = RulesCardCatalog()
+    private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target?
     private var hiddenIDs: [String: UUID] = [:]
     private var presentation = PhoneGame()
@@ -133,8 +133,9 @@ final class RulesPhoneAdapter {
         }
         try Task.checkCancellation()
         let centers = phone?.game.cards.mapValues { $0.center.value } ?? [:]
-        func instance(_ card: RulesCard, owner: Player.Identifier) throws -> CardInstance {
-            let model = try models[card.id] ?? Self.placeholder(name: card.name ?? "Unknown card", typeLine: card.typeLine ?? "", rules: card.rules, manaCost: card.manaCost)
+        func instance(_ card: RulesCard, owner: Player.Identifier, battlefield: Bool = false) throws -> CardInstance {
+            let printed = try models[card.id] ?? Self.placeholder(name: card.name ?? "Unknown card", typeLine: card.typeLine ?? "", rules: card.rules, manaCost: card.manaCost)
+            let model = try battlefield ? RulesCardCharacteristics.applying(card, to: printed) : printed
             var representation = CardRepresentation.card(model).choosingFrontFace
             if card.transformed, let back = model.cardFaces?.last { representation = .alternateFace(model, back) }
             if card.faceDown { representation = .faceDown(representation) }
@@ -146,6 +147,7 @@ final class RulesPhoneAdapter {
             result.center.accept(centers[result.uuid] ?? nil)
             result.isTapped.accept(card.tapped ?? false)
             result.isSummoningSick.accept(card.summoningSick ?? false)
+            if let colors = card.colors { result.colors.accept(colors.compactMap(MTGColor.init(rawValue:))) }
             if let power = card.power { result.power.accept(power) }
             if let toughness = card.toughness { result.toughness.accept(toughness) }
             result.isPowerToughnessVisible.accept(card.power != nil || card.toughness != nil)
@@ -165,7 +167,7 @@ final class RulesPhoneAdapter {
             projected.isHidden = false
             projected.graveyard.cards.accept(OrderedSet(try player.graveyard.map { try instance($0, owner: owner) }))
             projected.exile.cards.accept(OrderedSet(try player.exile.map { try instance($0, owner: owner) }))
-            let battlefield = try player.battlefield.map { try instance($0, owner: owner) }
+            let battlefield = try player.battlefield.map { try instance($0, owner: owner, battlefield: true) }
             game.state.battlefield.mutate { $0.formUnion(battlefield) }
             for card in player.battlefield {
                 if let id = UUID(uuidString: card.id), let parent = card.attachedTo.flatMap(UUID.init(uuidString:)) { game.attachments[id] = parent }
@@ -176,8 +178,15 @@ final class RulesPhoneAdapter {
         let hand = try snapshot.hand.map { try instance($0, owner: .a) }
         let oldOrder = presentation.state.player1.hand.cards.value.map(\.uuid)
         game.state.player1.hand.cards.accept(OrderedSet(oldOrder.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !oldOrder.contains($0.uuid) }))
+        let visibleIDs = Set(allCards.map(\.id))
         game.stack = try snapshot.stack.reversed().map { card in
-            PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: .a), text: card.name ?? "Ability", player: .a)
+            let targets: [PhoneGame.Target] = (card.targets ?? []).compactMap { target in
+                if snapshot.players.contains(where: { $0.id == target }) { return .player(seat(target)) }
+                if visibleIDs.contains(target), let id = UUID(uuidString: target) { return .card(id) }
+                return nil
+            }
+            let text = card.ability == true ? RulesText.plain(card.rules ?? card.name ?? "Ability") : card.name ?? "Spell"
+            return PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: .a), text: text, player: .a, targets: targets)
         }
         let active = snapshot.activePlayerId.map(seat) ?? snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
         let enginePhase = snapshot.phase ?? ""
@@ -229,7 +238,7 @@ final class RulesPhoneAdapter {
         }
     }
 
-    private static func placeholder(name: String, typeLine: String = "", rules: String? = nil, manaCost: String? = nil) throws -> MTGCard {
+    static func placeholder(name: String, typeLine: String = "", rules: String? = nil, manaCost: String? = nil) throws -> MTGCard {
         var json: [String: Any] = ["scryfallID": "00000000-0000-0000-0000-000000000001", "name": name,
                                   "layout": "normal", "typeLine": RulesText.plain(typeLine), "isFullArt": false,
                                   "collectorNumber": "0", "set": "tst", "rarity": "common", "frame": "2015",
@@ -241,10 +250,32 @@ final class RulesPhoneAdapter {
     }
 }
 
+/// Preserve Scryfall image identity while supplying current engine text/types to battlefield properties.
+enum RulesCardCharacteristics {
+    static func applying(_ engine: RulesCard, to printed: MTGCard) throws -> MTGCard {
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(printed)) as! [String: Any]
+        func apply(to values: inout [String: Any]) {
+            if let type = engine.typeLine { values["typeLine"] = RulesText.plain(type) }
+            if let rules = engine.rules { values["oracleText"] = RulesText.plain(rules); values["keywords"] = [] }
+            if let mana = engine.manaCost { values["manaCost"] = mana }
+            if let colors = engine.colors { values["colors"] = colors }
+        }
+        apply(to: &json)
+        if var faces = json["cardFaces"] as? [[String: Any]], !faces.isEmpty {
+            let face = engine.transformed ? faces.count - 1 : 0
+            apply(to: &faces[face])
+            json["cardFaces"] = faces
+        }
+        return try JSONDecoder().decode(MTGCard.self, from: JSONSerialization.data(withJSONObject: json))
+    }
+}
+
 /// Keeps the existing synchronous card lookup off the UI actor, cached and serialized.
-private actor RulesCardCatalog {
+actor RulesCardCatalog {
+    static let shared = RulesCardCatalog()
     private var cache: [String: MTGCard] = [:]
     private var failedKeys: Set<String> = []
+    private var nextLookup = Date.distantPast
     private func key(_ card: RulesCard) -> String { "\(card.set ?? ""):\(card.collectorNumber ?? ""):\(card.name ?? "")" }
     func localCard(_ card: RulesCard) -> MTGCard? {
         guard !card.faceDown else { return nil }
@@ -263,7 +294,11 @@ private actor RulesCardCatalog {
         let key = key(card)
         guard !failedKeys.contains(key) else { return nil }
         // Projection asks sequentially. Keep remote lookups below Scryfall's request limit.
-        do { try await Task.sleep(nanoseconds: 120_000_000) } catch { return nil }
+        let delay = max(0, nextLookup.timeIntervalSinceNow)
+        nextLookup = Date().addingTimeInterval(delay + 0.12)
+        do { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) } catch { return nil }
+        if let cached = cache[key] { return cached }
+        guard !failedKeys.contains(key) else { return nil }
         var model: MTGCard?
         if let set = card.set, let number = card.collectorNumber { model = try? CardService.shared.getCard(code: set.lowercased(), number: number) }
         if model == nil, let name = card.name { model = try? CardService.shared.getCard(name: name) }

@@ -10,6 +10,7 @@ import mage.players.PlayerType;
 import mage.players.net.UserData;
 import mage.remote.*;
 import mage.utils.MageVersion;
+import mage.util.MultiAmountMessage;
 import mage.view.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -27,6 +28,7 @@ final class XMageSession implements MageClient, AutoCloseable {
     private boolean ownsTable;
     private JsonObject snapshot;
     private JsonObject prompt;
+    private List<MultiAmountMessage> amountConstraints;
     private long revision;
     private int lastStateMessage = -1;
     private final Set<UUID> joinedGames = new HashSet<>();
@@ -46,8 +48,9 @@ final class XMageSession implements MageClient, AutoCloseable {
         connection.setUserIdStr(UUID.randomUUID().toString());
         connection.setUserData(UserData.getDefaultUserDataView());
         if (!session.connectStart(connection)) throw new IllegalStateException("XMage login failed: " + session.getLastError());
+        if (closed) throw new CancellationException("Connection cancelled.");
         heartbeat.scheduleWithFixedDelay(() -> queue.execute(session::ping), 5, 5, TimeUnit.SECONDS);
-        output.accept(object("type", "ready", "engineVersion", getVersion().toString(), "protocolVersion", 1));
+        output.accept(object("type", "ready", "engineVersion", getVersion().toString(), "protocolVersion", 1, "formats", availableFormats()));
     }
 
     void command(JsonObject request) {
@@ -56,10 +59,10 @@ final class XMageSession implements MageClient, AutoCloseable {
         if (receipts.containsKey(requestId)) { output.accept(receipts.get(requestId)); return; }
         try {
             switch (string(request, "type")) {
-                case "createAiGame" -> createGame(true);
-                case "createHumanGame" -> createGame(false);
+                case "createAiGame" -> createGame(true, request);
+                case "createHumanGame" -> createGame(false, request);
                 case "listTables" -> listTables();
-                case "joinTable" -> joinTable(UUID.fromString(string(request, "tableId")));
+                case "joinTable" -> joinTable(UUID.fromString(string(request, "tableId")), request);
                 case "startMatch" -> startMatch();
                 case "answer" -> answer(request);
                 case "resync" -> replay();
@@ -88,10 +91,20 @@ final class XMageSession implements MageClient, AutoCloseable {
         if (gameId != null || tableId != null) throw new IllegalStateException("This session already has a game or waiting table.");
     }
 
-    private void createGame(boolean ai) {
+    private List<String> availableFormats() {
+        Set<String> supported = Set.of("Limited", "Constructed - Standard", "Constructed - Pioneer", "Constructed - Modern",
+                "Constructed - Legacy", "Constructed - Vintage", "Constructed - Pauper");
+        return Arrays.stream(session.getDeckTypes()).filter(supported::contains).toList();
+    }
+
+    private void createGame(boolean ai, JsonObject request) {
         requireNoTable();
+        String format = string(request, "format");
+        if (format.isEmpty()) format = "Limited";
+        if (!availableFormats().contains(format)) throw new IllegalArgumentException("This deck format is not available.");
+        DeckCardLists deck = readDeck(request);
         MatchOptions options = new MatchOptions("Magic Board Rules", "Two Player Duel", false);
-        options.setDeckType("Limited");
+        options.setDeckType(format);
         options.setWinsNeeded(1);
         options.setMatchTimeLimit(MatchTimeLimit.NONE);
         options.setMatchBufferTime(MatchBufferTime.NONE);
@@ -105,10 +118,10 @@ final class XMageSession implements MageClient, AutoCloseable {
         tableId = table.getTableId();
         ownsTable = true;
         try {
-            if (!session.joinTable(room, tableId, ai ? "Magic Board" : "Player 1", PlayerType.HUMAN, 1, simpleDeck(), ""))
+            if (!session.joinTable(room, tableId, ai ? "Magic Board" : "Player 1", PlayerType.HUMAN, 1, deck, ""))
                 throw new IllegalStateException("XMage could not seat you at the table.");
             if (ai) {
-                if (!session.joinTable(room, tableId, "Computer", PlayerType.COMPUTER_MAD, 1, simpleDeck(), "")
+                if (!session.joinTable(room, tableId, "Computer", PlayerType.COMPUTER_MAD, 1, deck.copy(), "")
                         || !session.startMatch(room, tableId))
                     throw new IllegalStateException("XMage could not start the AI game. Check the server log.");
             } else {
@@ -126,19 +139,20 @@ final class XMageSession implements MageClient, AutoCloseable {
         for (TableView table : session.getTables(session.getMainRoomId())) {
             if (!table.getTableName().startsWith("Magic Board Rules") || table.getTableState() != TableState.WAITING) continue;
             long occupied = table.getSeats().stream().filter(seat -> seat.getPlayerId() != null).count();
-            tables.add(object("id", table.getTableId(), "name", table.getTableName(), "players", occupied, "capacity", table.getSeats().size()));
+            tables.add(object("id", table.getTableId(), "name", table.getTableName(), "players", occupied, "capacity", table.getSeats().size(), "format", table.getDeckType()));
         }
         JsonObject event = object("type", "tables");
         event.add("tables", tables);
         output.accept(event);
     }
 
-    private void joinTable(UUID id) {
+    private void joinTable(UUID id, JsonObject request) {
         requireNoTable();
+        DeckCardLists deck = readDeck(request);
         TableView table = session.getTable(session.getMainRoomId(), id).orElseThrow(() -> new IllegalArgumentException("This waiting game no longer exists."));
         if (!table.getTableName().startsWith("Magic Board Rules") || table.getTableState() != TableState.WAITING)
             throw new IllegalStateException("This game is no longer waiting for players.");
-        if (!session.joinTable(session.getMainRoomId(), id, "Player 2", PlayerType.HUMAN, 1, simpleDeck(), ""))
+        if (!session.joinTable(session.getMainRoomId(), id, "Player 2", PlayerType.HUMAN, 1, deck, ""))
             throw new IllegalStateException("XMage could not join the game. It may already be full.");
         tableId = id; ownsTable = false;
         output.accept(object("type", "tableJoined", "tableId", id, "owner", false));
@@ -159,6 +173,35 @@ final class XMageSession implements MageClient, AutoCloseable {
         return deck;
     }
 
+    private static DeckCardLists readDeck(JsonObject request) {
+        if (!request.has("deck") || request.get("deck").isJsonNull()) return simpleDeck();
+        JsonObject input = request.getAsJsonObject("deck");
+        DeckCardLists deck = new DeckCardLists();
+        String name = string(input, "name");
+        deck.setName(name.isEmpty() ? "Imported Deck" : name.substring(0, Math.min(100, name.length())));
+        readCards(input.getAsJsonArray("main"), deck.getCards(), 500);
+        readCards(input.getAsJsonArray("sideboard"), deck.getSideboard(), 100);
+        if (deck.getCards().isEmpty()) throw new IllegalArgumentException("The deck is empty.");
+        return deck;
+    }
+
+    private static void readCards(JsonArray rows, List<DeckCardInfo> destination, int maxCards) {
+        if (rows == null) return;
+        if (rows.size() > maxCards) throw new IllegalArgumentException("The deck has too many entries.");
+        int total = 0;
+        for (JsonElement row : rows) {
+            JsonObject card = row.getAsJsonObject();
+            String name = string(card, "name").trim();
+            int count = card.get("count").getAsBigDecimal().intValueExact();
+            total += count;
+            if (name.isEmpty() || name.length() > 200 || count < 1 || count > 99 || total > maxCards)
+                throw new IllegalArgumentException("Invalid card name or quantity in deck list.");
+            String number = string(card, "collectorNumber");
+            String set = string(card, "set").toUpperCase(Locale.ROOT);
+            destination.add(CardPrintings.resolve(name, set, number, count));
+        }
+    }
+
     private void answer(JsonObject request) {
         if (prompt == null || !string(prompt, "id").equals(string(request, "promptId")))
             throw new IllegalStateException("That choice has expired. Refresh the game.");
@@ -171,7 +214,10 @@ final class XMageSession implements MageClient, AutoCloseable {
         boolean sent;
         switch (kind) {
             case "boolean" -> {
-                if (!Set.of("GAME_ASK", "GAME_SELECT", "GAME_PLAY_MANA", "GAME_PLAY_XMANA", "GAME_CHOOSE_PILE", "GAME_TARGET").contains(method))
+                if (method.equals("GAME_GET_MULTI_AMOUNT")) {
+                    if (!Boolean.TRUE.equals(prompt.has("canCancel") && prompt.get("canCancel").getAsBoolean()) || value.getAsBoolean())
+                        throw new IllegalArgumentException("This distribution cannot be cancelled.");
+                } else if (!Set.of("GAME_ASK", "GAME_SELECT", "GAME_PLAY_MANA", "GAME_PLAY_XMANA", "GAME_CHOOSE_PILE", "GAME_TARGET").contains(method))
                     throw new IllegalArgumentException("This prompt does not accept a boolean.");
                 sent = session.sendPlayerBoolean(gameId, value.getAsBoolean());
             }
@@ -195,7 +241,17 @@ final class XMageSession implements MageClient, AutoCloseable {
                 for (JsonElement entry : prompt.getAsJsonArray("choices"))
                     if (string(entry.getAsJsonObject(), "id").equals(choice)) valid = true;
                 if (!valid) throw new IllegalArgumentException("Unknown choice.");
-                sent = session.sendPlayerString(gameId, choice);
+                sent = method.equals("GAME_CHOOSE_ABILITY")
+                        ? session.sendPlayerUUID(gameId, UUID.fromString(choice))
+                        : session.sendPlayerString(gameId, choice);
+            }
+            case "amounts" -> {
+                if (!method.equals("GAME_GET_MULTI_AMOUNT") || amountConstraints == null)
+                    throw new IllegalArgumentException("This prompt does not accept distributed amounts.");
+                List<Integer> amounts = new ArrayList<>();
+                for (JsonElement amount : value.getAsJsonArray()) amounts.add(amount.getAsBigDecimal().intValueExact());
+                String encoded = PromptAnswers.amounts(amounts, amountConstraints, prompt.get("min").getAsInt(), prompt.get("max").getAsInt());
+                sent = session.sendPlayerString(gameId, encoded);
             }
             default -> throw new IllegalArgumentException("Unsupported answer type.");
         }
@@ -207,10 +263,14 @@ final class XMageSession implements MageClient, AutoCloseable {
     @Override public void onCallback(ClientCallback callback) {
         if (closed) return;
         callback.decompressData();
-        queue.execute(() -> {
-            try { handle(callback); }
-            catch (Exception error) { showError("Unable to process " + callback.getMethod() + ": " + error.getMessage()); }
-        });
+        try {
+            queue.execute(() -> {
+                try { handle(callback); }
+                catch (Exception error) { showError("Unable to process " + callback.getMethod() + ": " + error.getMessage()); }
+            });
+        } catch (RejectedExecutionException error) {
+            if (!closed) throw error;
+        }
     }
 
     private void handle(ClientCallback callback) {
@@ -250,7 +310,9 @@ final class XMageSession implements MageClient, AutoCloseable {
         result.add("hand", cards(view.getMyHand().values()));
         result.add("stack", cards(view.getStack().values()));
         JsonArray playable = new JsonArray();
-        if (view.getCanPlayObjects() != null) view.getCanPlayObjects().getObjects().keySet().forEach(id -> playable.add(id.toString()));
+        if (view.getCanPlayObjects() != null) view.getCanPlayObjects().getObjects().forEach((id, stats) -> {
+            if (stats.getPlayableAmount() > 0) playable.add(id.toString());
+        });
         result.add("playableIds", playable);
         JsonArray players = new JsonArray();
         for (PlayerView player : view.getPlayers()) {
@@ -259,6 +321,9 @@ final class XMageSession implements MageClient, AutoCloseable {
             item.add("battlefield", cards(player.getBattlefield().values()));
             item.add("graveyard", cards(player.getGraveyard().values()));
             item.add("exile", cards(player.getExile().values()));
+            JsonArray counters = new JsonArray();
+            if (player.getCounters() != null) player.getCounters().forEach(counter -> counters.add(object("name", counter.getName(), "count", counter.getCount())));
+            item.add("counters", counters);
             players.add(item);
         }
         result.add("players", players);
@@ -287,6 +352,7 @@ final class XMageSession implements MageClient, AutoCloseable {
             result.addProperty("max", message.getMax());
             result.addProperty("required", message.isFlag());
             result.add("cards", message.getCardsView1() == null ? new JsonArray() : cards(message.getCardsView1().values()));
+            result.add("secondPile", message.getCardsView2() == null ? new JsonArray() : cards(message.getCardsView2().values()));
             JsonArray targets = new JsonArray();
             if (message.getTargets() != null) message.getTargets().forEach(id -> targets.add(id.toString()));
             result.add("targets", targets);
@@ -295,12 +361,26 @@ final class XMageSession implements MageClient, AutoCloseable {
                 if (message.getChoice().isKeyChoice()) message.getChoice().getKeyChoices().forEach((id, label) -> choices.add(object("id", id, "label", label)));
                 else message.getChoice().getChoices().forEach(label -> choices.add(object("id", label, "label", label)));
             }
+            if (method.equals("GAME_GET_MULTI_AMOUNT")) {
+                amountConstraints = message.getMessages();
+                List<Integer> defaults = MultiAmountType.prepareDefaultValues(amountConstraints, message.getMin(), message.getMax());
+                JsonArray amounts = new JsonArray();
+                for (int i = 0; i < amountConstraints.size(); i++) {
+                    MultiAmountMessage amount = amountConstraints.get(i);
+                    amounts.add(object("label", amount.message, "min", amount.min, "max", amount.max, "defaultValue", defaults.get(i)));
+                }
+                result.add("amounts", amounts);
+                if (message.getOptions() != null) {
+                    result.addProperty("message", String.valueOf(message.getOptions().getOrDefault("header", "Choose amounts")));
+                    result.addProperty("canCancel", Boolean.TRUE.equals(message.getOptions().get("canCancel")));
+                }
+            }
         } else if (data instanceof AbilityPickerView picker) {
             result.addProperty("message", picker.getMessage());
             picker.getChoices().forEach((id, label) -> choices.add(object("id", id, "label", label)));
         }
         result.add("choices", choices);
-        result.addProperty("supported", !Set.of("GAME_GET_MULTI_AMOUNT", "GAME_CHOOSE_PILE").contains(method));
+        result.addProperty("supported", true);
         return result;
     }
 
@@ -321,6 +401,18 @@ final class XMageSession implements MageClient, AutoCloseable {
             JsonArray counters = new JsonArray();
             if (card.getCounters() != null) card.getCounters().forEach(counter -> counters.add(object("name", counter.getName(), "count", counter.getCount())));
             item.add("counters", counters);
+            JsonArray colors = new JsonArray();
+            if (card.getColor() != null) {
+                if (card.getColor().isWhite()) colors.add("W");
+                if (card.getColor().isBlue()) colors.add("U");
+                if (card.getColor().isBlack()) colors.add("B");
+                if (card.getColor().isRed()) colors.add("R");
+                if (card.getColor().isGreen()) colors.add("G");
+            }
+            item.add("colors", colors);
+            JsonArray targets = new JsonArray();
+            if (card.getTargets() != null) card.getTargets().forEach(target -> targets.add(target.toString()));
+            item.add("targets", targets);
             result.add(item);
         }
         return result;
@@ -341,7 +433,8 @@ final class XMageSession implements MageClient, AutoCloseable {
     @Override public void disconnected(boolean reconnect, boolean keep) { output.accept(object("type", "engineDisconnected", "message", "The bridge lost its XMage server connection.")); }
     @Override public void showMessage(String message) { output.accept(object("type", "notice", "message", message)); }
     @Override public void showError(String message) { output.accept(object("type", "error", "message", message)); }
-    @Override public void close() {
+    @Override public synchronized void close() {
+        if (closed) return;
         closed = true;
         heartbeat.shutdownNow();
         queue.execute(() -> {
