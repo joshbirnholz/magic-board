@@ -532,6 +532,8 @@ final class XMageSession implements MageClient, AutoCloseable {
             picker.getChoices().forEach((id, label) -> choices.add(object("id", id, "label", label)));
         }
         result.add("choices", choices);
+        JsonObject source = PromptSource.find(result, snapshot);
+        if (source != null) result.add("source", source);
         result.addProperty("supported", PromptMetadata.METHODS.contains(method));
         return result;
     }

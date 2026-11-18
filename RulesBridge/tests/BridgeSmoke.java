@@ -168,6 +168,9 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     for (JsonElement item : currentState.getAsJsonArray("stack"))
                         if (name(item.getAsJsonObject()).equals("Mind Rot")) observedPrompts.add("COSTED_MANA_SPELL_CAST");
                 }
+                if (method.equals("GAME_TARGET") && nextPrompt.get("message").getAsString().contains("(to sacrifice)")
+                        && nextPrompt.has("source") && name(nextPrompt.getAsJsonObject("source")).equals("Ahriman"))
+                    observedPrompts.add("SACRIFICE_SOURCE_NAMED");
                 if (coverageOnly && method.equals("GAME_SELECT") && observedPrompts.containsAll(requiredPrompts)) {
                     System.out.println("PASS required prompts answered and engine returned to priority: " + observedPrompts);
                     return;

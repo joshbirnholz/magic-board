@@ -1,0 +1,31 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Ahriman source",
+    "main": [
+      {
+        "name": "Swamp",
+        "count": 24
+      },
+      {
+        "name": "Ahriman",
+        "count": 12
+      },
+      {
+        "name": "Ornithopter",
+        "count": 12
+      }
+    ],
+    "sideboard": []
+  },
+  "aiDeck": {
+    "name": "Passive source-test opponent",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 40
+      }
+    ],
+    "sideboard": []
+  }
+}

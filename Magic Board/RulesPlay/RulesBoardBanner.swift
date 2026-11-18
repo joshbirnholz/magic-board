@@ -14,8 +14,8 @@ extension RulesPrompt {
             let text = plainMessage.replacingOccurrences(of: "Select ", with: "Choose ", options: .anchored)
             let instruction = text.isEmpty ? "Choose a target." : text
             // XMage sends the asking ability's source separately from its target restriction.
-            let source = subMessage.map(RulesText.plain)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return source.isEmpty ? instruction : "\(source): \(instruction)"
+            let sourceName = (source?.name ?? subMessage).map(RulesText.plain)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return sourceName.isEmpty ? instruction : "\(sourceName): \(instruction)"
         default:
             return nil
         }

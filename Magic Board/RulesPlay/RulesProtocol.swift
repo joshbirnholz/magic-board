@@ -109,6 +109,11 @@ enum RulesPriorityAction: String, Encodable {
 }
 
 struct RulesPrompt: Decodable, Identifiable {
+    struct Source: Decodable, Identifiable {
+        let id: String
+        let name: String
+    }
+
     struct Choice: Decodable, Identifiable { let id: String; let label: String }
     struct Amount: Decodable {
         let label: String
@@ -132,6 +137,7 @@ struct RulesPrompt: Decodable, Identifiable {
     let canCancel: Bool?
     var queryType: String? = nil
     var subMessage: String? = nil
+    var source: Source? = nil
     var specialActionAvailable: Bool? = nil
     var specialActionLabel: String? = nil
     var selectionIds: [String]? = nil

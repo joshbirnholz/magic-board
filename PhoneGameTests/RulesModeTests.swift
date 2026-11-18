@@ -262,6 +262,20 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
     }
 
+    func testStructuredPromptSourceAndOlderBridgeFallback() throws {
+        func prompt(_ extra: [String: Any]) throws -> RulesPrompt {
+            var json: [String: Any] = ["id": "s", "method": "GAME_TARGET", "revision": 1, "supported": true,
+                                      "message": "Select another creature or artifact (to sacrifice)", "choices": []]
+            json.merge(extra) { _, new in new }
+            return try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        let sourced = try prompt(["source": ["id": "source-id", "name": "Ahriman"]])
+        XCTAssertEqual(sourced.source?.id, "source-id")
+        XCTAssertEqual(sourced.boardBannerText, "Ahriman: Choose another creature or artifact (to sacrifice)")
+        XCTAssertNil(try prompt([:]).source)
+        XCTAssertEqual(try prompt([:]).boardBannerText, "Choose another creature or artifact (to sacrifice)")
+    }
+
     func testBattlefieldInstructionNamesTheAskingCard() throws {
         let prompt = try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
             "id": "sacrifice", "method": "GAME_TARGET", "revision": 1, "supported": true, "choices": [],
