@@ -369,6 +369,9 @@ final class RulesModeUITests: XCTestCase {
         }
         let app = XCUIApplication()
         app.launchArguments = ["--rules-ui-test"]
+        // TEST_RUNNER_RULES_UI_TEST_PACKETS=JumpStart (or "Jump In"): draft two packets for this seat first.
+        let packets = ProcessInfo.processInfo.environment["RULES_UI_TEST_PACKETS"]
+        if let packets { app.launchArguments += ["-rules.deckSource", "\"\(packets)\""] }
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -388,6 +391,13 @@ final class RulesModeUITests: XCTestCase {
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-create-human"])
         waitForExpectations(timeout: 10)
         app.buttons["rules-create-human"].tap()
+        if packets != nil {
+            let choice = app.buttons.matching(identifier: "rules-packet-choice")
+            XCTAssertTrue(choice.firstMatch.waitForExistence(timeout: 10), "Creating a packet game should offer packets")
+            choice.firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
+            choice.firstMatch.tap()
+        }
         let start = app.buttons["rules-start-human"]
         XCTAssertTrue(start.waitForExistence(timeout: 20), "Creating the waiting game failed")
         // The second seat polls for waiting games every second; start once it has had time to join.
@@ -426,6 +436,17 @@ final class RulesModeUITests: XCTestCase {
             }
             if keepButton(app).exists { keepButton(app).tap(); continue }
             if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Player 1"].exists { app.buttons["Player 1"].tap(); continue }
+            // A target on the board (a removal spell, an aura): tap a highlighted card, else the opponent.
+            if text.localizedCaseInsensitiveContains("select a") || text.localizedCaseInsensitiveContains("target") {
+                let glow = app.descendants(matching: .any).matching(identifier: "phone-combat-glow").matching(NSPredicate(format: "value == 'Playable'")).firstMatch
+                if glow.exists {
+                    app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: glow.frame.midX, dy: glow.frame.midY)).tap()
+                    Thread.sleep(forTimeInterval: 0.8); continue
+                }
+                if app.buttons["rules-target-opponent"].exists { app.buttons["rules-target-opponent"].tap(); Thread.sleep(forTimeInterval: 0.8); continue }
+                let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'rules-prompt-card-'")).firstMatch
+                if card.exists && card.isHittable { card.tap(); Thread.sleep(forTimeInterval: 0.8); continue }
+            }
             if text.hasPrefix("Pay") {
                 // Tap an untapped land to pay, as a person would.
                 // Ours are in the lower half (the opponent's lands are at the top).
