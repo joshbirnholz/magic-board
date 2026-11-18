@@ -34,6 +34,9 @@ extension RulesPrompt {
     var isStartingPlayer: Bool { message?.localizedCaseInsensitiveContains("starting player") == true }
     var isMulligan: Bool { method == "GAME_ASK" && message?.localizedCaseInsensitiveContains("mulligan") == true }
     /// XMage's London mulligan: "Select a card (N more) to put on the bottom of your library".
+    /// A "Pay {…}" mana payment prompt.
+    var isPayment: Bool { method == "GAME_PLAY_MANA" || method == "GAME_PLAY_XMANA" }
+
     var isLondonBottom: Bool {
         guard method == "GAME_TARGET" else { return false }
         // Scry also mentions the bottom of the library. Only XMage's opening-hand question
@@ -142,6 +145,12 @@ struct RulesOracleText: View {
 struct RulesPromptBar: View {
     @ObservedObject var session: RulesGameSession
     var exit: (() -> Void)? = nil
+    /// The payment prompt kept on screen in the moment between one mana being paid and XMage
+    /// asking for the next (the prompt is briefly absent then), so the strip doesn't vanish,
+    /// shrink the bar and pop back in a different place with each mana (Josh).
+    @State private var heldPayment: RulesPrompt?
+
+    private var shownPrompt: RulesPrompt? { session.prompt ?? heldPayment }
 
     var body: some View {
         Group {
@@ -155,7 +164,7 @@ struct RulesPromptBar: View {
                 }
             } else if session.result != nil {
                 EmptyView() // the game-over screen is full screen
-            } else if let prompt = session.prompt {
+            } else if let prompt = shownPrompt {
                 if prompt.style == .compact { compact(prompt) }
                 else if prompt.style == .browser {
                     // The board's browser shows the cards; the question stays available to VoiceOver.
@@ -174,8 +183,23 @@ struct RulesPromptBar: View {
             }
         }
         .frame(maxWidth: 320)
-        .disabled(session.pendingRequest != nil)
-        .animation(.easeInOut(duration: 0.15), value: session.prompt?.id)
+        .disabled(session.pendingRequest != nil || session.prompt == nil)
+        // One payment prompt after another is the same strip with a smaller cost, not a new prompt
+        // to fade in.
+        .animation(.easeInOut(duration: 0.15), value: shownPrompt.map { $0.isPayment ? "payment" : $0.id })
+        .onChange(of: session.prompt?.id) { _ in holdPayment() }
+    }
+
+    private func holdPayment() {
+        guard let prompt = session.prompt else {
+            guard let held = heldPayment else { return }
+            // Paid in full (or cancelled) with nothing asked next: let the strip go.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                if session.prompt == nil, heldPayment?.id == held.id { heldPayment = nil }
+            }
+            return
+        }
+        heldPayment = prompt.isPayment ? prompt : nil
     }
 
     @ViewBuilder private func compact(_ prompt: RulesPrompt) -> some View {
@@ -190,9 +214,16 @@ struct RulesPromptBar: View {
                 HStack {
                     answer("Cancel", .boolean(false), primary: false)
                     if prompt.method == "GAME_PLAY_XMANA" { answer("Done", .boolean(true)) }
-                    // With automatic payment turned off, one tap still pays with a fitting basic land.
+                    // With automatic payment turned off, one tap still pays the whole cost with fitting
+                    // basic lands (the adapter pays each mana XMage asks for next the same way).
                     if !RulesPhoneAdapter.autoPaysMana, let land = RulesPhoneAdapter.autoPayLand(prompt, snapshot: session.snapshot) {
-                        answer("Auto", .object(land)).accessibilityIdentifier("rules-auto-pay")
+                        Button("Auto") {
+                            session.payingCostAutomatically = true
+                            Task { await session.answer(.object(land)) }
+                        }
+                        .buttonStyle(RulesPillButtonStyle())
+                        .disabled(!session.canAnswer)
+                        .accessibilityIdentifier("rules-auto-pay")
                     }
                 }
             }

@@ -639,7 +639,15 @@ final class RulesModeUITests: XCTestCase {
             }
             if text.hasPrefix("Pay"), app.buttons["rules-auto-pay"].exists {
                 app.buttons["rules-auto-pay"].tap(); autoButton += 1
-                Thread.sleep(forTimeInterval: 0.8); continue
+                // One tap pays the whole cost (Josh), not one mana: unless what's left needs a land
+                // Auto can't use (then the button goes away), the payment prompt is gone shortly.
+                let paid = Date().addingTimeInterval(4)
+                while Date() < paid, message.exists, message.label.hasPrefix("Pay"), app.buttons["rules-auto-pay"].exists {
+                    Thread.sleep(forTimeInterval: 0.2)
+                }
+                XCTAssertFalse(message.exists && message.label.hasPrefix("Pay") && app.buttons["rules-auto-pay"].exists,
+                               "Auto paid only part of the cost: \(message.label)")
+                continue
             }
             if text.hasPrefix("Pay") {
                 Thread.sleep(forTimeInterval: 2.0)

@@ -88,8 +88,14 @@ final class RulesPhoneAdapter {
         // can't decide plainly (hybrid, X, non-basic lands) is left to the player to tap.
         // (Not engine.canAnswer: @Published sinks run before the property changes, so it would still
         // see the previous pending request here.)
-        if Self.autoPaysMana, let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected, prompt.supported,
-           let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
+        // With automatic payment off, the prompt's Auto button pays the whole cost the same way; the
+        // run ends at the first prompt that isn't a payment it can make.
+        if let prompt, pending == nil, engine.payingCostAutomatically,
+           prompt.method != "GAME_PLAY_MANA" || Self.autoPayLand(prompt, snapshot: engine.snapshot) == nil {
+            engine.payingCostAutomatically = false
+        }
+        if Self.autoPaysMana || engine.payingCostAutomatically, let prompt, pending == nil, prompt.id != autoPassedPromptID,
+           status == .connected, prompt.supported, let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(land)) }
         }
