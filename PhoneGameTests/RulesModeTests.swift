@@ -245,6 +245,8 @@ final class RulesModeTests: XCTestCase {
     func testTokensUseTheirPrintedName() throws {
         let token = try JSONDecoder().decode(RulesCard.self, from: Data(#"{"id":"t","name":"Treasure Token","set":"FIN","faceDown":false,"transformed":false,"typeLine":"Token Artifact — Treasure","counters":[]}"#.utf8))
         XCTAssertEqual(RulesText.tokenName(token), "Treasure")
+        let xmageToken = try JSONDecoder().decode(RulesCard.self, from: Data(#"{"id":"t","name":"Food Token","set":"M20","faceDown":false,"transformed":false,"typeLine":"Legendary Artifact  - Food","counters":[]}"#.utf8))
+        XCTAssertEqual(RulesText.typeLine(xmageToken), "Legendary Token Artifact — Food")
         let card = try JSONDecoder().decode(RulesCard.self, from: Data(#"{"id":"c","name":"Ahriman","faceDown":false,"transformed":false,"typeLine":"Creature — Eye Horror","counters":[]}"#.utf8))
         XCTAssertNil(RulesText.tokenName(card))
     }

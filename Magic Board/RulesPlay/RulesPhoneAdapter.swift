@@ -457,7 +457,7 @@ final class RulesPhoneAdapter {
         try Task.checkCancellation()
         let centers = phone?.game.cards.mapValues { $0.center.value } ?? [:]
         func instance(_ card: RulesCard, owner: Player.Identifier, battlefield: Bool = false) throws -> CardInstance {
-            let printed = try models[card.id] ?? Self.placeholder(name: RulesText.tokenName(card) ?? card.name ?? "Unknown card", typeLine: card.typeLine ?? "", rules: card.rules, manaCost: card.manaCost)
+            let printed = try models[card.id] ?? Self.placeholder(name: RulesText.tokenName(card) ?? card.name ?? "Unknown card", typeLine: RulesText.typeLine(card) ?? "", rules: card.rules, manaCost: card.manaCost)
             let model = try battlefield ? RulesCardCharacteristics.applying(card, to: printed) : printed
             var representation = CardRepresentation.card(model).choosingFrontFace
             if card.transformed, let back = model.cardFaces?.last { representation = .alternateFace(model, back) }
@@ -595,8 +595,8 @@ enum RulesCardCharacteristics {
     static func applying(_ engine: RulesCard, to printed: MTGCard) throws -> MTGCard {
         var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(printed)) as! [String: Any]
         func apply(to values: inout [String: Any]) {
-            if let type = engine.typeLine { values["typeLine"] = RulesText.plain(type) }
-            if let rules = engine.rules { values["oracleText"] = RulesText.cardRules(rules, name: engine.name, typeLine: engine.typeLine.map(RulesText.plain)); values["keywords"] = [] }
+            if let type = RulesText.typeLine(engine) { values["typeLine"] = type }
+            if let rules = engine.rules { values["oracleText"] = RulesText.cardRules(rules, name: engine.name, typeLine: RulesText.typeLine(engine)); values["keywords"] = [] }
             if let mana = engine.manaCost { values["manaCost"] = mana }
             if let colors = engine.colors { values["colors"] = colors }
         }

@@ -269,6 +269,24 @@ enum RulesText {
         return name.hasSuffix(" Token") ? String(name.dropLast(" Token".count)) : name
     }
 
+    /// A card's type line as printed: XMage writes "Artifact  - Treasure", and leaves "Token" off
+    /// tokens (the board draws the token frame from it).
+    static func typeLine(_ card: RulesCard) -> String? {
+        guard var type = card.typeLine.map(plain) else { return tokenName(card) == nil ? nil : "Token" }
+        type = type.replacingOccurrences(of: #"\s+-\s+"#, with: " — ", options: .regularExpression)
+            .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+        if tokenName(card) != nil, !type.contains("Token") {
+            // "Legendary Artifact — Food" becomes "Legendary Token Artifact — Food".
+            let supertypes = ["Legendary", "Snow", "Basic", "World"]
+            var words = type.components(separatedBy: " ")
+            let index = words.firstIndex { !supertypes.contains($0) } ?? words.count
+            words.insert("Token", at: index)
+            type = words.joined(separator: " ")
+        }
+        return type
+    }
+
     /// A card's rules as the engine states them, worded the way current cards refer to themselves
     /// (XMage writes "{this}"): "this creature" / "this land"…, an Aura's or Equipment's subtype,
     /// an instant's or sorcery's name, a legendary card's short name, "this token", and "this card"
