@@ -4896,8 +4896,16 @@ extension BoardViewController {
             // In a Rules game XMage moves cards between zones; a card can only be played (the
             // Battlefield zone) or, from the opening hand, put on the bottom of the library.
             if session.mode == .rules {
-                guard self.phoneBrowserMode == .openingHand, let pile = self.phonePileZone(at: point),
-                      pile.player == session.player, pile.location == .library else { return nil }
+                guard let pile = self.phonePileZone(at: point), pile.player == session.player else { return nil }
+                // Scry: the library (its bottom). Surveil: the graveyard. Phone Play's own flow.
+                if self.phoneBrowserMode == .rulesChoice {
+                    switch session.game.rulesChoice?.kind {
+                    case .scry: return pile.location == .library ? .library : nil
+                    case .surveil: return pile.location == .graveyard ? .graveyard : nil
+                    default: return nil
+                    }
+                }
+                guard self.phoneBrowserMode == .openingHand, pile.location == .library else { return nil }
                 return .library
             }
             if let pile = self.phonePileZone(at: point), pile.player == session.player {
@@ -4913,6 +4921,13 @@ extension BoardViewController {
         }
         browser.onMove = { [weak self] card, destination in
             guard let self else { return }
+            if self.phoneBrowserMode == .rulesChoice {
+                // Scry / surveil: dropping a card on its pile chooses it (XMage moves it once Done);
+                // the browser keeps showing it, rimmed, until then.
+                if let adapter = session.rulesAdapter { Task { await adapter.chooseInBrowser(card.uuid) } }
+                self.refreshPhoneBrowser(session)
+                return
+            }
             let position = self.phoneBrowserIDs.firstIndex(of: card.uuid)
             self.phoneBrowserIDs.removeAll { $0 == card.uuid }
             let owner = card.ownerIdentifier

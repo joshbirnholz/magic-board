@@ -91,6 +91,9 @@ struct PhoneGame: Codable {
         var cardIDs: [UUID]
         var selectable: Set<UUID>
         var selected: Set<UUID>
+        /// Scry or surveil: cards are dragged to the library (bottom) or graveyard, as in Phone Play.
+        enum Kind: String, Codable { case choose, scry, surveil }
+        var kind: Kind? = nil
     }
     var rulesChoice: RulesChoice? = nil
     /// Hand smoothing for the first hand of a game, as the iPad app does for JumpStart and Jump In:

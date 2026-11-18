@@ -556,11 +556,24 @@ final class RulesPhoneAdapter {
         if engine.pendingRequest == nil, let prompt = engine.prompt, prompt.style == .browser, let cards = prompt.cards {
             choiceCards = try cards.map { try instance($0, owner: .a) }
             let ids = cards.compactMap { UUID(uuidString: $0.id) }
-            game.rulesChoice = .init(id: prompt.id, title: prompt.plainMessage,
-                                     subtitle: prompt.subMessage.map(RulesText.plain).flatMap { $0.isEmpty ? nil : $0 },
+            let message = prompt.plainMessage.lowercased()
+            let kind: PhoneGame.RulesChoice.Kind = message.contains("(scry)") ? .scry : message.contains("(surveil)") ? .surveil : .choose
+            let title: String = switch kind {
+            case .scry: "Scry \(cards.count)"
+            case .surveil: "Surveil \(cards.count)"
+            case .choose: prompt.plainMessage
+            }
+            let hint: String? = switch kind {
+            case .scry: "Drag cards to the bottom of your library (or tap them). The rest stay on top."
+            case .surveil: "Drag cards to your graveyard (or tap them). The rest stay on top."
+            case .choose: nil
+            }
+            game.rulesChoice = .init(id: prompt.id, title: title,
+                                     subtitle: hint ?? prompt.subMessage.map(RulesText.plain).flatMap { $0.isEmpty ? nil : $0 },
                                      cardIDs: ids,
                                      selectable: Set(ids.filter { prompt.isCardSelectable($0.uuidString.lowercased()) }),
-                                     selected: Set((prompt.selectedIds ?? []).compactMap(UUID.init(uuidString:))))
+                                     selected: Set((prompt.selectedIds ?? []).compactMap(UUID.init(uuidString:))),
+                                     kind: kind)
         } else {
             choiceCards = []
         }
