@@ -43,6 +43,9 @@ final class RulesPhoneAdapter {
 
     private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool) {
         let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
+        // Arena shows the opening hand in a browser (Keep / Mulligan); Phone Play's opening-hand
+        // browser is driven by `opening`, one per mulligan question.
+        presentation.opening = openingHand(for: pending == nil ? prompt : nil)
         // Arena: while choosing targets, the legal targets glow instead of the playable cards.
         presentation.rulesPlayable = Self.highlighted(snapshot: engine.snapshot, prompt: pending == nil ? prompt : nil)
         phone?.displayRules(presentation, connected: status == .connected,
@@ -61,6 +64,12 @@ final class RulesPhoneAdapter {
            let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(land)) }
+        }
+        // Who plays first is decided at random (Josh), not asked.
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected, prompt.isStartingPlayer,
+           let choice = prompt.targets?.randomElement() {
+            autoPassedPromptID = prompt.id
+            Task { [weak self] in await self?.engine.answer(.object(choice)) }
         }
         if let target = pendingTarget, pending == nil {
             let (answer, keep) = Self.resolvePendingTarget(target, prompt: prompt, snapshot: engine.snapshot, issuedDuring: pendingTargetPromptID)
@@ -138,6 +147,24 @@ final class RulesPhoneAdapter {
         // Generic only: tap the most plentiful colour, keeping scarce colours open.
         let counts = Dictionary(grouping: lands, by: \.color).mapValues(\.count)
         return lands.max { (counts[$0.color] ?? 0) < (counts[$1.color] ?? 0) }?.id
+    }
+
+    /// While XMage asks "Mulligan?", Phone Play's opening-hand browser shows the hand (Keep / Mulligan).
+    private func openingHand(for prompt: RulesPrompt?) -> PhoneGame.Opening? {
+        guard let prompt, prompt.isMulligan else { return nil }
+        // The browser's title says who goes first ("You Go First"): the engine's starting player.
+        let snapshot = engine.snapshot
+        let first: Player.Identifier = snapshot?.activePlayerId.map { $0 == snapshot?.playerId ? .a : .b } ?? .a
+        return PhoneGame.Opening(id: UUID(uuidString: prompt.id) ?? Self.stableID(prompt.id), firstPlayer: first,
+                                 deciding: [phone?.player.rawValue ?? Player.Identifier.a.rawValue])
+    }
+
+    /// A UUID derived from a prompt ID that isn't one itself, so the same prompt keeps the same opening.
+    static func stableID(_ text: String) -> UUID {
+        var bytes = [UInt8](repeating: 0, count: 16)
+        for (index, byte) in text.utf8.enumerated() { bytes[index % 16] = bytes[index % 16] &* 31 &+ byte }
+        return UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+                           bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
     }
 
     /// Arena passes priority for you when you have nothing you could do. XMage stops at every
@@ -317,6 +344,7 @@ final class RulesPhoneAdapter {
         game.state.player1.hand.cards.accept(OrderedSet(oldOrder.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !oldOrder.contains($0.uuid) }))
         let visibleIDs = Set(allCards.map(\.id))
         game.rulesPlayable = Self.highlighted(snapshot: snapshot, prompt: engine.pendingRequest == nil ? engine.prompt : nil)
+        game.opening = openingHand(for: engine.pendingRequest == nil ? engine.prompt : nil)
         game.stack = try snapshot.stack.reversed().map { card in
             let targets: [PhoneGame.Target] = (card.targets ?? []).compactMap { target in
                 if snapshot.players.contains(where: { $0.id == target }) { return .player(seat(target)) }

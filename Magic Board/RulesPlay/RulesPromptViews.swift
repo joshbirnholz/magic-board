@@ -14,6 +14,9 @@ extension RulesPrompt {
     var style: RulesPromptStyle {
         switch method {
         case "GAME_SELECT", "GAME_PLAY_MANA", "GAME_PLAY_XMANA": return .compact
+        // The opening hand uses Phone Play's opening-hand browser; who starts is chosen at random.
+        case "GAME_ASK" where isMulligan: return .compact
+        case "GAME_TARGET" where isStartingPlayer: return .compact
         case "GAME_TARGET": return (cards?.isEmpty == false || isStartingPlayer) ? .modal : .compact
         default: return .modal
         }

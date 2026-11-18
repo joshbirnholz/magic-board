@@ -27,15 +27,15 @@ final class RulesModeUITests: XCTestCase {
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
         waitForExpectations(timeout: 10)
         app.buttons["rules-start-ai"].tap()
-        XCTAssertTrue(app.staticTexts["rules-prompt-message"].waitForExistence(timeout: 30), app.debugDescription)
+        XCTAssertTrue(app.descendants(matching: .any)["rules-prompt-message"].waitForExistence(timeout: 30), app.debugDescription)
         // Phone Play hides the stack control while the engine stack is empty.
         XCTAssertTrue(app.buttons["phone-untap-local"].exists, "Rules mode must use Phone Play's phase/priority control")
-        XCTAssertTrue(app.descendants(matching: .any)["phone-local-hand"].exists, "Rules mode must use Phone Play's hand")
-        let message = app.staticTexts["rules-prompt-message"]
+        // (Phone Play's hand is hidden behind the opening-hand browser until we keep.)
+        let message = app.descendants(matching: .any)["rules-prompt-message"]
         if message.label.localizedCaseInsensitiveContains("starting player") {
             app.buttons["Magic Board"].tap()
         }
-        let keep = app.buttons["Keep Hand"]
+        let keep = keepButton(app)
         XCTAssertTrue(keep.waitForExistence(timeout: 15), app.debugDescription)
         keep.tap()
         XCTAssertTrue(app.descendants(matching: .any)["phone-hand-0"].waitForExistence(timeout: 15), "The engine opening hand should appear in Phone Play's card fan")
@@ -86,7 +86,7 @@ final class RulesModeUITests: XCTestCase {
                 && message.exists && message.label.localizedCaseInsensitiveContains("Play spells")
         }
         while !inOurMainPhase(), Date() < deadline {
-            if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap() }
+            if keepButton(app).exists { keepButton(app).tap() }
             else if message.exists, message.label.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].exists { app.buttons["Magic Board"].tap() }
             else if next.isEnabled { next.tap() } // pass every other stop (opponent's steps, our upkeep and draw)
             Thread.sleep(forTimeInterval: 0.75)
@@ -184,7 +184,7 @@ final class RulesModeUITests: XCTestCase {
                 XCTFail("Unexpected alert: \(app.alerts.firstMatch.label) \(app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label))")
                 app.alerts.firstMatch.buttons.firstMatch.tap(); continue
             }
-            if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap(); continue }
+            if keepButton(app).exists { keepButton(app).tap(); continue }
             if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].exists { app.buttons["Magic Board"].tap(); continue }
             if text.hasPrefix("Pay") {
                 // Basic lands are tapped automatically (Arena); only tap by hand if it doesn't happen.
@@ -424,7 +424,7 @@ final class RulesModeUITests: XCTestCase {
                 XCTFail("Unexpected alert: \(app.alerts.firstMatch.label) \(app.alerts.firstMatch.staticTexts.allElementsBoundByIndex.map(\.label))")
                 app.alerts.firstMatch.buttons.firstMatch.tap(); continue
             }
-            if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap(); continue }
+            if keepButton(app).exists { keepButton(app).tap(); continue }
             if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Player 1"].exists { app.buttons["Player 1"].tap(); continue }
             if text.hasPrefix("Pay") {
                 // Tap an untapped land to pay, as a person would.
@@ -569,7 +569,7 @@ final class RulesModeUITests: XCTestCase {
                 Thread.sleep(forTimeInterval: 1.0)
                 continue
             }
-            if app.buttons["Keep Hand"].exists { app.buttons["Keep Hand"].tap(); continue }
+            if keepButton(app).exists { keepButton(app).tap(); continue }
             if text.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].exists { app.buttons["Magic Board"].tap(); continue }
             // Full-screen decisions: pick the first option or card, as a player might.
             let choice = app.buttons.matching(identifier: "rules-choice").firstMatch
@@ -693,14 +693,19 @@ final class RulesModeUITests: XCTestCase {
         let message = app.descendants(matching: .any)["rules-prompt-message"]
         XCTAssertTrue(message.waitForExistence(timeout: 30))
         if message.label.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].waitForExistence(timeout: 5) { app.buttons["Magic Board"].tap() }
-        XCTAssertTrue(app.buttons["Keep Hand"].waitForExistence(timeout: 20))
+        XCTAssertTrue(keepButton(app).waitForExistence(timeout: 20))
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Rules mode — \(source) opening hand"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        app.buttons["Keep Hand"].tap()
+        keepButton(app).tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.waitForExistence(timeout: 15))
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
+    }
+
+    /// The opening hand's Keep button: Phone Play's opening-hand browser ("Keep").
+    private func keepButton(_ app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label == 'Keep' OR label == 'Keep Hand'")).firstMatch
     }
 }
