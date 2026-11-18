@@ -4299,7 +4299,9 @@ extension BoardViewController {
         phoneStackResolveButton?.titleLabel?.font = font
         phoneStackResolveButton?.frame = CGRect(x: right - max(100, cardWidth), y: bottom - 40,
                                                 width: max(100, cardWidth), height: 40)
-        phoneStackResolveButton?.isHidden = empty || phoneStackCollapsed
+        // A Rules game resolves with the main button ("Resolve"), as on Arena: no second one here,
+        // and nothing on the battlefield moves aside for it.
+        phoneStackResolveButton?.isHidden = empty || phoneStackCollapsed || session.mode == .rules
         phoneStackResolveButton?.isEnabled = session.canAct
         phoneStackContainer?.frame = view.bounds
         for control in [phoneStackContainer, phoneStackPeekButton, phoneStackButton, phoneStackResolveButton].compactMap({ $0 }) {
