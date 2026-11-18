@@ -267,7 +267,20 @@ struct PhoneStackCardsView: View {
                         if let card = item.card { inspect(card) } else { browse() }
                     } label: {
                         Group {
-                            if let card = item.card {
+                            if let card = item.card, item.isAbility == true {
+                                // An ability: its source card, with the ability's text across it.
+                                HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
+                                    .overlay(alignment: .bottom) {
+                                        Text(item.text)
+                                            .font(.system(size: max(9, width * 0.075), weight: .semibold))
+                                            .foregroundStyle(.white)
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(5).minimumScaleFactor(0.6)
+                                            .padding(6)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.black.opacity(0.82))
+                                    }
+                            } else if let card = item.card {
                                 HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
                             } else {
                                 RoundedRectangle(cornerRadius: corner)

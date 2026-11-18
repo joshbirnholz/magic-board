@@ -18,6 +18,8 @@ struct PhoneGame: Codable {
         /// Cast from a graveyard with flashback (or jump-start, harmonize): exiled instead of going
         /// to the graveyard when it resolves or is countered.
         var exileOnResolve: Bool? = nil
+        /// A Rules game's triggered or activated ability, shown as its source card with its text.
+        var isAbility: Bool? = nil
     }
 
     var id = UUID()

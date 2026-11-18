@@ -572,7 +572,12 @@ final class RulesPhoneAdapter {
             }
             let text = card.ability == true ? RulesText.cardRules(card.rules ?? card.name ?? "Ability", name: card.name, typeLine: card.typeLine) : card.name ?? "Spell"
             let controller = card.controllerId.map(seat) ?? snapshot.activePlayerId.map(seat) ?? .a
-            return PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: controller), text: text, player: controller, targets: targets)
+            // An ability shows its source card's art (Arena), with the ability's text over it.
+            let ability = card.ability == true
+            let shown = ability && (card.name ?? "").isEmpty ? nil : try instance(card, owner: controller)
+            var item = PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: shown, text: text, player: controller, targets: targets)
+            if ability { item.isAbility = true }
+            return item
         }
         let active = snapshot.activePlayerId.map(seat) ?? snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
         let enginePhase = snapshot.phase ?? ""
