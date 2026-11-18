@@ -49,12 +49,21 @@ final class RulesPhoneAdapter {
         Publishers.CombineLatest4(engine.$status, engine.$prompt, engine.$pendingRequest, engine.$holdingPriority)
             .sink { [weak self] status, prompt, pending, holding in
                 guard let self else { return }
-                self.updateStatus(status, prompt: prompt, pending: pending, holdingPriority: holding)
+                self.updateStatus(status, prompt: prompt, pending: pending, holdingPriority: holding,
+                                  alertOpen: !self.engine.cardInformation.isEmpty)
+            }.store(in: &subscriptions)
+        // Closing the last alert releases the priority pass it held back (see updateStatus).
+        engine.$cardInformation.map { !$0.isEmpty }.removeDuplicates().dropFirst()
+            .sink { [weak self] open in
+                guard let self else { return }
+                self.updateStatus(self.engine.status, prompt: self.engine.prompt, pending: self.engine.pendingRequest,
+                                  holdingPriority: self.engine.holdingPriority, alertOpen: open)
             }.store(in: &subscriptions)
         engine.$error.compactMap { $0 }.sink { [weak phone] in phone?.error = $0 }.store(in: &subscriptions)
     }
 
-    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool) {
+    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool,
+                              alertOpen: Bool) {
         let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
         // Arena shows the opening hand in a browser (Keep / Mulligan); Phone Play's opening-hand
         // browser is driven by `opening`, one per mulligan question.
@@ -64,7 +73,9 @@ final class RulesPhoneAdapter {
         phone?.displayRules(presentation, connected: status == .connected,
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
                             primaryLabel: label, primaryEnabled: enabled)
-        if let prompt, pending == nil, prompt.id != autoPassedPromptID,
+        // While an alert about what the opponent did (revealed cards…) is on screen, don't pass for
+        // the player: the computer opponent only moves on once they've closed it (Josh).
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID, !alertOpen,
            Self.shouldAutoPass(prompt, snapshot: engine.snapshot, holdingPriority: holdingPriority), status == .connected, prompt.supported {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.boolean(true)) }
@@ -334,7 +345,8 @@ final class RulesPhoneAdapter {
 
     /// Re-applies the current prompt after a Keep / Mulligan choice that XMage hasn't asked about yet.
     private func refreshMulligan() {
-        updateStatus(engine.status, prompt: engine.prompt, pending: engine.pendingRequest, holdingPriority: engine.holdingPriority)
+        updateStatus(engine.status, prompt: engine.prompt, pending: engine.pendingRequest, holdingPriority: engine.holdingPriority,
+                     alertOpen: !engine.cardInformation.isEmpty)
     }
 
     static func firstNumber(in text: String, after marker: String) -> Int? {
