@@ -8,6 +8,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - A complete game against AI through the bridge: land play, creature casting, mana, priority and game-over.
 - Per-player snapshots, duplicate command receipts, and reconnect restoring the same pending prompt.
 - Two-human table creation/discovery/joining, distinct engine seats, and private opening hands.
+- Two human seats playing creatures, declaring attackers and assigning a legal blocker through real engine prompts.
 - Main menu → connection → shared Phone Play board → opening hand → exit verified in the iOS simulator.
 - Existing Phone Play: 68 unit tests and the sandbox drag/tap UI check passed. Twelve Rules isolation/schema tests passed after integration.
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
@@ -67,7 +68,7 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 
 ```sh
 javac --release 17 -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" -d build/classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
     java -cp "build/classes:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
