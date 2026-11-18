@@ -423,6 +423,13 @@ struct PhoneHandCardFace: View {
            let creature = mtgCard.cardFaces?.first {
             cost = creature.manaCost
         }
+        // Scryfall gives a double-faced card no top-level cost, only its faces': a transforming
+        // card is cast as its front face, and a modal one as either face.
+        if cost?.isEmpty ?? true, case .card(let mtgCard) = card.representation,
+           let faces = mtgCard.cardFaces, faces.count > 1 {
+            let costs = faces.compactMap(\.manaCost).filter { !$0.isEmpty }
+            cost = mtgCard.layout == "modal_dfc" ? costs.joined(separator: " / ") : faces[0].manaCost
+        }
         guard inCommandZone else { return cost }
         let tax = card.commanderCasts.value * 2
         return tax > 0 ? "{\(tax)}+" + (cost ?? "") : cost
