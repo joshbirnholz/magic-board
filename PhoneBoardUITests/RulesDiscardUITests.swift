@@ -74,6 +74,23 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertEqual(status.handCount, 5)
     }
 
+    @MainActor func testFloatingManaDoesNotReportAFailedPaymentTap() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/mana")
+        defer { app.terminate() }
+        let source = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Capital City, 1, untapped'")).firstMatch
+        XCTAssertTrue(source.waitForExistence(timeout: 5))
+        source.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["rules-mana-pool"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Capital City, 1, tapped'")).firstMatch.waitForExistence(timeout: 5))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["rules-toast"].exists, "Floating mana is useful progress toward a filtering ability, even with black still unpaid")
+        XCTAssertTrue(app.buttons["Cancel"].exists)
+    }
+
     @MainActor func testBattlefieldSacrificeInstructionNamesItsSource() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

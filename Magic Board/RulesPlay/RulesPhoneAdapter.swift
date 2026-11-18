@@ -28,7 +28,7 @@ final class RulesPhoneAdapter {
     /// The cards of the current card-choice prompt, for the board's browser (see PhoneGame.rulesChoice).
     private(set) var choiceCards: [CardInstance] = []
     /// The payment prompt a land was last chosen for (see updateStatus).
-    private var paymentTapped: (promptID: String, message: String?)?
+    private var paymentTapped: (promptID: String, message: String?, pool: String?)?
 
     init(engine: RulesGameSession) { self.engine = engine }
 
@@ -81,7 +81,11 @@ final class RulesPhoneAdapter {
         if let prompt, pending == nil, prompt.method == "GAME_PLAY_MANA", let paid = paymentTapped,
            prompt.id != paid.promptID, prompt.message == paid.message {
             paymentTapped = nil
-            phone?.error = "That can't pay this cost. Tap another land, or Cancel."
+            // Producing floating mana is progress even if it cannot pay the spell directly (e.g.
+            // colorless mana to pay Capital City's colored-mana ability). Don't call that a failed tap.
+            if floatingMana == paid.pool {
+                phone?.error = "That can't pay this cost. Tap another land, or Cancel."
+            }
         }
         // A card choice arrives (or ends) without a new board state: project again so the board's
         // browser opens with the cards (or closes).
@@ -356,6 +360,11 @@ final class RulesPhoneAdapter {
         }
     }
 
+    private var floatingMana: String? {
+        guard let snapshot = engine.snapshot else { return nil }
+        return snapshot.players.first { $0.id == snapshot.playerId }?.floatingMana
+    }
+
     /// Whether choosing this card (the card menu's "Choose / Activate") can do anything now, so the
     /// menu doesn't offer an action the engine would refuse.
     func canChoose(_ id: UUID) -> Bool {
@@ -464,7 +473,7 @@ final class RulesPhoneAdapter {
             phone?.error = "That card has no legal action right now."
             return
         }
-        if let prompt = engine.prompt, prompt.method == "GAME_PLAY_MANA" { paymentTapped = (prompt.id, prompt.message) }
+        if let prompt = engine.prompt, prompt.method == "GAME_PLAY_MANA" { paymentTapped = (prompt.id, prompt.message, floatingMana) }
         else { paymentTapped = nil }
         await engine.answer(.object(id.uuidString.lowercased()))
     }

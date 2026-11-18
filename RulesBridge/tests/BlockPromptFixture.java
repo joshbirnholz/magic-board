@@ -36,7 +36,8 @@ public final class BlockPromptFixture extends WebSocketServer {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
         initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
                 : request.getResourceDescriptor().endsWith("/attack") ? "attack"
-                : request.getResourceDescriptor().endsWith("/source") ? "sacrifice" : "select";
+                : request.getResourceDescriptor().endsWith("/source") ? "sacrifice"
+                : request.getResourceDescriptor().endsWith("/mana") ? "mana" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -73,7 +74,10 @@ public final class BlockPromptFixture extends WebSocketServer {
                     send(socket, object("type", "error", "requestId", request.get("requestId"), "message", "Unexpected fixture answer"));
                     return;
                 }
-                if (stage.equals("order")) {
+                if (stage.equals("mana")) {
+                    if (!value.equals(BLOCKER)) throw new AssertionError("Expected the mana source");
+                    stage = "manaAdded";
+                } else if (stage.equals("order")) {
                     stage = "select";
                     System.out.println("PASS ordering prompt selected an ability UUID from its card choices");
                 } else if (stage.equals("select")) {
@@ -94,6 +98,12 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void ack(WebSocket socket, JsonObject request) { send(socket, object("type", "ack", "requestId", request.get("requestId"))); }
     private void settings(WebSocket socket) { send(socket, object("type", "prioritySettings", "holdingPriority", holdingPriority, "autoOrderTriggers", autoOrderTriggers)); }
     private void prompt(WebSocket socket) {
+        if (stage.startsWith("mana")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_PLAY_MANA",
+                    "revision", revision, "message", "Pay {B}<div>Mind Rot</div>", "supported", true,
+                    "canCancel", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
+            return;
+        }
         if (stage.equals("order")) {
             JsonObject first = card(TRIGGER_FIRST, false), second = card(TRIGGER_SECOND, false);
             for (JsonObject card : new JsonObject[]{first, second}) {
@@ -127,9 +137,16 @@ public final class BlockPromptFixture extends WebSocketServer {
     private void snapshot(WebSocket socket) {
         JsonObject mine = object("id", ME, "name", "You", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(BLOCKER, false)}, "graveyard", new Object[]{}, "exile", new Object[]{});
+        if (stage.startsWith("mana")) {
+            JsonObject land = card(BLOCKER, stage.equals("manaAdded"));
+            land.addProperty("name", "Capital City"); land.addProperty("typeLine", "Land");
+            land.remove("set"); land.remove("collectorNumber");
+            mine.add("battlefield", JSON.toJsonTree(new Object[]{land}));
+            mine.add("manaPool", object("C", stage.equals("manaAdded") ? 1 : 0));
+        }
         JsonObject theirs = object("id", THEM, "name", "Opponent", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(FIRST, true), card(SECOND, true)}, "graveyard", new Object[]{}, "exile", new Object[]{});
-        Object[] combat = stage.equals("attack") ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
+        Object[] combat = (stage.equals("attack") || stage.startsWith("mana")) ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
         send(socket, object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
                 "phase", "COMBAT", "step", stage.equals("attack") ? "DECLARE_ATTACKERS" : "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", stage.equals("attack") ? ME : THEM, "priorityPlayer", "You",
                 "hand", new Object[]{}, "stack", new Object[]{}, "players", new Object[]{mine, theirs}, "playableIds", new String[]{BLOCKER}, "combat", combat));
