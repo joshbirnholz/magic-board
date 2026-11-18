@@ -1670,6 +1670,13 @@ struct PhoneAbilityPanel: View {
     let width: CGFloat
     @State private var art: UIImage?
 
+    init(source: CardInstance, text: String, width: CGFloat, art: UIImage? = nil) {
+        self.source = source
+        self.text = text
+        self.width = width
+        _art = State(initialValue: art)
+    }
+
     private typealias Layout = MTGCardView.AbilityLayout
     private var height: CGFloat { width / Layout.aspect }
 

@@ -1754,41 +1754,42 @@ public extension MTGCardView {
 		let folder = style?.isUniversesBeyond == true ? "ub" : style?.isNyxtouched == true ? "nyx" : "regular"
 		let colors = properties.colors.map { $0.initial.lowercased() }
 		let isLand = style?.isLand == true
-		let isArtifact = style?.isArtifact == true
-		let hybridPair = colors.count == 2 && (properties.isHybrid || properties.objectType == .token)
-
-		// Rules box: the mini card's background.
-		let body: [String] = {
-			if isLand { return ["l"] }
-			if style?.isVehicle == true { return ["v"] }
-			if isArtifact { return ["a"] }
-			if colors.count == 1 { return colors }
-			if colors.count > 2 { return ["m"] }
-			if colors.isEmpty { return ["c"] }
-			return hybridPair ? colors : ["m"]
-		}()
-		// Outer frame and pinlines: the mini card's border (two colors split down the middle).
-		let trim: [String] = {
-			if colors.isEmpty && isLand { return ["l"] }
-			if colors.isEmpty && isArtifact { return ["a"] }
-			if colors.count == 1 { return [colors[0] + (isLand ? "l" : "")] }
-			if colors.count > 2 { return [isLand ? "ml" : "m"] }
-			if colors.count == 2 { return colors.map { $0 + (isLand ? "l" : "") } }
-			return ["c"]
-		}()
-		// Name and type bars: the mini card's bar.
-		let bar: [String] = {
-			if (colors.isEmpty || colors.count == 2) && isLand { return ["l"] }
-			if colors.isEmpty && isArtifact { return ["a"] }
-			if colors.count == 1 { return colors }
-			if colors.count >= 2 && !hybridPair { return ["m"] }
-			if hybridPair { return ["l"] }
-			return ["c"]
-		}()
-		let key = "\(folder)|\(body)|\(trim)|\(bar)"
+		let isVehicle = style?.isVehicle == true
+		let isArtifact = style?.isArtifact == true || isVehicle
+		let isHybrid = colors.count == 2 && (properties.isHybrid || properties.objectType == .token)
+		// Each piece is one letter, or two that fade from left to right.
+		let frame: [String], pinline: [String], rules: [String], typeTitle: [String]
+		if isLand {
+			// Lands: colored land trim, land rules box; two-color lands fade their trim.
+			let trim = colors.count == 1 ? [colors[0] + "l"] : colors.count == 2 ? colors.map { $0 + "l" } : colors.isEmpty ? ["l"] : ["ml"]
+			frame = trim; pinline = trim; rules = ["l"]
+			typeTitle = colors.count == 1 ? colors : colors.count > 2 ? ["m"] : ["l"]
+		} else if isArtifact {
+			// Artifacts and Vehicles keep their rules box; the trim and bars take the colors (gold when multicolored).
+			let body = isVehicle ? "v" : "a"
+			switch colors.count {
+			case 0: frame = ["a"]; pinline = ["a"]; typeTitle = ["a"]
+			case 1: frame = colors; pinline = colors; typeTitle = colors
+			case 2 where isHybrid: frame = colors; pinline = colors; typeTitle = ["c"]
+			case 2: frame = ["m"]; pinline = colors; typeTitle = ["m"]
+			default: frame = ["m"]; pinline = ["m"]; typeTitle = ["m"]
+			}
+			rules = [body]
+		} else {
+			switch colors.count {
+			case 0: frame = ["c"]; pinline = ["c"]; rules = ["c"]; typeTitle = ["c"]
+			case 1: frame = colors; pinline = colors; rules = colors; typeTitle = colors
+			// Hybrid: everything fades from one color to the other, under colorless bars.
+			case 2 where isHybrid: frame = colors; pinline = colors; rules = colors; typeTitle = ["c"]
+			// Two colors: a gold frame and bars, with the pinlines and rules box fading between the colors.
+			case 2: frame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
+			default: frame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
+			}
+		}
+		let key = "\(folder)|\(frame)|\(pinline)|\(rules)|\(typeTitle)"
 		if let cached = abilityFrameCache[key] { return cached }
 
-		func frame(_ letter: String) -> UIImage? {
+		func image(_ letter: String) -> UIImage? {
 			// Nyx and Universes Beyond have no land / vehicle / colored-land variants: use regular.
 			for candidate in [folder, "regular"] {
 				if let url = MagicBoardResources.bundle.url(forResource: letter, withExtension: "webp", subdirectory: "AbilityFrames/\(candidate)"),
@@ -1800,36 +1801,51 @@ public extension MTGCardView {
 			MagicBoardResources.bundle.url(forResource: name, withExtension: "png", subdirectory: "AbilityFrames/masks")
 				.flatMap { UIImage(contentsOfFile: $0.path) }
 		}
-		guard let first = frame(trim[0]) else { return nil }
+		guard let first = image(frame[0]) else { return nil }
 		let size = first.size
 		let rect = CGRect(origin: .zero, size: size)
-		/// Draws one or two frames into the current context, the second on the right half.
-		func drawPair(_ letters: [String], clippedTo maskImage: UIImage?) {
+		/// The fade from a piece's left color to its right one: a soft step across the middle fifth,
+		/// like the mini cards' mask (white where the right color shows).
+		let fade: CGImage? = {
+			let width = 100
+			var pixels = (0..<width).map { x -> UInt8 in
+				let t = (CGFloat(x) / CGFloat(width - 1) - 0.4) / 0.2
+				return UInt8(max(0, min(1, t)) * 255)
+			}
+			guard let provider = CGDataProvider(data: Data(bytes: &pixels, count: width) as CFData) else { return nil }
+			return CGImage(width: width, height: 1, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: width,
+			               space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: 0),
+			               provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+		}()
+		/// Clips the current (UIKit-flipped) context to a grayscale mask, white where drawing shows.
+		func clip(_ context: CGContext, to mask: CGImage) {
+			context.translateBy(x: 0, y: size.height); context.scaleBy(x: 1, y: -1)
+			context.clip(to: rect, mask: mask)
+			context.scaleBy(x: 1, y: -1); context.translateBy(x: 0, y: -size.height)
+		}
+		/// Draws one piece: one letter, or two fading from left to right.
+		func draw(_ letters: [String], clippedTo maskName: String?) {
 			guard let context = UIGraphicsGetCurrentContext() else { return }
 			context.saveGState()
-			if let cg = maskImage?.cgImage {
-				// The masks are grayscale, white where the piece is (CG clips to a gray image without alpha).
-				context.translateBy(x: 0, y: size.height); context.scaleBy(x: 1, y: -1)
-				context.clip(to: rect, mask: cg)
-				context.scaleBy(x: 1, y: -1); context.translateBy(x: 0, y: -size.height)
-			}
-			frame(letters[0])?.draw(in: rect)
-			if letters.count > 1 {
+			if let maskName, let cg = mask(maskName)?.cgImage { clip(context, to: cg) }
+			image(letters[0])?.draw(in: rect)
+			if letters.count > 1, let fade {
 				context.saveGState()
-				context.clip(to: CGRect(x: size.width / 2, y: 0, width: size.width / 2, height: size.height))
-				frame(letters[1])?.draw(in: rect)
+				clip(context, to: fade)
+				image(letters[1])?.draw(in: rect)
 				context.restoreGState()
 			}
 			context.restoreGState()
 		}
 		let format = UIGraphicsImageRendererFormat()
 		format.scale = 1
-		let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-			drawPair(trim, clippedTo: nil)
-			drawPair(body, clippedTo: mask("rules"))
-			drawPair(bar, clippedTo: mask("typetitle"))
+		let composed = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+			draw(frame, clippedTo: nil)
+			draw(pinline, clippedTo: "pinline")
+			draw(rules, clippedTo: "rules")
+			draw(typeTitle, clippedTo: "typetitle")
 		}
-		abilityFrameCache[key] = image
-		return image
+		abilityFrameCache[key] = composed
+		return composed
 	}
 }
