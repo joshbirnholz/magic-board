@@ -75,6 +75,8 @@ class BoardViewController: UIViewController {
   /// Rules mode's prompt panel, kept above the board and just above the local phase button (Arena).
   private var rulesPromptHost: UIViewController?
   private var rulesBannerHost: UIViewController?
+  /// The banner's height on screen: the gap between the two players' permanents (see positionRulesPrompt).
+  private var rulesBannerCenterY: NSLayoutConstraint?
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
   /// Arena's phase row, second button and fast-forward pill, just above the main button.
@@ -2570,9 +2572,11 @@ extension BoardViewController {
         addChild(banner)
         view.addSubview(banner.view)
         banner.view.translatesAutoresizingMaskIntoConstraints = false
+        let bannerCenter = banner.view.centerYAnchor.constraint(equalTo: view.topAnchor, constant: view.bounds.midY)
+        rulesBannerCenterY = bannerCenter
         NSLayoutConstraint.activate([
             banner.view.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
-            banner.view.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            bannerCenter,
             banner.view.widthAnchor.constraint(equalTo: view.safeAreaLayoutGuide.widthAnchor, constant: -24)
         ])
         banner.didMove(toParent: self)
@@ -2641,7 +2645,23 @@ extension BoardViewController {
             let constant = -(view.safeAreaLayoutGuide.layoutFrame.maxY - top + 8)
             if rulesPromptBottom?.constant != constant { rulesPromptBottom?.constant = constant }
         }
-        if let banner = rulesBannerHost?.view, banner.superview === view { view.bringSubviewToFront(banner) }
+        if let banner = rulesBannerHost?.view, banner.superview === view {
+            view.bringSubviewToFront(banner)
+            // In the open space between the opponent's permanents and yours, so it never covers a
+            // card's power and toughness (Josh: it hid an attacker's).
+            if let session = phoneMode, let center = rulesBannerCenterY {
+                var opponentBottom = view.safeAreaLayoutGuide.layoutFrame.minY
+                var localTop = view.safeAreaLayoutGuide.layoutFrame.maxY
+                for case let card as MiniCardView in board.subviews where !card.isHidden && card.alpha > 0.01 {
+                    guard let instance = card.cardInstance else { continue }
+                    let frame = view.convert(card.bounds, from: card)
+                    if instance.controllerIdentifier.value == session.player { localTop = min(localTop, frame.minY) }
+                    else { opponentBottom = max(opponentBottom, frame.maxY) }
+                }
+                let target = localTop > opponentBottom ? (opponentBottom + localTop) / 2 : view.bounds.midY
+                if abs(center.constant - target) > 0.5 { center.constant = target }
+            }
+        }
         view.bringSubviewToFront(host)
         // Arena's controls sit right above the main (phase) button.
         if let actions = rulesActionHost?.view, actions.superview === view, let button = localPhoneBar?.untapButton, button.window != nil {
