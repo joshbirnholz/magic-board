@@ -35,7 +35,8 @@ public final class BlockPromptFixture extends WebSocketServer {
     @Override public void onOpen(WebSocket socket, ClientHandshake request) {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
         initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
-                : request.getResourceDescriptor().endsWith("/attack") ? "attack" : "select";
+                : request.getResourceDescriptor().endsWith("/attack") ? "attack"
+                : request.getResourceDescriptor().endsWith("/source") ? "sacrifice" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -103,6 +104,13 @@ public final class BlockPromptFixture extends WebSocketServer {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_TARGET", "queryType", "PICK_ABILITY",
                     "revision", revision, "message", "Pick triggered ability (goes to the stack first)", "supported", true,
                     "required", true, "choices", new Object[]{}, "cards", new Object[]{first, second}, "targets", new Object[]{}));
+            return;
+        }
+        if (stage.equals("sacrifice")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_TARGET",
+                    "revision", revision, "message", "Select another creature or artifact (to sacrifice)",
+                    "subMessage", "<font color='#696969' object_id='b95222bf-68a0-4769-8c28-4807c05cd345'>Ahriman</font> [b95]",
+                    "supported", true, "required", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new String[]{BLOCKER}));
             return;
         }
         send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", stage.equals("target") ? "GAME_TARGET" : "GAME_SELECT",

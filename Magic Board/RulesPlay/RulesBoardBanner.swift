@@ -12,7 +12,10 @@ extension RulesPrompt {
             return nil
         case "GAME_TARGET" where style == .compact && !isStartingPlayer && !isLondonBottom:
             let text = plainMessage.replacingOccurrences(of: "Select ", with: "Choose ", options: .anchored)
-            return text.isEmpty ? "Choose a target." : text
+            let instruction = text.isEmpty ? "Choose a target." : text
+            // XMage sends the asking ability's source separately from its target restriction.
+            let source = subMessage.map(RulesText.plain)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return source.isEmpty ? instruction : "\(source): \(instruction)"
         default:
             return nil
         }

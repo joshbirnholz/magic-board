@@ -74,6 +74,22 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertEqual(status.handCount, 5)
     }
 
+    @MainActor func testBattlefieldSacrificeInstructionNamesItsSource() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/source")
+        defer { app.terminate() }
+        let banner = app.staticTexts["rules-board-banner"]
+        XCTAssertTrue(banner.waitForExistence(timeout: 5))
+        XCTAssertEqual(banner.label, "Ahriman: Choose another creature or artifact (to sacrifice)")
+        let cards = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let opponentBottom = try XCTUnwrap(cards.filter { ($0.value as? String) == "Attacking" }.map(\.frame.maxY).max())
+        let localTop = try XCTUnwrap(cards.filter { ($0.value as? String) == "Untapped" }.map(\.frame.minY).min())
+        XCTAssertGreaterThanOrEqual(banner.frame.minY, opponentBottom - 1)
+        XCTAssertLessThanOrEqual(banner.frame.maxY, localTop + 1)
+    }
+
     @MainActor func testAttackerSelectionHasOnlyTheMainAllAttackButton() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

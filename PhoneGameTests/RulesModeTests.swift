@@ -262,6 +262,14 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
     }
 
+    func testBattlefieldInstructionNamesTheAskingCard() throws {
+        let prompt = try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+            "id": "sacrifice", "method": "GAME_TARGET", "revision": 1, "supported": true, "choices": [],
+            "message": "Select another creature or artifact (to sacrifice)",
+            "subMessage": "<font color='#696969' object_id='b95222bf-68a0-4769-8c28-4807c05cd345'>Ahriman</font> [b95]"] as [String: Any]))
+        XCTAssertEqual(prompt.boardBannerText, "Ahriman: Choose another creature or artifact (to sacrifice)")
+    }
+
     func testCombatShortcutDoesNotDuplicateRealSpecialActions() throws {
         func prompt(_ message: String, label: String) throws -> RulesPrompt {
             try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
