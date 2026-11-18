@@ -1681,6 +1681,11 @@ class BoardViewController: UIViewController {
         PhoneGame.untapDraws.toggle()
         self?.localPhoneBar?.refreshForPhoneSession()
       })
+      // Smooths the first hand of a JumpStart or Jump In game, as the iPad does (for both players).
+      let smoothing = session.game.handSmoothing != false
+      alert.addAction(BoardMenuAction(title: smoothing ? "Turn Off Hand Smoothing" : "Turn On Hand Smoothing", style: .default) { _ in
+        session.send(.setHandSmoothing(!smoothing))
+      })
     }
     if phoneMode != nil {
       // An alert over the menu, which stays open underneath.
@@ -4588,7 +4593,8 @@ extension BoardViewController {
     /// The collapsed hand peeks above the HUD; the fan stays clear of it.
     private var phoneBrowserContentBottomInset: CGFloat {
         var top = view.bounds.maxY - phoneBrowserUncoveredBottom
-        if let container = localPhoneBar?.handContainerView, container.superview === view {
+        // The opening hand hides your hand (those cards aren't drawn until you keep).
+        if phoneBrowserMode != .openingHand, let container = localPhoneBar?.handContainerView, container.superview === view {
             var content = view.convert(container.phoneContentFrame ?? container.bounds, from: container)
             // Always the collapsed hand's height: the expanded hand opens over the browser
             // rather than squeezing its cards.
@@ -4648,6 +4654,7 @@ extension BoardViewController {
             }
         }
         browser.zoneAt = { [weak self] point in
+            if self.phoneBrowserMode == .openingHand { return nil }
             guard let self else { return nil }
             if let pile = self.phonePileZone(at: point), pile.player == session.player {
                 switch pile.location {
@@ -4660,6 +4667,9 @@ extension BoardViewController {
             return self.phoneHandDropRegionContains(point) ? .hand : nil
         }
         browser.onMove = { [weak self] card, destination in
+            case .library where mode == .openingHand:
+                // Putting cards back from an opening hand: always the bottom.
+                session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: true))
             guard let self else { return }
             let position = self.phoneBrowserIDs.firstIndex(of: card.uuid)
             self.phoneBrowserIDs.removeAll { $0 == card.uuid }
@@ -4700,8 +4710,16 @@ extension BoardViewController {
             if mode == .openingHand {
                 self.phoneKeptOpeningID = session.game.opening?.id
                 self.closePhoneZoneBrowser()
+        if mode == .openingHand {
+            browser.isOpeningHand = true
+            browser.onCancel = { [weak self] in
+                self?.closePhoneZoneBrowser()
+                session.send(.cancelStart)
+            }
+        }
                 session.send(.keepHand)
             } else { self.closePhoneZoneBrowser() }
+        localPhoneBar?.handContainerView.isHidden = mode == .openingHand
         }
         browser.onSecondary = { [weak self] in
             // Mulligan: a new seven replaces the hand in the browser.
@@ -4838,6 +4856,7 @@ extension BoardViewController {
         if let session = phoneMode, session.canAct {
             if phoneBrowserMode == .revealed {
                 // Done looking: stop revealing these cards to this player.
+        localPhoneBar?.handContainerView.isHidden = false
                 let ids = phoneRevealedToMe.value.map(\.uuid)
                 if !ids.isEmpty { session.send(.reveal(ids, session.player, false)) }
             } else if browser.showsOpponent, !phoneBrowserIDs.isEmpty {

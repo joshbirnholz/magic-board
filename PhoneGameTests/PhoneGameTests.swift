@@ -250,6 +250,52 @@ final class PhoneGameTests: XCTestCase {
         XCTAssertNil(game.opening)
     }
 
+    func testCancelStartPutsHandsBackAndSmoothingFlags() throws {
+        var game = PhoneGame()
+        let lands = try (0..<17).map { try card("Land \($0)", type: "Basic Land — Island") }
+        let spells = try (0..<23).map { try card("Spell \($0)", type: "Instant") }
+        game.state.player1.library.cards.accept(OrderedSet(lands + spells))
+        try game.apply(.markSmoothedDeck, player: .a)
+        XCTAssertEqual(game.smoothedDecks, ["a"])
+        try game.apply(.startGame, player: .a)
+        XCTAssertEqual(game.state.player1.hand.cards.value.count, 7)
+        try game.apply(.cancelStart, player: .b)
+        XCTAssertNil(game.opening)
+        XCTAssertTrue(game.state.player1.hand.cards.value.isEmpty)
+        XCTAssertEqual(game.state.player1.library.cards.value.count, 40)
+        XCTAssertTrue(game.canStartGame)
+        try game.apply(.setHandSmoothing(false), player: .b)
+        XCTAssertEqual(game.handSmoothing, false)
+        game.smoothShuffle(.a)
+        XCTAssertEqual(game.state.player1.library.cards.value.count, 40)
+    }
+
+    func testResetBringsBackStartGame() throws {
+        var game = PhoneGame()
+        for (player, prefix) in [(Player.Identifier.a, "A"), (.b, "B")] {
+            let deck = try (0..<20).map { try card("\(prefix)\($0)", type: "Basic Land — Island", player: player) }
+            game.state[player: player].library.cards.accept(OrderedSet(deck))
+            var layout = game.deckLayout ?? [:]
+            layout[player.rawValue] = [Pile.Location.library.rawValue: deck.map(\.uuid)]
+            game.deckLayout = layout
+        }
+        XCTAssertEqual(game.phaseButton(for: .a), .startGame)
+        try game.apply(.startGame, player: .a)
+        try game.apply(.keepHand, player: .a); try game.apply(.keepHand, player: .b)
+        let first = try XCTUnwrap(game.turn?.player)
+        let land = try XCTUnwrap(game.state[player: first].hand.cards.value.first)
+        try game.apply(.play(land.uuid, face: nil, faceDown: false, tapped: false, directly: true), player: first)
+        let discard = try XCTUnwrap(game.state[player: first].hand.cards.value.first)
+        try game.apply(.moveToPlayer(discard.uuid, .graveyard, first, bottom: false), player: first)
+        XCTAssertNotEqual(game.phaseButton(for: first), .startGame)
+        try game.apply(.resetDecks, player: .a)
+        XCTAssertEqual(game.phaseButton(for: .a), .startGame)
+        XCTAssertEqual(game.phaseButton(for: .b), .startGame)
+        // An unfinished JumpStart pick (the other player hasn't chosen) doesn't block it.
+        game.packetSelection = .init(kind: "JumpStart", setCode: "J22")
+        XCTAssertTrue(game.canStartGame)
+    }
+
     func testPhaseButtonWalksThroughTheTurnAndPassesIt() throws {
         var game = PhoneGame()
         game.state.player1.library.cards.accept(OrderedSet(try (0..<20).map { try card("A\($0)", type: "Instant") }))

@@ -174,6 +174,8 @@ final class PhoneGameSession: ObservableObject {
         case .loadDeck(let deck):
             guard deck.source == .decklist else { error = "Import a deck list or choose bundled JumpStart packets to play offline."; return }
             send(.load(deck.deckList, name: "Deck"))
+            // JumpStart and Jump In decks get a smoothed first hand, as on the iPad.
+            if deck.handSmoothing { send(.markSmoothedDeck) }
         case .reorderHand(let order): send(.reorderHand(order.cardInstanceIDs))
         case .revealCardsToPlayer(let parameters): send(.reveal(parameters.cardInstanceIDs, parameters.playerIdentifier, true))
         case .unrevealCardsToPlayer(let parameters): send(.reveal(parameters.cardInstanceIDs, parameters.playerIdentifier, false))
@@ -472,6 +474,15 @@ extension PhoneGameSession {
                 // As if the opponent's phone had declared it (applied directly: the opponent acts there).
                 try? game.apply(.attack(attacker.uuid, tap: false), player: attacker.controllerIdentifier.value)
                 onUpdate?()
+            }
+            if ProcessInfo.processInfo.arguments.contains("--phone-board-pregame") {
+                // Before Start Game: every card back in its owner's library.
+                for card in Array(game.cards.values) where !card.representation.isToken {
+                    game.move(card, to: .library, player: card.ownerIdentifier)
+                }
+                for card in Array(game.cards.values) where card.representation.isToken { game.remove(card) }
+                game.combat = nil; game.turn = nil; game.opening = nil
+                adopt(game)
             }
             if ProcessInfo.processInfo.arguments.contains("--phone-board-empty-hand") {
                 game.state[player: player].hand.cards.accept([])
