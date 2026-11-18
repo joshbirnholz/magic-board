@@ -167,7 +167,9 @@ final class XMageSession implements MageClient, AutoCloseable {
             if (!session.joinTable(room, tableId, ai ? "Magic Board" : "Player 1", PlayerType.HUMAN, 1, deck, ""))
                 throw new IllegalStateException("XMage could not seat you at the table.");
             if (ai) {
-                if (!session.joinTable(room, tableId, "Computer", PlayerType.COMPUTER_MAD, 1, deck.copy(), "")
+                // JumpStart / Jump In: the AI brings its own packets; otherwise it mirrors the player's deck.
+                DeckCardLists aiDeck = request.has("aiDeck") && !request.get("aiDeck").isJsonNull() ? readDeck(request, "aiDeck") : deck.copy();
+                if (!session.joinTable(room, tableId, "Computer", PlayerType.COMPUTER_MAD, 1, aiDeck, "")
                         || !session.startMatch(room, tableId))
                     throw new IllegalStateException("XMage could not start the AI game. Check the server log.");
             } else {
@@ -219,9 +221,11 @@ final class XMageSession implements MageClient, AutoCloseable {
         return deck;
     }
 
-    private static DeckCardLists readDeck(JsonObject request) {
-        if (!request.has("deck") || request.get("deck").isJsonNull()) return simpleDeck();
-        JsonObject input = request.getAsJsonObject("deck");
+    private static DeckCardLists readDeck(JsonObject request) { return readDeck(request, "deck"); }
+
+    private static DeckCardLists readDeck(JsonObject request, String key) {
+        if (!request.has(key) || request.get(key).isJsonNull()) return simpleDeck();
+        JsonObject input = request.getAsJsonObject(key);
         DeckCardLists deck = new DeckCardLists();
         String name = string(input, "name");
         deck.setName(name.isEmpty() ? "Imported Deck" : name.substring(0, Math.min(100, name.length())));

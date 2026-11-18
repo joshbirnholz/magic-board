@@ -236,6 +236,21 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(try pay("Pay {X}{W}", method: "GAME_PLAY_XMANA"))
     }
 
+    func testJumpStartAndJumpInPacketsMakeImportableFortyCardDecks() throws {
+        for source in [RulesDeckSource.jumpStart, .jumpIn] {
+            let set = try XCTUnwrap(RulesPackets.sets(for: source).first?.code, "\(source.rawValue) has bundled sets")
+            let offers = RulesPackets.offers(source, set: set, first: nil)
+            XCTAssertFalse(offers.isEmpty, "\(source.rawValue) offers packets")
+            let first = try XCTUnwrap(offers.first)
+            let second = try XCTUnwrap(RulesPackets.offers(source, set: set, first: first).first { $0 != first })
+            let text = try XCTUnwrap(RulesPackets.deckList(source, set: set, first: first, second: second))
+            let deck = try XCTUnwrap(RulesDeckImporter.parse(text))
+            XCTAssertGreaterThanOrEqual(deck.main.reduce(0) { $0 + $1.count }, 40, "\(source.rawValue): \(first) + \(second)")
+            let ai = try XCTUnwrap(RulesPackets.randomDeckList(source, set: set).flatMap { try RulesDeckImporter.parse($0) })
+            XCTAssertGreaterThanOrEqual(ai.main.reduce(0) { $0 + $1.count }, 40)
+        }
+    }
+
     func testSandboxReducerStillAllowsManualLifeChanges() throws {
         var sandbox = PhoneGame()
         sandbox.state.player1.life.accept(20)

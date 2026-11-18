@@ -192,8 +192,8 @@ final class RulesGameSession: ObservableObject {
         }
     }
 
-    func startAiGame(deck: RulesDeck? = nil, format: String = "Limited") async {
-        await submit(RulesCommand(type: "createAiGame", requestId: UUID().uuidString, deck: deck, format: format))
+    func startAiGame(deck: RulesDeck? = nil, format: String = "Limited", aiDeck: RulesDeck? = nil) async {
+        await submit(RulesCommand(type: "createAiGame", requestId: UUID().uuidString, deck: deck, aiDeck: aiDeck, format: format))
     }
 
     func createHumanGame(deck: RulesDeck? = nil, format: String = "Limited") async {
