@@ -3403,6 +3403,9 @@ extension BoardViewController {
                     addPhoneBadge("x\(group.cards.count)", above: CGPoint(x: point.x - 238 - fan, y: point.y - 214), cards: group.cards)
                 }
                 let attached = session.game.attachedCards(to: group.top.uuid)
+                // Each attachment goes under the one before it: the ones peeking out furthest are
+                // the furthest back, so every one shows a strip (two Equipment used to stack wrong).
+                var above = self.cardView(for: group.top)
                 for (layer, attachment) in attached.enumerated() {
                     if let cardView = cardView(for: attachment) {
                         cardView.isHidden = false
@@ -3413,7 +3416,8 @@ extension BoardViewController {
                         if let parent = self.cardView(for: group.top) {
                             // Same size as its card, so the smaller artifact/enchantment drawing can't hide behind it.
                             cardView.layoutScale = cardView.layoutScale(matching: parent)
-                            board.insertSubview(cardView, belowSubview: parent)
+                            board.insertSubview(cardView, belowSubview: above ?? parent)
+                            above = cardView
                         }
                     }
                 }
@@ -3459,13 +3463,16 @@ extension BoardViewController {
                     let fan = CGFloat(min(3, group.cards.count) - 1) * 22 * scale
                     addPhoneBadge("x\(group.cards.count)", above: CGPoint(x: point.x - 238 * scale - fan, y: point.y - 214 * scale), cards: group.cards)
                 }
+                var above = cardView(for: group.top)
                 for (layer, attachment) in session.game.attachedCards(to: group.top.uuid).enumerated() {
                     guard let attachedView = cardView(for: attachment), let parent = cardView(for: group.top) else { continue }
                     attachedView.isHidden = false
                     attachedView.layoutScale = attachedView.layoutScale(matching: parent)
                     let offset = attachmentOffset(layer)
                     attachedView.center = CGPoint(x: point.x + offset.x * scale, y: point.y + offset.y * scale)
-                    board.insertSubview(attachedView, belowSubview: parent)
+                    // Under the previous attachment, so the further-out ones sit further back.
+                    board.insertSubview(attachedView, belowSubview: above ?? parent)
+                    above = attachedView
                 }
             }
         }
