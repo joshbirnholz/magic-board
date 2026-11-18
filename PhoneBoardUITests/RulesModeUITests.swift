@@ -760,6 +760,6 @@ final class RulesModeUITests: XCTestCase {
 
     /// The opening hand's Keep button: Phone Play's opening-hand browser ("Keep").
     private func keepButton(_ app: XCUIApplication) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label == 'Keep' OR label == 'Keep Hand'")).firstMatch
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Keep'")).firstMatch
     }
 }
