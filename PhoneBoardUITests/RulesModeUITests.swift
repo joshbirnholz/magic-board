@@ -246,10 +246,15 @@ final class RulesModeUITests: XCTestCase {
                     }
                 } else if text.localizedCaseInsensitiveContains("Play spells"),
                           let card = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
-                    if fan.value as? String != "Expanded" { card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap(); Thread.sleep(forTimeInterval: 0.6) }
+                    if fan.value as? String != "Expanded" {
+                        try visibleHandPoint(card, in: app).tap()
+                        let expanded = expectation(for: NSPredicate(format: "value == 'Expanded'"), evaluatedWith: fan)
+                        XCTAssertEqual(XCTWaiter.wait(for: [expanded], timeout: 4), .completed,
+                                       "Tap the visible hand image, not the overlapping fast-forward menu")
+                    }
                     if let target = hand.allElementsBoundByIndex.first(where: { ($0.value as? String) == "Playable" }) {
-                        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
-                            .press(forDuration: 0.3, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.35)), withVelocity: 300, thenHoldForDuration: 0.4)
+                        try visibleHandPoint(target, in: app)
+                            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.35)), withVelocity: 300, thenHoldForDuration: 0.4)
                         played += 1
                         Thread.sleep(forTimeInterval: 1.0)
                         continue
@@ -800,6 +805,19 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertLessThanOrEqual(hand.count, 7, "Six kept, plus at most one draw")
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
+    }
+
+    /// A fan card's full AX frame may extend below the screen; its top may overlap the Rules
+    /// fast-forward control. Use the exposed image near its left edge, clear of the Home gesture.
+    private func visibleHandPoint(_ card: XCUIElement, in app: XCUIApplication) throws -> XCUICoordinate {
+        let visible = card.frame.intersection(app.frame.insetBy(dx: 0, dy: 16))
+        guard !visible.isNull, visible.width > 8, visible.height > 8 else {
+            throw NSError(domain: "RulesHandGesture", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "The selected hand card has no visible image area"])
+        }
+        return app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(
+            dx: visible.minX + min(22, visible.width * 0.25) - app.frame.minX,
+            dy: visible.midY - app.frame.minY))
     }
 
     /// The opening hand's Keep button: Phone Play's opening-hand browser ("Keep").
