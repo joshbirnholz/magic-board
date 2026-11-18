@@ -351,6 +351,15 @@ struct HandView: View {
     }
 
 	private func select(_ cardInstance: CardInstance) {
+    #if !BOARD_CONNECT
+    // Rules mode: when XMage asks you to choose a card from your hand (an alternative cost, a
+    // discard…), tapping a highlighted hand card answers it.
+    if let session = AppDelegate.shared.phoneSession, session.mode == .rules,
+       session.rulesAdapter?.isTargetPromptChoice(cardInstance.uuid) == true {
+        session.send(.tap(cardInstance.uuid))
+        return
+    }
+    #endif
     if AppDelegate.shared.usesPhoneSession && isLocalHand && !phonePresentation.isExpanded {
         phonePresentation.isExpanded = true
         return

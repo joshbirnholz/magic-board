@@ -122,7 +122,10 @@ struct RulesPromptBar: View {
                 Text("Tap a highlighted card.").font(.caption).foregroundStyle(.white.opacity(0.7))
                 let players = session.snapshot?.players.filter { prompt.targets?.contains($0.id) == true } ?? []
                 if !players.isEmpty {
-                    HStack { ForEach(players) { player in answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false) } }
+                    HStack { ForEach(players) { player in
+                        answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
+                            .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
+                    } }
                 }
                 if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
@@ -235,7 +238,10 @@ struct RulesPromptModal: View {
 
     private func title(_ prompt: RulesPrompt) -> some View {
         VStack(spacing: 4) {
-            RulesSymbolText(text: prompt.isStartingPlayer ? "Who plays first?" : prompt.isMulligan ? mulliganTitle(prompt) : prompt.plainMessage, size: 24, beleren: true)
+            // Long engine sentences ("Select up to one card to put on the bottom…") get a smaller size
+            // so the cards still fit in landscape.
+            let title = prompt.isStartingPlayer ? "Who plays first?" : prompt.isMulligan ? mulliganTitle(prompt) : prompt.plainMessage
+            RulesSymbolText(text: title, size: title.count > 48 ? 18 : 24, beleren: true)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("rules-prompt-message")
@@ -284,8 +290,11 @@ struct RulesPromptModal: View {
                     }
                 }
             } else {
-                cardRow(prompt.cards ?? [], height: 170, selectable: true)
-                if prompt.required != true { answer("Done", .boolean(false), primary: false) }
+                cardRow(prompt.cards ?? [], height: 150, selectable: true)
+                // "Up to one…" (scry, optional targets) can be finished without choosing.
+                if prompt.required != true || prompt.canCancel == true || (prompt.min ?? 1) == 0 {
+                    answer("Done", .boolean(false), primary: false)
+                }
             }
         case "GAME_GET_AMOUNT":
             let low = prompt.min ?? 0, high = max(prompt.min ?? 0, prompt.max ?? 0)
@@ -314,6 +323,7 @@ struct RulesPromptModal: View {
                         .buttonStyle(.plain)
                         .disabled(!session.canAnswer)
                         .accessibilityLabel(RulesText.plain(choice.label))
+                        .accessibilityIdentifier("rules-choice")
                     }
                 }.frame(maxWidth: 460)
             }.frame(maxHeight: 220)
@@ -402,8 +412,11 @@ struct RulesPromptModal: View {
                             .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                     } else { RulesChoiceCardFace(card: card, height: height) }
                 }
-            }.padding(.horizontal, 8)
+            }
+            .padding(.horizontal, 8)
+            .frame(minWidth: 0)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: cards.isEmpty ? 0 : height + 24)
     }
 

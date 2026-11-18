@@ -49,9 +49,18 @@ final class RulesPhoneAdapter {
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
                             primaryLabel: label, primaryEnabled: enabled)
         if let prompt, pending == nil, prompt.id != autoPassedPromptID,
-           Self.shouldAutoPass(prompt, snapshot: engine.snapshot, holdingPriority: holdingPriority), engine.canAnswer {
+           Self.shouldAutoPass(prompt, snapshot: engine.snapshot, holdingPriority: holdingPriority), status == .connected, prompt.supported {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.boolean(true)) }
+        }
+        // Arena pays mana for you: tap a fitting basic land for each payment prompt. Anything it
+        // can't decide plainly (hybrid, X, non-basic lands) is left to the player to tap.
+        // (Not engine.canAnswer: @Published sinks run before the property changes, so it would still
+        // see the previous pending request here.)
+        if Self.autoPaysMana, let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected, prompt.supported,
+           let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
+            autoPassedPromptID = prompt.id
+            Task { [weak self] in await self?.engine.answer(.object(land)) }
         }
         if let target = pendingTarget, pending == nil {
             let (answer, keep) = Self.resolvePendingTarget(target, prompt: prompt, snapshot: engine.snapshot, issuedDuring: pendingTargetPromptID)
@@ -94,6 +103,39 @@ final class RulesPhoneAdapter {
         return ("Pass", true)
     }
 
+    /// Whether basic lands are tapped for you when paying (Arena's default). Turned off from the
+    /// battlefield menu ("Pay Mana Manually"), for when the automatic choice would be wrong.
+    static var autoPaysMana: Bool {
+        get { UserDefaults.standard.object(forKey: "rules.autoPayMana") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "rules.autoPayMana") }
+    }
+
+    /// The untapped basic land to tap for a "Pay {…}" prompt, or nil when the choice isn't plain.
+    static func autoPayLand(_ prompt: RulesPrompt, snapshot: RulesSnapshot?) -> String? {
+        guard prompt.method == "GAME_PLAY_MANA", let snapshot,
+              let mine = snapshot.players.first(where: { $0.id == snapshot.playerId }) else { return nil }
+        let text = RulesText.plain(prompt.message ?? "")
+        let symbols = (try? NSRegularExpression(pattern: #"\{([^}]+)\}"#))?
+            .matches(in: text, range: NSRange(text.startIndex..., in: text))
+            .compactMap { Range($0.range(at: 1), in: text).map { String(text[$0]) } } ?? []
+        guard !symbols.isEmpty else { return nil }
+        let colors: Set<String> = ["W", "U", "B", "R", "G"]
+        // Only plain costs: single colours, colourless and generic numbers.
+        guard symbols.allSatisfy({ colors.contains($0) || $0 == "C" || Int($0) != nil }) else { return nil }
+        let basic: [String: String] = ["Plains": "W", "Island": "U", "Swamp": "B", "Mountain": "R", "Forest": "G", "Wastes": "C"]
+        let lands: [(id: String, color: String)] = mine.battlefield.compactMap { card in
+            guard card.tapped != true, let type = card.typeLine, type.contains("Land") else { return nil }
+            let produced = basic.compactMap { type.contains($0.key) ? $0.value : nil }
+            return produced.count == 1 ? (card.id, produced[0]) : nil
+        }
+        if let needed = symbols.first(where: { colors.contains($0) || $0 == "C" }) {
+            return lands.first { $0.color == needed }?.id
+        }
+        // Generic only: tap the most plentiful colour, keeping scarce colours open.
+        let counts = Dictionary(grouping: lands, by: \.color).mapValues(\.count)
+        return lands.max { (counts[$0.color] ?? 0) < (counts[$1.color] ?? 0) }?.id
+    }
+
     /// Arena passes priority for you when you have nothing you could do. XMage stops at every
     /// "Play instants and activated abilities" (each step of the opponent's turn, responses to their
     /// spells…), so pass those automatically when the engine reports nothing playable. Your own main
@@ -126,6 +168,12 @@ final class RulesPhoneAdapter {
         case "GAME_SELECT": return (nil, false)
         default: return (nil, true) // mana payment, choices… keep it for the target prompt that follows
         }
+    }
+
+    /// Whether this card is one of the current target prompt's choices (so tapping it answers).
+    func isTargetPromptChoice(_ id: UUID) -> Bool {
+        guard let prompt = engine.prompt, prompt.method == "GAME_TARGET" else { return false }
+        return prompt.targets?.contains(id.uuidString.lowercased()) == true
     }
 
     /// Cards to outline: a target prompt's legal card targets, otherwise what the engine says is playable now.
