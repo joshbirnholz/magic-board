@@ -4654,7 +4654,6 @@ extension BoardViewController {
             }
         }
         browser.zoneAt = { [weak self] point in
-            if self.phoneBrowserMode == .openingHand { return nil }
             guard let self else { return nil }
             if let pile = self.phonePileZone(at: point), pile.player == session.player {
                 switch pile.location {
@@ -4664,12 +4663,10 @@ extension BoardViewController {
                 default: return nil
                 }
             }
+            if self.phoneBrowserMode == .openingHand { return nil }
             return self.phoneHandDropRegionContains(point) ? .hand : nil
         }
         browser.onMove = { [weak self] card, destination in
-            case .library where mode == .openingHand:
-                // Putting cards back from an opening hand: always the bottom.
-                session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: true))
             guard let self else { return }
             let position = self.phoneBrowserIDs.firstIndex(of: card.uuid)
             self.phoneBrowserIDs.removeAll { $0 == card.uuid }
@@ -4679,6 +4676,9 @@ extension BoardViewController {
             case .graveyard: session.send(.moveToPlayer(card.uuid, .graveyard, owner, bottom: false))
             case .exile: session.send(.moveToPlayer(card.uuid, .exile, owner, bottom: false))
             case .battlefield: session.send(.play(card.uuid, face: nil, faceDown: false, tapped: false, directly: true))
+            case .library where mode == .openingHand:
+                // Putting cards back from an opening hand: always the bottom.
+                session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: true))
             case .library:
                 self.promptPhoneLibraryDrop(card, session: session) { [weak self] in
                     // Left where it was: back into the browser.
@@ -4710,16 +4710,8 @@ extension BoardViewController {
             if mode == .openingHand {
                 self.phoneKeptOpeningID = session.game.opening?.id
                 self.closePhoneZoneBrowser()
-        if mode == .openingHand {
-            browser.isOpeningHand = true
-            browser.onCancel = { [weak self] in
-                self?.closePhoneZoneBrowser()
-                session.send(.cancelStart)
-            }
-        }
                 session.send(.keepHand)
             } else { self.closePhoneZoneBrowser() }
-        localPhoneBar?.handContainerView.isHidden = mode == .openingHand
         }
         browser.onSecondary = { [weak self] in
             // Mulligan: a new seven replaces the hand in the browser.
@@ -4727,8 +4719,16 @@ extension BoardViewController {
             self?.closePhoneZoneBrowser()
             session.send(.shuffle)
         }
+        if mode == .openingHand {
+            browser.isOpeningHand = true
+            browser.onCancel = { [weak self] in
+                self?.closePhoneZoneBrowser()
+                session.send(.cancelStart)
+            }
+        }
         phoneBrowser = browser
         phoneBrowserMode = mode
+        localPhoneBar?.handContainerView.isHidden = mode == .openingHand
         phoneBrowserIDs = cards.map(\.uuid)
         // The opponent's phone outlines the pile while its browser is open, as for the sheet.
         let inspectedPile: (Player.Identifier, Pile.Location)? = {
@@ -4856,7 +4856,6 @@ extension BoardViewController {
         if let session = phoneMode, session.canAct {
             if phoneBrowserMode == .revealed {
                 // Done looking: stop revealing these cards to this player.
-        localPhoneBar?.handContainerView.isHidden = false
                 let ids = phoneRevealedToMe.value.map(\.uuid)
                 if !ids.isEmpty { session.send(.reveal(ids, session.player, false)) }
             } else if browser.showsOpponent, !phoneBrowserIDs.isEmpty {
@@ -4866,6 +4865,7 @@ extension BoardViewController {
         }
         phoneBrowser = nil
         phoneBrowserMode = nil
+        localPhoneBar?.handContainerView.isHidden = false
         phoneBrowserIDs = []
         phoneBrowserSeen = []
         UIView.animate(withDuration: 0.18) { browser.alpha = 0 } completion: { _ in browser.removeFromSuperview() }
