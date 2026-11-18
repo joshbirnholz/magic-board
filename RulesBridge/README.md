@@ -181,3 +181,5 @@ The bounded `transform` probe casts Delver of Secrets, answers its reveal decisi
 ### Costed mana abilities
 
 The `costed-mana` prompt-smoke scenario casts Mind Rot using four Capital Cities. It explicitly chooses `{1}, {T}: Add one mana of any color`, pays that ability's nested `{1}` cost, chooses Black, and requires Mind Rot to reach the stack before returning to priority (`COSTED_MANA_SPELL_CAST`). The original scratch reproduction always chose the first ability (colorless), exhausting the lands while black remained unpaid. Current pinned-engine/client behavior offers both abilities; this regression needs no engine patch. This establishes the bridge path; it does not establish the original physical-device/Insomnia interaction is resolved.
+
+The `vehicle` scenario uses Sky Skiff, Silvercoat Lion and a passive land-only AI deck. It requires selecting the crew ability, choosing a legal untapped creature, resolving the ability, and receiving Sky Skiff as a 2/3 Creature — Vehicle (`VEHICLE_CREWED_2_3`). This verifies the engine's type transition, not a particular board-row preference for uncrewed Vehicles.

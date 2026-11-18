@@ -1,0 +1,31 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Vehicle crew transition",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 24
+      },
+      {
+        "name": "Sky Skiff",
+        "count": 8
+      },
+      {
+        "name": "Silvercoat Lion",
+        "count": 28
+      }
+    ],
+    "sideboard": []
+  },
+  "aiDeck": {
+    "name": "Passive crew-test opponent",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 40
+      }
+    ],
+    "sideboard": []
+  }
+}
