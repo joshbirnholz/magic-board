@@ -389,36 +389,8 @@ struct PhoneHandCardFace: View {
     }
 
     /// Arena's hand-only ability tiles (Cycling, Flash, Kicker, Ninjutsu…) on the card's left edge.
-    @ViewBuilder
     private func abilityTiles(width: CGFloat) -> some View {
-        let icons = faceDown ? [] : PhoneHandAbilityTiles.icons(for: card)
-        if !icons.isEmpty {
-            let size = width * 0.2
-            VStack(spacing: size * 0.08) {
-                ForEach(Array(icons.enumerated()), id: \.offset) { _, icon in
-                    // Arena's hand tile: a dark rounded square shading from charcoal to black, a thin
-                    // rim lit from above, and the ability's symbol in a pale-to-deep gold gradient.
-                    let shape = RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
-                    ZStack {
-                        shape.fill(LinearGradient(colors: [Color(white: 0.24), Color(white: 0.1), Color(white: 0.04)],
-                                                  startPoint: .top, endPoint: .bottom))
-                        shape.strokeBorder(LinearGradient(colors: [PhoneHandAbilityTiles.goldLight.opacity(0.7), Color(white: 0.12)],
-                                                          startPoint: .top, endPoint: .bottom),
-                                           lineWidth: max(0.75, size * 0.05))
-                        if let glyph = icon.image {
-                            LinearGradient(colors: PhoneHandAbilityTiles.goldGradient, startPoint: .top, endPoint: .bottom)
-                                .mask(Image(uiImage: glyph).renderingMode(.template).resizable().scaledToFit())
-                                .padding(size * 0.12)
-                                .shadow(color: .black.opacity(0.8), radius: max(0.5, size * 0.03), y: max(0.5, size * 0.02))
-                        }
-                    }
-                    .frame(width: size, height: size)
-                    .shadow(color: .black.opacity(0.6), radius: 1.5, y: 1)
-                }
-            }
-            .offset(x: -size * 0.4, y: height * 0.16)
-            .accessibilityHidden(true)
-        }
+        PhoneHandAbilityTileStack(card: card, height: height, faceDown: faceDown)
     }
 
     @ViewBuilder
@@ -481,6 +453,45 @@ private struct PhoneHandPlayGlowOutline: View {
             .animation(.easeInOut(duration: 0.15), value: glow.isVisible)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+    }
+}
+
+/// Arena's hand-only ability tiles (Cycling, Flash, Kicker, Ninjutsu…) on a card's left edge, for a
+/// card `height` tall: in the hand, and on the opening hand in the browser.
+struct PhoneHandAbilityTileStack: View {
+    let card: CardInstance
+    let height: CGFloat
+    var faceDown = false
+
+    var body: some View {
+        let icons = faceDown ? [] : PhoneHandAbilityTiles.icons(for: card)
+        if !icons.isEmpty {
+            let size = height * 63 / 88 * 0.2
+            VStack(spacing: size * 0.08) {
+                ForEach(Array(icons.enumerated()), id: \.offset) { _, icon in
+                    // Arena's hand tile: a dark rounded square shading from charcoal to black, a thin
+                    // rim lit from above, and the ability's symbol in a pale-to-deep gold gradient.
+                    let shape = RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
+                    ZStack {
+                        shape.fill(LinearGradient(colors: [Color(white: 0.24), Color(white: 0.1), Color(white: 0.04)],
+                                                  startPoint: .top, endPoint: .bottom))
+                        shape.strokeBorder(LinearGradient(colors: [PhoneHandAbilityTiles.goldLight.opacity(0.7), Color(white: 0.12)],
+                                                          startPoint: .top, endPoint: .bottom),
+                                           lineWidth: max(0.75, size * 0.05))
+                        if let glyph = icon.image {
+                            LinearGradient(colors: PhoneHandAbilityTiles.goldGradient, startPoint: .top, endPoint: .bottom)
+                                .mask(Image(uiImage: glyph).renderingMode(.template).resizable().scaledToFit())
+                                .padding(size * 0.12)
+                                .shadow(color: .black.opacity(0.8), radius: max(0.5, size * 0.03), y: max(0.5, size * 0.02))
+                        }
+                    }
+                    .frame(width: size, height: size)
+                    .shadow(color: .black.opacity(0.6), radius: 1.5, y: 1)
+                }
+            }
+            .offset(x: -size * 0.4, y: height * 0.16)
+            .accessibilityHidden(true)
+        }
     }
 }
 

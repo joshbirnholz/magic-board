@@ -73,6 +73,13 @@ struct PhoneGame: Codable {
         var deciding: Set<String> = []
     }
     var opening: Opening? = nil
+    /// Hand smoothing for the first hand of a game, as the iPad app does for JumpStart and Jump In:
+    /// of two shuffles, the one whose opening seven has a land share closest to the deck's. Only
+    /// for decks built from packets (never DanDân or a pasted list), and never for a mulligan.
+    /// Nil means on (the Battlefield menu turns it off). Optional for older saves.
+    var handSmoothing: Bool? = nil
+    /// Players whose current deck came from packets, so their first hand is smoothed.
+    var smoothedDecks: Set<String>? = nil
     /// Whose turn it is and where the phase button is in it. Not a full rules engine: the
     /// players move it along with that button. Nil before the first turn (or in older saves).
     struct Turn: Codable, Equatable {
@@ -184,7 +191,15 @@ struct PhoneGame: Codable {
             for _ in 0..<count { try apply(.draw, player: player) }
         case .startGame:
             guard canStartGame else { return }
-            for player in [Player.Identifier.a, .b] { try apply(.drawCards(7, opening: true), player: player) }
+            for player in [Player.Identifier.a, .b] {
+                if handSmoothing != false, smoothedDecks?.contains(player.rawValue) == true, !sharedDeck {
+                    for card in state[player: player].hand.cards.value.contents { move(card, to: .library, player: player) }
+                    smoothShuffle(player)
+                    try apply(.drawCards(7, opening: false), player: player)
+                } else {
+                    try apply(.drawCards(7, opening: true), player: player)
+                }
+            }
             let dealt = [Player.Identifier.a, .b].filter { !state[player: $0].hand.cards.value.isEmpty }
             let first: Player.Identifier = Bool.random() ? .a : .b
             opening = Opening(firstPlayer: first, deciding: Set(dealt.map(\.rawValue)))
@@ -195,6 +210,19 @@ struct PhoneGame: Codable {
             try apply(.drawCards(7, opening: true), player: player)
         case .keepHand:
             opening?.deciding.remove(player.rawValue)
+        case .setHandSmoothing(let on):
+            handSmoothing = on
+        case .markSmoothedDeck:
+            smoothedDecks = (smoothedDecks ?? []).union([player.rawValue])
+        case .cancelStart:
+            // Back to before Start Game: both hands shuffled back into their libraries.
+            guard opening != nil else { return }
+            for player in [Player.Identifier.a, .b] {
+                for card in state[player: player].hand.cards.value.contents { move(card, to: .library, player: card.ownerIdentifier) }
+                library(player).cards.mutate { $0 = OrderedSet($0.contents.shuffled()) }
+            }
+            opening = nil
+            turn = nil
         case .playCard(let configuration):
             guard let card = cards[configuration.cardInstanceID], canUse(card, player: player) else { return }
             switch configuration.mode {
@@ -536,6 +564,7 @@ struct PhoneGame: Codable {
                 let deck = selection.kind == "Jump In" ? library.jumpInDeck(set: selection.setCode, first: first, second: choice) : library.jumpStartDeck(first: first, second: choice)
                 guard let deck else { throw PhoneGameError.message("The selected packets could not be built from the offline catalog.") }
                 try apply(.load(deck, name: first + " + " + choice), player: player)
+                smoothedDecks = (smoothedDecks ?? []).union([player.rawValue])
                 selection.completed.insert(player.rawValue)
                 selection.offers[player.rawValue] = []
             } else {
@@ -558,6 +587,8 @@ struct PhoneGame: Codable {
             opening = nil
             turn = nil
             combat = nil
+            // A pasted list isn't smoothed (a packet pick marks its deck after loading it).
+            smoothedDecks?.remove(player.rawValue)
             deckNames[player.rawValue] = name
             var layout = deckLayout ?? [:]
             layout[player.rawValue] = Dictionary(uniqueKeysWithValues: loaded.map { ($0.key.rawValue, $0.value.map(\.uuid)) })
@@ -610,6 +641,23 @@ struct PhoneGame: Codable {
             library(player).isTopCardRevealed.accept(false)
             state[player: player].life.accept(20)
         }
+    }
+
+    /// Shuffles a library for a smoothed first hand: of two shuffles, the one whose top seven has a
+    /// land share closest to the whole library's (one with no lands in its top seven never wins).
+    mutating func smoothShuffle(_ player: Player.Identifier) {
+        let cards = library(player).cards.value.contents
+        guard !cards.isEmpty else { return }
+        func landShare<C: Collection>(_ cards: C) -> Double where C.Element == CardInstance {
+            Double(cards.count(where: { $0.representation.isLand })) / Double(max(1, cards.count))
+        }
+        let deckShare = landShare(cards)
+        // The top of the library is its end (draws take the last card).
+        let first = cards.shuffled(), second = cards.shuffled()
+        let firstHand = first.suffix(7), secondHand = second.suffix(7)
+        let chosen = firstHand.contains(where: { $0.representation.isLand })
+            && abs(deckShare - landShare(firstHand)) < abs(deckShare - landShare(secondHand)) ? first : second
+        library(player).cards.accept(OrderedSet(chosen))
     }
 
     /// The untap button reads Start Game before the game has started: no deal or turn yet (loading
@@ -808,6 +856,12 @@ enum PhoneAction: Codable {
     case startGame, mulligan, keepHand
     /// The phase button: untap (drawing a card when `draw`), move to combat, and pass the turn.
     case untapAndDraw(draw: Bool), beginCombat, endTurn
+    /// Cancels Start Game while the opening hands are up: both hands go back into the libraries.
+    case cancelStart
+    /// Turns hand smoothing on or off for the game.
+    case setHandSmoothing(Bool)
+    /// Marks this player's deck as built from packets (JumpStart, Jump In), so it's smoothed.
+    case markSmoothedDeck
     case playCard(Command.PlayCardParameters)
     case moveToPlayer(UUID, Pile.Location, Player.Identifier, bottom: Bool)
     case reorderHand([UUID])

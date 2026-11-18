@@ -110,6 +110,8 @@ final class BoardMenuSheetController: UIViewController {
         case "Stop Revealing Hand": return "eye.slash"
         case "Draw on Untap": return "arrow.turn.up.left"
         case "Don't Draw on Untap": return "arrow.turn.up.left.circle"
+        case "Turn Off Hand Smoothing": return "slider.horizontal.below.rectangle"
+        case "Turn On Hand Smoothing": return "slider.horizontal.3"
         case "Add by Name": return "text.magnifyingglass"
         case "Add by Set and Number": return "number"
         case "Add Random": return "dice"
@@ -930,6 +932,22 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     private var edgeScroll: CADisplayLink?
     private var liftedPoint: CGPoint?
     private(set) var showsOpponent = false
+    /// The opening hand (Start Game): a large centred title, the whole hand fitting without
+    /// scrolling, Mulligan and Keep side by side below it, Cancel at the top right, hand ability
+    /// tiles on the cards, and no Battlefield zone.
+    var isOpeningHand = false {
+        didSet {
+            battlefieldZone.isHidden = isOpeningHand
+            cancelButton.isHidden = !isOpeningHand
+            titleLabel.textAlignment = isOpeningHand ? .center : .natural
+            titleLabel.font = UIFont(name: "Beleren2016-Bold", size: isOpeningHand ? 30 : 18) ?? .boldSystemFont(ofSize: isOpeningHand ? 30 : 18)
+            scrollView.isScrollEnabled = !isOpeningHand
+            for view in cardViews.values { view.showsAbilityTiles = isOpeningHand }
+            setNeedsLayout()
+        }
+    }
+    var onCancel: (() -> Void)?
+    private let cancelButton = UIButton(type: .custom)
 
     init(title: String, cards: [CardInstance], done: String = "Done", secondary: String? = nil, canShowOpponent: Bool = false) {
         super.init(frame: .zero)
@@ -960,6 +978,18 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             addSubview(button)
         }
         secondaryButton.isHidden = secondary == nil
+        cancelButton.setTitle("Cancel", for: .normal)
+        cancelButton.titleLabel?.font = UIFont(name: "Beleren2016-Bold", size: 16) ?? .boldSystemFont(ofSize: 16)
+        cancelButton.setTitleColor(.white, for: .normal)
+        cancelButton.backgroundColor = UIColor(white: 0.18, alpha: 0.95)
+        cancelButton.layer.cornerRadius = 16
+        cancelButton.layer.borderWidth = 1
+        cancelButton.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
+        cancelButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 14, bottom: 4, right: 14)
+        cancelButton.accessibilityIdentifier = "phone-browser-cancel"
+        cancelButton.isHidden = true
+        cancelButton.addAction(UIAction { [weak self] _ in self?.onCancel?() }, for: .touchUpInside)
+        addSubview(cancelButton)
         moreButton.setImage(UIImage(systemName: "ellipsis.circle.fill"), for: .normal)
         moreButton.setPreferredSymbolConfiguration(.init(pointSize: 26, weight: .semibold), forImageIn: .normal)
         moreButton.tintColor = UIColor(white: 0.85, alpha: 1)
@@ -1102,6 +1132,8 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             view.accessibilityLabel = hidden ? "Face-down card" : card.representation.name
             view.accessibilityIdentifier = "phone-browser-card"
             view.accessibilityTraits = .button
+            view.card = hidden ? nil : card
+            view.showsAbilityTiles = isOpeningHand
             let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
             hold.minimumPressDuration = 0.15
             view.addGestureRecognizer(hold)
@@ -1179,11 +1211,20 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     private var fanArea: CGRect {
         let top = (showButton.isHidden ? titleLabel.frame.maxY : showButton.frame.maxY) + 12
         let bottom = min(coveredHeight, bounds.height - contentBottomInset)
-        return CGRect(x: 0, y: top, width: bounds.width, height: max(80, bottom - top - 34))
+        // The opening hand keeps a strip below the fan for Mulligan and Keep.
+        return CGRect(x: 0, y: top, width: bounds.width, height: max(80, bottom - top - (isOpeningHand ? Self.openingButtonStrip : 34)))
     }
+    private static let openingButtonStrip: CGFloat = 60
     private var cardSize: CGSize {
         // Fills the space the controls leave (bigger on large screens), within the width too.
-        let height = min(fanArea.height * 0.86, 460, bounds.width * 0.42 * 88 / 63)
+        var height = min(fanArea.height * 0.86, 460, bounds.width * 0.42 * 88 / 63)
+        if isOpeningHand, cards.count > 0 {
+            // The whole hand fits across, without scrolling.
+            let safe = safeAreaInsets
+            let available = bounds.width - max(24, safe.left + 12) - max(24, safe.right + 12) - 40
+            let width = available / (1 + 0.6 * CGFloat(cards.count - 1))
+            height = min(height, width * 88 / 63)
+        }
         return CGSize(width: height * 63 / 88, height: height)
     }
     private var spacing: CGFloat { cardSize.width * 0.6 }
@@ -1194,11 +1235,15 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         let safe = safeAreaInsets
         let left = max(16, safe.left + 12), right = max(16, safe.right + 12)
         let top = max(8, safe.top + 4, topInset + 6)
-        titleLabel.frame = CGRect(x: left, y: top, width: bounds.width * 0.3, height: 32)
+        titleLabel.frame = isOpeningHand
+            ? CGRect(x: bounds.width * 0.2, y: top, width: bounds.width * 0.6, height: 40)
+            : CGRect(x: left, y: top, width: bounds.width * 0.3, height: 32)
         let doneSize = doneButton.intrinsicContentSize
         doneButton.frame = CGRect(x: bounds.width - right - doneSize.width, y: top, width: doneSize.width, height: 36)
         let secondarySize = secondaryButton.intrinsicContentSize
         secondaryButton.frame = CGRect(x: doneButton.frame.minX - 10 - secondarySize.width, y: top, width: secondarySize.width, height: 36)
+        let cancelSize = cancelButton.intrinsicContentSize
+        cancelButton.frame = CGRect(x: bounds.width - right - cancelSize.width, y: top + 2, width: cancelSize.width, height: 32)
         let moreX = (secondaryButton.isHidden ? doneButton.frame.minX : secondaryButton.frame.minX) - 46
         moreButton.frame = CGRect(x: moreX, y: top, width: 36, height: 36)
         let zoneWidth = min(220, bounds.width * 0.26)
@@ -1211,6 +1256,15 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         let fanTop = area.minY + max(0, (area.height - size.height - 30) / 2)
         scrollView.frame = CGRect(x: 0, y: fanTop, width: bounds.width, height: size.height + 30)
         track.frame = CGRect(x: bounds.width * 0.3, y: min(scrollView.frame.maxY + 6, min(coveredHeight, bounds.height - contentBottomInset) - 16), width: bounds.width * 0.4, height: 3)
+        if isOpeningHand {
+            // Mulligan and Keep side by side, centred in the strip below the fan.
+            let width = max(doneSize.width, secondarySize.width, 120)
+            let stripTop = scrollView.frame.maxY
+            let stripBottom = min(coveredHeight, bounds.height - contentBottomInset)
+            let y = stripTop + max(0, (stripBottom - stripTop - 40) / 2)
+            secondaryButton.frame = CGRect(x: bounds.midX - 8 - width, y: y, width: width, height: 40)
+            doneButton.frame = CGRect(x: bounds.midX + 8, y: y, width: width, height: 40)
+        }
         layoutCards(animated: false)
         // Opens at the right end, where the top of the library is.
         if !didInitialScroll, bounds.width > 0 {
@@ -1296,7 +1350,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
 
     /// The zone a lifted card at `point` would go to: the Battlefield zone up top, or the board's.
     private func destination(at point: CGPoint) -> Destination? {
-        if battlefieldZone.frame.insetBy(dx: -8, dy: -8).contains(point) { return .battlefield }
+        if !battlefieldZone.isHidden, battlefieldZone.frame.insetBy(dx: -8, dy: -8).contains(point) { return .battlefield }
         guard point.y > coveredHeight - 6 else { return nil }
         return zoneAt?(point)
     }
@@ -1442,6 +1496,12 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
 /// edge and a soft shadow behind it, so overlapping cards (and the condensed stack) stay distinct.
 final class PhoneBrowserCardView: UIView {
     let imageView: UIImageView
+    /// The card shown (nil face down), for its hand ability tiles.
+    var card: CardInstance?
+    /// Arena's hand ability tiles on the card's left edge (the opening hand shows them).
+    var showsAbilityTiles = false { didSet { if showsAbilityTiles != oldValue { tilesHeight = 0; setNeedsLayout() } } }
+    private var tilesHost: UIView?
+    private var tilesHeight: CGFloat = 0
     var cornerRadius: CGFloat = 0 { didSet { setNeedsLayout() } }
     /// Lifted: a bright blue rim.
     var isHighlighted = false {
@@ -1469,5 +1529,24 @@ final class PhoneBrowserCardView: UIView {
         imageView.frame = bounds
         imageView.layer.cornerRadius = cornerRadius
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).cgPath
+        updateAbilityTiles()
+    }
+
+    private func updateAbilityTiles() {
+        guard showsAbilityTiles, let card, !PhoneHandAbilityTiles.icons(for: card).isEmpty else {
+            tilesHost?.removeFromSuperview(); tilesHost = nil; return
+        }
+        // Rebuilt only when the card's size changes.
+        if tilesHost == nil || abs(tilesHeight - bounds.height) > 0.5 {
+            tilesHost?.removeFromSuperview()
+            let host = UIHostingController(rootView: PhoneHandAbilityTileStack(card: card, height: bounds.height)
+                .frame(width: bounds.width, height: bounds.height, alignment: .topLeading)).view!
+            host.backgroundColor = .clear
+            host.isUserInteractionEnabled = false
+            addSubview(host)
+            tilesHost = host
+            tilesHeight = bounds.height
+        }
+        tilesHost?.frame = bounds
     }
 }

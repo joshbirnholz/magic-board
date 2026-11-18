@@ -245,6 +245,8 @@ class BottomBarViewController: UIViewController {
 	
 	@IBAction func untapButtonPressed(_ sender: Any) {
         if let session = AppDelegate.shared.phoneSession, player.identifier == session.player {
+            // Nothing happens while the opening hands are still being kept or mulliganed.
+            if session.game.opening?.deciding.isEmpty == false { return }
             // The phase button: Start Game → Untap + Draw → Move to Combat → End Combat → End Turn.
             switch session.game.phaseButton(for: session.player) {
             // Both players get a new seven to keep or mulligan.

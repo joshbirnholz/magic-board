@@ -250,6 +250,26 @@ final class PhoneGameTests: XCTestCase {
         XCTAssertNil(game.opening)
     }
 
+    func testCancelStartPutsHandsBackAndSmoothingFlags() throws {
+        var game = PhoneGame()
+        let lands = try (0..<17).map { try card("Land \($0)", type: "Basic Land — Island") }
+        let spells = try (0..<23).map { try card("Spell \($0)", type: "Instant") }
+        game.state.player1.library.cards.accept(OrderedSet(lands + spells))
+        try game.apply(.markSmoothedDeck, player: .a)
+        XCTAssertEqual(game.smoothedDecks, ["a"])
+        try game.apply(.startGame, player: .a)
+        XCTAssertEqual(game.state.player1.hand.cards.value.count, 7)
+        try game.apply(.cancelStart, player: .b)
+        XCTAssertNil(game.opening)
+        XCTAssertTrue(game.state.player1.hand.cards.value.isEmpty)
+        XCTAssertEqual(game.state.player1.library.cards.value.count, 40)
+        XCTAssertTrue(game.canStartGame)
+        try game.apply(.setHandSmoothing(false), player: .b)
+        XCTAssertEqual(game.handSmoothing, false)
+        game.smoothShuffle(.a)
+        XCTAssertEqual(game.state.player1.library.cards.value.count, 40)
+    }
+
     func testResetBringsBackStartGame() throws {
         var game = PhoneGame()
         for (player, prefix) in [(Player.Identifier.a, "A"), (.b, "B")] {

@@ -164,6 +164,8 @@ final class PhoneGameSession: ObservableObject {
         case .loadDeck(let deck):
             guard deck.source == .decklist else { error = "Import a deck list or choose bundled JumpStart packets to play offline."; return }
             send(.load(deck.deckList, name: "Deck"))
+            // JumpStart and Jump In decks get a smoothed first hand, as on the iPad.
+            if deck.handSmoothing { send(.markSmoothedDeck) }
         case .reorderHand(let order): send(.reorderHand(order.cardInstanceIDs))
         case .revealCardsToPlayer(let parameters): send(.reveal(parameters.cardInstanceIDs, parameters.playerIdentifier, true))
         case .unrevealCardsToPlayer(let parameters): send(.reveal(parameters.cardInstanceIDs, parameters.playerIdentifier, false))
