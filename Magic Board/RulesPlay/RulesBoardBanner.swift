@@ -75,9 +75,12 @@ struct RulesTurnBanner: View {
 
     var body: some View {
         Text(isMine ? "Your Turn" : "Opponent's Turn")
-            .font(.system(size: 34, weight: .heavy))
+            .font(.custom("Beleren2016-Bold", size: 38))
             .foregroundStyle(.white)
-            .shadow(color: .black.opacity(0.8), radius: 4, y: 2)
+            // Arena glows the words in the player's colour: orange for you, blue for the opponent.
+            .shadow(color: glow, radius: 3)
+            .shadow(color: glow, radius: 10)
+            .shadow(color: glow.opacity(0.8), radius: 22)
             .fixedSize()
             .scaleEffect(scale)
             .offset(y: offset)
@@ -91,6 +94,10 @@ struct RulesTurnBanner: View {
                 lastKey = key
                 announce(mine: active == snapshot.playerId)
             }
+    }
+
+    private var glow: Color {
+        isMine ? Color(red: 1, green: 0.55, blue: 0.1) : Color(red: 0.2, green: 0.55, blue: 1)
     }
 
     private var scale: CGFloat {
@@ -121,11 +128,11 @@ struct RulesTurnBanner: View {
             guard current == generation else { return }
             withAnimation(.easeOut(duration: 0.25)) { stage = .entering }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.65) {
             guard current == generation else { return }
             withAnimation(.easeIn(duration: 0.4)) { stage = .leaving }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) {
             guard current == generation else { return }
             withTransaction(reset) { stage = .hidden }
         }
