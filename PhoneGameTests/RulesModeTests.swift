@@ -28,6 +28,26 @@ final class RulesModeTests: XCTestCase {
         XCTAssertFalse(try prompt("Select a card (1 more) to put on the bottom of your library", method: "GAME_ASK").isLondonBottom)
     }
 
+    func testScryOrderQuestionsAnswerFromTheBrowserArrangement() throws {
+        let ids = (0..<3).map { _ in UUID() }
+        func prompt(_ text: String, _ cards: [UUID]) throws -> RulesPrompt {
+            let json: [String: Any] = ["id": "p", "method": "GAME_TARGET", "revision": 1, "message": text, "supported": true, "choices": [],
+                                      "cards": cards.map { ["id": $0.uuidString.lowercased(), "name": "Island", "faceDown": false,
+                                                            "transformed": false, "counters": []] }]
+            return try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        let top = "Select card ORDER to put on the TOP of your library (last one chosen will be topmost)"
+        let bottom = "Select card ORDER to put on the BOTTOM of your library (last one chosen will be bottommost)"
+        // Arranged top first: ids[0] ends on top, so the deepest (ids[2]) is chosen first.
+        XCTAssertEqual(RulesPhoneAdapter.libraryOrderAnswer(try prompt(top, ids), arranged: ids), ids[2].uuidString.lowercased())
+        XCTAssertEqual(RulesPhoneAdapter.libraryOrderAnswer(try prompt(top, [ids[0], ids[1]]), arranged: ids), ids[1].uuidString.lowercased())
+        // Bottom: the last chosen is bottommost, so the highest is chosen first.
+        XCTAssertEqual(RulesPhoneAdapter.libraryOrderAnswer(try prompt(bottom, [ids[2], ids[1]]), arranged: ids), ids[1].uuidString.lowercased())
+        // Cards the browser didn't arrange, or another question, are left to the player.
+        XCTAssertNil(RulesPhoneAdapter.libraryOrderAnswer(try prompt(top, [ids[0], UUID()]), arranged: ids))
+        XCTAssertNil(RulesPhoneAdapter.libraryOrderAnswer(try prompt("Select cards to PUT on the BOTTOM of your library (Scry)", ids), arranged: ids))
+    }
+
     func testCardChoiceUsesEngineEligibilityAndKeepsSelectedCardsDeselectable() throws {
         func prompt(_ fields: [String: Any]) throws -> RulesPrompt {
             var json: [String: Any] = ["id": "p", "method": "GAME_TARGET", "revision": 1,

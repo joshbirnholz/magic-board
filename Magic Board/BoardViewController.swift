@@ -4856,7 +4856,12 @@ extension BoardViewController {
         case .look: return library // the rest of the library follows, face down
         case .revealed: return phoneRevealedToMe.value.contents
         case .openingHand: return session.game.state[player: session.player].hand.cards.value.contents
-        case .rulesChoice: return session.rulesAdapter?.choiceCards ?? []
+        case .rulesChoice:
+            // In the order the player arranged them (scry / surveil), else XMage's.
+            guard let adapter = session.rulesAdapter else { return [] }
+            let order = adapter.arrangedLibraryOrder
+            func rank(_ index: Int, _ card: CardInstance) -> Int { order.firstIndex(of: card.uuid) ?? order.count + index }
+            return adapter.choiceCards.enumerated().sorted { rank($0.offset, $0.element) < rank($1.offset, $1.element) }.map(\.element)
         case .pile(let location, let owner):
             let pile = location == .library ? session.game.library(owner) : session.game.state[player: owner][location]
             return Array(pile.cards.value.contents.reversed())
@@ -4998,7 +5003,9 @@ extension BoardViewController {
             // Back to top-first (the browser shows a library with its top on the right).
             self.phoneBrowserIDs = self.phoneBrowserDisplayOrder(cards, mode: mode).map(\.uuid)
             switch mode {
-            case .revealed, .rulesChoice: break
+            case .revealed: break
+            // Scry / surveil: XMage's follow-up order questions answer from this arrangement.
+            case .rulesChoice: session.rulesAdapter?.arrangeChoice(self.phoneBrowserIDs)
             case .openingHand: session.send(.reorderHand(self.phoneBrowserIDs))
             case .pile(let location, let owner):
                 if owner == session.player { session.send(.arrangePile(location, self.phoneBrowserIDs)) }

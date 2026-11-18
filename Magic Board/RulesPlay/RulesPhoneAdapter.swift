@@ -14,6 +14,10 @@ final class RulesPhoneAdapter {
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
+    /// The scry / surveil cards as the player arranged them in the browser, top of the library
+    /// first. XMage then asks for the order of the cards going on top (and on the bottom) one card
+    /// at a time; those questions answer themselves from this (Arena: one browser, one action).
+    private(set) var arrangedLibraryOrder: [UUID] = []
     /// Arena's London mulligan on top of XMage's order: XMage asks for bottom cards right after a
     /// mulligan, before the next keep question. The app holds that question, shows Keep / Mulligan,
     /// and only asks for the cards once the player keeps.
@@ -102,9 +106,16 @@ final class RulesPhoneAdapter {
         }
         // A card choice arrives (or ends) without a new board state: project again so the board's
         // browser opens with the cards (or closes).
-        let choiceID = prompt?.style == .browser && pending == nil ? prompt?.id : nil
+        let choiceID = prompt?.style == .browser && pending == nil && !isAutoOrdered(prompt) ? prompt?.id : nil
         if choiceID != presentation.rulesChoice?.id, let snapshot = engine.snapshot {
             Task { [weak self] in try? await self?.project(snapshot, refreshArtwork: true) }
+        }
+        // XMage's "card ORDER to put on the TOP/BOTTOM of your library" after a scry or surveil:
+        // answered from the order the player arranged in the browser.
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected,
+           let card = Self.libraryOrderAnswer(prompt, arranged: arrangedLibraryOrder) {
+            autoPassedPromptID = prompt.id
+            Task { [weak self] in await self?.engine.answer(.object(card)) }
         }
         // The London mulligan's deferred answers (see MulliganChoice).
         if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected {
@@ -424,6 +435,29 @@ final class RulesPhoneAdapter {
         }
     }
 
+    /// The board's scry / surveil browser was rearranged (top of the library first).
+    func arrangeChoice(_ ids: [UUID]) { arrangedLibraryOrder = ids }
+
+    private func isAutoOrdered(_ prompt: RulesPrompt?) -> Bool {
+        prompt.flatMap { Self.libraryOrderAnswer($0, arranged: arrangedLibraryOrder) } != nil
+    }
+
+    /// The card to choose for XMage's "card ORDER to put on the TOP of your library (last one chosen
+    /// will be topmost)" (or BOTTOM… bottommost), given the arranged order, top first; nil when the
+    /// question isn't one or its cards weren't arranged in the browser. The bottom cards keep their
+    /// arranged order too, so the leftmost of them ends up highest.
+    static func libraryOrderAnswer(_ prompt: RulesPrompt, arranged: [UUID]) -> String? {
+        guard prompt.method == "GAME_TARGET", let message = prompt.message?.lowercased() else { return nil }
+        let top = message.contains("order to put on the top of your library")
+        guard top || message.contains("order to put on the bottom of your library") else { return nil }
+        let candidates = (prompt.cards ?? []).map(\.id).filter(prompt.isCardSelectable)
+        let ranked = candidates.compactMap { id in UUID(uuidString: id).flatMap { arranged.firstIndex(of: $0) }.map { (id, $0) } }
+        guard !ranked.isEmpty, ranked.count == candidates.count else { return nil }
+        // Each chosen card goes on top (bottom) of the ones before it: on top, the deepest card
+        // first; on the bottom, the highest first.
+        return (top ? ranked.max { $0.1 < $1.1 } : ranked.min { $0.1 < $1.1 })?.0
+    }
+
     /// A card tapped in the board's card-choice browser.
     func chooseInBrowser(_ id: UUID) async {
         guard let prompt = engine.prompt, prompt.style == .browser, engine.canAnswer else { return }
@@ -600,7 +634,7 @@ final class RulesPhoneAdapter {
         game.rulesPlayable = Self.highlighted(snapshot: snapshot, prompt: engine.pendingRequest == nil ? engine.prompt : nil)
         game.opening = openingHand(for: engine.pendingRequest == nil ? engine.prompt : nil)
         // A card choice (library search, revealed cards…) goes to Phone Play's fanned browser.
-        if engine.pendingRequest == nil, let prompt = engine.prompt, prompt.style == .browser, let cards = prompt.cards {
+        if engine.pendingRequest == nil, let prompt = engine.prompt, prompt.style == .browser, !isAutoOrdered(prompt), let cards = prompt.cards {
             choiceCards = try cards.map { try instance($0, owner: .a) }
             let ids = cards.compactMap { UUID(uuidString: $0.id) }
             let message = prompt.plainMessage.lowercased()
@@ -611,10 +645,13 @@ final class RulesPhoneAdapter {
             case .choose: prompt.plainMessage
             }
             let hint: String? = switch kind {
-            case .scry: "Drag cards to the bottom of your library (or tap them). The rest stay on top."
-            case .surveil: "Drag cards to your graveyard (or tap them). The rest stay on top."
+            case .scry: "Drag cards to the bottom of your library (or tap them). Drag to reorder: the leftmost ends up on top."
+            case .surveil: "Drag cards to your graveyard (or tap them). Drag to reorder: the leftmost ends up on top."
             case .choose: nil
             }
+            // A new scry / surveil starts in XMage's order (top first); a rearrangement is kept
+            // while the same cards are asked about again (each tap is a new question).
+            if kind != .choose, Set(arrangedLibraryOrder) != Set(ids) { arrangedLibraryOrder = ids }
             game.rulesChoice = .init(id: prompt.id, title: title,
                                      subtitle: hint ?? prompt.subMessage.map(RulesText.plain).flatMap { $0.isEmpty ? nil : $0 },
                                      cardIDs: ids,
