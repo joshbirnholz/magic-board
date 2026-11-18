@@ -2783,6 +2783,20 @@ extension BoardViewController {
             self?.abandonPhoneHandDrag()
             self?.clearPhoneResolutionAnimations()
         }.store(in: &phoneSubscriptions)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--phone-board-background-traits") {
+            // UI tests: stand in for the other-size snapshot iOS takes of the app in the background.
+            NotificationCenter.default.publisher(for: UIScene.didEnterBackgroundNotification).sink { [weak self] _ in
+                guard let self else { return }
+                let flipped = UITraitCollection(horizontalSizeClass: self.traitCollection.horizontalSizeClass == .compact ? .regular : .compact)
+                for child in [self.bottomBarA, self.bottomBarB].compactMap({ $0 }) { self.setOverrideTraitCollection(flipped, forChild: child) }
+            }.store(in: &phoneSubscriptions)
+            NotificationCenter.default.publisher(for: UIScene.willEnterForegroundNotification).sink { [weak self] _ in
+                guard let self else { return }
+                for child in [self.bottomBarA, self.bottomBarB].compactMap({ $0 }) { self.setOverrideTraitCollection(nil, forChild: child) }
+            }.store(in: &phoneSubscriptions)
+        }
+        #endif
         NotificationCenter.default.publisher(for: UIScene.didActivateNotification).sink { [weak self] _ in
             guard let self else { return }
             self.abandonPhoneHandDrag()

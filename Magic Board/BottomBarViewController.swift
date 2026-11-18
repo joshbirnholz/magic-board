@@ -93,8 +93,9 @@ class BottomBarViewController: UIViewController {
 	@IBOutlet weak var libraryPileView: HUDCardPileView!
 	@IBOutlet weak var graveyardPileView: HUDCardPileView!
 	@IBOutlet weak var exilePileView: HUDCardPileView!
-	@IBOutlet weak var lifeLabel: UILabel!
-	@IBOutlet weak var lifeStepper: UIStepper!
+	// Strong: neither is ever in the view hierarchy (see viewDidLoad).
+	@IBOutlet var lifeLabel: UILabel!
+	@IBOutlet var lifeStepper: UIStepper!
 	@IBOutlet weak var handContainerView: HandViewControllerContainerView!
 	
   @IBOutlet weak var untapButton: UIButton!
@@ -109,6 +110,14 @@ class BottomBarViewController: UIViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
+		// The old life label and stepper (replaced by the life tracker) stay out of the bar. This
+		// isn't done with a storyboard size-class variation ("installed" unchecked) because any
+		// variation makes UIKit re-install every storyboard constraint and subview of the bar on a
+		// size-class change, such as the snapshot iOS takes of the app in the background. That
+		// undid Phone Play's HUD layout: the opponent's life tracker stretched across the bar,
+		// over their piles.
+		lifeLabel.removeFromSuperview()
+		lifeStepper.removeFromSuperview()
 		
 		setupPile(GameState.current.effectivePile(.library, player: player.identifier), view: libraryPileView)
 		setupPile(GameState.current.effectivePile(.graveyard, player: player.identifier), view: graveyardPileView)
