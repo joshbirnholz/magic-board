@@ -1,4 +1,4 @@
-# Rules mode handoff: Claude → Codex (2026-11-17, 9:15 PM ET)
+# Rules mode handoff: Claude → Codex (2026-11-17, 8:31 PM ET)
 
 Josh asked Claude to continue Rules mode while Codex was at its usage limit and to stop before Codex could resume at 9:28 PM. Pick up from here. Josh's standing instructions are unchanged (see `Docs/RulesModePlan.md` → "Workspace and integration"). In short: work autonomously on `rules-mode` in this worktree; never touch the main checkout (`/Users/compc/Xcode/Magic Board`, branch `phone-play`) or its uncommitted edits; merge `phone-play` in periodically; keep normal Phone Play unchanged; share the Phone Play UI; follow MTG Arena for UI choices. Josh also wants one commit per finished task and no pushes.
 
