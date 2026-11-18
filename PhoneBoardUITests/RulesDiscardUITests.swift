@@ -6,6 +6,32 @@ import Foundation
 final class RulesDiscardUITests: XCTestCase {
     private struct Status: Decodable, Sendable { let remaining: Int?; let answers: Int; let complete: Bool }
 
+    @MainActor func testQuestionDisplaysItsVisibleCardAndDoesNotReopenInformationAfterAnswering() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_QUESTION_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_QUESTION_FIXTURE_ADDRESS to the question fixture")
+        }
+        let app = try await openFixture(address + "/question", question: true)
+        defer { app.terminate() }
+        let contextID = "rules-context-card-00000000-0000-0000-0000-000000000031"
+        // A read-only card image may be represented as Other by UIKit's accessibility bridge.
+        let face = app.descendants(matching: .any)[contextID]
+        XCTAssertTrue(face.waitForExistence(timeout: 5))
+        XCTAssertEqual(face.label, "Revitalize")
+        XCTAssertFalse(app.buttons[contextID].exists, "Question context is not a card-selection action")
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Visible card context for a rules question"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["Yes"].tap()
+        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["rules-information-title"].exists, "Already inspected question context must not reopen")
+        let observer = try informationObserver(address)
+        defer { observer.cancel(with: .goingAway, reason: nil) }
+        let status = try await readStatus(observer)
+        XCTAssertTrue(status.complete)
+        XCTAssertEqual(status.answers, 1)
+    }
+
     @MainActor func testTwoMulligansReturnOnlyTheKeptHandsCardsToTheLibrary() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_MULLIGAN_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_MULLIGAN_FIXTURE_ADDRESS to MulliganPromptFixture")
@@ -66,6 +92,7 @@ final class RulesDiscardUITests: XCTestCase {
         blocker.tap()
         let targetBanner = expectation(for: NSPredicate(format: "label == 'Choose attacker to block'"), evaluatedWith: banner)
         await fulfillment(of: [targetBanner], timeout: 5)
+        XCTAssertFalse(app.buttons["rules-fast-forward"].isEnabled, "Skip actions require priority, not an outstanding target")
         let attackers = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
         let attacker = try XCTUnwrap(attackers.first { ($0.value as? String) == "Attacking" && $0.isHittable })
         attacker.tap()
@@ -159,7 +186,7 @@ final class RulesDiscardUITests: XCTestCase {
         if app.buttons["Exit Game"].waitForExistence(timeout: 3) { app.buttons["Exit Game"].tap() }
     }
 
-    @MainActor private func openFixture(_ address: String, information: Bool = false, opening: Bool = false) async throws -> XCUIApplication {
+    @MainActor private func openFixture(_ address: String, information: Bool = false, opening: Bool = false, question: Bool = false) async throws -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--rules-ui-test"]
         app.launch()
@@ -187,7 +214,7 @@ final class RulesDiscardUITests: XCTestCase {
                           userInfo: [NSLocalizedDescriptionKey: "The fixture's game button never enabled"])
         }
         start.tap()
-        let ready = information ? app.staticTexts["rules-information-title"] : app.buttons[opening ? "Keep 7" : "phone-untap-local"]
+        let ready = information ? app.staticTexts["rules-information-title"] : app.buttons[question ? "Yes" : opening ? "Keep 7" : "phone-untap-local"]
         guard ready.waitForExistence(timeout: 20) else {
             let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
             screenshot.name = "Fixture did not reach the game"

@@ -46,7 +46,7 @@ struct RulesFastForwardPill: View {
                 .overlay(Capsule().strokeBorder(Color.white.opacity(0.7), lineWidth: 1.5))
                 .shadow(color: .orange.opacity(0.5), radius: 4)
         }
-        .disabled(session.status != .connected)
+        .disabled(!session.canAnswer || session.prompt?.method != "GAME_SELECT")
         .accessibilityLabel("Pass until")
         .accessibilityIdentifier("rules-fast-forward")
     }

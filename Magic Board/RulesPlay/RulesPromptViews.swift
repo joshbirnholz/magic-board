@@ -140,18 +140,25 @@ struct RulesPromptBar: View {
                 .accessibilityLabel(prompt.plainMessage)
                 .accessibilityIdentifier("rules-prompt-message")
         case "GAME_TARGET":
-            strip {
-                RulesSymbolText(text: prompt.plainMessage, size: 17, beleren: true).foregroundStyle(.white)
+            let players = session.snapshot?.players.filter { prompt.targets?.contains($0.id) == true } ?? []
+            VStack(spacing: 0) {
+                // The battlefield banner owns the visible instruction; retain the raw question
+                // for accessibility and the existing prompt-driving UI tests.
+                Color.clear.frame(width: 1, height: 1)
+                    .accessibilityElement()
+                    .accessibilityLabel(prompt.plainMessage)
                     .accessibilityIdentifier("rules-prompt-message")
-                Text("Tap a highlighted card.").font(.caption).foregroundStyle(.white.opacity(0.7))
-                let players = session.snapshot?.players.filter { prompt.targets?.contains($0.id) == true } ?? []
-                if !players.isEmpty {
-                    HStack { ForEach(players) { player in
-                        answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
-                            .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
-                    } }
+                if !players.isEmpty || prompt.required != true {
+                    strip {
+                        if !players.isEmpty {
+                            HStack { ForEach(players) { player in
+                                answer(player.id == session.snapshot?.playerId ? "You" : player.name, .object(player.id), primary: false)
+                                    .accessibilityIdentifier(player.id == session.snapshot?.playerId ? "rules-target-self" : "rules-target-opponent")
+                            } }
+                        }
+                        if prompt.required != true { answer("Done", .boolean(false), primary: false) }
+                    }
                 }
-                if prompt.required != true { answer("Done", .boolean(false), primary: false) }
             }
         case "GAME_SELECT" where prompt.specialActionAvailable == true:
             // A special action (turning a face-down creature up, suspend…) is possible: offer it.
@@ -257,7 +264,8 @@ struct RulesPromptModal: View {
         .animation(.easeInOut(duration: 0.18), value: isVisible)
         .onAppear { resetInputs(); onVisibilityChange(isVisible) }
         .onChange(of: isVisible) { onVisibilityChange($0) }
-        .onChange(of: session.prompt?.id) { _ in resetInputs() }
+        .onChange(of: session.prompt?.id) { _ in resetInputs(); acknowledgeContextInformation() }
+        .onAppear { acknowledgeContextInformation() }
     }
 
     @ViewBuilder private var content: some View {
@@ -314,6 +322,7 @@ struct RulesPromptModal: View {
                     answer("Keep Hand", .boolean(false))
                 }
             } else {
+                if let cards = prompt.cards, !cards.isEmpty { cardRow(cards, height: 150, selectable: false) }
                 HStack(spacing: 16) {
                     answer("No", .boolean(false), primary: false)
                     answer("Yes", .boolean(true))
@@ -450,7 +459,11 @@ struct RulesPromptModal: View {
                             .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
                             .opacity(session.prompt?.isCardSelectable(card.id) == false ? 0.45 : 1)
                             .accessibilityIdentifier("rules-prompt-card-\(card.id)")
-                    } else { RulesChoiceCardFace(card: card, height: height) }
+                    } else {
+                        RulesChoiceCardFace(card: card, height: height)
+                            .accessibilityRemoveTraits(.isButton)
+                            .accessibilityIdentifier("rules-context-card-\(card.id)")
+                    }
                 }
             }
             .padding(.horizontal, 8)
@@ -458,6 +471,16 @@ struct RulesPromptModal: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: cards.isEmpty ? 0 : height + 24)
+    }
+
+    private func acknowledgeContextInformation() {
+        guard let prompt = session.prompt, prompt.method == "GAME_ASK", let cards = prompt.cards, !cards.isEmpty else { return }
+        let displayed = Set(cards.map(\.id))
+        // A fully displayed question context has already been inspected. It must not reopen as
+        // a second read-only window after Yes/No; larger information groups remain available.
+        for group in session.cardInformation where !group.cards.isEmpty && group.cards.allSatisfy({ displayed.contains($0.id) }) {
+            session.dismissCardInformation(group.id)
+        }
     }
 
     private func resetInputs() {
