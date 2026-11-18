@@ -141,8 +141,14 @@ public final class BridgeMain extends WebSocketServer {
         for (Seat seat : new ArrayList<>(seats.values()))
             if (seat.socket == null && now - seat.detachedAt > TimeUnit.MINUTES.toMillis(15)) remove(seat);
     }
-    @Override public synchronized void onClose(WebSocket socket, int code, String reason, boolean remote) {
+    @Override public void onClose(WebSocket socket, int code, String reason, boolean remote) {
         authorized.remove(socket);
+        // Java-WebSocket calls this while holding the socket monitor. Never wait for the bridge
+        // monitor here: a concurrent leave/resume can hold it while closing that same socket.
+        try { cleanup.execute(() -> detach(socket)); }
+        catch (RejectedExecutionException ignored) { /* Process shutdown already closes every seat. */ }
+    }
+    private synchronized void detach(WebSocket socket) {
         Seat seat = connections.remove(socket);
         if (seat != null && seat.socket == socket) {
             seat.socket = null; seat.detachedAt = System.currentTimeMillis();

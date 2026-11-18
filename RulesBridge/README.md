@@ -15,6 +15,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
 - Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase and stopping there, and cancelling auto-pass. Other native pass destinations use the same engine API but still need gameplay coverage.
 - Repeated disconnected-client relaunches reclaim an old detached seat while preserving connected players and newer resumable seats.
+- Repeated simultaneous leave/socket-abort races preserve other clients, allow new clients and permit graceful bridge shutdown.
 
 ## Pinned dependencies
 
@@ -68,7 +69,7 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 
 ```sh
 javac --release 17 -cp "build/classes:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
     java -cp "build/classes:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```

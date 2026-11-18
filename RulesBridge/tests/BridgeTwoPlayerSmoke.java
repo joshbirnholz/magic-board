@@ -27,7 +27,7 @@ public final class BridgeTwoPlayerSmoke {
         Client(String resume) throws Exception {
             socket = HttpClient.newHttpClient().newWebSocketBuilder()
                     .header("Authorization", "Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))
-                    .buildAsync(URI.create(System.getenv().getOrDefault("RULES_SMOKE_ADDRESS", "ws://127.0.0.1:17180")), this).join();
+                    .buildAsync(URI.create(System.getenv().getOrDefault("RULES_SMOKE_ADDRESS", "ws://127.0.0.1:17180")), this).orTimeout(10, TimeUnit.SECONDS).join();
             try {
                 await("hello");
                 JsonObject connect = new JsonObject();
