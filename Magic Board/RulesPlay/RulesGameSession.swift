@@ -17,6 +17,7 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var pendingRequest: String?
     @Published private(set) var notice = ""
     @Published private(set) var holdingPriority = false
+    @Published private(set) var autoOrderTriggers = true
     @Published var error: String?
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
@@ -63,6 +64,7 @@ final class RulesGameSession: ObservableObject {
             tableId = nil; ownsTable = false; tables = []
             result = nil
             holdingPriority = false
+            autoOrderTriggers = true
         }
         endpoint = url
         disconnect()
@@ -126,6 +128,7 @@ final class RulesGameSession: ObservableObject {
         tableId = nil; ownsTable = false; tables = []
         result = nil
         holdingPriority = false
+        autoOrderTriggers = true
     }
 
     func startAiGame(deck: RulesDeck? = nil, format: String = "Limited") async {
@@ -154,6 +157,10 @@ final class RulesGameSession: ObservableObject {
     func controlPriority(_ action: RulesPriorityAction) async {
         await submit(RulesCommand(type: "priorityControl", requestId: UUID().uuidString,
                                   promptId: prompt?.id, revision: snapshot?.revision, priorityAction: action))
+    }
+
+    func setAutoOrderTriggers(_ enabled: Bool) async {
+        await submit(RulesCommand(type: "settings", requestId: UUID().uuidString, autoOrderTriggers: enabled))
     }
 
     private func submit(_ command: RulesCommand) async {
@@ -220,8 +227,10 @@ final class RulesGameSession: ObservableObject {
         case "prompt": prompt = try decoder.decode(RulesPrompt.self, from: data)
         case "promptCleared": prompt = nil
         case "prioritySettings":
-            struct Settings: Decodable { let holdingPriority: Bool }
-            holdingPriority = try decoder.decode(Settings.self, from: data).holdingPriority
+            struct Settings: Decodable { let holdingPriority: Bool; let autoOrderTriggers: Bool? }
+            let settings = try decoder.decode(Settings.self, from: data)
+            holdingPriority = settings.holdingPriority
+            if let automatic = settings.autoOrderTriggers { autoOrderTriggers = automatic }
         case "ack":
             if header.requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "error":
@@ -229,7 +238,8 @@ final class RulesGameSession: ObservableObject {
             if header.code == "sessionExpired" {
                 resumeToken = nil
                 RulesConnectionKey.delete(account: "retainedSeat")
-                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; holdingPriority = false
+                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; holdingPriority = false; autoOrderTriggers = true
+                result = nil; tables = []
             }
             if status == .connecting { fail(message); return }
             error = message

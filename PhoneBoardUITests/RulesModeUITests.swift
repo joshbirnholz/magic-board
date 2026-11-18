@@ -279,6 +279,24 @@ final class RulesModeUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
         XCTAssertTrue(app.buttons["Release Full Control"].waitForExistence(timeout: 5))
         app.buttons["Release Full Control"].tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        XCTAssertTrue(app.buttons["Order Triggers Manually"].waitForExistence(timeout: 5))
+        app.buttons["Order Triggers Manually"].tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        XCTAssertTrue(app.buttons["Order Triggers Automatically"].waitForExistence(timeout: 5))
+        app.buttons["Order Triggers Automatically"].tap()
+        exitFixtureGame(app)
+    }
+
+    @MainActor func testRulesTriggerOrderingSelectsAnAbilityCard() throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let app = startFixtureGame(endpoint: endpoint + "/ordering")
+        let choices = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'rules-prompt-card-'"))
+        XCTAssertTrue(choices.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertEqual(choices.count, 2)
+        choices.element(boundBy: 0).tap()
+        expectation(for: NSPredicate(format: "label CONTAINS 'No'"), evaluatedWith: app.buttons["phone-untap-local"])
+        waitForExpectations(timeout: 8)
         exitFixtureGame(app)
     }
 

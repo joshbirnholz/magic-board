@@ -14,6 +14,7 @@ Rules mode uses the **same Phone Play interface** as Host/Join. XMage controls i
 - Stack objects carry their controller (inferred by the bridge: an ability's source controller, otherwise the player who held priority), checked in the real AI game.
 - The initial AI deck is deliberately simple; this is not yet an all-card client.
 - Native priority controls checked against a real game: hold/release, stale-command rejection, passing to the next main phase and stopping there, and cancelling auto-pass. Other native pass destinations use the same engine API but still need gameplay coverage.
+- Real-card prompt probes passed: manually ordering Soul Warden triggers; choosing a Blessed Alliance mode and putting it on the stack; casting Reverent Mantra using its white-card exile cost; casting Gathan Raiders face down and turning it face up by paying the discard cost.
 - Repeated disconnected-client relaunches reclaim an old detached seat while preserving connected players and newer resumable seats.
 - Repeated simultaneous leave/socket-abort races preserve other clients, allow new clients and permit graceful bridge shutdown.
 
@@ -76,13 +77,15 @@ done
 
 `RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
 
+Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs and morph. Deck fixtures are in `tests/decks/`. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game.
+
 `BlockPromptFixture` is a separate, deterministic WebSocket fixture for focused phone interaction checks; it does not enforce Magic rules. Start it on loopback port 17183 with the same test connection key:
 
 ```sh
 java -cp "build/classes:lib/*:$XMAGE_HOME/mage-client/lib/*" BlockPromptFixture
 ```
 
-Set `TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS=ws://127.0.0.1:17183` when running the Rules UI tests `testRulesBlockDragAnswersTheFollowUpTarget`, `testRulesFullControlMenuReflectsEngineSetting`, or `testRulesReconnectsAfterAppRelaunchAndClearsSeatOnExit`. They skip without that environment variable. The blocking fixture uses two attackers to require both blocker selection and a follow-up target answer. `CombatSmoke` separately verifies legal blocker assignment with two real XMage human seats.
+Set `TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS=ws://127.0.0.1:17183` when running the Rules UI tests `testRulesBlockDragAnswersTheFollowUpTarget`, `testRulesFullControlMenuReflectsEngineSetting`, `testRulesTriggerOrderingSelectsAnAbilityCard`, or `testRulesReconnectsAfterAppRelaunchAndClearsSeatOnExit`. They skip without that environment variable. The blocking fixture uses two attackers to require both blocker selection and a follow-up target answer; its `/ordering` route supplies two triggered abilities. `CombatSmoke` separately verifies legal blocker assignment with two real XMage human seats.
 
 For the recovery check, build with `CODE_SIGNING_ALLOWED=YES CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=-` on the simulator. An unsigned test build cannot access its Keychain. The signed simulator test has verified recovery across process termination/relaunch and deletion of the saved seat on explicit Exit Game. These fixture checks also verify the full-control menu and blocker dragging through a target prompt.
 
@@ -93,6 +96,8 @@ Version 1 uses JSON WebSocket text messages. The WebSocket upgrade requires `Aut
 Commands `createAiGame`, `createHumanGame`, `listTables`, `joinTable`, `startMatch`, `answer`, `priorityControl`, and `resync` carry a unique `requestId`. `joinTable` also carries `tableId`. Answers carry `promptId`, current snapshot `revision`, `kind` (`boolean`, `uuid`, `integer`, `string`, `amounts`, `special`, `cancel`), and a typed `value`. `special` opens the engine's special-action menu; `cancel` uses the engine-specific cancellation for the current prompt, only when `canCancel` is true. The bridge returns `ack` or `error`. Duplicate request IDs return the original receipt (last 256 retained). Stale prompt IDs/revisions are rejected and the current state is resent.
 
 `priorityControl` accepts `priorityAction`: `hold`, `release`, `cancelAutoPass`, `resolveStack`, `nextMain`, `endStep`, or `yourTurn`. Pass destinations also require the current `promptId` and `revision`, and are accepted only at `GAME_SELECT`. Hold/release/cancel can be used during the opponent's priority. `prioritySettings.holdingPriority` is replayed on reconnect; `snapshot.priority` contains the engine's active pass flags. A normal single pass remains a boolean answer to `GAME_SELECT`.
+
+The Rules battlefield menu also switches between automatic and manual trigger ordering. `settings` with boolean `autoOrderTriggers` updates the seat's XMage preferences; `prioritySettings.autoOrderTriggers` returns the acknowledged value and is replayed on reconnect. Automatic ordering is the default. Normal Phone Play does not use these preferences.
 
 Prompts expose optional `queryType`, `subMessage`, `canCancel`, `specialActionAvailable` and `specialActionLabel`. Trigger ordering is `GAME_TARGET` / `PICK_ABILITY`: choose an ability ID from `cards`, first onto the stack first. Modes and alternative-cost ability menus use `choices`; ability-menu IDs are sent to XMage as UUIDs. Unknown future dialog methods are marked unsupported.
 

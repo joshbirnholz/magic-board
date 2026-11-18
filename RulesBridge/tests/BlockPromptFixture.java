@@ -14,11 +14,16 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static final String FIRST = "00000000-0000-0000-0000-000000000020";
     private static final String SECOND = "00000000-0000-0000-0000-000000000021";
     private static final String GAME = "00000000-0000-0000-0000-000000000100";
+    private static final String TRIGGER_FIRST = "00000000-0000-0000-0000-000000000030";
+    private static final String TRIGGER_SECOND = "00000000-0000-0000-0000-000000000031";
     private int revision = 1;
     private String selectedAttacker;
     private String stage = "select";
     private final String resumeToken = UUID.randomUUID().toString();
     private boolean hasGame;
+    private String initialStage = "select";
+    private boolean holdingPriority;
+    private boolean autoOrderTriggers = true;
 
     private BlockPromptFixture(int port) { super(new InetSocketAddress("127.0.0.1", port), 1); }
     private static JsonObject object(Object... values) {
@@ -29,6 +34,7 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void send(WebSocket socket, JsonObject value) { socket.send(JSON.toJson(value)); }
     @Override public void onOpen(WebSocket socket, ClientHandshake request) {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
+        initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -46,22 +52,29 @@ public final class BlockPromptFixture extends WebSocketServer {
             }
             case "listTables" -> { send(socket, object("type", "tables", "tables", new Object[]{})); ack(socket, request); }
             case "createAiGame" -> {
-                revision = 1; selectedAttacker = null; stage = "select"; hasGame = true;
+                revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true;
+                holdingPriority = false; autoOrderTriggers = true;
                 ack(socket, request); snapshot(socket); prompt(socket);
             }
             case "priorityControl" -> {
-                send(socket, object("type", "prioritySettings", "holdingPriority", request.get("priorityAction").getAsString().equals("hold")));
+                holdingPriority = request.get("priorityAction").getAsString().equals("hold");
+                settings(socket);
                 ack(socket, request);
             }
+            case "settings" -> { autoOrderTriggers = request.get("autoOrderTriggers").getAsBoolean(); settings(socket); ack(socket, request); }
             case "answer" -> {
                 String value = request.get("value").getAsString();
                 if (!request.get("kind").getAsString().equals("uuid")
                         || (stage.equals("select") && !value.equals(BLOCKER))
-                        || (stage.equals("target") && !value.equals(FIRST) && !value.equals(SECOND))) {
+                        || (stage.equals("target") && !value.equals(FIRST) && !value.equals(SECOND))
+                        || (stage.equals("order") && !value.equals(TRIGGER_FIRST) && !value.equals(TRIGGER_SECOND))) {
                     send(socket, object("type", "error", "requestId", request.get("requestId"), "message", "Unexpected fixture answer"));
                     return;
                 }
-                if (stage.equals("select")) {
+                if (stage.equals("order")) {
+                    stage = "select";
+                    System.out.println("PASS ordering prompt selected an ability UUID from its card choices");
+                } else if (stage.equals("select")) {
                     stage = "target";
                     System.out.println("PASS drag selected the blocker's UUID");
                 } else {
@@ -77,7 +90,20 @@ public final class BlockPromptFixture extends WebSocketServer {
         }
     }
     private static void ack(WebSocket socket, JsonObject request) { send(socket, object("type", "ack", "requestId", request.get("requestId"))); }
+    private void settings(WebSocket socket) { send(socket, object("type", "prioritySettings", "holdingPriority", holdingPriority, "autoOrderTriggers", autoOrderTriggers)); }
     private void prompt(WebSocket socket) {
+        if (stage.equals("order")) {
+            JsonObject first = card(TRIGGER_FIRST, false), second = card(TRIGGER_SECOND, false);
+            for (JsonObject card : new JsonObject[]{first, second}) {
+                card.addProperty("name", "Soul Warden"); card.addProperty("ability", true);
+                card.addProperty("rules", "Whenever another creature enters, you gain 1 life.");
+                card.remove("set"); card.remove("collectorNumber");
+            }
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_TARGET", "queryType", "PICK_ABILITY",
+                    "revision", revision, "message", "Pick triggered ability (goes to the stack first)", "supported", true,
+                    "required", true, "choices", new Object[]{}, "cards", new Object[]{first, second}, "targets", new Object[]{}));
+            return;
+        }
         send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", stage.equals("target") ? "GAME_TARGET" : "GAME_SELECT",
                 "revision", revision, "message", stage.equals("target") ? "Select attacker to block" : "Select blockers", "supported", true,
                 "required", stage.equals("target"), "choices", new Object[]{}, "cards", new Object[]{},

@@ -159,6 +159,7 @@ struct RulesCommand: Encodable {
     var deck: RulesDeck? = nil
     var format: String? = nil
     var priorityAction: RulesPriorityAction? = nil
+    var autoOrderTriggers: Bool? = nil
 }
 
 enum RulesEndpoint {

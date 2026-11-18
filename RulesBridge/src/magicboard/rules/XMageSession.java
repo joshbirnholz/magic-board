@@ -21,6 +21,7 @@ final class XMageSession implements MageClient, AutoCloseable {
     static final Gson JSON = new Gson();
     final ExecutorService queue = Executors.newSingleThreadExecutor();
     private final SessionImpl session = new SessionImpl(this);
+    private final UserData userData = UserData.getDefaultUserDataView();
     private final Consumer<JsonObject> output;
     private UUID gameId;
     private UUID playerId;
@@ -53,7 +54,7 @@ final class XMageSession implements MageClient, AutoCloseable {
         connection.setPassword(password);
         connection.setProxyType(Connection.ProxyType.NONE);
         connection.setUserIdStr(UUID.randomUUID().toString());
-        connection.setUserData(UserData.getDefaultUserDataView());
+        connection.setUserData(userData);
         if (!session.connectStart(connection)) throw new IllegalStateException("XMage login failed: " + session.getLastError());
         if (closed) throw new CancellationException("Connection cancelled.");
         heartbeat.scheduleWithFixedDelay(() -> queue.execute(session::ping), 5, 5, TimeUnit.SECONDS);
@@ -73,6 +74,7 @@ final class XMageSession implements MageClient, AutoCloseable {
                 case "startMatch" -> startMatch();
                 case "answer" -> answer(request);
                 case "priorityControl" -> priorityControl(request);
+                case "settings" -> updateSettings(request);
                 case "resync" -> replay();
                 default -> throw new IllegalArgumentException("Unsupported command.");
             }
@@ -90,11 +92,28 @@ final class XMageSession implements MageClient, AutoCloseable {
     }
 
     void replay() {
-        output.accept(object("type", "prioritySettings", "holdingPriority", holdingPriority));
+        publishSettings();
         if (tableId != null && gameId == null) output.accept(object("type", "tableJoined", "tableId", tableId, "owner", ownsTable));
         if (snapshot != null) output.accept(snapshot);
         if (prompt != null) output.accept(prompt);
         if (gameOver != null) output.accept(gameOver);
+    }
+
+    private void publishSettings() {
+        output.accept(object("type", "prioritySettings", "holdingPriority", holdingPriority, "autoOrderTriggers", userData.isAutoOrderTrigger()));
+    }
+
+    private void updateSettings(JsonObject request) {
+        if (!request.has("autoOrderTriggers") || !request.get("autoOrderTriggers").isJsonPrimitive()
+                || !request.getAsJsonPrimitive("autoOrderTriggers").isBoolean())
+            throw new IllegalArgumentException("Choose whether to order triggers automatically.");
+        boolean previous = userData.isAutoOrderTrigger();
+        userData.setAutoOrderTrigger(request.get("autoOrderTriggers").getAsBoolean());
+        if (!session.updatePreferencesForServer(userData)) {
+            userData.setAutoOrderTrigger(previous);
+            throw new IllegalStateException("XMage did not accept the trigger-order setting.");
+        }
+        publishSettings();
     }
 
     private void priorityControl(JsonObject request) {
@@ -110,7 +129,7 @@ final class XMageSession implements MageClient, AutoCloseable {
         if (!session.sendPlayerAction(engineAction, gameId, null)) throw new IllegalStateException("XMage did not accept the priority control.");
         if (action.equals("hold")) holdingPriority = true;
         if (action.equals("release")) holdingPriority = false;
-        output.accept(object("type", "prioritySettings", "holdingPriority", holdingPriority));
+        publishSettings();
         if (skip) { prompt = null; output.accept(object("type", "promptCleared")); }
     }
 

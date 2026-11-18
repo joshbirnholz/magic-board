@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: costs",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 24
+      },
+      {
+        "name": "Reverent Mantra",
+        "count": 18
+      },
+      {
+        "name": "Silvercoat Lion",
+        "count": 18
+      }
+    ],
+    "sideboard": []
+  }
+}

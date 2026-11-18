@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: modes",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 24
+      },
+      {
+        "name": "Blessed Alliance",
+        "count": 18
+      },
+      {
+        "name": "Silvercoat Lion",
+        "count": 18
+      }
+    ],
+    "sideboard": []
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: morph",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 48
+      },
+      {
+        "name": "Gathan Raiders",
+        "count": 12
+      }
+    ],
+    "sideboard": []
+  }
+}

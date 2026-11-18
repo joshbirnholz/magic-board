@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Prompt coverage: triggers",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 24
+      },
+      {
+        "name": "Soul Warden",
+        "count": 18
+      },
+      {
+        "name": "Silvercoat Lion",
+        "count": 18
+      }
+    ],
+    "sideboard": []
+  }
+}

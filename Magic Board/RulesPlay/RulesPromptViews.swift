@@ -399,6 +399,7 @@ struct RulesPromptModal: View {
                     if selectable {
                         Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
                             .buttonStyle(.plain).disabled(!session.canAnswer)
+                            .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                     } else { RulesChoiceCardFace(card: card, height: height) }
                 }
             }.padding(.horizontal, 8)
