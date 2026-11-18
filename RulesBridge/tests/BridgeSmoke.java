@@ -135,6 +135,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         String searchedCard = null;
         boolean searchOnStack = false, paidX = false;
         boolean resolvingStack = false;
+        int lifeBeforeActivation = Integer.MAX_VALUE;
         Set<String> myStackObjects = new HashSet<>(), theirStackObjects = new HashSet<>(), playablePermanents = new TreeSet<>(), playableHandCards = new TreeSet<>();
         while (!finished && System.nanoTime() < deadline && decisions < 1500) {
             if (nextPrompt != null) {
@@ -207,6 +208,22 @@ public final class BridgeSmoke implements WebSocket.Listener {
                             for (JsonElement entry : player.getAsJsonObject().getAsJsonArray("battlefield")) {
                                 JsonObject card = entry.getAsJsonObject();
                                 if (card.get("typeLine").getAsString().contains("Land") && !card.get("tapped").getAsBoolean()) { object = card.get("id").getAsString(); break; }
+                            }
+                        }
+                    }
+                    String activate = System.getenv("RULES_SMOKE_ACTIVATE");
+                    if (activate != null && currentState.getAsJsonArray("stack").isEmpty()) {
+                        for (JsonElement player : currentState.getAsJsonArray("players")) {
+                            if (!player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) continue;
+                            for (JsonElement entry : player.getAsJsonObject().getAsJsonArray("battlefield")) {
+                                JsonObject permanent = entry.getAsJsonObject();
+                                if (name(permanent).equals(activate) && playable.contains(permanent.get("id").getAsString())) {
+                                    object = permanent.get("id").getAsString();
+                                    lifeBeforeActivation = player.getAsJsonObject().get("life").getAsInt();
+                                    observedPrompts.add("PERMANENT_ACTIVATED");
+                                    specialTrace = 6;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -330,6 +347,11 @@ public final class BridgeSmoke implements WebSocket.Listener {
                                     && faceDownPermanents.contains(permanent.get("id").getAsString())
                                     && !permanent.get("faceDown").getAsBoolean()) observedPrompts.add("MORPH_REVEALED");
                             if (permanent.get("typeLine").getAsString().contains("Creature")) resolvedCreature = true;
+                            if (name(permanent).equals("Bonesplitter") && permanent.has("attachedTo") && !permanent.get("attachedTo").isJsonNull())
+                                observedPrompts.add("EQUIPMENT_ATTACHED");
+                            if (name(permanent).equals("Ajani Goldmane") && observedPrompts.contains("PERMANENT_ACTIVATED")
+                                    && player.getAsJsonObject().get("life").getAsInt() > lifeBeforeActivation)
+                                observedPrompts.add("LOYALTY_GAINED_LIFE");
                             if (playable.contains(permanent.get("id").getAsString())) playablePermanents.add(name(permanent));
                         }
                     }

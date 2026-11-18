@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Activated ability coverage: equip",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 24
+      },
+      {
+        "name": "Bonesplitter",
+        "count": 18
+      },
+      {
+        "name": "Silvercoat Lion",
+        "count": 18
+      }
+    ],
+    "sideboard": []
+  }
+}

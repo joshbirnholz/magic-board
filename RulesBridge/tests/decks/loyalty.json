@@ -1,0 +1,21 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Activated ability coverage: loyalty",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 36
+      },
+      {
+        "name": "Ajani Goldmane",
+        "count": 18
+      },
+      {
+        "name": "Silvercoat Lion",
+        "count": 6
+      }
+    ],
+    "sideboard": []
+  }
+}
