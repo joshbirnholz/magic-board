@@ -57,6 +57,8 @@ struct LifeTracker: View {
   @ObservedObject var life: ObservableBridge<Int>
   /// The − / + marks; off for a tracker that can't be changed (the opponent's, in Phone Play).
   var showsMarks = true
+  /// Arena's life-change feedback (Rules games): the box flashes red or green and the change floats up.
+  var showsChanges = false
   
   var body: some View {
     ZStack {
@@ -99,7 +101,59 @@ struct LifeTracker: View {
     .cornerRadius(15)
     // Phone Play positions the tracker explicitly; fill that frame exactly on every device.
      .transaction { if AppDelegate.shared.usesPhoneSession { $0.animation = nil } }
+     // After the transaction above, so its animation-off rule doesn't reach the feedback.
+     .overlay { if showsChanges { LifeChangeFeedback(value: life.value) } }
 
+  }
+}
+
+/// A brief Arena-style cue when a life total changes: a red (loss) or green (gain) flash around
+/// the box and the amount floating up out of it.
+struct LifeChangeFeedback: View {
+  let value: Int
+  @State private var last: Int?
+  @State private var delta = 0
+  @State private var shown = false
+  @State private var token = 0
+  @State private var appeared = Date.distantFuture
+
+  var body: some View {
+    GeometryReader { proxy in
+      let color = delta < 0 ? Color(red: 1, green: 0.3, blue: 0.25) : Color(red: 0.35, green: 0.95, blue: 0.45)
+      ZStack {
+        RoundedRectangle(cornerRadius: 15)
+          .strokeBorder(color, lineWidth: 3)
+          .background(RoundedRectangle(cornerRadius: 15).fill(color.opacity(0.25)))
+          .shadow(color: color, radius: 6)
+          .opacity(shown ? 1 : 0)
+        Text(delta > 0 ? "+\(delta)" : "\(delta)")
+          .font(.custom("Beleren2016-Bold", size: max(12, min(proxy.size.height * 0.5, 28))))
+          .foregroundStyle(color)
+          .shadow(color: .black, radius: 2)
+          .offset(y: shown ? -proxy.size.height * 0.55 : 0)
+          .opacity(shown ? 1 : 0)
+      }
+      .frame(width: proxy.size.width, height: proxy.size.height)
+    }
+    .allowsHitTesting(false)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(shown ? "Life changed by \(delta)" : "")
+    .accessibilityIdentifier("life-change")
+    .onAppear { last = value; appeared = Date() }
+    .onChange(of: value) { newValue in
+      defer { last = newValue }
+      // The first engine snapshot replaces Phone Play's starting life; that isn't a change.
+      guard let last, newValue != last, Date().timeIntervalSince(appeared) > 1 else { return }
+      // Changes in quick succession (one hit after another) add up while the cue is showing.
+      delta = shown ? delta + (newValue - last) : newValue - last
+      token += 1
+      let current = token
+      withAnimation(.easeOut(duration: 0.2)) { shown = true }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+        guard current == token else { return }
+        withAnimation(.easeIn(duration: 0.35)) { shown = false }
+      }
+    }
   }
 }
 

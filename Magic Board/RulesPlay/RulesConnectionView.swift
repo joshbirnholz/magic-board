@@ -250,8 +250,78 @@ enum RulesText {
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
             .replacingOccurrences(of: #"\n\s*\n+"#, with: "\n", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&mdash;", with: "—")
+            .replacingOccurrences(of: "&ndash;", with: "–")
+            .replacingOccurrences(of: "&bull;", with: "•")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&apos;", with: "'")
+            .replacingOccurrences(of: "&#39;", with: "'")
             .replacingOccurrences(of: "&lt;", with: "<")
             .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&amp;", with: "&")
+    }
+
+    /// The printed name of a token XMage calls "<Name> Token" (nil for other cards).
+    static func tokenName(_ card: RulesCard) -> String? {
+        guard let name = card.name, name.hasSuffix(" Token") || card.typeLine?.contains("Token") == true else { return nil }
+        return name.hasSuffix(" Token") ? String(name.dropLast(" Token".count)) : name
+    }
+
+    /// A card's rules as the engine states them, worded the way current cards refer to themselves
+    /// (XMage writes "{this}"): "this creature" / "this land"…, an Aura's or Equipment's subtype,
+    /// an instant's or sorcery's name, a legendary card's short name, "this token", and "this card"
+    /// where the ability works from the graveyard or hand.
+    static func cardRules(_ text: String, name: String?, typeLine: String? = nil) -> String {
+        let plain = plain(text)
+        guard plain.contains("{this}") else { return plain }
+        let reference = selfReference(name: name, typeLine: typeLine)
+        var result = ""
+        var rest = Substring(plain)
+        while let range = rest.range(of: "{this}") {
+            let before = rest[..<range.lowerBound]
+            let after = rest[range.upperBound...]
+            result += before
+            var phrase = reference
+            // Off the battlefield the card is just "this card" (unless it's named, like an instant).
+            let offBattlefield = after.range(of: #"^ from (your|a|its owner's) (graveyard|hand|library)"#, options: .regularExpression) != nil
+                || result.range(of: #"(Discard|Reveal|discard|reveal) $"#, options: .regularExpression) != nil
+            if offBattlefield, phrase.hasPrefix("this ") { phrase = "this card" }
+            // Sentence starts take a capital ("This creature gets +1/+1").
+            let trimmed = result.trimmingCharacters(in: .whitespaces)
+            if phrase.hasPrefix("this "), trimmed.isEmpty || [".", "\n", "—", ":", "\"", "“", "("].contains(where: { trimmed.hasSuffix($0) }) {
+                phrase = "T" + phrase.dropFirst()
+            }
+            result += phrase
+            rest = after
+        }
+        return result + rest
+    }
+
+    /// How a card refers to itself in its rules text.
+    static func selfReference(name: String?, typeLine: String?) -> String {
+        let name = name ?? ""
+        let type = typeLine ?? ""
+        let (types, subtypes): (String, String) = {
+            let parts = type.components(separatedBy: "—")
+            return (parts[0], parts.count > 1 ? parts[1] : "")
+        }()
+        if name.hasSuffix(" Token") || types.contains("Token") { return "this token" }
+        if types.contains("Instant") || types.contains("Sorcery") { return name.isEmpty ? "this spell" : name }
+        if types.contains("Legendary"), !name.isEmpty {
+            if let comma = name.range(of: ",") { return String(name[..<comma.lowerBound]) }
+            if let epithet = name.range(of: " the ") { return String(name[..<epithet.lowerBound]) }
+            return name
+        }
+        if !types.contains("Creature") {
+            for subtype in ["Aura", "Equipment", "Saga", "Vehicle", "Class", "Spacecraft", "Room", "Case", "Attraction", "Siege"]
+            where subtypes.split(separator: " ").contains(Substring(subtype)) {
+                return "this \(subtype)"
+            }
+        }
+        for (word, phrase) in [("Creature", "this creature"), ("Planeswalker", "this planeswalker"), ("Battle", "this battle"),
+                               ("Land", "this land"), ("Artifact", "this artifact"), ("Enchantment", "this enchantment")]
+        where types.contains(word) { return phrase }
+        if type.isEmpty, !name.isEmpty { return name }
+        return "this permanent"
     }
 }

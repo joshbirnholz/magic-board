@@ -456,6 +456,12 @@ final class XMageSession implements MageClient, AutoCloseable {
             JsonArray counters = new JsonArray();
             if (player.getCounters() != null) player.getCounters().forEach(counter -> counters.add(object("name", counter.getName(), "count", counter.getCount())));
             item.add("counters", counters);
+            // Floating mana (Arena shows it by the life total); XMage spends it on costs first.
+            if (player.getManaPool() != null) {
+                var pool = player.getManaPool();
+                item.add("manaPool", object("W", pool.getWhite(), "U", pool.getBlue(), "B", pool.getBlack(),
+                        "R", pool.getRed(), "G", pool.getGreen(), "C", pool.getColorless()));
+            }
             players.add(item);
         }
         result.add("players", players);

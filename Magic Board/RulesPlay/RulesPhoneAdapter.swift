@@ -23,6 +23,10 @@ final class RulesPhoneAdapter {
     private var pendingTargetPromptID: String?
     private var hiddenIDs: [String: UUID] = [:]
     private(set) var presentation = PhoneGame()
+    /// Whether an engine snapshot has reached the board (before that, life totals are Phone Play's defaults).
+    private(set) var hasProjected = false
+    /// The payment prompt a land was last chosen for (see updateStatus).
+    private var paymentTapped: (promptID: String, message: String?)?
 
     init(engine: RulesGameSession) { self.engine = engine }
 
@@ -69,6 +73,13 @@ final class RulesPhoneAdapter {
            let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(land)) }
+        }
+        // A land tapped for a payment that left the cost unchanged couldn't pay it (XMage just asks
+        // again): say so, instead of the tap seeming to do nothing.
+        if let prompt, pending == nil, prompt.method == "GAME_PLAY_MANA", let paid = paymentTapped,
+           prompt.id != paid.promptID, prompt.message == paid.message {
+            paymentTapped = nil
+            phone?.error = "That can't pay this cost. Tap another land, or Cancel."
         }
         // The London mulligan's deferred answers (see MulliganChoice).
         if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected {
@@ -311,6 +322,28 @@ final class RulesPhoneAdapter {
         }
     }
 
+    /// Whether choosing this card (the card menu's "Choose / Activate") can do anything now, so the
+    /// menu doesn't offer an action the engine would refuse.
+    func canChoose(_ id: UUID) -> Bool {
+        guard engine.canAnswer, let prompt = engine.prompt, let snapshot = engine.snapshot else { return false }
+        let key = id.uuidString.lowercased()
+        let mine = snapshot.players.first { $0.id == snapshot.playerId }
+        let step = snapshot.step ?? ""
+        switch prompt.method {
+        case "GAME_SELECT":
+            if snapshot.playableIds.contains(key) { return true }
+            if step.contains("ATTACK") { return snapshot.activePlayerId == snapshot.playerId && mine?.battlefield.contains { $0.id == key } == true }
+            if step.contains("BLOCK") { return snapshot.players.contains { $0.battlefield.contains { $0.id == key } } }
+            return false
+        case "GAME_TARGET":
+            return prompt.targets?.contains(key) == true
+        case "GAME_PLAY_MANA", "GAME_PLAY_XMANA":
+            return mine?.battlefield.contains { $0.id == key && $0.tapped != true } == true
+        default:
+            return false
+        }
+    }
+
     /// Whether this card is one of the current target prompt's choices (so tapping it answers).
     func isTargetPromptChoice(_ id: UUID) -> Bool {
         guard let prompt = engine.prompt, prompt.method == "GAME_TARGET" else { return false }
@@ -391,6 +424,8 @@ final class RulesPhoneAdapter {
             phone?.error = "That card has no legal action right now."
             return
         }
+        if let prompt = engine.prompt, prompt.method == "GAME_PLAY_MANA" { paymentTapped = (prompt.id, prompt.message) }
+        else { paymentTapped = nil }
         await engine.answer(.object(id.uuidString.lowercased()))
     }
 
@@ -422,7 +457,7 @@ final class RulesPhoneAdapter {
         try Task.checkCancellation()
         let centers = phone?.game.cards.mapValues { $0.center.value } ?? [:]
         func instance(_ card: RulesCard, owner: Player.Identifier, battlefield: Bool = false) throws -> CardInstance {
-            let printed = try models[card.id] ?? Self.placeholder(name: card.name ?? "Unknown card", typeLine: card.typeLine ?? "", rules: card.rules, manaCost: card.manaCost)
+            let printed = try models[card.id] ?? Self.placeholder(name: RulesText.tokenName(card) ?? card.name ?? "Unknown card", typeLine: card.typeLine ?? "", rules: card.rules, manaCost: card.manaCost)
             let model = try battlefield ? RulesCardCharacteristics.applying(card, to: printed) : printed
             var representation = CardRepresentation.card(model).choosingFrontFace
             if card.transformed, let back = model.cardFaces?.last { representation = .alternateFace(model, back) }
@@ -480,7 +515,7 @@ final class RulesPhoneAdapter {
                 if visibleIDs.contains(target), let id = UUID(uuidString: target) { return .card(id) }
                 return nil
             }
-            let text = card.ability == true ? RulesText.plain(card.rules ?? card.name ?? "Ability") : card.name ?? "Spell"
+            let text = card.ability == true ? RulesText.cardRules(card.rules ?? card.name ?? "Ability", name: card.name, typeLine: card.typeLine) : card.name ?? "Spell"
             let controller = card.controllerId.map(seat) ?? snapshot.activePlayerId.map(seat) ?? .a
             return PhoneGame.StackItem(id: UUID(uuidString: card.id) ?? UUID(), card: card.ability == true ? nil : try instance(card, owner: controller), text: text, player: controller, targets: targets)
         }
@@ -501,6 +536,7 @@ final class RulesPhoneAdapter {
         }
         try Task.checkCancellation()
         presentation = game
+        hasProjected = true
         refresh()
         if refreshArtwork {
             artworkTask?.cancel()
@@ -548,7 +584,7 @@ final class RulesPhoneAdapter {
                                   "collectorNumber": "0", "set": "tst", "rarity": "common", "frame": "2015",
                                   "isPromo": false, "isFoundInBoosters": false, "isFoilAvailable": false,
                                   "isNonFoilAvailable": true, "language": "en", "keywords": []]
-        if let rules { json["oracleText"] = RulesText.plain(rules) }
+        if let rules { json["oracleText"] = RulesText.cardRules(rules, name: name, typeLine: typeLine) }
         if let manaCost { json["manaCost"] = manaCost }
         return try JSONDecoder().decode(MTGCard.self, from: JSONSerialization.data(withJSONObject: json))
     }
@@ -560,7 +596,7 @@ enum RulesCardCharacteristics {
         var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(printed)) as! [String: Any]
         func apply(to values: inout [String: Any]) {
             if let type = engine.typeLine { values["typeLine"] = RulesText.plain(type) }
-            if let rules = engine.rules { values["oracleText"] = RulesText.plain(rules); values["keywords"] = [] }
+            if let rules = engine.rules { values["oracleText"] = RulesText.cardRules(rules, name: engine.name, typeLine: engine.typeLine.map(RulesText.plain)); values["keywords"] = [] }
             if let mana = engine.manaCost { values["manaCost"] = mana }
             if let colors = engine.colors { values["colors"] = colors }
         }
@@ -603,9 +639,18 @@ actor RulesCardCatalog {
         do { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) } catch { return nil }
         if let cached = cache[key] { return cached }
         guard !failedKeys.contains(key) else { return nil }
-        var model: MTGCard?
-        if let set = card.set, let number = card.collectorNumber { model = try? CardService.shared.getCard(code: set.lowercased(), number: number) }
-        if model == nil, let name = card.name { model = try? CardService.shared.getCard(name: name) }
+        // The lookups are blocking network calls: run them off the actor, so projecting snapshots
+        // (which reads this cache) never waits on Scryfall. A slow lookup used to freeze the board
+        // while the game went on underneath.
+        let token = RulesText.tokenName(card)
+        let set = card.set, number = card.collectorNumber, name = card.name
+        let model: MTGCard? = await Task.detached(priority: .utility) { () -> MTGCard? in
+            // XMage names tokens "Treasure Token"; Scryfall's token is "Treasure", in the set's token set.
+            if let token { return try? CardService.shared.getToken(name: token, set: set) }
+            if let set, let number, let found = try? CardService.shared.getCard(code: set.lowercased(), number: number) { return found }
+            if let name { return try? CardService.shared.getCard(name: name) }
+            return nil
+        }.value
         if let model { cache[key] = model }
         else { failedKeys.insert(key) }
         return model

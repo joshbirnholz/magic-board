@@ -397,7 +397,7 @@ struct CardControlView: View {
   var body: some View {
     List {
       if PhonePlayBridge.isRulesMode {
-        Section { actionGrid }
+        if !tiles.isEmpty { Section { actionGrid } }
         let details = PhonePlayBridge.rulesDetails(card)
         if !details.isEmpty {
           Section(header: Text("Current State")) { ForEach(details, id: \.self) { Text($0) } }

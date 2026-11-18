@@ -69,7 +69,7 @@ struct RulesPillButtonStyle: ButtonStyle {
 }
 
 /// Prompt text with mana and tap symbols drawn as symbols.
-private struct RulesSymbolText: View {
+struct RulesSymbolText: View {
     let text: String
     var size: CGFloat = 15
     /// Beleren for titles (Arena's headline face); the system font for body text.
