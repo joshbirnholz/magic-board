@@ -1,0 +1,17 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Capital City mana filtering",
+    "main": [
+      {
+        "name": "Capital City",
+        "count": 24
+      },
+      {
+        "name": "Mind Rot",
+        "count": 16
+      }
+    ],
+    "sideboard": []
+  }
+}

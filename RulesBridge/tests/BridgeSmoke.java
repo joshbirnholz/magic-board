@@ -136,6 +136,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         String searchedCard = null;
         boolean searchOnStack = false, paidX = false;
         boolean resolvingStack = false;
+        boolean choseCostedMana = false, sawFilterCost = false, choseFilterColor = false;
         int lifeBeforeActivation = Integer.MAX_VALUE;
         String discardedCard = null;
         int lifeBeforeResponse = Integer.MAX_VALUE;
@@ -161,6 +162,11 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     if (currentState.getAsJsonObject("priority").get("untilStackResolved").getAsBoolean())
                         throw new AssertionError("Resolve-stack stop did not reset");
                     observedPrompts.add("STACK_RESOLVED_STOP");
+                }
+                if (choseCostedMana && method.equals("GAME_PLAY_MANA") && nextPrompt.get("message").getAsString().contains("Capital City")) sawFilterCost = true;
+                if (sawFilterCost && choseFilterColor && method.equals("GAME_SELECT")) {
+                    for (JsonElement item : currentState.getAsJsonArray("stack"))
+                        if (name(item.getAsJsonObject()).equals("Mind Rot")) observedPrompts.add("COSTED_MANA_SPELL_CAST");
                 }
                 if (coverageOnly && method.equals("GAME_SELECT") && observedPrompts.containsAll(requiredPrompts)) {
                     System.out.println("PASS required prompts answered and engine returned to priority: " + observedPrompts);
@@ -348,6 +354,14 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         JsonObject choice = item.getAsJsonObject();
                         String label = choice.get("label").getAsString().replaceAll("<[^>]*>", "").trim();
                         String lower = label.toLowerCase(Locale.ROOT);
+                        if (requiredPrompts.contains("COSTED_MANA_SPELL_CAST")) {
+                            if (label.contains("{1}, {T}: Add one mana of any color")) {
+                                selected = choice; choseCostedMana = true; break;
+                            }
+                            if (choseCostedMana && label.equals("Black")) {
+                                selected = choice; choseFilterColor = true; break;
+                            }
+                        }
                         if (label.equalsIgnoreCase("Done") || lower.contains("exile a white card")
                                 || (System.getenv("RULES_SMOKE_SPECIAL_ACTION") != null && (lower.contains("morph") || lower.contains("face down") || lower.contains("face-down")))) {
                             selected = choice; break;
