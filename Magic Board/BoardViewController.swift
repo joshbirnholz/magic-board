@@ -4854,6 +4854,13 @@ extension BoardViewController {
         }
         browser.zoneAt = { [weak self] point in
             guard let self else { return nil }
+            // In a Rules game XMage moves cards between zones; a card can only be played (the
+            // Battlefield zone) or, from the opening hand, put on the bottom of the library.
+            if session.mode == .rules {
+                guard self.phoneBrowserMode == .openingHand, let pile = self.phonePileZone(at: point),
+                      pile.player == session.player, pile.location == .library else { return nil }
+                return .library
+            }
             if let pile = self.phonePileZone(at: point), pile.player == session.player {
                 switch pile.location {
                 case .graveyard: return .graveyard
