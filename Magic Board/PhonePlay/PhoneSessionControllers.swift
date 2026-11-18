@@ -266,23 +266,27 @@ struct PhoneStackCardsView: View {
                     Button {
                         if let card = item.card { inspect(card) } else { browse() }
                     } label: {
-                        Group {
-                            if let card = item.card, item.isAbility == true {
-                                PhoneAbilityPanel(source: card, text: item.text, width: width)
-                            } else if let card = item.card {
-                                HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
-                            } else {
-                                RoundedRectangle(cornerRadius: corner)
-                                    .fill(Color(white: 0.15))
-                                    .overlay(Text(item.text).font(.headline).foregroundStyle(.white).padding(8))
+                        if let card = item.card, item.isAbility == true {
+                            // An ability is shaded, outlined and shadowed in its frame's own shape.
+                            PhoneAbilityPanel(source: card, text: item.text, width: width, depth: depth)
+                                .frame(width: width, height: height, alignment: .top)
+                        } else {
+                            Group {
+                                if let card = item.card {
+                                    HandCardView(isVisible: true, card: card.representation.card, face: face(of: card))
+                                } else {
+                                    RoundedRectangle(cornerRadius: corner)
+                                        .fill(Color(white: 0.15))
+                                        .overlay(Text(item.text).font(.headline).foregroundStyle(.white).padding(8))
+                                }
                             }
+                            .frame(width: width, height: height)
+                            .overlay(Color.black.opacity(Double(depth) * 0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: corner, style: .continuous)
+                                .strokeBorder(.white.opacity(depth == 0 ? 0.65 : 0.3), lineWidth: depth == 0 ? 1 : 0.5))
+                            .shadow(color: .black.opacity(0.7), radius: depth == 0 ? 7 : 3, x: -2, y: 4)
                         }
-                        .frame(width: width, height: height)
-                        .overlay(Color.black.opacity(Double(depth) * 0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: corner, style: .continuous)
-                            .strokeBorder(.white.opacity(depth == 0 ? 0.65 : 0.3), lineWidth: depth == 0 ? 1 : 0.5))
-                        .shadow(color: .black.opacity(0.7), radius: depth == 0 ? 7 : 3, x: -2, y: 4)
                     }
                         .buttonStyle(.plain)
                         .opacity(item.card != nil && item.card?.uuid == concealedCardID ? 0 : 1)
@@ -1673,10 +1677,14 @@ struct PhoneAbilityPanel: View {
     @ObservedObject private var representation: ObservableBridge<CardRepresentation>
     @ObservedObject private var colors: ObservableBridge<[MTGColor]>
 
-    init(source: CardInstance, text: String, width: CGFloat, art: UIImage? = nil) {
+    /// On the stack: how many items it sits under (it's dimmed, with a fainter outline, as it goes back).
+    var depth: CGFloat? = nil
+
+    init(source: CardInstance, text: String, width: CGFloat, depth: CGFloat? = nil, art: UIImage? = nil) {
         self.source = source
         self.text = text
         self.width = width
+        self.depth = depth
         _art = State(initialValue: art)
         representation = ObservableBridge(source.representedCardDidChange.map { source.representation }, initialValue: source.representation)
         colors = ObservableBridge(source.colors)
@@ -1687,7 +1695,6 @@ struct PhoneAbilityPanel: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Color.black
             // The source's art in the frame's window, under the frame.
             Group {
                 if let art { Image(uiImage: art).resizable().scaledToFill() }
@@ -1707,6 +1714,7 @@ struct PhoneAbilityPanel: View {
                 .offset(x: Layout.rules.minX * width, y: Layout.rules.minY * height)
         }
         .frame(width: width, height: height, alignment: .topLeading)
+        .modifier(StackShape(depth: depth, silhouette: MTGCardView.abilityFrameSilhouette))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(source.representation.name ?? "") ability: \(text)")
         // Keyed by printing too: Rules mode can swap a placeholder for the real printing later.
@@ -1781,5 +1789,37 @@ struct PhoneAbilityPanel: View {
             securityStamp: representation.card.securityStamp, isCommander: isCommander)
         properties.applyFrameColors(colors, isLand: representation.isLand, defaults: properties.colors)
         return MTGCardView.abilityFrame(for: properties)
+    }
+}
+
+/// A stack ability's dimming, outline and shadow, following its frame's silhouette rather than a
+/// card's rounded rectangle (whose corners would show black around the frame's curved shape).
+private struct StackShape: ViewModifier {
+    let depth: CGFloat?
+    let silhouette: UIImage?
+
+    func body(content: Content) -> some View {
+        if let depth, let silhouette {
+            let shape = Image(uiImage: silhouette).resizable()
+            let line: CGFloat = depth == 0 ? 1 : 0.5
+            content
+                .overlay(Color.black.opacity(Double(depth) * 0.06).mask(shape))
+                .mask(shape)
+                .background {
+                    // The outline: the silhouette in white, nudged out on every side.
+                    ZStack {
+                        ForEach(0..<8, id: \.self) { step in
+                            let angle = Double(step) * .pi / 4
+                            shape.renderingMode(.template)
+                                .foregroundStyle(.white.opacity(depth == 0 ? 0.65 : 0.3))
+                                .offset(x: cos(angle) * line, y: sin(angle) * line)
+                        }
+                    }
+                }
+                .compositingGroup()
+                .shadow(color: .black.opacity(0.7), radius: depth == 0 ? 7 : 3, x: -2, y: 4)
+        } else {
+            content
+        }
     }
 }

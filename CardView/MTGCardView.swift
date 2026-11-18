@@ -1747,6 +1747,22 @@ public extension MTGCardView {
 
 	private static var abilityFrameCache: [String: UIImage] = [:]
 
+	/// Every ability frame's outline (they all share one shape), for clipping and outlining.
+	static let abilityFrameSilhouette: UIImage? = {
+		guard let url = MagicBoardResources.bundle.url(forResource: "c", withExtension: "webp", subdirectory: "AbilityFrames/regular"),
+			  let frame = UIImage(contentsOfFile: url.path) else { return nil }
+		let size = frame.size
+		let format = UIGraphicsImageRendererFormat()
+		format.scale = 1
+		// The frame with its art window filled in.
+		return UIGraphicsImageRenderer(size: size, format: format).image { context in
+			frame.draw(at: .zero)
+			UIColor.black.setFill()
+			let art = AbilityLayout.art
+			context.fill(CGRect(x: art.minX * size.width, y: art.minY * size.height, width: art.width * size.width, height: art.height * size.height))
+		}
+	}()
+
 	/// The composed ability frame for a card's frame properties (the art window is transparent).
 	static func abilityFrame(for properties: CardProperties) -> UIImage? {
 		let style = properties.backgroundStyle
