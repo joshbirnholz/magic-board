@@ -702,14 +702,16 @@ class BoardViewController: UIViewController {
             let controls: [UIViewController]
         }
         var dismissInspector: () -> Void = {}
+        // In a Rules game the engine owns power/toughness, keywords and counters: no manual editors.
+        let rulesGame = phoneMode?.mode == .rules
         func makePage(for cardInstance: CardInstance) -> InspectorPage {
-            var controllers = SideTableViewController.SectionModel.viewControllerCombinations.compactMap { sections -> UIViewController? in
+            var controllers = rulesGame ? [] : SideTableViewController.SectionModel.viewControllerCombinations.compactMap { sections -> UIViewController? in
                 guard let controller = storyboard?.instantiateViewController(identifier: "SideTableViewController") as? SideTableViewController else { return nil }
                 controller.card = cardInstance
                 controller.sectionModel = sections
                 return controller
             }
-            if let counters = storyboard?.instantiateViewController(identifier: "CountersViewController") as? CountersViewController {
+            if !rulesGame, let counters = storyboard?.instantiateViewController(identifier: "CountersViewController") as? CountersViewController {
                 counters.cardInstance = cardInstance
                 controllers.append(counters)
             }
