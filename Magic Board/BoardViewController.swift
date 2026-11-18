@@ -2635,6 +2635,8 @@ extension BoardViewController {
                 NSLayoutConstraint.activate(rulesActionConstraints)
             }
             view.bringSubviewToFront(actions)
+            // Arena hides the turn controls while the opening hand is being decided.
+            actions.isHidden = phoneBrowserMode == .openingHand
         }
         if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
     }
@@ -4716,7 +4718,25 @@ extension BoardViewController {
 
     /// After Start Game, this phone's player sees their new seven in the browser, with who goes
     /// first, until they keep (Mulligan deals another seven into it).
+    /// Rules mode: Arena's wording for the opening hand ("Keep 6", "Return 2 Cards"…).
+    private func configureRulesOpening(_ browser: PhoneZoneBrowserView, session: PhoneGameSession) {
+        guard session.mode == .rules, let opening = session.game.opening else { return }
+        let first = opening.firstPlayer == session.player ? "You Go First" : "Opponent Goes First"
+        if let returning = opening.returning {
+            browser.configureOpening(title: "Return \(returning) Card\(returning == 1 ? "" : "s")",
+                                     subtitle: "Drag \(returning) card\(returning == 1 ? "" : "s") to the bottom of your library.",
+                                     done: nil, secondary: nil, secondaryCaption: nil, returnZone: true)
+        } else {
+            let returns = opening.mulliganReturns ?? 1
+            browser.configureOpening(title: first, subtitle: nil,
+                                     done: "Keep \(opening.keepCount ?? 7)", secondary: "Mulligan",
+                                     secondaryCaption: "You will return \(returns) card\(returns == 1 ? "" : "s") to the bottom of your library.",
+                                     returnZone: false)
+        }
+    }
+
     private func updatePhoneOpeningHand(_ session: PhoneGameSession) {
+        if let browser = phoneBrowser, phoneBrowserMode == .openingHand { configureRulesOpening(browser, session: session) }
         guard let opening = session.game.opening, opening.deciding.contains(session.player.rawValue),
               phoneKeptOpeningID != opening.id else {
             if phoneBrowserMode == .openingHand { closePhoneZoneBrowser() }
@@ -4837,8 +4857,10 @@ extension BoardViewController {
             case .exile: session.send(.moveToPlayer(card.uuid, .exile, owner, bottom: false))
             case .battlefield: session.send(.play(card.uuid, face: nil, faceDown: false, tapped: false, directly: true))
             case .library where mode == .openingHand:
-                // Putting cards back from an opening hand: always the bottom.
-                session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: true))
+                // Putting cards back from an opening hand: always the bottom. In a Rules game it
+                // answers XMage's "put a card on the bottom of your library".
+                if session.mode == .rules { session.send(.moveToPlayer(card.uuid, .library, owner, bottom: true)) }
+                else { session.sendDirectly(.moveToPlayer(card.uuid, .library, owner, bottom: true)) }
             case .library:
                 self.promptPhoneLibraryDrop(card, session: session) { [weak self] in
                     // Left where it was: back into the browser.
@@ -4890,6 +4912,7 @@ extension BoardViewController {
         }
         phoneBrowser = browser
         phoneBrowserMode = mode
+        if mode == .openingHand { configureRulesOpening(browser, session: session) }
         localPhoneBar?.handContainerView.isHidden = mode == .openingHand
         phoneBrowserIDs = cards.map(\.uuid)
         // The opponent's phone outlines the pile while its browser is open, as for the sheet.

@@ -905,6 +905,12 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     private let secondaryButton = UIButton(type: .custom)
     private let showButton = UIButton(type: .system)
     private let battlefieldZone = UILabel()
+    /// Arena's line under the opening-hand title, and under Mulligan ("You will return 1 card…").
+    private let subtitleLabel = UILabel()
+    private let secondaryCaption = UILabel()
+    /// Rules mode's "Return N Cards": the top zone becomes the Library, and dropping there sends
+    /// the card to the bottom of the library.
+    private var returnZone = false
     private let dropLabel = UILabel()
     private let scrollView = UIScrollView()
     private let track = UIView()
@@ -948,6 +954,39 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         }
     }
     /// Nil hides Cancel (a Rules game's opening hand can't be cancelled; the engine owns the game).
+    /// Rules mode's opening hand, as Arena words it: the title ("Opponent Goes First" /
+    /// "Return 1 Card"), a line under it, the Keep and Mulligan buttons (nil hides one) with a caption
+    /// under Mulligan, and whether the top zone is the Library to drag returned cards to.
+    func configureOpening(title: String, subtitle: String?, done: String?, secondary: String?, secondaryCaption caption: String?, returnZone: Bool) {
+        titleLabel.text = title
+        subtitleLabel.text = subtitle
+        subtitleLabel.font = .italicSystemFont(ofSize: 14)
+        subtitleLabel.textColor = UIColor.white.withAlphaComponent(0.85)
+        subtitleLabel.textAlignment = .center
+        subtitleLabel.adjustsFontSizeToFitWidth = true
+        subtitleLabel.minimumScaleFactor = 0.7
+        if subtitleLabel.superview == nil { addSubview(subtitleLabel) }
+        secondaryCaption.text = caption
+        secondaryCaption.font = .italicSystemFont(ofSize: 12)
+        secondaryCaption.textColor = UIColor.white.withAlphaComponent(0.85)
+        secondaryCaption.textAlignment = .center
+        secondaryCaption.numberOfLines = 2
+        secondaryCaption.isHidden = caption == nil || secondary == nil
+        if secondaryCaption.superview == nil { addSubview(secondaryCaption) }
+        for (button, text) in [(doneButton, done), (secondaryButton, secondary)] {
+            button.isHidden = text == nil
+            if let text {
+                let font = UIFont(name: "Beleren2016-Bold", size: 18) ?? .boldSystemFont(ofSize: 18)
+                button.setAttributedTitle(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.white]), for: .normal)
+                button.accessibilityLabel = text
+            }
+        }
+        self.returnZone = returnZone
+        battlefieldZone.text = returnZone ? "Library" : "Battlefield"
+        battlefieldZone.isHidden = isOpeningHand && !returnZone
+        setNeedsLayout()
+    }
+
     var onCancel: (() -> Void)? { didSet { cancelButton.isHidden = !isOpeningHand || onCancel == nil } }
     private let cancelButton = UIButton(type: .custom)
 
@@ -1258,6 +1297,10 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         let fanTop = area.minY + max(0, (area.height - size.height - 30) / 2)
         scrollView.frame = CGRect(x: 0, y: fanTop, width: bounds.width, height: size.height + 30)
         track.frame = CGRect(x: bounds.width * 0.3, y: min(scrollView.frame.maxY + 6, min(coveredHeight, bounds.height - contentBottomInset) - 16), width: bounds.width * 0.4, height: 3)
+        subtitleLabel.frame = CGRect(x: bounds.width * 0.15, y: titleLabel.frame.maxY, width: bounds.width * 0.7, height: subtitleLabel.text?.isEmpty == false ? 20 : 0)
+        if returnZone {
+            battlefieldZone.frame = CGRect(x: (bounds.width - zoneWidth) / 2, y: subtitleLabel.frame.maxY + 6, width: zoneWidth, height: 40)
+        }
         if isOpeningHand {
             // Mulligan and Keep side by side, centred in the strip below the fan.
             let width = max(doneSize.width, secondarySize.width, 120)
@@ -1266,6 +1309,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             let y = stripTop + max(0, (stripBottom - stripTop - 40) / 2)
             secondaryButton.frame = CGRect(x: bounds.midX - 8 - width, y: y, width: width, height: 40)
             doneButton.frame = CGRect(x: bounds.midX + 8, y: y, width: width, height: 40)
+            secondaryCaption.frame = CGRect(x: secondaryButton.frame.midX - 130, y: secondaryButton.frame.maxY + 2, width: 260, height: secondaryCaption.isHidden ? 0 : 30)
         }
         layoutCards(animated: false)
         // Opens at the right end, where the top of the library is.
@@ -1352,13 +1396,13 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
 
     /// The zone a lifted card at `point` would go to: the Battlefield zone up top, or the board's.
     private func destination(at point: CGPoint) -> Destination? {
-        if !battlefieldZone.isHidden, battlefieldZone.frame.insetBy(dx: -8, dy: -8).contains(point) { return .battlefield }
+        if !battlefieldZone.isHidden, battlefieldZone.frame.insetBy(dx: -8, dy: -8).contains(point) { return returnZone ? .library : .battlefield }
         guard point.y > coveredHeight - 6 else { return nil }
         return zoneAt?(point)
     }
 
     private func showDropLabel(for destination: Destination?, above view: UIView) {
-        guard let destination, destination != .battlefield else { dropLabel.isHidden = true; return }
+        guard let destination, destination != .battlefield, !(returnZone && destination == .library) else { dropLabel.isHidden = true; return }
         dropLabel.text = "Move to \(destination.title)"
         let size = (dropLabel.text! as NSString).size(withAttributes: [.font: dropLabel.font!])
         dropLabel.bounds.size = CGSize(width: size.width + 14, height: size.height + 6)
@@ -1397,7 +1441,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
                 hovered = destination
                 if destination != nil { UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.7) }
             }
-            setBattlefieldHighlighted(destination == .battlefield)
+            setBattlefieldHighlighted(destination == .battlefield || (returnZone && destination == .library))
             showDropLabel(for: destination, above: lifted.view)
             let newGap = destination == nil && scrollView.frame.insetBy(dx: 0, dy: -30).contains(point) ? insertionIndex(at: point) : gapIndex
             if newGap != gapIndex {

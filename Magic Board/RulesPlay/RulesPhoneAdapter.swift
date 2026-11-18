@@ -212,12 +212,28 @@ final class RulesPhoneAdapter {
 
     /// While XMage asks "Mulligan?", Phone Play's opening-hand browser shows the hand (Keep / Mulligan).
     private func openingHand(for prompt: RulesPrompt?) -> PhoneGame.Opening? {
-        guard let prompt, prompt.isMulligan else { return nil }
+        guard let prompt, prompt.isMulligan || prompt.isLondonBottom else { return nil }
         // The browser's title says who goes first ("You Go First"): the engine's starting player.
         let snapshot = engine.snapshot
         let first: Player.Identifier = snapshot?.activePlayerId.map { $0 == snapshot?.playerId ? .a : .b } ?? .a
-        return PhoneGame.Opening(id: UUID(uuidString: prompt.id) ?? Self.stableID(prompt.id), firstPlayer: first,
-                                 deciding: [phone?.player.rawValue ?? Player.Identifier.a.rawValue])
+        var opening = PhoneGame.Opening(id: UUID(uuidString: prompt.id) ?? Self.stableID(prompt.id), firstPlayer: first,
+                                        deciding: [phone?.player.rawValue ?? Player.Identifier.a.rawValue])
+        let text = RulesText.plain(prompt.message ?? "")
+        if prompt.isMulligan, let after = Self.firstNumber(in: text, after: "down to") {
+            // "Mulligan down to 6 cards?": you'd keep 7 now, and a mulligan returns 1.
+            opening.keepCount = after + 1
+            opening.mulliganReturns = 7 - after
+        } else if prompt.isLondonBottom {
+            // "Select a card (2 more) to put on the bottom of your library".
+            opening.returning = Self.firstNumber(in: text, after: "(") ?? 1
+        }
+        return opening
+    }
+
+    static func firstNumber(in text: String, after marker: String) -> Int? {
+        guard let range = text.range(of: marker) else { return nil }
+        let digits = text[range.upperBound...].drop { !$0.isNumber }.prefix { $0.isNumber }
+        return Int(digits)
     }
 
     /// A UUID derived from a prompt ID that isn't one itself, so the same prompt keeps the same opening.
@@ -281,6 +297,9 @@ final class RulesPhoneAdapter {
         case .castTargeting(let id, let target):
             pendingTarget = target
             await choose(id)
+        case .moveToPlayer(let id, .library, _, bottom: true) where engine.prompt?.isLondonBottom == true:
+            // Dragging a card to the library during the mulligan: XMage's "put on the bottom".
+            await engine.answer(.object(id.uuidString.lowercased()))
         case .attachDroppedCard(let id, let target):
             // Dropped onto a permanent: play it, with that permanent as its target if it needs one
             // (an Aura). A land dropped on another land just plays.
