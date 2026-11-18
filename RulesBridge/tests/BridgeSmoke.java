@@ -503,6 +503,13 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     }
                     for (JsonElement item : event.getAsJsonArray("stack")) {
                         JsonObject object = item.getAsJsonObject();
+                        if (name(object).equals("Ahriman") && object.has("sourceId") && object.get("ability").getAsBoolean()) {
+                            String sourceId = object.get("sourceId").getAsString();
+                            for (JsonElement player : event.getAsJsonArray("players"))
+                                for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield"))
+                                    if (card.getAsJsonObject().get("id").getAsString().equals(sourceId)
+                                            && name(card.getAsJsonObject()).equals("Ahriman")) observedPrompts.add("ABILITY_SOURCE_LINK");
+                        }
                         if (!object.has("controllerId")) throw new AssertionError("Stack object without a controller: " + object.get("name"));
                         if (object.get("controllerId").getAsString().equals(me)) {
                             myStackObjects.add(object.get("id").getAsString());

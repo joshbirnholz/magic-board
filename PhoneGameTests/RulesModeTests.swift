@@ -262,6 +262,30 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(RulesPhoneAdapter.primaryButton(prompt: try prompt(required: true), snapshot: nil, pending: false).0, "Choose")
     }
 
+    func testAbilitySourceLinksStayInTheRulesAdapterAndClearWithTheStack() async throws {
+        let me = UUID().uuidString, source = UUID().uuidString.lowercased(), ability = UUID().uuidString.lowercased()
+        let card: [String: Any] = ["id": source, "name": "Ahriman", "faceDown": false, "transformed": false,
+                                  "typeLine": "Creature — Eye Horror", "power": "2", "toughness": "2", "counters": []]
+        var item = card; item["id"] = ability; item["ability"] = true; item["sourceId"] = source
+        var json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3,
+                                  "hand": [], "stack": [item], "playableIds": [],
+                                  "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 30,
+                                               "battlefield": [card], "graveyard": [], "exile": []]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        func state() throws -> RulesSnapshot { try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)) }
+        try await adapter.project(state(), refreshArtwork: false)
+        XCTAssertEqual(adapter.abilitySources, [try XCTUnwrap(UUID(uuidString: ability)): try XCTUnwrap(UUID(uuidString: source))])
+        item["sourceId"] = UUID().uuidString.lowercased(); json["stack"] = [item]
+        try await adapter.project(state(), refreshArtwork: false)
+        XCTAssertTrue(adapter.abilitySources.isEmpty, "Unseen origins must not gain a visible endpoint")
+        item["sourceId"] = source; item["ability"] = false; json["stack"] = [item]
+        try await adapter.project(state(), refreshArtwork: false)
+        XCTAssertTrue(adapter.abilitySources.isEmpty, "Ordinary spells do not gain ability-source links")
+        json["stack"] = []
+        try await adapter.project(state(), refreshArtwork: false)
+        XCTAssertTrue(adapter.abilitySources.isEmpty)
+    }
+
     func testStructuredPromptSourceAndOlderBridgeFallback() throws {
         func prompt(_ extra: [String: Any]) throws -> RulesPrompt {
             var json: [String: Any] = ["id": "s", "method": "GAME_TARGET", "revision": 1, "supported": true,

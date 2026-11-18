@@ -396,6 +396,7 @@ final class PhoneTargetArcsView: UIView {
         let destination: CGPoint
         let local: Bool
         let targetsStack: Bool
+        var isAbilitySource = false
     }
     var connections: [Connection] = [] { didSet { setNeedsDisplay() } }
     override func draw(_ rect: CGRect) {
@@ -410,7 +411,7 @@ final class PhoneTargetArcsView: UIView {
             let control = connection.targetsStack
                 ? CGPoint(x: min(start.x, end.x) - max(110, distance * 0.5), y: max(8, min(start.y, end.y) - 45))
                 : CGPoint(x: (start.x + end.x) / 2 - bend * 0.4, y: max(8, (start.y + end.y) / 2 - bend))
-            let color: UIColor = connection.local ? .systemCyan : .systemOrange
+            let color: UIColor = connection.isAbilitySource ? .white : connection.local ? .systemCyan : .systemOrange
             let curve = UIBezierPath()
             curve.move(to: start)
             curve.addQuadCurve(to: end, controlPoint: control)

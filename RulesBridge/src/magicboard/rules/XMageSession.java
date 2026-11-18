@@ -552,6 +552,7 @@ final class XMageSession implements MageClient, AutoCloseable {
                     "power", card.getPower(), "toughness", card.getToughness(), "ability", card.isAbility() || source != null,
                     "typeLine", card.getTypeText(), "manaCost", card.getManaCostStr(),
                     "rules", String.join("\n", card.getRules() == null ? List.of() : card.getRules()));
+            if (source != null && source.getId() != null) item.addProperty("sourceId", source.getId().toString());
             if (card instanceof PermanentView permanent) {
                 item.addProperty("tapped", permanent.isTapped());
                 item.addProperty("damage", permanent.getDamage());

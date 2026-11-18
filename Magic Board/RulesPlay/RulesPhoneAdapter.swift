@@ -27,6 +27,8 @@ final class RulesPhoneAdapter {
     private(set) var hasProjected = false
     /// The cards of the current card-choice prompt, for the board's browser (see PhoneGame.rulesChoice).
     private(set) var choiceCards: [CardInstance] = []
+    /// Rules-only source links; never enter Phone Play's editable/saved game state.
+    private(set) var abilitySources: [UUID: UUID] = [:]
     /// The payment prompt a land was last chosen for (see updateStatus).
     private var paymentTapped: (promptID: String, message: String?, pool: String?)?
 
@@ -601,6 +603,11 @@ final class RulesPhoneAdapter {
             if ability { item.isAbility = true }
             return item
         }
+        abilitySources = Dictionary(uniqueKeysWithValues: snapshot.stack.compactMap { card in
+            guard card.ability == true, let ability = UUID(uuidString: card.id),
+                  let source = card.sourceId, visibleIDs.contains(source), let id = UUID(uuidString: source) else { return nil }
+            return (ability, id)
+        })
         let active = snapshot.activePlayerId.map(seat) ?? snapshot.players.first { $0.name == snapshot.activePlayer }.map { seat($0.id) } ?? .a
         let enginePhase = snapshot.phase ?? ""
         let phase = Self.phonePhase(enginePhase)

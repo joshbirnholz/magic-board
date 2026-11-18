@@ -4218,6 +4218,17 @@ extension BoardViewController {
         // Drawn while the stack is collapsed too, from the edges of the cards left showing.
         for item in session.game.stack {
             guard let source = phoneStackAnchor(item.id) else { continue }
+            // Arena distinguishes an ability's origin (white, towards the stack) from its targets.
+            // The mapping exists only in Rules mode and only for sources visible to this seat.
+            if let id = session.rulesAdapter?.abilitySources[item.id], let frame = phoneTargetFrame(.card(id)),
+               frame.width > 0, frame.height > 0 {
+                let center = CGPoint(x: frame.midX, y: frame.midY)
+                let dx = source.x - center.x, dy = source.y - center.y
+                let scale = min(frame.width / 2 / max(0.001, abs(dx)), frame.height / 2 / max(0.001, abs(dy)))
+                let start = CGPoint(x: center.x + dx * min(1, scale), y: center.y + dy * min(1, scale))
+                connections.append(.init(source: start, destination: source, local: item.player == session.player,
+                                         targetsStack: false, isAbilitySource: true))
+            }
             let targets = item.targets ?? []
             for target in targets {
                 guard let frame = phoneTargetFrame(target), frame.width > 0, frame.height > 0 else { continue }
@@ -4234,7 +4245,10 @@ extension BoardViewController {
         updatePhoneStackDragArc()
         arcs.connections = connections
         arcs.isHidden = connections.isEmpty
-        phoneStackButton?.accessibilityValue = "\(connections.count) target connections"
+        let sourceCount = connections.filter(\.isAbilitySource).count
+        let targetCount = connections.count - sourceCount
+        phoneStackButton?.accessibilityValue = "\(targetCount) target connections"
+            + (sourceCount > 0 ? ", \(sourceCount) ability source connections" : "")
     }
 
     private func makePhoneStackView(_ session: PhoneGameSession, concealing: UUID? = nil) -> PhoneStackCardsView {

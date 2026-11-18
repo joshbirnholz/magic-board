@@ -38,7 +38,8 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/attack") ? "attack"
                 : request.getResourceDescriptor().endsWith("/source") ? "sacrifice"
                 : request.getResourceDescriptor().endsWith("/mana") ? "mana"
-                : request.getResourceDescriptor().endsWith("/crew") ? "crew" : "select";
+                : request.getResourceDescriptor().endsWith("/crew") ? "crew"
+                : request.getResourceDescriptor().endsWith("/ability") ? "ability" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
     @Override public void onMessage(WebSocket socket, String text) {
@@ -99,6 +100,12 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void ack(WebSocket socket, JsonObject request) { send(socket, object("type", "ack", "requestId", request.get("requestId"))); }
     private void settings(WebSocket socket) { send(socket, object("type", "prioritySettings", "holdingPriority", holdingPriority, "autoOrderTriggers", autoOrderTriggers)); }
     private void prompt(WebSocket socket) {
+        if (stage.equals("ability")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
+                    "revision", revision, "message", "Play instants and activated abilities", "supported", true,
+                    "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
+            return;
+        }
         if (stage.startsWith("mana")) {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_PLAY_MANA",
                     "revision", revision, "message", "Pay {B}<div>Mind Rot</div>", "supported", true,
@@ -152,12 +159,23 @@ public final class BlockPromptFixture extends WebSocketServer {
             mine.add("battlefield", JSON.toJsonTree(new Object[]{land}));
             mine.add("manaPool", object("C", stage.equals("manaAdded") ? 1 : 0));
         }
+        JsonObject[] stack = new JsonObject[]{};
+        if (stage.equals("ability")) {
+            JsonObject source = card(BLOCKER, false);
+            source.addProperty("name", "Ahriman"); source.remove("set"); source.remove("collectorNumber");
+            mine.add("battlefield", JSON.toJsonTree(new Object[]{source}));
+            JsonObject ability = source.deepCopy();
+            ability.addProperty("id", TRIGGER_FIRST); ability.addProperty("ability", true);
+            ability.addProperty("sourceId", BLOCKER); ability.addProperty("controllerId", ME);
+            ability.addProperty("rules", "Draw a card.");
+            stack = new JsonObject[]{ability};
+        }
         JsonObject theirs = object("id", THEM, "name", "Opponent", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(FIRST, true), card(SECOND, true)}, "graveyard", new Object[]{}, "exile", new Object[]{});
         Object[] combat = (stage.equals("attack") || stage.startsWith("mana")) ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
         send(socket, object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
                 "phase", "COMBAT", "step", stage.equals("attack") ? "DECLARE_ATTACKERS" : "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", stage.equals("attack") ? ME : THEM, "priorityPlayer", "You",
-                "hand", new Object[]{}, "stack", new Object[]{}, "players", new Object[]{mine, theirs}, "playableIds", new String[]{BLOCKER}, "combat", combat));
+                "hand", new Object[]{}, "stack", stack, "players", new Object[]{mine, theirs}, "playableIds", new String[]{BLOCKER}, "combat", combat));
     }
     private JsonObject group(String attacker) { return object("defenderId", ME, "attackers", new String[]{attacker}, "blockers", attacker.equals(selectedAttacker) ? new String[]{BLOCKER} : new String[]{}); }
     @Override public void onClose(WebSocket socket, int code, String reason, boolean remote) { }

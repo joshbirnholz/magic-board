@@ -43,6 +43,8 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     let targets: [String]?
     /// Stack objects only: the bridge's best inference of who controls it.
     var controllerId: String? = nil
+    /// Physical source of a stack ability; distinct from the ability's own id and targets.
+    var sourceId: String? = nil
     let counters: [Counter]
 }
 

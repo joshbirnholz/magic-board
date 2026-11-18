@@ -74,6 +74,23 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertEqual(status.handCount, 5)
     }
 
+    @MainActor func testStackAbilityHasAWhiteConnectionFromItsSource() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/ability")
+        defer { app.terminate() }
+        let stack = app.buttons["phone-stack"]
+        XCTAssertTrue(stack.waitForExistence(timeout: 5))
+        let linked = expectation(for: NSPredicate(format: "value CONTAINS '1 ability source connections'"), evaluatedWith: stack)
+        await fulfillment(of: [linked], timeout: 5)
+        XCTAssertTrue((stack.value as? String)?.contains("0 target connections") == true, "Source arrows are not target arrows")
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "White arrow from Ahriman to its stack ability"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     @MainActor func testLongCrewInstructionStaysBetweenTheCardRows() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
