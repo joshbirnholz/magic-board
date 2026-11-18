@@ -173,6 +173,8 @@ struct RulesCommand: Encodable {
     var kind: String? = nil
     var value: RulesAnswer? = nil
     var deck: RulesDeck? = nil
+    /// createAiGame only: the AI's own deck (JumpStart / Jump In packets). Without it the AI plays a copy of `deck`.
+    var aiDeck: RulesDeck? = nil
     var format: String? = nil
     var priorityAction: RulesPriorityAction? = nil
     var autoOrderTriggers: Bool? = nil

@@ -653,4 +653,54 @@ final class RulesModeUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
+    /// JumpStart against the AI chosen on the Rules Game page: pick two packets when the game
+    /// starts (the AI gets its own), then the engine deals from that deck. Set
+    /// TEST_RUNNER_RULES_UI_TEST_PACKETS to "JumpStart" or "Jump In" (default JumpStart).
+    @MainActor func testRulesJumpStartPacketsAgainstTheAI() throws {
+        let source = ProcessInfo.processInfo.environment["RULES_UI_TEST_PACKETS"] ?? "JumpStart"
+        let app = XCUIApplication()
+        app.launchArguments = ["--rules-ui-test", "-rules.deckSource", "\"\(source)\""]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
+        app.buttons["start-rules"].tap()
+        let address = app.textFields["rules-server-address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 5))
+        address.tap()
+        if let value = address.value as? String { address.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        address.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_ADDRESS"] ?? "ws://127.0.0.1:17180")
+        let key = app.secureTextFields["rules-connection-key"]
+        key.tap()
+        if let value = key.value as? String { key.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)) }
+        key.typeText(ProcessInfo.processInfo.environment["RULES_UI_TEST_KEY"] ?? "rules-local-verification-key")
+        let fresh = app.buttons["rules-connect-new"]
+        (fresh.exists ? fresh : app.buttons["rules-connect"]).tap()
+        XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 30))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
+        waitForExpectations(timeout: 10)
+        app.buttons["rules-start-ai"].tap()
+        // Two packet choices, three offers each.
+        let packets = app.buttons.matching(identifier: "rules-packet-choice")
+        XCTAssertTrue(packets.firstMatch.waitForExistence(timeout: 10), "Starting a \(source) game should offer packets")
+        XCTAssertTrue(app.navigationBars["Choose First Packet"].exists)
+        packets.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'First packet:'")).firstMatch.exists)
+        packets.firstMatch.tap()
+        // The engine game starts with that deck: the phone board and an opening-hand decision.
+        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 30),
+                      "The \(source) game didn't start: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
+        let message = app.descendants(matching: .any)["rules-prompt-message"]
+        XCTAssertTrue(message.waitForExistence(timeout: 30))
+        if message.label.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].waitForExistence(timeout: 5) { app.buttons["Magic Board"].tap() }
+        XCTAssertTrue(app.buttons["Keep Hand"].waitForExistence(timeout: 20))
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Rules mode — \(source) opening hand"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["Keep Hand"].tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.waitForExistence(timeout: 15))
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
+    }
 }

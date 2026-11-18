@@ -11,6 +11,21 @@ struct RulesConnectionView: View {
     @AppStorage("rules.deckList") private var deckList = ""
     @State private var format = "Limited"
     @State private var showDeckImport = false
+    /// Built-in, a pasted list, or JumpStart / Jump In packets chosen when the game starts.
+    @AppStorage("rules.deckSource") private var deckSourceRaw = ""
+    @AppStorage("rules.packetSet") private var packetSet = ""
+    @State private var pendingStart: PendingStart?
+
+    private enum PendingStart: Identifiable {
+        case ai, human, join(RulesTable)
+        var id: String {
+            switch self { case .ai: return "ai"; case .human: return "human"; case .join(let table): return "join-" + table.id }
+        }
+    }
+
+    private var source: RulesDeckSource { RulesDeckSource(rawValue: deckSourceRaw) ?? (deckList.isEmpty ? .builtIn : .list) }
+    private var packetSets: [(code: String, name: String)] { RulesPackets.sets(for: source) }
+    private var chosenPacketSet: String { packetSets.contains { $0.code == packetSet } ? packetSet : (packetSets.first?.code ?? "") }
 
     var body: some View {
         Form {
@@ -44,20 +59,10 @@ struct RulesConnectionView: View {
                             Text("Waiting for the other player to start the game…").font(.callout)
                         }
                     } else {
-                        Button("Play Against AI") {
-                            do {
-                                let deck = try preparedDeck(for: format)
-                                Task { await session.startAiGame(deck: deck, format: format) }
-                            } catch { session.error = error.localizedDescription }
-                        }
+                        Button("Play Against AI") { begin(.ai) }
                             .disabled(session.pendingRequest != nil || session.snapshot != nil)
                             .accessibilityIdentifier("rules-start-ai")
-                        Button("Create Two-Player Game") {
-                            do {
-                                let deck = try preparedDeck(for: format)
-                                Task { await session.createHumanGame(deck: deck, format: format) }
-                            } catch { session.error = error.localizedDescription }
-                        }
+                        Button("Create Two-Player Game") { begin(.human) }
                             .disabled(session.pendingRequest != nil)
                             .accessibilityIdentifier("rules-create-human")
                     }
@@ -75,7 +80,14 @@ struct RulesConnectionView: View {
             }
             if session.tableId == nil {
                 Section {
-                    DisclosureGroup("Deck") {
+                    Picker("Deck", selection: Binding(get: { source }, set: { deckSourceRaw = $0.rawValue })) {
+                        ForEach(RulesDeckSource.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .accessibilityIdentifier("rules-deck-source")
+                    switch source {
+                    case .builtIn:
+                        Text("A simple white creature deck; the AI plays a copy.").font(.caption).foregroundStyle(.secondary)
+                    case .list:
                         TextEditor(text: $deckList)
                             .font(.system(.body, design: .monospaced))
                             .frame(minHeight: 120)
@@ -83,13 +95,20 @@ struct RulesConnectionView: View {
                             .autocorrectionDisabled()
                             .accessibilityIdentifier("rules-deck-list")
                         Button("Import Text File") { showDeckImport = true }
-                        if !deckList.isEmpty { Button("Use Built-in Deck") { deckList = ""; format = "Limited" } }
-                        Text("Paste a text deck list, or leave it empty to use the built-in white creature deck. The AI uses a copy of your deck.")
+                        Text("Paste a text deck list. The AI plays a copy of it.").font(.caption).foregroundStyle(.secondary)
+                    case .jumpStart, .jumpIn:
+                        Picker("Set", selection: Binding(get: { chosenPacketSet }, set: { packetSet = $0 })) {
+                            ForEach(packetSets, id: \.code) { Text($0.name).tag($0.code) }
+                        }
+                        .accessibilityIdentifier("rules-packet-set")
+                        Text("When the game starts, choose two packets from three offers each; they become your deck. Against the AI, it gets two random packets of its own.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    Picker("Format", selection: $format) {
-                        ForEach(session.formats, id: \.self) { format in
-                            Text(format.replacingOccurrences(of: "Constructed - ", with: "")).tag(format)
+                    if !source.usesPackets {
+                        Picker("Format", selection: $format) {
+                            ForEach(session.formats, id: \.self) { format in
+                                Text(format.replacingOccurrences(of: "Constructed - ", with: "")).tag(format)
+                            }
                         }
                     }
                 }
@@ -100,12 +119,7 @@ struct RulesConnectionView: View {
                         .disabled(session.pendingRequest != nil)
                         .accessibilityIdentifier("rules-refresh-games")
                     ForEach(session.tables) { table in
-                        Button {
-                            do {
-                                let deck = try preparedDeck(for: table.format ?? "Limited")
-                                Task { await session.join(table, deck: deck) }
-                            } catch { session.error = error.localizedDescription }
-                        } label: {
+                        Button { begin(.join(table)) } label: {
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text("Game \(table.id.prefix(8))")
@@ -127,6 +141,13 @@ struct RulesConnectionView: View {
             }
         }
         .navigationTitle("Rules Game")
+        .sheet(item: $pendingStart) { start in
+            RulesPacketPicker(source: source, set: chosenPacketSet) { deckText in
+                pendingStart = nil
+                guard let deckText else { return }
+                perform(start, packetDeck: deckText)
+            }
+        }
         .fileImporter(isPresented: $showDeckImport, allowedContentTypes: [.plainText], allowsMultipleSelection: false) { result in
             do {
                 guard let url = try result.get().first else { return }
@@ -159,7 +180,47 @@ struct RulesConnectionView: View {
         .onDisappear { if !transferred { Task { await session.endSession() } } }
     }
 
+    /// Starts, creates or joins a game; packet decks are chosen first.
+    private func begin(_ start: PendingStart) {
+        if source.usesPackets {
+            guard !chosenPacketSet.isEmpty else { session.error = "No \(source.rawValue) packets are available in this build."; return }
+            pendingStart = start
+        } else {
+            perform(start, packetDeck: nil)
+        }
+    }
+
+    private func perform(_ start: PendingStart, packetDeck: String?) {
+        do {
+            let deck: RulesDeck?
+            let gameFormat: String
+            if let packetDeck {
+                deck = try RulesDeckImporter.parse(packetDeck)
+                gameFormat = "Limited"
+            } else {
+                let tableFormat: String
+                if case .join(let table) = start { tableFormat = table.format ?? "Limited" } else { tableFormat = format }
+                deck = try preparedDeck(for: tableFormat)
+                gameFormat = tableFormat
+            }
+            switch start {
+            case .ai:
+                // The AI brings its own two random packets in a JumpStart / Jump In game.
+                let aiDeck = packetDeck == nil ? nil : RulesPackets.randomDeckList(source, set: chosenPacketSet).flatMap { try? RulesDeckImporter.parse($0) }
+                Task { await session.startAiGame(deck: deck, format: gameFormat, aiDeck: aiDeck) }
+            case .human:
+                Task { await session.createHumanGame(deck: deck, format: gameFormat) }
+            case .join(let table):
+                Task { await session.join(table, deck: deck) }
+            }
+        } catch { session.error = error.localizedDescription }
+    }
+
     private func preparedDeck(for format: String) throws -> RulesDeck? {
+        guard source == .list else {
+            if format != "Limited" { throw RulesDeckImporter.Failure.message("Import a deck to play this format, or use Limited with the built-in deck.") }
+            return nil
+        }
         let deck = try RulesDeckImporter.parse(deckList)
         // XMage refuses an undersized deck with no reason given ("could not seat you"), so say why.
         if let deck {
