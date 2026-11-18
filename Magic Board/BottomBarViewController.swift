@@ -791,6 +791,18 @@ extension BottomBarViewController {
                 .foregroundColor: UIColor.white.withAlphaComponent(0.85), .paragraphStyle: paragraph
             ]))
         }
+        // Arena shows an hourglass on the button while it waits on the other player or the engine,
+        // instead of status text.
+        let hourglass = waiting && ["Waiting", "Opponent's Turn", "Sending…"].contains(title)
+        if hourglass {
+            let symbol = UIImage(systemName: "hourglass", withConfiguration: UIImage.SymbolConfiguration(pointSize: max(10, height * 0.36), weight: .bold))
+            untapButton.setImage(symbol, for: .normal)
+            untapButton.setImage(symbol, for: .disabled)
+            untapButton.tintColor = UIColor.white.withAlphaComponent(0.85)
+            text.setAttributedString(NSAttributedString(string: ""))
+        } else {
+            untapButton.setImage(nil, for: .disabled)
+        }
         untapButton.setAttributedTitle(text, for: .normal)
         untapButton.setAttributedTitle(text, for: .disabled)
         untapButton.titleLabel?.numberOfLines = 2

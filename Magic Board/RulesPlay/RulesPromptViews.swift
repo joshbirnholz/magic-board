@@ -81,6 +81,52 @@ struct RulesSymbolText: View {
     }
 }
 
+/// Rules text the way Spellbook's OracleTextView sets it: mana and tap symbols inline, reminder
+/// text in parentheses and ability words ("Rat Tail — ") in italics, a little space between abilities.
+struct RulesOracleText: View {
+    let text: String
+    var size: CGFloat = 17
+
+    var body: some View {
+        content.fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var content: Text {
+        let lines = text.components(separatedBy: .newlines)
+        var result = Text("")
+        for (offset, line) in lines.enumerated() {
+            if offset > 0 { result = result + Text("\n\u{200B}").baselineOffset(line.hasPrefix("•") ? 0 : 5) }
+            result = result + self.line(line)
+        }
+        return result
+    }
+
+    private func line(_ line: String) -> Text {
+        let italics = Self.italicRanges(line)
+        var text = Text("")
+        var cursor = line.startIndex
+        for range in italics {
+            text = text + symbols(String(line[cursor..<range.lowerBound])) + symbols(String(line[range])).italic()
+            cursor = range.upperBound
+        }
+        return text + symbols(String(line[cursor...]))
+    }
+
+    private func symbols(_ string: String) -> Text {
+        string.isEmpty ? Text("") : addSymbols(string: string, symbolLength: size * 0.85)
+    }
+
+    /// Reminder text and ability words, as Spellbook finds them (keyword costs like "Cycling — "
+    /// and Saga chapters stay upright).
+    static func italicRanges(_ line: String) -> [Range<String.Index>] {
+        let exemptions = ["Companion", "Boast", "Cycling", "I", "II", "III", "IV", "I, II", "II, III", "III, IV", "I, II, III",
+                          "II, III, IV", "Visit", "Prize", "villainous choice", "Max speed"].map { $0 + " — " }
+        return line.matches(forRegex: #"(?:\((.*?)\)|^[^"(]+ — )"#, options: .anchorsMatchLines)
+            .filter { match in !exemptions.contains { match.fullMatch.value.hasSuffix($0) } }
+            .map(\.fullMatch.range)
+    }
+}
+
 // MARK: - Compact strip (beside the main button)
 
 /// The compact prompt beside the phase button. Shows nothing while a full-screen decision is up.
@@ -199,11 +245,10 @@ struct RulesPromptBar: View {
         return [owner, step].compactMap { $0 }.joined(separator: " · ")
     }
 
+    /// Only before the game starts: while the other player (or the AI) acts, the main button's
+    /// hourglass says so, as on Arena (a "… is thinking" strip here flashed up between prompts).
     private var waitingMessage: String? {
-        guard let state = session.snapshot else { return session.status == .connected ? "Waiting for the game…" : nil }
-        let mine = state.players.first { $0.id == state.playerId }?.name
-        if let priority = state.priorityPlayer, !priority.isEmpty, priority != mine { return "\(priority) is thinking…" }
-        return nil
+        session.snapshot == nil && session.status == .connected ? "Waiting for the game…" : nil
     }
 
     private func answer(_ title: String, _ value: RulesAnswer, primary: Bool = true) -> some View {

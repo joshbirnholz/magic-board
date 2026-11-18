@@ -249,6 +249,14 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(RulesText.tokenName(card))
     }
 
+    func testRulesTextItalicsMatchSpellbook() {
+        func italic(_ line: String) -> [String] { RulesOracleText.italicRanges(line).map { String(line[$0]) } }
+        XCTAssertEqual(italic("Rat Tail — When this creature dies, create a Treasure token. (It's an artifact.)"),
+                       ["Rat Tail — ", "(It's an artifact.)"])
+        XCTAssertEqual(italic("Cycling — {2}"), [])
+        XCTAssertEqual(italic("{T}: Add {C}."), [])
+    }
+
     func testCardRulesReadLikePrintedText() {
         func rules(_ text: String, _ name: String, _ type: String) -> String { RulesText.cardRules(text, name: name, typeLine: type) }
         XCTAssertEqual(rules("Rat Tail &mdash; When {this} dies, create a Treasure token.", "Undercity Dire Rat", "Creature — Rat"),
