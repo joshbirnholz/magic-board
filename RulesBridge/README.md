@@ -74,12 +74,14 @@ Real-engine integration checks, after starting both processes (from `RulesBridge
 ```sh
 mkdir -p build/test-classes
 javac --release 17 -encoding UTF-8 -cp "build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" -d build/test-classes tests/*.java
-for check in BridgeSmoke BridgeTwoPlayerSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
+for check in BridgeSmoke BridgeTwoPlayerSmoke SeparateAiDeckSmoke CombatSmoke LeaveRaceSmoke SessionCapacitySmoke PriorityControlSmoke PrivateLookSmoke magicboard.rules.CardPrintingsTest magicboard.rules.PromptAnswersTest magicboard.rules.PromptMetadataTest; do
     java -cp "build/test-classes:build/magicboard-rules.jar:lib/*:$XMAGE_HOME/mage-client/lib/*" "$check" || exit 1
 done
 ```
 
 `RULES_SMOKE_ADDRESS=ws://127.0.0.1:17182` selects an isolated test bridge. `BridgeSmoke` requires a real creature to resolve on your battlefield, rejects engine server-error endings, and checks finished-game replay. Its optional `RULES_SMOKE_DECK` points to a JSON deck/format command payload.
+
+`SeparateAiDeckSmoke` verifies that an unsupported AI card produces an actionable error, a retry succeeds on the same seat, and a 40-card Plains player deck faces a separate 40-card Island AI deck (observed through the human hand and AI battlefield).
 
 Run `sh tests/prompt-smoke.sh` against the current bridge for bounded real-card checks of ordering, modes, alternative costs, morph, nonzero X, hybrid mana, library search, equip, loyalty abilities, cleanup discard, instant responses, distributed damage and pile choices. Deck fixtures are in `tests/decks/`. The X probe casts Blaze with X=1, the hybrid probe casts Safehold Elite using Plains, and the search probe verifies that the chosen library card reaches the player's hand. These probes stop when their required interaction has progressed back to priority; they do not require finishing each artificial deck. The ordinary `BridgeSmoke` still checks a complete AI game. For local decoding diagnostics, `RULES_SMOKE_EVENTS=/path/to/events.jsonl` appends snapshot and prompt events from the probe (no authentication or connection events).
 
