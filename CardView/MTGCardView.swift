@@ -1722,3 +1722,114 @@ public class MTGCardView: UIView {
 	}
 
 }
+
+// MARK: - Ability frames
+
+/// Frames for abilities on the stack (Josh's ability frames, at CardConjurer's M15 proportions:
+/// 2010 × 2814, kept at half size in MagicBoardResources/AbilityFrames). Each piece follows the
+/// same rules as a mini card's: the rules box takes the card's background, the outer frame its
+/// border (split down the middle for two colors), and the name and type bars its bar.
+public extension MTGCardView {
+	/// Where an ability frame's pieces sit, as fractions of the frame (CardConjurer's packM15Regular).
+	enum AbilityLayout {
+		public static let art = CGRect(x: 0.0767, y: 0.1129, width: 0.8476, height: 0.4429)
+		public static let title = CGRect(x: 0.0854, y: 0.0522, width: 0.8292, height: 0.0543)
+		public static let titleSize: CGFloat = 0.0381
+		public static let type = CGRect(x: 0.0854, y: 0.5664, width: 0.8292, height: 0.0543)
+		public static let typeSize: CGFloat = 0.0324
+		/// CardConjurer's rules box is {0.086, 0.6303, 0.828, 0.2875}, but these frames round off
+		/// below about 0.8 of the height, so the text stays in the part that's still full width.
+		public static let rules = CGRect(x: 0.092, y: 0.6303, width: 0.816, height: 0.2)
+		public static let rulesSize: CGFloat = 0.0362
+		/// Width ÷ height.
+		public static let aspect: CGFloat = 2010.0 / 2814.0
+	}
+
+	private static var abilityFrameCache: [String: UIImage] = [:]
+
+	/// The composed ability frame for a card's frame properties (the art window is transparent).
+	static func abilityFrame(for properties: CardProperties) -> UIImage? {
+		let style = properties.backgroundStyle
+		// No ub-nyx mini card frames exist yet, so ub-nyx sources use the plain Universes Beyond frame.
+		let folder = style?.isUniversesBeyond == true ? "ub" : style?.isNyxtouched == true ? "nyx" : "regular"
+		let colors = properties.colors.map { $0.initial.lowercased() }
+		let isLand = style?.isLand == true
+		let isArtifact = style?.isArtifact == true
+		let hybridPair = colors.count == 2 && (properties.isHybrid || properties.objectType == .token)
+
+		// Rules box: the mini card's background.
+		let body: [String] = {
+			if isLand { return ["l"] }
+			if style?.isVehicle == true { return ["v"] }
+			if isArtifact { return ["a"] }
+			if colors.count == 1 { return colors }
+			if colors.count > 2 { return ["m"] }
+			if colors.isEmpty { return ["c"] }
+			return hybridPair ? colors : ["m"]
+		}()
+		// Outer frame and pinlines: the mini card's border (two colors split down the middle).
+		let trim: [String] = {
+			if colors.isEmpty && isLand { return ["l"] }
+			if colors.isEmpty && isArtifact { return ["a"] }
+			if colors.count == 1 { return [colors[0] + (isLand ? "l" : "")] }
+			if colors.count > 2 { return [isLand ? "ml" : "m"] }
+			if colors.count == 2 { return colors.map { $0 + (isLand ? "l" : "") } }
+			return ["c"]
+		}()
+		// Name and type bars: the mini card's bar.
+		let bar: [String] = {
+			if (colors.isEmpty || colors.count == 2) && isLand { return ["l"] }
+			if colors.isEmpty && isArtifact { return ["a"] }
+			if colors.count == 1 { return colors }
+			if colors.count >= 2 && !hybridPair { return ["m"] }
+			if hybridPair { return ["l"] }
+			return ["c"]
+		}()
+		let key = "\(folder)|\(body)|\(trim)|\(bar)"
+		if let cached = abilityFrameCache[key] { return cached }
+
+		func frame(_ letter: String) -> UIImage? {
+			// Nyx and Universes Beyond have no land / vehicle / colored-land variants: use regular.
+			for candidate in [folder, "regular"] {
+				if let url = MagicBoardResources.bundle.url(forResource: letter, withExtension: "webp", subdirectory: "AbilityFrames/\(candidate)"),
+				   let image = UIImage(contentsOfFile: url.path) { return image }
+			}
+			return nil
+		}
+		func mask(_ name: String) -> UIImage? {
+			MagicBoardResources.bundle.url(forResource: name, withExtension: "png", subdirectory: "AbilityFrames/masks")
+				.flatMap { UIImage(contentsOfFile: $0.path) }
+		}
+		guard let first = frame(trim[0]) else { return nil }
+		let size = first.size
+		let rect = CGRect(origin: .zero, size: size)
+		/// Draws one or two frames into the current context, the second on the right half.
+		func drawPair(_ letters: [String], clippedTo maskImage: UIImage?) {
+			guard let context = UIGraphicsGetCurrentContext() else { return }
+			context.saveGState()
+			if let cg = maskImage?.cgImage {
+				// The masks are grayscale, white where the piece is (CG clips to a gray image without alpha).
+				context.translateBy(x: 0, y: size.height); context.scaleBy(x: 1, y: -1)
+				context.clip(to: rect, mask: cg)
+				context.scaleBy(x: 1, y: -1); context.translateBy(x: 0, y: -size.height)
+			}
+			frame(letters[0])?.draw(in: rect)
+			if letters.count > 1 {
+				context.saveGState()
+				context.clip(to: CGRect(x: size.width / 2, y: 0, width: size.width / 2, height: size.height))
+				frame(letters[1])?.draw(in: rect)
+				context.restoreGState()
+			}
+			context.restoreGState()
+		}
+		let format = UIGraphicsImageRendererFormat()
+		format.scale = 1
+		let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+			drawPair(trim, clippedTo: nil)
+			drawPair(body, clippedTo: mask("rules"))
+			drawPair(bar, clippedTo: mask("typetitle"))
+		}
+		abilityFrameCache[key] = image
+		return image
+	}
+}

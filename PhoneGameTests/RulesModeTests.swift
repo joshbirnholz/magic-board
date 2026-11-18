@@ -436,6 +436,23 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(stack[bolt.lowercased()]?.targets, [.player(.a)], "a player target points at me; unseen objects are dropped")
     }
 
+    func testUncrewedVehiclesSitWithArtifactsUntilCrewed() async throws {
+        let me = UUID().uuidString, parked = UUID().uuidString, crewed = UUID().uuidString
+        func vehicle(_ id: String, _ type: String) -> [String: Any] {
+            ["id": id, "name": "Cargo Ship", "faceDown": false, "transformed": false, "typeLine": type, "power": "2", "toughness": "3",
+             "tapped": false, "summoningSick": false, "counters": []]
+        }
+        let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "phase": "PRECOMBAT_MAIN",
+                                   "activePlayerId": me, "stack": [], "playableIds": [], "hand": [],
+                                   "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 0, "graveyard": [], "exile": [],
+                                                "battlefield": [vehicle(parked, "Artifact  - Vehicle"), vehicle(crewed, "Artifact Creature  - Vehicle")]]]]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json)))
+        let field = adapter.presentation.state.battlefield.value
+        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == parked.lowercased() }?.isPhoneCreature, false, "Uncrewed: with the artifacts")
+        XCTAssertEqual(field.first { $0.uuid.uuidString.lowercased() == crewed.lowercased() }?.isPhoneCreature, true, "Crewed: a creature")
+    }
+
     func testLandsDontShowEngineZeroStats() async throws {
         let me = UUID().uuidString, land = UUID().uuidString, bear = UUID().uuidString
         func permanent(_ id: String, _ name: String, _ type: String, _ power: String, _ toughness: String) -> [String: Any] {
