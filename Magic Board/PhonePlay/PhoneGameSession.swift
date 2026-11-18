@@ -420,6 +420,15 @@ extension PhoneGameSession {
                 try? game.apply(.attack(attacker.uuid, tap: false), player: attacker.controllerIdentifier.value)
                 onUpdate?()
             }
+            if ProcessInfo.processInfo.arguments.contains("--phone-board-pregame") {
+                // Before Start Game: every card back in its owner's library.
+                for card in Array(game.cards.values) where !card.representation.isToken {
+                    game.move(card, to: .library, player: card.ownerIdentifier)
+                }
+                for card in Array(game.cards.values) where card.representation.isToken { game.remove(card) }
+                game.combat = nil; game.turn = nil; game.opening = nil
+                adopt(game)
+            }
             if ProcessInfo.processInfo.arguments.contains("--phone-board-empty-hand") {
                 game.state[player: player].hand.cards.accept([])
             }

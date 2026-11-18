@@ -557,6 +557,7 @@ struct PhoneGame: Codable {
             state[player: player].life.accept(20)
             opening = nil
             turn = nil
+            combat = nil
             deckNames[player.rawValue] = name
             var layout = deckLayout ?? [:]
             layout[player.rawValue] = Dictionary(uniqueKeysWithValues: loaded.map { ($0.key.rawValue, $0.value.map(\.uuid)) })
@@ -611,13 +612,13 @@ struct PhoneGame: Codable {
         }
     }
 
-    /// The untap button reads Start Game before anything has happened: no deal yet, nothing on
-    /// the battlefield or stack or in any graveyard or exile, and a library to draw from.
+    /// The untap button reads Start Game before the game has started: no deal or turn yet (loading
+    /// a deck or resetting clears both), nothing on the battlefield or stack, and a library to draw
+    /// from. Graveyards, exile and an unfinished packet pick don't matter, so a player playing
+    /// alone or after a reset still gets it.
     var canStartGame: Bool {
-        let players: [Player.Identifier] = [.a, .b]
-        return opening == nil && packetSelection == nil && state.battlefield.value.isEmpty && stack.isEmpty
-            && players.allSatisfy { graveyard($0).cards.value.isEmpty && state[player: $0].exile.cards.value.isEmpty }
-            && players.contains { !library($0).cards.value.isEmpty }
+        opening == nil && turn == nil && state.battlefield.value.isEmpty && stack.isEmpty
+            && [Player.Identifier.a, .b].contains { !library($0).cards.value.isEmpty }
     }
 
     /// Whether this phone's Untap + Draw button draws a card (the Battlefield menu turns it off).
