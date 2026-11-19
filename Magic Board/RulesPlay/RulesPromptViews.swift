@@ -20,6 +20,9 @@ extension RulesPrompt {
         case "GAME_ASK" where isMulligan: return .compact
         case "GAME_TARGET" where isLondonBottom: return .compact
         case "GAME_TARGET" where isStartingPlayer: return .compact
+        // Actual engine ordering cards may lack isAbility/name/printing on older bridges.
+        // The query type is authoritative and must never open the ordinary card-image browser.
+        case "GAME_TARGET" where queryType == "PICK_ABILITY": return .modal
         // Choosing among cards (a library search, revealed cards) uses the board's fanned browser;
         // abilities (trigger order) and face-down cards keep the card picker.
         case "GAME_TARGET" where cards?.isEmpty == false && cards?.allSatisfy({ $0.ability != true && !$0.faceDown }) == true:
@@ -563,7 +566,7 @@ struct RulesPromptModal: View {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(cards) { card in
                         if selectable {
-                            Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height) }
+                            Button { Task { await session.answer(.object(card.id)) } } label: { RulesChoiceCardFace(card: card, height: height, asAbility: session.prompt?.queryType == "PICK_ABILITY") }
                                 .buttonStyle(.plain)
                                 .disabled(!session.canAnswer || session.prompt?.isCardSelectable(card.id) == false)
                                 // Dimmed, not see-through: the battlefield under the browser showed through
@@ -573,7 +576,7 @@ struct RulesPromptModal: View {
                                 .background(RoundedRectangle(cornerRadius: height * 0.045).fill(Color.black))
                                 .accessibilityIdentifier("rules-prompt-card-\(card.id)")
                         } else {
-                            RulesChoiceCardFace(card: card, height: height)
+                            RulesChoiceCardFace(card: card, height: height, asAbility: session.prompt?.queryType == "PICK_ABILITY")
                                 .accessibilityRemoveTraits(.isButton)
                                 .accessibilityIdentifier("rules-context-card-\(card.id)")
                         }
@@ -615,12 +618,13 @@ struct RulesPromptModal: View {
 struct RulesChoiceCardFace: View {
     let card: RulesCard
     var height: CGFloat = 128
+    var asAbility = false
     @State private var instance: CardInstance?
 
     var body: some View {
         VStack(spacing: 4) {
             if let instance {
-                if card.ability == true, !card.faceDown {
+                if (asAbility || card.ability == true), !card.faceDown {
                     PhoneAbilityPanel(source: instance,
                                       text: RulesText.cardRules(card.rules ?? "", name: card.name, typeLine: card.typeLine),
                                       width: height * MTGCardView.AbilityLayout.aspect)

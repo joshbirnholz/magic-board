@@ -811,6 +811,12 @@ final class RulesModeTests: XCTestCase {
         print("RULES-DECK-JSON " + String(decoding: try JSONEncoder().encode(deck), as: UTF8.self))
     }
 
+    func testRealTriggerOrderingCannotOpenTheOrdinaryCardBrowser() throws {
+        let data = Data(#"{"id":"trigger","method":"GAME_TARGET","revision":309,"message":"Pick triggered ability (goes to the stack first)","min":0,"max":0,"required":true,"queryType":"PICK_ABILITY","supported":true,"choices":[],"cards":[{"id":"a","set":"","collectorNumber":"0","faceDown":false,"transformed":false,"ability":false,"rules":"Whenever another creature enters, you gain 1 life.","counters":[]},{"id":"b","faceDown":false,"transformed":false,"ability":false,"rules":"Whenever another creature enters, you gain 1 life.","counters":[]}]}"#.utf8)
+        let prompt = try JSONDecoder().decode(RulesPrompt.self, from: data)
+        XCTAssertEqual(prompt.style, .modal, "Real AbilityView payloads from older bridges have ability=false and no source name")
+    }
+
     func testEngineConditionHintsRenderReadableStatusWithoutRawMarkers() {
         let met = RulesText.plain("<br/><hintstart/>\nICON_GOODYou don't control a creature named Darkstar")
         XCTAssertEqual(met.trimmingCharacters(in: .whitespacesAndNewlines), "✓ You don't control a creature named Darkstar")

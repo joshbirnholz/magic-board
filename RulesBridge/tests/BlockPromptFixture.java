@@ -200,7 +200,7 @@ public final class BlockPromptFixture extends WebSocketServer {
         if (stage.equals("order")) {
             JsonObject first = card(TRIGGER_FIRST, false), second = card(TRIGGER_SECOND, false);
             for (JsonObject card : new JsonObject[]{first, second}) {
-                card.addProperty("name", "Soul Warden"); card.addProperty("ability", true);
+                card.remove("name"); card.addProperty("ability", false);
                 card.addProperty("rules", "Whenever another creature enters, you gain 1 life.");
                 card.remove("set"); card.remove("collectorNumber");
             }

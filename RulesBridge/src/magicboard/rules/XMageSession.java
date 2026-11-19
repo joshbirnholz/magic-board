@@ -544,18 +544,24 @@ final class XMageSession implements MageClient, AutoCloseable {
         return result;
     }
 
-    private static JsonArray cards(Collection<? extends CardView> cards) {
+    static JsonArray cards(Collection<? extends CardView> cards) {
         JsonArray result = new JsonArray();
         for (CardView card : cards) {
             // A triggered or activated ability on the stack: name and print it as its source card
             // (XMage leaves the ability's own name and printing empty), so the app can show the
             // source's art as Arena does.
-            CardView source = card instanceof mage.view.StackAbilityView ability ? ability.getSourceCard() : null;
-            String name = card.getDisplayName() == null || card.getDisplayName().isBlank() ? source == null ? null : source.getDisplayName() : card.getDisplayName();
+            // Ordering prompts use AbilityView, whose isAbility flag is false in this XMage
+            // release. StackAbilityView is a different class; both carry their source explicitly.
+            CardView source = card instanceof StackAbilityView ability ? ability.getSourceCard()
+                    : card instanceof AbilityView ability ? ability.getSourceCard() : null;
+            boolean isAbility = card.isAbility() || card instanceof StackAbilityView || card instanceof AbilityView;
+            if (source != null && source.isFaceDown()) source = null;
+            String name = card.getDisplayName();
+            if (name == null || name.isBlank()) name = source == null ? card.getName() : source.getDisplayName();
             JsonObject item = object("id", card.getId(), "name", name,
                     "set", source != null ? source.getExpansionSetCode() : card.getExpansionSetCode(),
                     "collectorNumber", source != null ? source.getCardNumber() : card.getCardNumber(), "faceDown", card.isFaceDown(), "transformed", card.isTransformed(),
-                    "power", card.getPower(), "toughness", card.getToughness(), "ability", card.isAbility() || source != null,
+                    "power", card.getPower(), "toughness", card.getToughness(), "ability", isAbility,
                     "typeLine", card.getTypeText(), "manaCost", card.getManaCostStr(),
                     "rules", String.join("\n", card.getRules() == null ? List.of() : card.getRules()));
             if (source != null && source.getId() != null) item.addProperty("sourceId", source.getId().toString());
