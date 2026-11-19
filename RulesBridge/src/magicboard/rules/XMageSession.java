@@ -142,6 +142,30 @@ final class XMageSession implements MageClient, AutoCloseable {
         if (gameId != null || tableId != null) throw new IllegalStateException("This session already has a game or waiting table.");
     }
 
+    // Called only on this session's queue by the bridge room coordinator.
+    void validateRoom(String format) {
+        requireNoTable();
+        if (!availableFormats().contains(format)) throw new IllegalArgumentException("This deck format is not available.");
+    }
+    void validateRoomDeck(JsonObject request, String format) {
+        validateRoom(format);
+        DeckCardLists deck = readDeck(request);
+        int minimum = format.equals("Limited") ? 40 : 60;
+        if (deck.getCards().stream().mapToInt(DeckCardInfo::getAmount).sum() < minimum)
+            throw new IllegalArgumentException("This format needs at least " + minimum + " cards.");
+    }
+    UUID prepareRoomGame(JsonObject request) { createGame(false, request); return tableId; }
+    void joinRoomGame(UUID id, JsonObject request) { joinTable(id, request); }
+    void startRoomGame() { startMatch(); }
+    void cancelWaitingGame() {
+        if (gameId != null || tableId == null) return;
+        UUID previous = tableId;
+        boolean owner = ownsTable;
+        tableId = null; ownsTable = false;
+        session.leaveTable(session.getMainRoomId(), previous);
+        if (owner) session.removeTable(session.getMainRoomId(), previous);
+    }
+
     private List<String> availableFormats() {
         Set<String> supported = Set.of("Limited", "Constructed - Standard", "Constructed - Pioneer", "Constructed - Modern",
                 "Constructed - Legacy", "Constructed - Vintage", "Constructed - Pauper");

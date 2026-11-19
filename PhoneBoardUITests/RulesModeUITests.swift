@@ -367,9 +367,72 @@ final class RulesModeUITests: XCTestCase {
         exitFixtureGame(app)
     }
 
-    @MainActor private func startFixtureGame(endpoint: String) -> XCUIApplication {
+    @MainActor func testRoomOpensBeforePacketsAndAutomaticallyStartsAfterBothDecks() async throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_ROOM_BRIDGE_ADDRESS"] else { throw XCTSkip("Requires isolated real room bridge") }
+        let app = startFixtureGame(endpoint: endpoint, startAI: false, packets: true)
+        defer { app.terminate() }
+        app.buttons["rules-create-human"].tap()
+        XCTAssertTrue(app.staticTexts["rules-room-waiting"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["packet-confirm-pick"].exists, "Do not draft before the opponent joins")
+        XCTAssertFalse(app.buttons["rules-start-human"].exists)
+        var request = URLRequest(url: try XCTUnwrap(URL(string: endpoint)))
+        request.setValue("Bearer rules-local-verification-key", forHTTPHeaderField: "Authorization")
+        let guest = URLSession.shared.webSocketTask(with: request); guest.resume()
+        defer { guest.cancel(with: .goingAway, reason: nil) }
+        func send(_ type: String, table: String? = nil) async throws {
+            var message: [String: Any] = ["type": type, "requestId": UUID().uuidString]
+            if type == "connect" { message["protocolVersion"] = 1 }
+            if let table { message["tableId"] = table }
+            try await guest.send(.string(String(decoding: JSONSerialization.data(withJSONObject: message), as: UTF8.self)))
+        }
+        func event(_ type: String) async throws -> [String: Any] {
+            for _ in 0..<50 {
+                let data: Data
+                switch try await guest.receive() {
+                case .data(let value): data = value
+                case .string(let value): data = Data(value.utf8)
+                @unknown default: continue
+                }
+                let message = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+                if message["type"] as? String == "error" { XCTFail("Room guest error: \(message)") }
+                if message["type"] as? String == type { return message }
+            }
+            throw NSError(domain: "RoomUITest", code: 1)
+        }
+        _ = try await event("hello"); try await send("connect"); _ = try await event("ready")
+        try await send("listRooms")
+        let listing = try await event("tables")
+        let tables = try XCTUnwrap(listing["tables"] as? [[String: Any]])
+        let id = try XCTUnwrap(tables.first?["id"] as? String)
+        try await send("joinRoom", table: id); _ = try await event("roomState"); _ = try await event("ack")
+        let choices = app.buttons.matching(identifier: "rules-packet-choice")
+        XCTAssertTrue(choices.firstMatch.waitForExistence(timeout: 8), "Both players should be prompted to choose after joining")
+        XCTAssertEqual(choices.count, 3)
+        choices.firstMatch.tap(); app.buttons["packet-confirm-pick"].tap()
+        XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
+        XCTAssertEqual(choices.count, 3, "First packet reminder must not replace a new choice")
+        choices.firstMatch.tap(); app.buttons["packet-confirm-pick"].tap()
+        XCTAssertTrue(app.staticTexts["rules-room-deck-ready"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["rules-start-human"].exists)
+        let readyShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        readyShot.name = "Room waits for opponent deck without a Start button"; readyShot.lifetime = .keepAlways; add(readyShot)
+        try await send("submitRoomDeck", table: id)
+        _ = try await event("snapshot")
+        XCTAssertTrue(app.buttons["phone-settings"].waitForExistence(timeout: 15), "Second ready deck must start the shared battlefield automatically")
+        try await send("concede"); _ = try await event("gameOver")
+        if app.buttons["View Battlefield"].waitForExistence(timeout: 5) { app.buttons["View Battlefield"].tap() }
+        // Reopen the result to exit; minimized-overlay hit testing is tracked separately as R57.
+        app.buttons["Game Result"].tap()
+        XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5))
+        app.buttons["Exit Game"].tap()
+        XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
+        try await send("leave")
+    }
+
+    @MainActor private func startFixtureGame(endpoint: String, startAI: Bool = true, packets: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
+        if packets { app.launchArguments += ["-rules.deckSource", "\"Jump In\"", "-rules.packetSet", "FIN"] }
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -388,6 +451,7 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 15))
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: app.buttons["rules-start-ai"])
         waitForExpectations(timeout: 5)
+        guard startAI else { return app }
         app.buttons["rules-start-ai"].tap()
         let next = app.buttons["phone-untap-local"]
         XCTAssertTrue(next.waitForExistence(timeout: 15))
@@ -443,16 +507,16 @@ final class RulesModeUITests: XCTestCase {
             app.buttons["packet-confirm-pick"].tap()
         }
         let start = app.buttons["rules-start-human"]
-        XCTAssertTrue(start.waitForExistence(timeout: 20), "Creating the waiting game failed")
-        // The second seat polls for waiting games every second; start once it has had time to join.
-        var startedAt: Date?
-        for _ in 0..<15 where startedAt == nil {
-            Thread.sleep(forTimeInterval: 2)
-            guard start.exists, start.isEnabled else { break }
-            start.tap()
-            if app.descendants(matching: .any)["rules-prompt-message"].waitForExistence(timeout: 6) { startedAt = Date() }
+        if start.waitForExistence(timeout: 3) {
+            // Compatibility check for an older bridge's explicit-start tables.
+            for _ in 0..<15 {
+                Thread.sleep(forTimeInterval: 2)
+                guard start.exists, start.isEnabled else { break }
+                start.tap()
+                if app.buttons["phone-settings"].waitForExistence(timeout: 6) { break }
+            }
         }
-        XCTAssertNotNil(startedAt, "The two-player game never started (did SecondSeatBot join?)")
+        XCTAssertTrue(app.buttons["phone-settings"].waitForExistence(timeout: 30), "The two-player game never started (did SecondSeatBot join and submit its deck?)")
 
         let message = app.descendants(matching: .any)["rules-prompt-message"]
         let next = app.buttons["phone-untap-local"]

@@ -16,24 +16,36 @@ public final class BridgeMain extends WebSocketServer {
     private final String token;
     private final String engineHost;
     private final int enginePort;
+    private final RulesRooms rooms = new RulesRooms();
     private final Map<String, Seat> seats = new HashMap<>();
     private final Map<WebSocket, Seat> connections = new HashMap<>();
     private final Set<WebSocket> authorized = ConcurrentHashMap.newKeySet();
     private final ScheduledExecutorService cleanup = Executors.newSingleThreadScheduledExecutor();
     private final CompletableFuture<Void> started = new CompletableFuture<>();
 
-    private static final class Seat {
+    private static final class Seat implements RulesRooms.Client {
         final String resumeToken = UUID.randomUUID() + "-" + UUID.randomUUID();
         final XMageSession engine;
         volatile WebSocket socket;
         volatile long detachedAt;
         volatile boolean ready;
+        volatile boolean inRoom;
+        volatile boolean removed;
         volatile JsonObject readyEvent;
+        public XMageSession engine() { return engine; }
+        public boolean alive() { return ready && !removed; }
+        public boolean connected() { WebSocket target = socket; return alive() && target != null && target.isOpen(); }
+        public void inRoom(boolean value) { inRoom = value; }
+        public void send(JsonObject event) {
+            WebSocket target = socket;
+            if (target != null && target.isOpen()) target.send(JSON.toJson(event));
+        }
         Seat(WebSocket socket) {
             this.socket = socket;
             engine = new XMageSession(event -> {
                 if (string(event, "type").equals("ready")) {
                     event.addProperty("resumeToken", resumeToken);
+                    event.add("features", JSON.toJsonTree(List.of("rooms")));
                     readyEvent = event.deepCopy();
                     ready = true;
                 }
@@ -91,6 +103,7 @@ public final class BridgeMain extends WebSocketServer {
                     connections.put(socket, seat);
                     socket.send(JSON.toJson(seat.readyEvent));
                     seat.engine.queue.execute(seat.engine::replay);
+                    rooms.replay(seat);
                     return;
                 }
                 makeRoomForSession();
@@ -110,7 +123,12 @@ public final class BridgeMain extends WebSocketServer {
             } else if (string(request, "type").equals("leave")) {
                 remove(seat);
                 socket.close(1000, "Left rules session");
+            } else if (rooms.handles(string(request, "type"))) {
+                rooms.command(seat, request);
             } else {
+                if (seat.inRoom && Set.of("createAiGame", "createHumanGame", "joinTable", "startMatch").contains(string(request, "type")))
+                    throw new IllegalStateException("Leave the room before starting another game.");
+                if (string(request, "type").equals("resync")) rooms.replay(seat);
                 Seat target = seat;
                 target.engine.queue.execute(() -> {
                     try { target.engine.command(request); }
@@ -123,6 +141,8 @@ public final class BridgeMain extends WebSocketServer {
     }
 
     private synchronized void remove(Seat seat) {
+        seat.removed = true;
+        rooms.detachedPermanently(seat);
         seats.remove(seat.resumeToken);
         if (seat.socket != null) connections.remove(seat.socket);
         seat.engine.close();
@@ -173,6 +193,7 @@ public final class BridgeMain extends WebSocketServer {
         int enginePort = Integer.parseInt(System.getenv().getOrDefault("XMAGE_PORT", "17171"));
         BridgeMain server = new BridgeMain(bind, port, token, host, enginePort);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            server.rooms.close();
             server.cleanup.shutdownNow();
             synchronized (server) { for (Seat seat : new ArrayList<>(server.seats.values())) server.remove(seat); }
             try { server.stop(1000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }

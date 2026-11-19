@@ -10,6 +10,9 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var snapshot: RulesSnapshot?
     @Published private(set) var prompt: RulesPrompt?
     @Published private(set) var tables: [RulesTable] = []
+    @Published private(set) var room: RulesRoom?
+    @Published private(set) var features: [String] = []
+    var supportsRooms: Bool { features.contains("rooms") }
     @Published private(set) var tableId: String?
     @Published private(set) var ownsTable = false
     @Published private(set) var formats: [String] = ["Limited"]
@@ -77,7 +80,7 @@ final class RulesGameSession: ObservableObject {
         if endpoint != url || !resume {
             resumeToken = nil; snapshot = nil; prompt = nil
             RulesConnectionKey.delete(account: "retainedSeat")
-            tableId = nil; ownsTable = false; tables = []
+            tableId = nil; ownsTable = false; tables = []; room = nil; features = []
             result = nil
             holdingPriority = false
             autoOrderTriggers = true
@@ -165,7 +168,7 @@ final class RulesGameSession: ObservableObject {
         disconnect()
         resumeToken = nil; snapshot = nil; prompt = nil
         RulesConnectionKey.delete(account: "retainedSeat")
-        tableId = nil; ownsTable = false; tables = []
+        tableId = nil; ownsTable = false; tables = []; room = nil
         result = nil
         holdingPriority = false
         autoOrderTriggers = true
@@ -219,12 +222,21 @@ final class RulesGameSession: ObservableObject {
     func createHumanGame(deck: RulesDeck? = nil, format: String = "Limited") async {
         await submit(RulesCommand(type: "createHumanGame", requestId: UUID().uuidString, deck: deck, format: format))
     }
+    func openRoom(source: RulesDeckSource, set: String, format: String) async {
+        await submit(RulesCommand(type: "openRoom", requestId: UUID().uuidString, format: format,
+                                  deckSource: source.rawValue, packetSet: set))
+    }
+    func submitRoomDeck(_ deck: RulesDeck?) async {
+        guard let room, room.needsDeck else { return }
+        await submit(RulesCommand(type: "submitRoomDeck", requestId: UUID().uuidString, tableId: room.id, deck: deck))
+    }
+    func leaveRoom() async { await submit(RulesCommand(type: "leaveRoom", requestId: UUID().uuidString)) }
     func refreshTables() async {
         guard status == .connected, let socket, pendingRequest == nil, tableRefreshRequest == nil else { return }
         let request = UUID().uuidString, generation = self.generation
         tableRefreshRequest = request
         do {
-            try await send(RulesCommand(type: "listTables", requestId: request), through: socket)
+            try await send(RulesCommand(type: supportsRooms ? "listRooms" : "listTables", requestId: request), through: socket)
             guard self.generation == generation, tableRefreshRequest == request else { return }
             tableRefreshTimeoutTask = Task { [weak self] in
                 do { try await Task.sleep(nanoseconds: 15_000_000_000) } catch { return }
@@ -239,7 +251,7 @@ final class RulesGameSession: ObservableObject {
         }
     }
     func join(_ table: RulesTable, deck: RulesDeck? = nil) async {
-        await submit(RulesCommand(type: "joinTable", requestId: UUID().uuidString, tableId: table.id, deck: deck))
+        await submit(RulesCommand(type: table.room == true ? "joinRoom" : "joinTable", requestId: UUID().uuidString, tableId: table.id, deck: deck))
     }
     func startMatch() async {
         await submit(RulesCommand(type: "startMatch", requestId: UUID().uuidString))
@@ -294,6 +306,7 @@ final class RulesGameSession: ObservableObject {
         let tableId: String?
         let owner: Bool?
         let formats: [String]?
+        let features: [String]?
         let code: String?
     }
 
@@ -312,6 +325,7 @@ final class RulesGameSession: ObservableObject {
                 }
             }
             if let formats = header.formats { self.formats = formats }
+            features = header.features ?? []
             timeoutTask?.cancel()
             status = .connected
             notice = "Connected to XMage"
@@ -338,6 +352,16 @@ final class RulesGameSession: ObservableObject {
             }
             presentationClock.presented(next, now: ProcessInfo.processInfo.systemUptime)
             snapshot = next
+        case "roomState":
+            let next = try decoder.decode(RulesRoom.self, from: data)
+            if snapshot == nil {
+                room = next
+                if next.stage == "waiting" || next.stage == "choosing" { tableId = nil; ownsTable = false }
+            }
+        case "roomClosed":
+            room = nil
+            if snapshot == nil { tableId = nil; ownsTable = false }
+            if let message = header.message { notice = message }
         case "tables":
             struct TableList: Decodable { let tables: [RulesTable] }
             tables = try decoder.decode(TableList.self, from: data).tables
@@ -363,7 +387,7 @@ final class RulesGameSession: ObservableObject {
             if header.code == "sessionExpired" {
                 resumeToken = nil
                 RulesConnectionKey.delete(account: "retainedSeat")
-                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; holdingPriority = false; autoOrderTriggers = true
+                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; room = nil; holdingPriority = false; autoOrderTriggers = true
                 result = nil; tables = []
                 clearCardInformation()
             }

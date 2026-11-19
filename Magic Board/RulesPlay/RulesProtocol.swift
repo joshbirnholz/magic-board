@@ -18,6 +18,22 @@ struct RulesTable: Decodable, Identifiable {
     let players: Int
     let capacity: Int
     let format: String?
+    var deckSource: String? = nil
+    var packetSet: String? = nil
+    var room: Bool? = nil
+}
+
+struct RulesRoom: Decodable, Equatable, Identifiable {
+    let id: String
+    let format: String
+    let deckSource: String
+    let packetSet: String
+    let stage: String
+    let owner: Bool
+    let players: Int
+    let ready: Bool
+    let opponentReady: Bool
+    var needsDeck: Bool { stage == "choosing" && !ready }
 }
 
 /// Rules-only presentation values. These never enter PhoneGame or its editable state patches.
@@ -200,6 +216,8 @@ struct RulesCommand: Encodable {
     /// createAiGame only: the AI's own deck (JumpStart / Jump In packets). Without it the AI plays a copy of `deck`.
     var aiDeck: RulesDeck? = nil
     var format: String? = nil
+    var deckSource: String? = nil
+    var packetSet: String? = nil
     var priorityAction: RulesPriorityAction? = nil
     var autoOrderTriggers: Bool? = nil
 }

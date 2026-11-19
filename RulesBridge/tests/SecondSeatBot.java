@@ -48,13 +48,14 @@ public final class SecondSeatBot implements WebSocket.Listener {
         connect.addProperty("protocolVersion", 1);
         bot.send(connect);
         long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(Long.parseLong(System.getenv().getOrDefault("SECOND_SEAT_MINUTES", "15")));
-        boolean joined = false;
+        boolean joined = false, rooms = false;
+        String submittedRoom = "";
         JsonObject state = null, prompt = null;
         Set<String> tried = new HashSet<>();
         long nextPoll = 0;
         int answered = 0;
         while (System.nanoTime() < deadline) {
-            if (!joined && System.nanoTime() > nextPoll) { bot.command("listTables"); nextPoll = System.nanoTime() + TimeUnit.SECONDS.toNanos(1); }
+            if (!joined && System.nanoTime() > nextPoll) { bot.command(rooms ? "listRooms" : "listTables"); nextPoll = System.nanoTime() + TimeUnit.SECONDS.toNanos(1); }
             if (prompt != null && state != null) {
                 bot.answer(prompt, state, tried);
                 prompt = null;
@@ -63,12 +64,20 @@ public final class SecondSeatBot implements WebSocket.Listener {
             JsonObject event = bot.events.poll(1, TimeUnit.SECONDS);
             if (event == null) continue;
             switch (string(event, "type")) {
+                case "ready" -> rooms = event.has("features") && event.getAsJsonArray("features").toString().contains("rooms");
+                case "roomState" -> {
+                    String id = string(event, "id");
+                    if (string(event, "stage").equals("choosing") && !id.equals(submittedRoom)) {
+                        submittedRoom = id;
+                        bot.send(object("type", "submitRoomDeck", "requestId", UUID.randomUUID().toString(), "tableId", id));
+                    }
+                }
                 case "tables" -> {
                     if (joined) break;
                     for (JsonElement entry : event.getAsJsonArray("tables")) {
                         JsonObject table = entry.getAsJsonObject();
                         if (table.get("players").getAsInt() < table.get("capacity").getAsInt()) {
-                            JsonObject join = object("type", "joinTable", "requestId", UUID.randomUUID().toString(), "tableId", string(table, "id"));
+                            JsonObject join = object("type", rooms ? "joinRoom" : "joinTable", "requestId", UUID.randomUUID().toString(), "tableId", string(table, "id"));
                             bot.send(join);
                             joined = true;
                             System.out.println("BOT joined " + string(table, "id"));

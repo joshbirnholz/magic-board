@@ -16,11 +16,12 @@ struct RulesConnectionView: View {
     @AppStorage("rules.deckSource") private var deckSourceRaw = ""
     @AppStorage("rules.packetSet") private var packetSet = ""
     @State private var pendingStart: PendingStart?
+    @State private var presentedRoomID: String?
 
     private enum PendingStart: Identifiable {
-        case ai, human, join(RulesTable)
+        case ai, human, join(RulesTable), room(String)
         var id: String {
-            switch self { case .ai: return "ai"; case .human: return "human"; case .join(let table): return "join-" + table.id }
+            switch self { case .ai: return "ai"; case .human: return "human"; case .join(let table): return "join-" + table.id; case .room(let id): return "room-" + id }
         }
     }
 
@@ -49,7 +50,33 @@ struct RulesConnectionView: View {
                     Button("Cancel") { session.disconnect() }
                 } else if session.status == .connected {
                     Label("Connected to XMage", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                    if let table = session.tableId {
+                    if let room = session.room {
+                        Text("Game \(room.id.prefix(8))").font(.headline).monospacedDigit()
+                        Text(room.deckSource + (room.packetSet.isEmpty ? "" : " · " + room.packetSet))
+                            .font(.callout).foregroundStyle(.secondary)
+                        switch room.stage {
+                        case "waiting":
+                            Text("Waiting for another player to join…").accessibilityIdentifier("rules-room-waiting")
+                        case "choosing":
+                            if room.ready {
+                                Text("Your deck is ready. Waiting for your opponent to choose a deck…")
+                                    .accessibilityIdentifier("rules-room-deck-ready")
+                            } else {
+                                Text(room.opponentReady ? "Your opponent's deck is ready. Choose your deck." : "Both players are choosing their decks.")
+                                Button(source.usesPackets ? "Choose Packets" : source == .builtIn ? "Use Built-in Deck" : "Confirm Deck") {
+                                    begin(.room(room.id))
+                                }
+                                .disabled(session.pendingRequest != nil)
+                                .accessibilityIdentifier("rules-room-choose-deck")
+                            }
+                        default:
+                            ProgressView("Starting game…").accessibilityIdentifier("rules-room-starting")
+                        }
+                        if room.stage == "waiting" || room.stage == "choosing" {
+                            Button("Leave Room", role: .destructive) { Task { await session.leaveRoom() } }
+                                .disabled(session.pendingRequest != nil).accessibilityIdentifier("rules-leave-room")
+                        }
+                    } else if let table = session.tableId {
                         Text("Game \(table.prefix(8))").font(.headline).monospacedDigit()
                         if session.ownsTable {
                             Text("Have the other player connect to this server and join your waiting game.").font(.callout)
@@ -81,12 +108,14 @@ struct RulesConnectionView: View {
                     }
                 }
             }
-            if session.tableId == nil {
+            if session.room == nil && session.tableId == nil || session.room?.needsDeck == true && source == .list {
                 Section {
+                    if session.room == nil {
                     Picker("Deck", selection: Binding(get: { source }, set: { deckSourceRaw = $0.rawValue })) {
                         ForEach(RulesDeckSource.allCases) { Text($0.rawValue).tag($0) }
                     }
                     .accessibilityIdentifier("rules-deck-source")
+                    }
                     switch source {
                     case .builtIn:
                         Text("A simple white creature deck; the AI plays a copy.").font(.caption).foregroundStyle(.secondary)
@@ -107,7 +136,7 @@ struct RulesConnectionView: View {
                         Text("When the game starts, choose two packets from three offers each; they become your deck. Against the AI, it gets two random packets of its own.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    if !source.usesPackets {
+                    if !source.usesPackets && session.room == nil {
                         Picker("Format", selection: $format) {
                             ForEach(session.formats, id: \.self) { format in
                                 Text(format.replacingOccurrences(of: "Constructed - ", with: "")).tag(format)
@@ -116,7 +145,7 @@ struct RulesConnectionView: View {
                     }
                 }
             }
-            if session.status == .connected, session.tableId == nil {
+            if session.status == .connected, session.tableId == nil, session.room == nil {
                 Section("Waiting Games") {
                     Button("Refresh Games") { Task { await session.refreshTables() } }
                         .disabled(session.pendingRequest != nil)
@@ -127,7 +156,7 @@ struct RulesConnectionView: View {
                                 VStack(alignment: .leading) {
                                     Text("Game \(table.id.prefix(8))")
                                     if let format = table.format {
-                                        Text(format.replacingOccurrences(of: "Constructed - ", with: "")).font(.caption).foregroundStyle(.secondary)
+                                        Text((table.deckSource ?? format).replacingOccurrences(of: "Constructed - ", with: "") + (table.packetSet.map { " · " + $0 } ?? "")).font(.caption).foregroundStyle(.secondary)
                                     }
                                 }
                                 Spacer()
@@ -175,8 +204,17 @@ struct RulesConnectionView: View {
         .onChange(of: session.formats) { formats in
             if !formats.contains(format) { format = formats.contains("Limited") ? "Limited" : (formats.first ?? "Limited") }
         }
-        .task(id: session.status == .connected && session.tableId == nil) {
-            guard session.status == .connected, session.tableId == nil else { return }
+        .onReceive(session.$room) { room in
+            guard let room else { pendingStart = nil; presentedRoomID = nil; return }
+            deckSourceRaw = room.deckSource; packetSet = room.packetSet; format = room.format
+            guard room.needsDeck else { pendingStart = nil; return }
+            if source.usesPackets, presentedRoomID != room.id {
+                presentedRoomID = room.id
+                pendingStart = .room(room.id)
+            }
+        }
+        .task(id: session.status == .connected && session.tableId == nil && session.room == nil) {
+            guard session.status == .connected, session.tableId == nil, session.room == nil else { return }
             while !Task.isCancelled {
                 await session.refreshTables()
                 do { try await Task.sleep(nanoseconds: 3_000_000_000) }
@@ -191,8 +229,17 @@ struct RulesConnectionView: View {
         .onDisappear { if !transferred { Task { await session.endSession() } } }
     }
 
-    /// Starts, creates or joins a game; packet decks are chosen first.
+    /// AI/legacy servers choose decks first; synchronized rooms open before either deck is chosen.
     private func begin(_ start: PendingStart) {
+        if case .human = start, session.supportsRooms {
+            guard !source.usesPackets || !chosenPacketSet.isEmpty else { session.error = "No packets are available in this build."; return }
+            Task { await session.openRoom(source: source, set: source.usesPackets ? chosenPacketSet : "", format: source.usesPackets ? "Limited" : format) }
+            return
+        }
+        if case .join(let table) = start, table.room == true {
+            Task { await session.join(table) }
+            return
+        }
         if source.usesPackets {
             if case .join(let table) = start, let format = table.format, format != "Limited" {
                 session.error = "JumpStart and Jump In packets need a Limited game. Choose a deck list to join this \(format) game."
@@ -227,6 +274,8 @@ struct RulesConnectionView: View {
                 Task { await session.createHumanGame(deck: deck, format: gameFormat) }
             case .join(let table):
                 Task { await session.join(table, deck: deck) }
+            case .room:
+                Task { await session.submitRoomDeck(deck) }
             }
         } catch { session.error = error.localizedDescription }
     }
