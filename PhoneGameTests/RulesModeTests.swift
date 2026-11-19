@@ -364,6 +364,21 @@ final class RulesModeTests: XCTestCase {
         XCTAssertTrue(adapter.abilitySources.isEmpty)
     }
 
+    func testLeavingPreventsStaleProjectionFromReopeningTheBoard() async throws {
+        let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: Data(#"{"gameId":"game","playerId":"me","revision":1,"turn":1,"hand":[],"stack":[],"players":[],"playableIds":[]}"#.utf8))
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(snapshot, refreshArtwork: false)
+        XCTAssertTrue(adapter.hasProjected)
+        let stale = Task { try await adapter.project(snapshot, refreshArtwork: false) }
+        await adapter.leave()
+        try await stale.value
+        try await adapter.project(snapshot, refreshArtwork: false)
+        XCTAssertFalse(adapter.hasProjected)
+        XCTAssertNil(adapter.presentation.rulesChoice)
+        XCTAssertTrue(adapter.choiceCards.isEmpty)
+        XCTAssertTrue(adapter.abilitySources.isEmpty)
+    }
+
     func testStructuredPromptSourceAndOlderBridgeFallback() throws {
         func prompt(_ extra: [String: Any]) throws -> RulesPrompt {
             var json: [String: Any] = ["id": "s", "method": "GAME_TARGET", "revision": 1, "supported": true,

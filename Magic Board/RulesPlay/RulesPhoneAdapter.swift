@@ -11,6 +11,7 @@ final class RulesPhoneAdapter {
     private var subscriptions: Set<AnyCancellable> = []
     private var projectionTask: Task<Void, Never>?
     private var artworkTask: Task<Void, Never>?
+    private var isLeaving = false
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
@@ -43,6 +44,7 @@ final class RulesPhoneAdapter {
         self.phone = phone
         engine.$snapshot.sink { [weak self] snapshot in
             guard let self, let snapshot else { return }
+            guard !self.isLeaving else { return }
             self.projectionTask?.cancel()
             self.projectionTask = Task { [weak self] in
                 guard let self else { return }
@@ -67,17 +69,14 @@ final class RulesPhoneAdapter {
         engine.$error.compactMap { $0 }.sink { [weak phone] in phone?.error = $0 }.store(in: &subscriptions)
     }
 
-<<<<<<< HEAD
-    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool) {
+    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool,
+                              alertOpen: Bool) {
+        guard !isLeaving else { return }
         if (status != .connected || holdingPriority || alertOpen), prompt?.method == "GAME_SELECT" { autoPassedPromptID = nil }
         if autoPassTask != nil, status != .connected || holdingPriority || alertOpen || pending != nil || prompt?.id != autoPassedPromptID {
             autoPassTask?.cancel()
             autoPassTask = nil
         }
-=======
-    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool,
-                              alertOpen: Bool) {
->>>>>>> rules-mode
         let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
         // Arena shows the opening hand in a browser (Keep / Mulligan); Phone Play's opening-hand
         // browser is driven by `opening`, one per mulligan question.
@@ -143,7 +142,8 @@ final class RulesPhoneAdapter {
         // browser opens with the cards (or closes).
         let choiceID = prompt?.style == .browser && pending == nil && !isAutoOrdered(prompt) ? prompt?.id : nil
         if choiceID != presentation.rulesChoice?.id, let snapshot = engine.snapshot {
-            Task { [weak self] in try? await self?.project(snapshot, refreshArtwork: true) }
+            projectionTask?.cancel()
+            projectionTask = Task { [weak self] in try? await self?.project(snapshot, refreshArtwork: true) }
         }
         // XMage's "card ORDER to put on the TOP/BOTTOM of your library" after a scry or surveil:
         // answered from the order the player arranged in the browser.
@@ -585,19 +585,29 @@ final class RulesPhoneAdapter {
     }
 
     func leave() async {
+        isLeaving = true
         projectionTask?.cancel()
         artworkTask?.cancel()
+        autoPassTask?.cancel()
         subscriptions.removeAll()
+        pendingTarget = nil
+        choiceCards = []
+        abilitySources = [:]
+        presentation.rulesChoice = nil
+        hasProjected = false
+        phone = nil
         await engine.endSession()
     }
 
     private func refresh() {
+        guard !isLeaving else { return }
         let (label, enabled) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil)
         phone?.displayRules(presentation, connected: engine.status == .connected,
                             status: engine.notice, primaryLabel: label, primaryEnabled: enabled)
     }
 
     func project(_ snapshot: RulesSnapshot, refreshArtwork: Bool = true) async throws {
+        guard !isLeaving else { return }
         var game = PhoneGame()
         game.id = UUID(uuidString: snapshot.gameId) ?? presentation.id
         game.revision = snapshot.revision
@@ -737,6 +747,7 @@ final class RulesPhoneAdapter {
             game.combat = combat
         }
         try Task.checkCancellation()
+        guard !isLeaving else { return }
         presentation = game
         hasProjected = true
         refresh()
