@@ -506,9 +506,8 @@ struct RulesPromptModal: View {
         let lost = text.localizedCaseInsensitiveContains("is the winner") && !won
         return VStack(spacing: 16) {
             Text(won ? "Victory" : lost ? "Defeat" : "Game Over")
-                .font(.custom("Beleren2016-Bold", size: 56, relativeTo: .largeTitle))
+            .font(.custom("Beleren2016-Bold", size: 56, relativeTo: .largeTitle).smallCaps())
                 .foregroundStyle(won ? Color(red: 1, green: 0.8, blue: 0.3) : .white)
-            Text(text).font(.callout).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
             Button("View Battlefield") { session.isPromptMinimized = true }
                 .buttonStyle(RulesPillButtonStyle(primary: false))
                 .accessibilityIdentifier("rules-result-view-battlefield")
