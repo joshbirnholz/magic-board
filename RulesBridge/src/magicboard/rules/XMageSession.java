@@ -574,6 +574,8 @@ final class XMageSession implements MageClient, AutoCloseable {
                 if (appearance.getColor().isRed()) colors.add("R");
                 if (appearance.getColor().isGreen()) colors.add("G");
             }
+            Integer chosenX = CardXValue.from(card);
+            if (chosenX != null) item.addProperty("chosenX", chosenX);
             item.add("colors", colors);
             JsonArray targets = new JsonArray();
             if (card.getTargets() != null) card.getTargets().forEach(target -> targets.add(target.toString()));

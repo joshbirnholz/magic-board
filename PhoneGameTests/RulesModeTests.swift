@@ -389,6 +389,30 @@ final class RulesModeTests: XCTestCase {
         XCTAssertTrue(adapter.abilitySources.isEmpty)
     }
 
+    func testStackChosenXPreservesZeroAndClearsMissingValues() async throws {
+        let id = UUID(), me = UUID().uuidString
+        var card: [String: Any] = ["id": id.uuidString, "name": "Blaze", "faceDown": false,
+                                  "transformed": false, "typeLine": "Sorcery", "manaCost": "{X}{R}", "chosenX": 0, "counters": []]
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        func snapshot() throws -> RulesSnapshot {
+            try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+                "gameId": "x", "playerId": me, "revision": 1, "turn": 3, "hand": [], "stack": [card], "players": [], "playableIds": []]))
+        }
+        try await adapter.project(snapshot(), refreshArtwork: false)
+        XCTAssertEqual(adapter.stackChosenX[id], 0)
+        card["chosenX"] = 5
+        try await adapter.project(snapshot(), refreshArtwork: false)
+        XCTAssertEqual(adapter.stackChosenX[id], 5)
+        card.removeValue(forKey: "chosenX")
+        try await adapter.project(snapshot(), refreshArtwork: false)
+        XCTAssertTrue(adapter.stackChosenX.isEmpty, "An old bridge must not reuse a stale X")
+        card["chosenX"] = 3; card["faceDown"] = true
+        try await adapter.project(snapshot(), refreshArtwork: false)
+        XCTAssertTrue(adapter.stackChosenX.isEmpty)
+        await adapter.leave()
+        XCTAssertTrue(adapter.stackChosenX.isEmpty)
+    }
+
     func testLeavingPreventsStaleProjectionFromReopeningTheBoard() async throws {
         let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: Data(#"{"gameId":"game","playerId":"me","revision":1,"turn":1,"hand":[],"stack":[],"players":[],"playableIds":[]}"#.utf8))
         let adapter = RulesPhoneAdapter(engine: RulesGameSession())

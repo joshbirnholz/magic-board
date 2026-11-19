@@ -45,6 +45,8 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     var controllerId: String? = nil
     /// Physical source of a stack ability; distinct from the ability's own id and targets.
     var sourceId: String? = nil
+    /// Chosen X reported by XMage's variable-cost metadata; zero is meaningful, nil is unknown.
+    var chosenX: Int? = nil
     let counters: [Counter]
 }
 

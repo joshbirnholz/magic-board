@@ -37,6 +37,8 @@ final class RulesPhoneAdapter {
     private(set) var choiceCards: [CardInstance] = []
     /// Rules-only source links; never enter Phone Play's editable/saved game state.
     private(set) var abilitySources: [UUID: UUID] = [:]
+    /// Rules-only stack values, separate from editable Phone Play card/cost models.
+    private(set) var stackChosenX: [UUID: Int] = [:]
     /// The payment prompt a land was last chosen for (see updateStatus).
     private var paymentTapped: (promptID: String, message: String?, pool: String?)?
 
@@ -627,6 +629,7 @@ final class RulesPhoneAdapter {
         browserDraft = nil
         choiceCards = []
         abilitySources = [:]
+        stackChosenX = [:]
         presentation.rulesChoice = nil
         hasProjected = false
         phone = nil
@@ -765,6 +768,11 @@ final class RulesPhoneAdapter {
             if ability { item.isAbility = true }
             return item
         }
+        stackChosenX = Dictionary(uniqueKeysWithValues: snapshot.stack.compactMap { card in
+            guard !card.faceDown, let value = card.chosenX, value >= 0,
+                  let id = UUID(uuidString: card.id) else { return nil }
+            return (id, value)
+        })
         abilitySources = Dictionary(uniqueKeysWithValues: snapshot.stack.compactMap { card in
             guard card.ability == true, let ability = UUID(uuidString: card.id),
                   let source = card.sourceId, visibleIDs.contains(source), let id = UUID(uuidString: source) else { return nil }
