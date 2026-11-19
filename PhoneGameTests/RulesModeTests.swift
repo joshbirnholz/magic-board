@@ -300,6 +300,31 @@ final class RulesModeTests: XCTestCase {
         }
     }
 
+    func testLobbyRefreshDoesNotDisableActionsOrConsumeTheirAcknowledgements() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let engine = RulesGameSession()
+        let previousKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = previousKey }
+        engine.connect(address: address + "/lobby", key: "rules-local-verification-key", resume: false)
+        try await waitForRulesCondition("lobby connection") { engine.status == .connected }
+        await engine.refreshTables()
+        try await waitForRulesCondition("in-flight discovery") { engine.notice == "Lobby refresh pending" }
+        XCTAssertNil(engine.pendingRequest, "Discovery must not disable the lobby's game controls")
+        XCTAssertFalse(engine.isPerformingGameAction)
+        await engine.createHumanGame()
+        let action = try XCTUnwrap(engine.pendingRequest)
+        XCTAssertTrue(engine.isPerformingGameAction)
+        try await waitForRulesCondition("discovery receipt") { engine.notice == "Lobby refresh done" }
+        XCTAssertEqual(engine.pendingRequest, action, "Discovery's ACK must not clear a later game action")
+        XCTAssertTrue(engine.isPerformingGameAction)
+        try await waitForRulesCondition("game receipt") { engine.notice == "Game action done" }
+        XCTAssertNil(engine.pendingRequest)
+        XCTAssertEqual(engine.status, .connected)
+        await engine.endSession()
+    }
+
     func testManualPassCancelsOpponentSpellDelay() async throws {
         try await withPacingFixture { engine, _ in
             let pressed = Date()

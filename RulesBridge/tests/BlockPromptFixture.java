@@ -42,6 +42,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/crew") ? "crew"
                 : request.getResourceDescriptor().endsWith("/stable") ? "stable"
                 : request.getResourceDescriptor().endsWith("/sickness") ? "sickness"
+                : request.getResourceDescriptor().endsWith("/lobby") ? "lobby"
                 : request.getResourceDescriptor().endsWith("/ability") ? "ability"
                 : request.getResourceDescriptor().endsWith("/pacing") ? "pacing" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
@@ -59,7 +60,22 @@ public final class BlockPromptFixture extends WebSocketServer {
                 send(socket, object("type", "ready", "protocolVersion", 1, "resumeToken", resumeToken, "formats", new String[]{"Limited"}));
                 if (!resume.isEmpty() && hasGame) { snapshot(socket); prompt(socket); System.out.println("PASS resumed the retained game after app relaunch"); }
             }
-            case "listTables" -> { send(socket, object("type", "tables", "tables", new Object[]{})); ack(socket, request); }
+            case "listTables" -> {
+                if (initialStage.equals("lobby")) {
+                    send(socket, object("type", "notice", "message", "Lobby refresh pending"));
+                    java.util.concurrent.CompletableFuture.delayedExecutor(400, java.util.concurrent.TimeUnit.MILLISECONDS).execute(() -> {
+                        if (!socket.isOpen()) return;
+                        send(socket, object("type", "tables", "tables", new Object[]{})); ack(socket, request);
+                        send(socket, object("type", "notice", "message", "Lobby refresh done"));
+                    });
+                } else { send(socket, object("type", "tables", "tables", new Object[]{})); ack(socket, request); }
+            }
+            case "createHumanGame" -> {
+                java.util.concurrent.CompletableFuture.delayedExecutor(1000, java.util.concurrent.TimeUnit.MILLISECONDS).execute(() -> {
+                    if (!socket.isOpen()) return;
+                    ack(socket, request); send(socket, object("type", "notice", "message", "Game action done"));
+                });
+            }
             case "createAiGame" -> {
                 revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true; pacingAnswers = 0;
                 holdingPriority = false; autoOrderTriggers = true;

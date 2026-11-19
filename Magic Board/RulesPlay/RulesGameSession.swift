@@ -26,9 +26,10 @@ final class RulesGameSession: ObservableObject {
     /// this cost with basic lands, not just one mana (Josh). Ends when the cost is paid or no basic
     /// land can pay what's left (see RulesPhoneAdapter.updateStatus).
     var payingCostAutomatically = false
-    /// Table discovery shares request acknowledgements, but isn't a game-start operation.
-    private var pendingCommandType: String?
-    var isPerformingGameAction: Bool { pendingRequest != nil && pendingCommandType != "listTables" }
+    /// Discovery has its own receipt/timeout and never occupies the gameplay action slot.
+    private var tableRefreshRequest: String?
+    private var tableRefreshTimeoutTask: Task<Void, Never>?
+    var isPerformingGameAction: Bool { pendingRequest != nil }
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
@@ -140,6 +141,8 @@ final class RulesGameSession: ObservableObject {
         generation = UUID()
         connectionTask?.cancel(); connectionTask = nil
         timeoutTask?.cancel(); timeoutTask = nil
+        tableRefreshTimeoutTask?.cancel(); tableRefreshTimeoutTask = nil
+        tableRefreshRequest = nil
         socket?.cancel(with: .goingAway, reason: nil); socket = nil
         status = .disconnected
         pendingRequest = nil
@@ -210,7 +213,23 @@ final class RulesGameSession: ObservableObject {
         await submit(RulesCommand(type: "createHumanGame", requestId: UUID().uuidString, deck: deck, format: format))
     }
     func refreshTables() async {
-        await submit(RulesCommand(type: "listTables", requestId: UUID().uuidString))
+        guard status == .connected, let socket, pendingRequest == nil, tableRefreshRequest == nil else { return }
+        let request = UUID().uuidString, generation = self.generation
+        tableRefreshRequest = request
+        do {
+            try await send(RulesCommand(type: "listTables", requestId: request), through: socket)
+            guard self.generation == generation, tableRefreshRequest == request else { return }
+            tableRefreshTimeoutTask = Task { [weak self] in
+                do { try await Task.sleep(nanoseconds: 15_000_000_000) } catch { return }
+                guard let self, self.generation == generation, self.tableRefreshRequest == request else { return }
+                self.tableRefreshRequest = nil
+                self.error = "Couldn't refresh waiting games. Try Refresh Games again."
+            }
+        } catch {
+            guard self.generation == generation else { return }
+            tableRefreshRequest = nil
+            fail(error.localizedDescription)
+        }
     }
     func join(_ table: RulesTable, deck: RulesDeck? = nil) async {
         await submit(RulesCommand(type: "joinTable", requestId: UUID().uuidString, tableId: table.id, deck: deck))
@@ -236,7 +255,6 @@ final class RulesGameSession: ObservableObject {
 
     private func submit(_ command: RulesCommand) async {
         guard status == .connected, let socket, pendingRequest == nil else { return }
-        pendingCommandType = command.type
         pendingRequest = command.requestId
         let generation = self.generation
         do {
@@ -319,6 +337,10 @@ final class RulesGameSession: ObservableObject {
             holdingPriority = settings.holdingPriority
             if let automatic = settings.autoOrderTriggers { autoOrderTriggers = automatic }
         case "ack":
+            if let request = header.requestId, request == tableRefreshRequest {
+                tableRefreshRequest = nil
+                tableRefreshTimeoutTask?.cancel(); tableRefreshTimeoutTask = nil
+            }
             if header.requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "error":
             let message = header.message ?? "The rules server reported an error."
@@ -331,6 +353,10 @@ final class RulesGameSession: ObservableObject {
             }
             if status == .connecting { fail(message); return }
             error = message
+            if let request = header.requestId, request == tableRefreshRequest {
+                tableRefreshRequest = nil
+                tableRefreshTimeoutTask?.cancel(); tableRefreshTimeoutTask = nil
+            }
             if let requestId = header.requestId, requestId == pendingRequest { pendingRequest = nil; timeoutTask?.cancel() }
         case "log":
             // XMage's game log ("Computer reveals Forest"): kept to explain reveals and the like.
@@ -359,6 +385,7 @@ final class RulesGameSession: ObservableObject {
     deinit {
         connectionTask?.cancel()
         timeoutTask?.cancel()
+        tableRefreshTimeoutTask?.cancel()
         socket?.cancel(with: .goingAway, reason: nil)
     }
 }
