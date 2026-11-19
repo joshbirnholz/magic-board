@@ -433,6 +433,7 @@ final class RulesModeUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         if packets { app.launchArguments += ["-rules.deckSource", "\"Jump In\"", "-rules.packetSet", "FIN"] }
+        else { app.launchArguments += ["-rules.deckSource", "Built-in"] }
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))

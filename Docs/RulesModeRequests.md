@@ -122,4 +122,8 @@ PC bridge deployment verified after R44 partial fix: source `ee3888807aff6b07a86
 
 - [ ] **R56 — Saga-creature minicard art crop.** Summon: Fenrir shows rules/type-box fragments in the minicard art area, suggesting full-card imagery is being used instead of the art crop. Creature Sagas must use the art crop while retaining minicard frame, P/T, chapter badge and targeting; noncreature Saga full-card presentation stays available. Reference: `Docs/References/RulesReportedIssues/saga-creature-full-card-in-art.png`.
 
-- [ ] **R57 — End-game View Battlefield permits inspection.** After dismissing victory/defeat with View Battlefield, card inspection no longer works. Preserve final-state card/pile inspection and source details while leaving gameplay actions disabled and allowing the result overlay to reopen.
+- [x] **R57 — End-game View Battlefield permits inspection.** After dismissing victory/defeat with View Battlefield, card inspection no longer works. Preserve final-state card/pile inspection and source details while leaving gameplay actions disabled and allowing the result overlay to reopen.
+
+R57 verified: the minimized result/choice button now has its own intrinsic-size host, allowing the full-screen touch layer to hide completely. Defeat → View Battlefield → permanent inspector → Done → gear menu → Game Result passes (`/private/tmp/rules-final-board-inspection-isolated.log`); finished-game menu has no Concede. Fixture launch source is explicit so a previous packet-selection test cannot leave it at setup.
+
+R33 deployed: PC bridge source `30df3b35abe4397bdaf52a524f4e93708bcedee5`, PID59052; XMage43152 unchanged. ZIP SHA256 `c9e87e084d73c11556da56ea31d0caf627e57045fcc64bb0897fc2b62f013f29`. Existing updater used after two zero-client checks. New room flow requires the updated app.

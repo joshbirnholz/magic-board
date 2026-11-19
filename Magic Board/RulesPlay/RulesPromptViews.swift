@@ -328,7 +328,7 @@ struct RulesPromptModal: View {
     @State private var number = 0
     @State private var amounts: [Int] = []
     @State private var choiceSearch = ""
-    @State private var minimized = false
+    private var minimized: Bool { session.isPromptMinimized }
 
     private var informationGroup: RulesSnapshot.CardGroup? {
         guard session.status == .connected, session.result == nil else { return nil }
@@ -352,22 +352,15 @@ struct RulesPromptModal: View {
                     .padding(.horizontal, 24).padding(.vertical, 16)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .transition(.opacity)
-            } else if isVisible {
-                // Arena lets you hide a decision to look at the board; this brings it back.
-                Button { minimized = false } label: {
-                    Label(session.result != nil ? "Game Result" : informationGroup == nil ? "Back to choice" : "Revealed Cards",
-                          systemImage: informationGroup == nil ? "rectangle.on.rectangle" : "eye")
-                }
-                    .buttonStyle(RulesPillButtonStyle())
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 12)
             }
         }
         .environment(\.colorScheme, .dark)
         .disabled(session.pendingRequest != nil)
         .animation(.easeInOut(duration: 0.18), value: isVisible)
-        .onAppear { resetInputs(); onVisibilityChange(isVisible) }
-        .onChange(of: isVisible) { onVisibilityChange($0) }
+        .onAppear { resetInputs(); onVisibilityChange(isVisible && !minimized) }
+        .onChange(of: isVisible) { onVisibilityChange($0 && !minimized) }
+        .onChange(of: minimized) { onVisibilityChange(isVisible && !$0) }
+        .onChange(of: session.result) { _ in session.isPromptMinimized = false }
         .onChange(of: session.prompt?.id) { _ in resetInputs(); acknowledgeContextInformation() }
         .onAppear { acknowledgeContextInformation() }
     }
@@ -382,7 +375,7 @@ struct RulesPromptModal: View {
             }
         } else if let group = informationGroup {
             RulesCardInformationView(group: group, reason: RulesCardInformationView.reason(for: group, log: session.gameLog),
-                                     viewBattlefield: { minimized = true },
+                                     viewBattlefield: { session.isPromptMinimized = true },
                                      dismiss: { session.dismissCardInformation(group.id) })
         }
     }
@@ -405,7 +398,7 @@ struct RulesPromptModal: View {
                     .font(.caption).foregroundStyle(.white.opacity(0.7))
             }
             if prompt.style == .modal, prompt.method != "GAME_ASK" || prompt.isMulligan {
-                Button("View Battlefield") { minimized = true }
+                Button("View Battlefield") { session.isPromptMinimized = true }
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.75))
             }
@@ -506,7 +499,7 @@ struct RulesPromptModal: View {
                 .font(.custom("Beleren2016-Bold", size: 56, relativeTo: .largeTitle))
                 .foregroundStyle(won ? Color(red: 1, green: 0.8, blue: 0.3) : .white)
             Text(text).font(.callout).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
-            Button("View Battlefield") { minimized = true }
+            Button("View Battlefield") { session.isPromptMinimized = true }
                 .buttonStyle(RulesPillButtonStyle(primary: false))
                 .accessibilityIdentifier("rules-result-view-battlefield")
             if let exit { Button("Exit Game", action: exit).buttonStyle(RulesPillButtonStyle()) }
@@ -604,7 +597,7 @@ struct RulesPromptModal: View {
         number = session.prompt?.min ?? 0
         amounts = session.prompt?.amounts?.map(\.defaultValue) ?? []
         choiceSearch = ""
-        minimized = false
+        session.isPromptMinimized = false
     }
 
     private func answer(_ title: String, _ value: RulesAnswer, primary: Bool = true) -> some View {
@@ -649,6 +642,23 @@ struct RulesChoiceCardFace: View {
             if cached == nil, let loaded = await catalog.card(card), !Task.isCancelled {
                 instance = CardInstance(card: loaded, center: nil, ownerIdentifier: .a)
             }
+        }
+    }
+}
+
+/// A small, independently sized host leaves the battlefield interactive while a decision is hidden.
+/// Keeping this inside the full-screen modal host lets its transparent UIKit view swallow touches.
+struct RulesPromptRestoreButton: View {
+    @ObservedObject var session: RulesGameSession
+    var body: some View {
+        if session.isPromptMinimized {
+            Button { session.isPromptMinimized = false } label: {
+                Label(session.result != nil ? "Game Result" : session.cardInformation.isEmpty ? "Back to choice" : "Revealed Cards",
+                      systemImage: session.cardInformation.isEmpty ? "rectangle.on.rectangle" : "eye")
+            }
+            .buttonStyle(RulesPillButtonStyle())
+            .fixedSize()
+            .environment(\.colorScheme, .dark)
         }
     }
 }

@@ -16,6 +16,8 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var tableId: String?
     @Published private(set) var ownsTable = false
     @Published private(set) var formats: [String] = ["Limited"]
+    /// Presentation only: a minimized choice/result must release the full-screen touch layer.
+    @Published var isPromptMinimized = false
     @Published private(set) var result: String?
     @Published private(set) var pendingRequest: String?
     /// A newer engine action is waiting for the currently visible action's reading time.
@@ -170,6 +172,7 @@ final class RulesGameSession: ObservableObject {
         RulesConnectionKey.delete(account: "retainedSeat")
         tableId = nil; ownsTable = false; tables = []; room = nil
         result = nil
+        isPromptMinimized = false
         holdingPriority = false
         autoOrderTriggers = true
         clearCardInformation()

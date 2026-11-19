@@ -85,6 +85,7 @@ class BoardViewController: UIViewController {
   private var rulesFastForwardConstraints: [NSLayoutConstraint] = []
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
+  private var rulesPromptRestoreHost: UIViewController?
   private var phoneSettingsButton: UIButton?
   /// Arena's phase row, second button and fast-forward pill, just above the main button.
   private var rulesActionHost: UIViewController?
@@ -2645,6 +2646,16 @@ extension BoardViewController {
         ])
         modal.didMove(toParent: self)
         rulesModalHost = modal
+        let restore = UIHostingController(rootView: RulesPromptRestoreButton(session: adapter.engine))
+        restore.view.backgroundColor = .clear
+        if #available(iOS 16.0, *) { restore.sizingOptions = .intrinsicContentSize }
+        addChild(restore); view.addSubview(restore.view); restore.didMove(toParent: self)
+        restore.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            restore.view.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            restore.view.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12)
+        ])
+        rulesPromptRestoreHost = restore
         let actions = UIHostingController(rootView: RulesActionStack(session: adapter.engine, adapter: adapter))
         actions.view.backgroundColor = .clear
         if #available(iOS 16.0, *) { actions.sizingOptions = .intrinsicContentSize }
@@ -2778,6 +2789,7 @@ extension BoardViewController {
             positionRulesPhaseMarkers()
         }
         if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
+        if let restore = rulesPromptRestoreHost?.view { view.bringSubviewToFront(restore) }
     }
 
     private func showConnectionOptions() {

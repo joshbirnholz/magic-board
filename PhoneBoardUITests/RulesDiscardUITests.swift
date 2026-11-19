@@ -113,6 +113,14 @@ final class RulesDiscardUITests: XCTestCase {
         app.buttons["rules-result-view-battlefield"].tap()
         XCTAssertFalse(app.staticTexts["Defeat"].exists)
         XCTAssertTrue(app.buttons.matching(identifier: "phone-creature-card").firstMatch.exists)
+        let permanent = app.buttons.matching(identifier: "phone-creature-card").firstMatch
+        permanent.press(forDuration: 0.7)
+        XCTAssertTrue(app.descendants(matching: .any)["phone-inspector-pages"].waitForExistence(timeout: 5), "The final board must still allow card inspection")
+        app.buttons["Done"].firstMatch.tap()
+        app.buttons["phone-settings"].tap()
+        XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5), "A minimized result must not intercept the gear")
+        XCTAssertFalse(app.buttons["Concede"].exists, "Finished games must not offer another concession")
+        app.buttons["Done"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Game Result"].waitForExistence(timeout: 5))
         app.buttons["Game Result"].tap()
         XCTAssertTrue(app.staticTexts["Defeat"].waitForExistence(timeout: 5))
@@ -433,7 +441,7 @@ final class RulesDiscardUITests: XCTestCase {
 
     @MainActor private func openFixture(_ address: String, information: Bool = false, opening: Bool = false, question: Bool = false) async throws -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect", "-rules.deckSource", "Built-in"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
