@@ -27,6 +27,14 @@ struct RulesBoardBanner: View {
     @ObservedObject var session: RulesGameSession
 
     var body: some View {
+        ZStack {
+            instruction
+            RulesTurnBanner(session: session)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var instruction: some View {
         Group {
             if session.status == .connected, session.result == nil,
                let text = session.prompt?.boardBannerText {
@@ -52,5 +60,81 @@ struct RulesBoardBanner: View {
             }
         }
         .allowsHitTesting(false)
+    }
+}
+
+/// Arena's turn announcement: fades and scales up in the middle of the board, holds briefly, then
+/// shrinks and drifts toward the new active player's hand as it fades.
+struct RulesTurnBanner: View {
+    @ObservedObject var session: RulesGameSession
+    private enum Stage { case hidden, entering, shown, leaving }
+    @State private var stage = Stage.hidden
+    @State private var lastKey: String?
+    @State private var isMine = true
+    @State private var generation = 0
+
+    var body: some View {
+        Text(isMine ? "Your Turn" : "Opponent's Turn")
+            .font(.custom("Beleren2016-Bold", size: 38))
+            .foregroundStyle(.white)
+            // Arena glows the words in the player's colour: orange for you, blue for the opponent.
+            .shadow(color: glow, radius: 3)
+            .shadow(color: glow, radius: 10)
+            .shadow(color: glow.opacity(0.8), radius: 22)
+            .fixedSize()
+            .scaleEffect(scale)
+            .offset(y: offset)
+            .opacity(stage == .entering || stage == .shown ? 1 : 0)
+            .accessibilityIdentifier("rules-turn-banner")
+            .accessibilityHidden(stage == .hidden)
+            .onReceive(session.$snapshot) { snapshot in
+                guard let snapshot, let active = snapshot.activePlayerId else { return }
+                let key = "\(snapshot.gameId)-\(snapshot.turn)-\(active)"
+                guard key != lastKey else { return }
+                lastKey = key
+                announce(mine: active == snapshot.playerId)
+            }
+    }
+
+    private var glow: Color {
+        isMine ? Color(red: 1, green: 0.55, blue: 0.1) : Color(red: 0.2, green: 0.55, blue: 1)
+    }
+
+    private var scale: CGFloat {
+        switch stage {
+        case .hidden: return 0.6
+        case .entering, .shown: return 1
+        case .leaving: return 0.35
+        }
+    }
+
+    private var offset: CGFloat {
+        guard stage == .leaving else { return 0 }
+        // The hands sit at the bottom (ours) and top (the opponent's) of the board.
+        let distance = UIScreen.main.bounds.height * 0.38
+        return isMine ? distance : -distance
+    }
+
+    private func announce(mine: Bool) {
+        generation += 1
+        let current = generation
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) {
+            isMine = mine
+            stage = .hidden
+        }
+        DispatchQueue.main.async {
+            guard current == generation else { return }
+            withAnimation(.easeOut(duration: 0.25)) { stage = .entering }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.65) {
+            guard current == generation else { return }
+            withAnimation(.easeIn(duration: 0.4)) { stage = .leaving }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) {
+            guard current == generation else { return }
+            withTransaction(reset) { stage = .hidden }
+        }
     }
 }

@@ -1747,6 +1747,22 @@ public extension MTGCardView {
 
 	private static var abilityFrameCache: [String: UIImage] = [:]
 
+	/// Every ability frame's outline (they all share one shape), for clipping and outlining.
+	static let abilityFrameSilhouette: UIImage? = {
+		guard let url = MagicBoardResources.bundle.url(forResource: "c", withExtension: "webp", subdirectory: "AbilityFrames/regular"),
+			  let frame = UIImage(contentsOfFile: url.path) else { return nil }
+		let size = frame.size
+		let format = UIGraphicsImageRendererFormat()
+		format.scale = 1
+		// The frame with its art window filled in.
+		return UIGraphicsImageRenderer(size: size, format: format).image { context in
+			frame.draw(at: .zero)
+			UIColor.black.setFill()
+			let art = AbilityLayout.art
+			context.fill(CGRect(x: art.minX * size.width, y: art.minY * size.height, width: art.width * size.width, height: art.height * size.height))
+		}
+	}()
+
 	/// The composed ability frame for a card's frame properties (the art window is transparent).
 	static func abilityFrame(for properties: CardProperties) -> UIImage? {
 		let style = properties.backgroundStyle
@@ -1757,41 +1773,36 @@ public extension MTGCardView {
 		let isVehicle = style?.isVehicle == true
 		let isArtifact = style?.isArtifact == true || isVehicle
 		let isHybrid = colors.count == 2 && (properties.isHybrid || properties.objectType == .token)
-		// Each piece is one letter, or two that fade from left to right.
+		// Each piece is one letter, or two that fade from left to right. A "regular/" prefix
+		// takes that letter from the regular frames whatever the source's frame folder.
 		let frame: [String], pinline: [String], rules: [String], typeTitle: [String]
 		if isLand {
-			// Lands: colored land trim, land rules box; two-color lands fade their trim.
-			let trim = colors.count == 1 ? [colors[0] + "l"] : colors.count == 2 ? colors.map { $0 + "l" } : colors.isEmpty ? ["l"] : ["ml"]
-			frame = trim; pinline = trim; rules = ["l"]
-			typeTitle = colors.count == 1 ? colors : colors.count > 2 ? ["m"] : ["l"]
-		} else if isArtifact {
-			// Artifacts and Vehicles keep their rules box; the trim and bars take the colors (gold when multicolored).
-			let body = isVehicle ? "v" : "a"
-			switch colors.count {
-			case 0: frame = ["a"]; pinline = ["a"]; typeTitle = ["a"]
-			case 1: frame = colors; pinline = colors; typeTitle = colors
-			case 2 where isHybrid: frame = colors; pinline = colors; typeTitle = ["c"]
-			case 2: frame = ["m"]; pinline = colors; typeTitle = ["m"]
-			default: frame = ["m"]; pinline = ["m"]; typeTitle = ["m"]
-			}
-			rules = [body]
+			// Lands: the colored land frames throughout (two colors fade); colorless lands use the plain land frame.
+			let land = colors.count == 1 ? [colors[0] + "l"] : colors.count == 2 ? colors.map { $0 + "l" } : colors.isEmpty ? ["l"] : ["ml"]
+			frame = land; pinline = land; rules = land
+			typeTitle = colors.count == 2 ? ["l"] : land
 		} else {
+			// Everything else; an artifact or Vehicle only swaps in its own outer frame.
+			let colorFrame: [String]
 			switch colors.count {
-			case 0: frame = ["c"]; pinline = ["c"]; rules = ["c"]; typeTitle = ["c"]
-			case 1: frame = colors; pinline = colors; rules = colors; typeTitle = colors
+			case 0: colorFrame = [isVehicle ? "v" : isArtifact ? "a" : "c"]; pinline = colorFrame; rules = colorFrame; typeTitle = colorFrame
+			case 1: colorFrame = colors; pinline = colors; rules = colors; typeTitle = colors
 			// Hybrid: everything fades from one color to the other, under colorless bars.
-			case 2 where isHybrid: frame = colors; pinline = colors; rules = colors; typeTitle = ["c"]
+			case 2 where isHybrid: colorFrame = colors; pinline = colors; rules = colors; typeTitle = ["c"]
 			// Two colors: a gold frame and bars, with the pinlines and rules box fading between the colors.
-			case 2: frame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
-			default: frame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
+			case 2: colorFrame = ["m"]; pinline = colors; rules = colors; typeTitle = ["m"]
+			default: colorFrame = ["m"]; pinline = ["m"]; rules = ["m"]; typeTitle = ["m"]
 			}
+			frame = isVehicle ? ["v"] : isArtifact ? ["a"] : colorFrame
 		}
 		let key = "\(folder)|\(frame)|\(pinline)|\(rules)|\(typeTitle)"
 		if let cached = abilityFrameCache[key] { return cached }
 
-		func image(_ letter: String) -> UIImage? {
-			// Nyx and Universes Beyond have no land / vehicle / colored-land variants: use regular.
-			for candidate in [folder, "regular"] {
+		func image(_ piece: String) -> UIImage? {
+			let parts = piece.split(separator: "/").map(String.init)
+			let letter = parts.last ?? piece
+			// Nyx has no land / vehicle / colored-land variants: use regular.
+			for candidate in parts.count > 1 ? [parts[0]] : [folder, "regular"] {
 				if let url = MagicBoardResources.bundle.url(forResource: letter, withExtension: "webp", subdirectory: "AbilityFrames/\(candidate)"),
 				   let image = UIImage(contentsOfFile: url.path) { return image }
 			}

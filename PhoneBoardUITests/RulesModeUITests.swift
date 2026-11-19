@@ -78,11 +78,11 @@ final class RulesModeUITests: XCTestCase {
         // Pass priority (the main phase button) through the AI's turn until our main phase, where XMage
         // asks us to play spells and abilities. Who starts is the engine's choice.
         // There's no instruction text during normal play (Arena): the main button's label tells us
-        // where we are. "Pass" is the opponent's turn; "Next" or "To Attackers" is our main phase.
+        // where we are. "Pass" (with a "To …" caption) is the opponent's turn; "Next" is our main phase.
         let next = app.buttons["phone-untap-local"]
         let deadline = Date().addingTimeInterval(90)
         func inOurMainPhase() -> Bool {
-            next.isEnabled && (next.label.contains("Next") || next.label.contains("Attackers"))
+            next.isEnabled && !next.label.contains("Pass") && (next.label.contains("Next") || next.label.contains("Attackers"))
                 && message.exists && message.label.localizedCaseInsensitiveContains("Play spells")
         }
         while !inOurMainPhase(), Date() < deadline {
@@ -644,7 +644,15 @@ final class RulesModeUITests: XCTestCase {
             }
             if text.hasPrefix("Pay"), app.buttons["rules-auto-pay"].exists {
                 app.buttons["rules-auto-pay"].tap(); autoButton += 1
-                Thread.sleep(forTimeInterval: 0.8); continue
+                // One tap pays the whole cost (Josh), not one mana: unless what's left needs a land
+                // Auto can't use (then the button goes away), the payment prompt is gone shortly.
+                let paid = Date().addingTimeInterval(4)
+                while Date() < paid, message.exists, message.label.hasPrefix("Pay"), app.buttons["rules-auto-pay"].exists {
+                    Thread.sleep(forTimeInterval: 0.2)
+                }
+                XCTAssertFalse(message.exists && message.label.hasPrefix("Pay") && app.buttons["rules-auto-pay"].exists,
+                               "Auto paid only part of the cost: \(message.label)")
+                continue
             }
             if text.hasPrefix("Pay") {
                 Thread.sleep(forTimeInterval: 2.0)

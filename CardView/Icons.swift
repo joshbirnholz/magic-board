@@ -46,8 +46,15 @@ extension MTGCardView {
       if allColorLands.contains(name ?? "") {
         properties.colors = MTGCardView.Color.allCases
       } else {
+        // The colors of mana it makes ("Add {W} or {U}."), not of costs elsewhere in its text
+        // (Hall of Heliod's Generosity makes {C}; its {W} is an activation cost).
+        let text = oracleText ?? ""
+        let produced = (try? NSRegularExpression(pattern: "Add [^.\\n]*"))?
+          .matches(in: text, range: NSRange(text.startIndex..., in: text))
+          .compactMap { Range($0.range, in: text).map { String(text[$0]) } }
+          .joined(separator: " ") ?? text
         properties.colors = MTGCardView.Color.allCases.compactMap {
-          (oracleText ?? "").contains("{\($0.initial)}") ? $0 : nil
+          produced.contains("{\($0.initial)}") ? $0 : nil
         }
         
         if properties.colors.isEmpty {

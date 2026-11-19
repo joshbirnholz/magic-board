@@ -22,6 +22,10 @@ final class RulesGameSession: ObservableObject {
     /// Recent game log lines (newest last), to explain what a reveal or other event was for.
     @Published private(set) var gameLog: [String] = []
     @Published var error: String?
+    /// Set by the payment prompt's Auto button (automatic payment off): keep paying the rest of
+    /// this cost with basic lands, not just one mana (Josh). Ends when the cost is paid or no basic
+    /// land can pay what's left (see RulesPhoneAdapter.updateStatus).
+    var payingCostAutomatically = false
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?

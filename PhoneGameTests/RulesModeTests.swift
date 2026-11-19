@@ -28,6 +28,26 @@ final class RulesModeTests: XCTestCase {
         XCTAssertFalse(try prompt("Select a card (1 more) to put on the bottom of your library", method: "GAME_ASK").isLondonBottom)
     }
 
+    func testScryOrderQuestionsAnswerFromTheBrowserArrangement() throws {
+        let ids = (0..<3).map { _ in UUID() }
+        func prompt(_ text: String, _ cards: [UUID]) throws -> RulesPrompt {
+            let json: [String: Any] = ["id": "p", "method": "GAME_TARGET", "revision": 1, "message": text, "supported": true, "choices": [],
+                                      "cards": cards.map { ["id": $0.uuidString.lowercased(), "name": "Island", "faceDown": false,
+                                                            "transformed": false, "counters": []] }]
+            return try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        let top = "Select card ORDER to put on the TOP of your library (last one chosen will be topmost)"
+        let bottom = "Select card ORDER to put on the BOTTOM of your library (last one chosen will be bottommost)"
+        // Arranged top first: ids[0] ends on top, so the deepest (ids[2]) is chosen first.
+        XCTAssertEqual(RulesPhoneAdapter.libraryOrderAnswer(try prompt(top, ids), arranged: ids), ids[2].uuidString.lowercased())
+        XCTAssertEqual(RulesPhoneAdapter.libraryOrderAnswer(try prompt(top, [ids[0], ids[1]]), arranged: ids), ids[1].uuidString.lowercased())
+        // Bottom: the last chosen is bottommost, so the highest is chosen first.
+        XCTAssertEqual(RulesPhoneAdapter.libraryOrderAnswer(try prompt(bottom, [ids[2], ids[1]]), arranged: ids), ids[1].uuidString.lowercased())
+        // Cards the browser didn't arrange, or another question, are left to the player.
+        XCTAssertNil(RulesPhoneAdapter.libraryOrderAnswer(try prompt(top, [ids[0], UUID()]), arranged: ids))
+        XCTAssertNil(RulesPhoneAdapter.libraryOrderAnswer(try prompt("Select cards to PUT on the BOTTOM of your library (Scry)", ids), arranged: ids))
+    }
+
     func testCardChoiceUsesEngineEligibilityAndKeepsSelectedCardsDeselectable() throws {
         func prompt(_ fields: [String: Any]) throws -> RulesPrompt {
             var json: [String: Any] = ["id": "p", "method": "GAME_TARGET", "revision": 1,
@@ -665,6 +685,25 @@ final class RulesModeTests: XCTestCase {
         let state = try JSONDecoder().decode(RulesSnapshot.self, from: Data(#"{"gameId":"game","playerId":"me","revision":1,"turn":1,"hand":[],"stack":[],"players":[],"playableIds":[]}"#.utf8))
         XCTAssertTrue(RulesPhoneAdapter.shouldAutoPass(prompt, snapshot: state))
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(prompt, snapshot: state, holdingPriority: true))
+    }
+
+    func testPassCaptionNamesTheNextStep() throws {
+        let me = UUID().uuidString, opponent = UUID().uuidString
+        let prompt = try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+            "id": "p", "method": "GAME_SELECT", "revision": 1, "supported": true, "choices": [],
+            "message": "Play spells and abilities"] as [String: Any]))
+        func label(_ step: String, stack: [[String: Any]] = []) throws -> String {
+            let player: (String) -> [String: Any] = { ["id": $0, "name": $0, "life": 20, "handCount": 0, "libraryCount": 0, "battlefield": [], "graveyard": [], "exile": []] }
+            let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 2,
+                                       "phase": "X", "step": step, "activePlayerId": opponent, "hand": [], "stack": stack,
+                                       "playableIds": [], "players": [player(me), player(opponent)], "combat": []]
+            let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+            return RulesPhoneAdapter.primaryButton(prompt: prompt, snapshot: snapshot, pending: false).0
+        }
+        XCTAssertEqual(try label("BEGIN_COMBAT"), "Pass\nTo Attackers")
+        XCTAssertEqual(try label("DECLARE_ATTACKERS"), "Pass\nTo End of Combat")
+        XCTAssertEqual(try label("POSTCOMBAT_MAIN"), "Pass\nTo End Step")
+        XCTAssertEqual(try label("END_TURN"), "Pass\nTo Your Turn")
     }
 
     func testOpponentsCombatKeepsAttackersAndUntappedBlockers() async throws {

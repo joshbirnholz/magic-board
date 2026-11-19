@@ -15,6 +15,10 @@ final class RulesPhoneAdapter {
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
     private var autoPassTask: Task<Void, Never>?
+    /// The scry / surveil cards as the player arranged them in the browser, top of the library
+    /// first. XMage then asks for the order of the cards going on top (and on the bottom) one card
+    /// at a time; those questions answer themselves from this (Arena: one browser, one action).
+    private(set) var arrangedLibraryOrder: [UUID] = []
     /// Arena's London mulligan on top of XMage's order: XMage asks for bottom cards right after a
     /// mulligan, before the next keep question. The app holds that question, shows Keep / Mulligan,
     /// and only asks for the cards once the player keeps.
@@ -50,17 +54,30 @@ final class RulesPhoneAdapter {
         Publishers.CombineLatest4(engine.$status, engine.$prompt, engine.$pendingRequest, engine.$holdingPriority)
             .sink { [weak self] status, prompt, pending, holding in
                 guard let self else { return }
-                self.updateStatus(status, prompt: prompt, pending: pending, holdingPriority: holding)
+                self.updateStatus(status, prompt: prompt, pending: pending, holdingPriority: holding,
+                                  alertOpen: !self.engine.cardInformation.isEmpty)
+            }.store(in: &subscriptions)
+        // Closing the last alert releases the priority pass it held back (see updateStatus).
+        engine.$cardInformation.map { !$0.isEmpty }.removeDuplicates().dropFirst()
+            .sink { [weak self] open in
+                guard let self else { return }
+                self.updateStatus(self.engine.status, prompt: self.engine.prompt, pending: self.engine.pendingRequest,
+                                  holdingPriority: self.engine.holdingPriority, alertOpen: open)
             }.store(in: &subscriptions)
         engine.$error.compactMap { $0 }.sink { [weak phone] in phone?.error = $0 }.store(in: &subscriptions)
     }
 
+<<<<<<< HEAD
     private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool) {
-        if (status != .connected || holdingPriority), prompt?.method == "GAME_SELECT" { autoPassedPromptID = nil }
-        if autoPassTask != nil, status != .connected || holdingPriority || pending != nil || prompt?.id != autoPassedPromptID {
+        if (status != .connected || holdingPriority || alertOpen), prompt?.method == "GAME_SELECT" { autoPassedPromptID = nil }
+        if autoPassTask != nil, status != .connected || holdingPriority || alertOpen || pending != nil || prompt?.id != autoPassedPromptID {
             autoPassTask?.cancel()
             autoPassTask = nil
         }
+=======
+    private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool,
+                              alertOpen: Bool) {
+>>>>>>> rules-mode
         let (label, enabled) = Self.primaryButton(prompt: prompt, snapshot: engine.snapshot, pending: pending != nil)
         // Arena shows the opening hand in a browser (Keep / Mulligan); Phone Play's opening-hand
         // browser is driven by `opening`, one per mulligan question.
@@ -70,7 +87,9 @@ final class RulesPhoneAdapter {
         phone?.displayRules(presentation, connected: status == .connected,
                             status: status == .connected ? "Connected to XMage" : "Rules server disconnected",
                             primaryLabel: label, primaryEnabled: enabled)
-        if let prompt, pending == nil, prompt.id != autoPassedPromptID,
+        // While an alert about what the opponent did (revealed cards…) is on screen, don't pass for
+        // the player: the computer opponent only moves on once they've closed it (Josh).
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID, !alertOpen,
            Self.shouldAutoPass(prompt, snapshot: engine.snapshot, holdingPriority: holdingPriority), status == .connected, prompt.supported {
             autoPassedPromptID = prompt.id
             // Let an opponent's spell/ability be seen before an automatic pass resolves it. Manual
@@ -84,7 +103,7 @@ final class RulesPhoneAdapter {
                     try Task.checkCancellation()
                 } catch { return }
                 guard let self else { return }
-                guard self.engine.status == .connected, self.engine.canAnswer,
+                guard self.engine.status == .connected, self.engine.canAnswer, self.engine.cardInformation.isEmpty,
                       self.engine.prompt?.id == prompt.id,
                       Self.shouldAutoPass(prompt, snapshot: self.engine.snapshot, holdingPriority: self.engine.holdingPriority) else {
                     if self.autoPassedPromptID == prompt.id { self.autoPassedPromptID = nil; self.autoPassTask = nil }
@@ -98,8 +117,14 @@ final class RulesPhoneAdapter {
         // can't decide plainly (hybrid, X, non-basic lands) is left to the player to tap.
         // (Not engine.canAnswer: @Published sinks run before the property changes, so it would still
         // see the previous pending request here.)
-        if Self.autoPaysMana, let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected, prompt.supported,
-           let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
+        // With automatic payment off, the prompt's Auto button pays the whole cost the same way; the
+        // run ends at the first prompt that isn't a payment it can make.
+        if let prompt, pending == nil, engine.payingCostAutomatically,
+           prompt.method != "GAME_PLAY_MANA" || Self.autoPayLand(prompt, snapshot: engine.snapshot) == nil {
+            engine.payingCostAutomatically = false
+        }
+        if Self.autoPaysMana || engine.payingCostAutomatically, let prompt, pending == nil, prompt.id != autoPassedPromptID,
+           status == .connected, prompt.supported, let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(land)) }
         }
@@ -116,9 +141,16 @@ final class RulesPhoneAdapter {
         }
         // A card choice arrives (or ends) without a new board state: project again so the board's
         // browser opens with the cards (or closes).
-        let choiceID = prompt?.style == .browser && pending == nil ? prompt?.id : nil
+        let choiceID = prompt?.style == .browser && pending == nil && !isAutoOrdered(prompt) ? prompt?.id : nil
         if choiceID != presentation.rulesChoice?.id, let snapshot = engine.snapshot {
             Task { [weak self] in try? await self?.project(snapshot, refreshArtwork: true) }
+        }
+        // XMage's "card ORDER to put on the TOP/BOTTOM of your library" after a scry or surveil:
+        // answered from the order the player arranged in the browser.
+        if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected,
+           let card = Self.libraryOrderAnswer(prompt, arranged: arrangedLibraryOrder) {
+            autoPassedPromptID = prompt.id
+            Task { [weak self] in await self?.engine.answer(.object(card)) }
         }
         // The London mulligan's deferred answers (see MulliganChoice).
         if let prompt, pending == nil, prompt.id != autoPassedPromptID, status == .connected {
@@ -201,7 +233,30 @@ final class RulesPhoneAdapter {
         if combat.contains(where: { !$0.attackers.isEmpty }), !creatures.isEmpty, (snapshot.step ?? "").contains("ATTACKERS") {
             return ("Next\nTo Blockers", true)
         }
+        // Passing with an empty stack moves the game on: say where to, as Arena captions "Next".
+        if let next = nextStep(after: snapshot.step, attacked: combat.contains { !$0.attackers.isEmpty }) {
+            return ("Pass\n\(next)", true)
+        }
         return ("Pass", true)
+    }
+
+    /// The caption for the step that passing priority (with an empty stack) moves to, e.g. "To Attackers".
+    static func nextStep(after step: String?, attacked: Bool) -> String? {
+        switch step ?? "" {
+        case "UNTAP": return "To Upkeep"
+        case "UPKEEP": return "To Draw"
+        case "DRAW": return "To Main 1"
+        case "PRECOMBAT_MAIN": return "To Combat"
+        case "BEGIN_COMBAT": return "To Attackers"
+        // With no attackers, combat skips straight to its end step (rule 508.8).
+        case "DECLARE_ATTACKERS": return attacked ? "To Blockers" : "To End of Combat"
+        case "DECLARE_BLOCKERS", "FIRST_COMBAT_DAMAGE": return "To Damage"
+        case "COMBAT_DAMAGE": return "To End of Combat"
+        case "END_COMBAT": return "To Main 2"
+        case "POSTCOMBAT_MAIN": return "To End Step"
+        case "END_TURN", "CLEANUP": return "To Your Turn"
+        default: return nil
+        }
     }
 
     /// Arena's second button above the main one, if any, during attacker selection.
@@ -336,7 +391,8 @@ final class RulesPhoneAdapter {
 
     /// Re-applies the current prompt after a Keep / Mulligan choice that XMage hasn't asked about yet.
     private func refreshMulligan() {
-        updateStatus(engine.status, prompt: engine.prompt, pending: engine.pendingRequest, holdingPriority: engine.holdingPriority)
+        updateStatus(engine.status, prompt: engine.prompt, pending: engine.pendingRequest, holdingPriority: engine.holdingPriority,
+                     alertOpen: !engine.cardInformation.isEmpty)
     }
 
     static func firstNumber(in text: String, after marker: String) -> Int? {
@@ -412,6 +468,29 @@ final class RulesPhoneAdapter {
         default:
             return false
         }
+    }
+
+    /// The board's scry / surveil browser was rearranged (top of the library first).
+    func arrangeChoice(_ ids: [UUID]) { arrangedLibraryOrder = ids }
+
+    private func isAutoOrdered(_ prompt: RulesPrompt?) -> Bool {
+        prompt.flatMap { Self.libraryOrderAnswer($0, arranged: arrangedLibraryOrder) } != nil
+    }
+
+    /// The card to choose for XMage's "card ORDER to put on the TOP of your library (last one chosen
+    /// will be topmost)" (or BOTTOM… bottommost), given the arranged order, top first; nil when the
+    /// question isn't one or its cards weren't arranged in the browser. The bottom cards keep their
+    /// arranged order too, so the leftmost of them ends up highest.
+    static func libraryOrderAnswer(_ prompt: RulesPrompt, arranged: [UUID]) -> String? {
+        guard prompt.method == "GAME_TARGET", let message = prompt.message?.lowercased() else { return nil }
+        let top = message.contains("order to put on the top of your library")
+        guard top || message.contains("order to put on the bottom of your library") else { return nil }
+        let candidates = (prompt.cards ?? []).map(\.id).filter(prompt.isCardSelectable)
+        let ranked = candidates.compactMap { id in UUID(uuidString: id).flatMap { arranged.firstIndex(of: $0) }.map { (id, $0) } }
+        guard !ranked.isEmpty, ranked.count == candidates.count else { return nil }
+        // Each chosen card goes on top (bottom) of the ones before it: on top, the deepest card
+        // first; on the bottom, the highest first.
+        return (top ? ranked.max { $0.1 < $1.1 } : ranked.min { $0.1 < $1.1 })?.0
     }
 
     /// A card tapped in the board's card-choice browser.
@@ -590,7 +669,7 @@ final class RulesPhoneAdapter {
         game.rulesPlayable = Self.highlighted(snapshot: snapshot, prompt: engine.pendingRequest == nil ? engine.prompt : nil)
         game.opening = openingHand(for: engine.pendingRequest == nil ? engine.prompt : nil)
         // A card choice (library search, revealed cards…) goes to Phone Play's fanned browser.
-        if engine.pendingRequest == nil, let prompt = engine.prompt, prompt.style == .browser, let cards = prompt.cards {
+        if engine.pendingRequest == nil, let prompt = engine.prompt, prompt.style == .browser, !isAutoOrdered(prompt), let cards = prompt.cards {
             choiceCards = try cards.map { try instance($0, owner: .a) }
             let ids = cards.compactMap { UUID(uuidString: $0.id) }
             let message = prompt.plainMessage.lowercased()
@@ -601,10 +680,13 @@ final class RulesPhoneAdapter {
             case .choose: prompt.plainMessage
             }
             let hint: String? = switch kind {
-            case .scry: "Drag cards to the bottom of your library (or tap them). The rest stay on top."
-            case .surveil: "Drag cards to your graveyard (or tap them). The rest stay on top."
+            case .scry: "Drag cards to the bottom of your library (or tap them). Drag to reorder: the leftmost ends up on top."
+            case .surveil: "Drag cards to your graveyard (or tap them). Drag to reorder: the leftmost ends up on top."
             case .choose: nil
             }
+            // A new scry / surveil starts in XMage's order (top first); a rearrangement is kept
+            // while the same cards are asked about again (each tap is a new question).
+            if kind != .choose, Set(arrangedLibraryOrder) != Set(ids) { arrangedLibraryOrder = ids }
             game.rulesChoice = .init(id: prompt.id, title: title,
                                      subtitle: hint ?? prompt.subMessage.map(RulesText.plain).flatMap { $0.isEmpty ? nil : $0 },
                                      cardIDs: ids,
