@@ -262,6 +262,9 @@ enum RulesText {
             .replacingOccurrences(of: #"\n\s*\n+"#, with: "\n", options: .regularExpression)
             // XMage tags object names with an id suffix ("Summon: Fenrir [3fa]").
             .replacingOccurrences(of: #" \[[0-9a-f]{3}\]"#, with: "", options: .regularExpression)
+            // XMage appends dynamic condition hints using literal status markers.
+            .replacingOccurrences(of: "ICON_GOOD", with: "✓ ")
+            .replacingOccurrences(of: "ICON_BAD", with: "✗ ")
             .replacingOccurrences(of: "&nbsp;", with: " ")
             .replacingOccurrences(of: "&mdash;", with: "—")
             .replacingOccurrences(of: "&ndash;", with: "–")

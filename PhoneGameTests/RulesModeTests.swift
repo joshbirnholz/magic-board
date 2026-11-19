@@ -750,6 +750,14 @@ final class RulesModeTests: XCTestCase {
         print("RULES-DECK-JSON " + String(decoding: try JSONEncoder().encode(deck), as: UTF8.self))
     }
 
+    func testEngineConditionHintsRenderReadableStatusWithoutRawMarkers() {
+        let met = RulesText.plain("<br/><hintstart/>\nICON_GOODYou don't control a creature named Darkstar")
+        XCTAssertEqual(met.trimmingCharacters(in: .whitespacesAndNewlines), "✓ You don't control a creature named Darkstar")
+        let unmet = RulesText.plain("ICON_BADIf a player has one or fewer cards in hand")
+        XCTAssertEqual(unmet, "✗ If a player has one or fewer cards in hand")
+        XCTAssertEqual(RulesText.plain("ICON_UNKNOWN"), "ICON_UNKNOWN", "Only known engine markers are transformed")
+    }
+
     func testEngineMarkupKeepsTheCardNameOnItsOwnLine() {
         let text = RulesText.plain("Choose mode (selected 0 of 3, min 1)<div style='font-size:11pt'><font color='#F0E68C'>Blessed Alliance</font></div>")
         XCTAssertEqual(text.trimmingCharacters(in: .whitespacesAndNewlines), "Choose mode (selected 0 of 3, min 1)\nBlessed Alliance")
