@@ -279,7 +279,7 @@ enum RulesText {
 
     /// The printed name of a token XMage calls "<Name> Token" (nil for other cards).
     static func tokenName(_ card: RulesCard) -> String? {
-        guard let name = card.name, name.hasSuffix(" Token") || card.typeLine?.contains("Token") == true else { return nil }
+        guard let name = card.name, card.token == true || name.hasSuffix(" Token") || card.typeLine?.contains("Token") == true else { return nil }
         return name.hasSuffix(" Token") ? String(name.dropLast(" Token".count)) : name
     }
 

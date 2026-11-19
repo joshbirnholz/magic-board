@@ -5,6 +5,41 @@ import UIKit
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testNamedTokensAndCopiesRetainTokenStyleAndCreatedBaseStats() async throws {
+        let me = UUID().uuidString, id = UUID().uuidString
+        var card: [String: Any] = ["id": id, "name": "Darkstar", "faceDown": false, "transformed": false,
+            "token": true, "typeLine": "Legendary Creature — Dog", "power": "2", "toughness": "2",
+            "basePower": "2", "baseToughness": "2", "counters": []]
+        func state() throws -> RulesSnapshot {
+            try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+                "gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "hand": [], "stack": [], "playableIds": [],
+                "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 30,
+                    "battlefield": [card], "graveyard": [], "exile": []]]]))
+        }
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        for current in ["2", "4"] {
+            card["power"] = current
+            try await adapter.project(state(), refreshArtwork: false)
+            let token = try XCTUnwrap(adapter.presentation.state.battlefield.value.first)
+            XCTAssertTrue(token.representation.isToken)
+            XCTAssertTrue(token.representation.typeLine?.contains("Token") == true)
+            XCTAssertEqual(token.representation.power, "2", "Created base stays separate from effective power")
+            XCTAssertEqual(token.power.value, current)
+            XCTAssertEqual(token.representation.name, "Darkstar")
+        }
+        card["name"] = "Soul Warden"; card["typeLine"] = "Creature — Human Cleric"
+        card["set"] = "M10"; card["collectorNumber"] = "34"
+        card["basePower"] = "1"; card["baseToughness"] = "1"
+        try await adapter.project(state(), refreshArtwork: false)
+        let copy = try XCTUnwrap(adapter.presentation.state.battlefield.value.first)
+        XCTAssertTrue(copy.representation.isToken, "Copying an ordinary printing must still produce a token frame")
+        XCTAssertEqual(copy.representation.name, "Soul Warden")
+        card["faceDown"] = true
+        try await adapter.project(state(), refreshArtwork: false)
+        XCTAssertTrue(adapter.presentation.state.battlefield.value.first?.representation.isFaceDown == true)
+        XCTAssertFalse(adapter.presentation.state.battlefield.value.first?.representation.isToken == true)
+    }
+
     func testMarkedDamageOnlyChangesDisplayedToughnessAndClears() async throws {
         let me = UUID().uuidString, id = UUID().uuidString
         func state(damage: Int?) throws -> RulesSnapshot {

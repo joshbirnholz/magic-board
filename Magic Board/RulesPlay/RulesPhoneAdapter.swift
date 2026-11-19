@@ -699,6 +699,7 @@ final class RulesPhoneAdapter {
             let model = try battlefield ? RulesCardCharacteristics.applying(card, to: printed) : printed
             var representation = CardRepresentation.card(model).choosingFrontFace
             if card.transformed, let back = model.cardFaces?.last { representation = .alternateFace(model, back) }
+            if card.token == true { representation = .tokenCopy(representation) }
             if card.faceDown { representation = .faceDown(representation) }
             let template = CardInstance(card: representation, center: nil, ownerIdentifier: owner)
             // Preserve engine object identity without changing the shared CardInstance initializer.
@@ -894,6 +895,10 @@ enum RulesCardCharacteristics {
             if let rules = engine.rules { values["oracleText"] = RulesText.cardRules(rules, name: engine.name, typeLine: RulesText.typeLine(engine)); values["keywords"] = engine.keywords ?? [] }
             if let mana = engine.manaCost { values["manaCost"] = mana }
             if let colors = engine.colors { values["colors"] = colors }
+            if engine.token == true {
+                if let power = engine.basePower { values["power"] = power }
+                if let toughness = engine.baseToughness { values["toughness"] = toughness }
+            }
         }
         apply(to: &json)
         if var faces = json["cardFaces"] as? [[String: Any]], !faces.isEmpty {

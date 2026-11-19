@@ -49,6 +49,10 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     var chosenX: Int? = nil
     /// Current keyword abilities from engine permanent icons, including gained abilities.
     var keywords: [String]? = nil
+    /// Explicit engine identity also covers named tokens and copies of ordinary cards.
+    var token: Bool? = nil
+    var basePower: String? = nil
+    var baseToughness: String? = nil
     let counters: [Counter]
 }
 
