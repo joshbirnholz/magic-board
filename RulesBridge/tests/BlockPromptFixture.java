@@ -21,6 +21,8 @@ public final class BlockPromptFixture extends WebSocketServer {
     private String stage = "select";
     private final String resumeToken = UUID.randomUUID().toString();
     private boolean hasGame;
+    private boolean retarget;
+    private final java.util.Set<WebSocket> observers = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private int pacingAnswers;
     private String initialStage = "select";
     private final java.util.Set<String> delveCards = new java.util.LinkedHashSet<>();
@@ -36,6 +38,8 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void send(WebSocket socket, JsonObject value) { socket.send(JSON.toJson(value)); }
     @Override public void onOpen(WebSocket socket, ClientHandshake request) {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
+        if (request.getResourceDescriptor().endsWith("/observer")) { observers.add(socket); status(socket); return; }
+        retarget = request.getResourceDescriptor().endsWith("/retarget");
         initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
                 : request.getResourceDescriptor().endsWith("/burst") ? "burst"
                 : request.getResourceDescriptor().endsWith("/x") ? "x"
@@ -52,7 +56,9 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/pacing") ? "pacing" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
     }
+    private void status(WebSocket socket) { send(socket, object("attacker", selectedAttacker, "revision", revision)); }
     @Override public void onMessage(WebSocket socket, String text) {
+        if (observers.contains(socket)) { status(socket); return; }
         JsonObject request = JsonParser.parseString(text).getAsJsonObject();
         String type = request.get("type").getAsString();
         switch (type) {
@@ -82,7 +88,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                 });
             }
             case "createAiGame" -> {
-                revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true; pacingAnswers = 0;
+                revision = 1; selectedAttacker = retarget ? FIRST : null; stage = retarget ? "done" : initialStage; hasGame = true; pacingAnswers = 0;
                 holdingPriority = false; autoOrderTriggers = true; delveCards.clear();
                 ack(socket, request);
                 if (stage.equals("burst")) {
@@ -104,6 +110,11 @@ public final class BlockPromptFixture extends WebSocketServer {
             case "settings" -> { autoOrderTriggers = request.get("autoOrderTriggers").getAsBoolean(); settings(socket); ack(socket, request); }
             case "answer" -> {
                 String value = request.get("value").getAsString();
+                if (retarget && stage.equals("done") && value.equals(BLOCKER)) {
+                    selectedAttacker = null; stage = "select"; revision++;
+                    send(socket, object("type", "promptCleared")); ack(socket, request); snapshot(socket); prompt(socket);
+                    return;
+                }
                 if (stage.equals("delve") || stage.equals("delvePick")) {
                     String kind = request.get("kind").getAsString();
                     if (stage.equals("delve") && kind.equals("special")) stage = "delvePick";
@@ -320,7 +331,7 @@ public final class BlockPromptFixture extends WebSocketServer {
         send(socket, state);
     }
     private JsonObject group(String attacker) { return object("defenderId", ME, "attackers", new String[]{attacker}, "blockers", attacker.equals(selectedAttacker) ? new String[]{BLOCKER} : new String[]{}); }
-    @Override public void onClose(WebSocket socket, int code, String reason, boolean remote) { }
+    @Override public void onClose(WebSocket socket, int code, String reason, boolean remote) { observers.remove(socket); }
     @Override public void onError(WebSocket socket, Exception error) { error.printStackTrace(); }
     @Override public void onStart() { System.out.println("Blocking fixture listening on " + getAddress()); }
     public static void main(String[] args) {

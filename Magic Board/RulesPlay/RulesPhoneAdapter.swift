@@ -15,6 +15,7 @@ final class RulesPhoneAdapter {
     /// A browser tap is only a draft. XMage's one-card callback is answered on Confirm.
     private var browserDraft: (promptID: String, cardID: UUID)?
     private let catalog = RulesCardCatalog.shared
+    private var pendingBlockReassignment: (blocker: UUID, attacker: UUID, promptID: String)?
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
     private var autoChosenPromptID: String?
@@ -186,6 +187,29 @@ final class RulesPhoneAdapter {
            let choice = prompt.targets?.randomElement() {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(choice)) }
+        }
+        // Clicking an already assigned blocker removes its block in XMage. Wait for that
+        // removal and the next native selection before selecting it again for the new attacker.
+        if let reassignment = pendingBlockReassignment {
+            let state = engine.snapshot
+            if status != .connected || state?.step != "DECLARE_BLOCKERS" {
+                pendingBlockReassignment = nil
+            } else if pending == nil, let prompt, prompt.id != reassignment.promptID {
+                let combat = state?.combat ?? []
+                let attackerID = reassignment.attacker.uuidString.lowercased()
+                let blockerID = reassignment.blocker.uuidString.lowercased()
+                pendingBlockReassignment = nil
+                if prompt.method == "GAME_SELECT", combat.contains(where: { $0.attackers.contains(attackerID) }),
+                   !combat.contains(where: { $0.blockers.contains(blockerID) }) {
+                    pendingTarget = .card(reassignment.attacker)
+                    pendingTargetPromptID = prompt.id
+                    Task { [weak self] in
+                        guard let self, !self.isLeaving, self.engine.canAnswer,
+                              self.engine.prompt?.id == prompt.id else { return }
+                        await self.choose(reassignment.blocker)
+                    }
+                }
+            }
         }
         if let target = pendingTarget, pending == nil {
             let (answer, keep) = Self.resolvePendingTarget(target, prompt: prompt, snapshot: engine.snapshot, issuedDuring: pendingTargetPromptID)
@@ -597,7 +621,15 @@ final class RulesPhoneAdapter {
             pendingTarget = .card(target)
             await choose(id)
         case .block(let id, let target):
-            pendingTarget = target.map(PhoneGame.Target.card)
+            guard pendingBlockReassignment == nil else { return }
+            let previous = engine.snapshot?.combat?.first { $0.blockers.contains(id.uuidString.lowercased()) }
+            if let target, let previous, let prompt = engine.prompt {
+                if previous.attackers.contains(target.uuidString.lowercased()) { return }
+                pendingTarget = nil
+                pendingBlockReassignment = (id, target, prompt.id)
+            } else {
+                pendingTarget = target.map(PhoneGame.Target.card)
+            }
             await choose(id)
         case .resolve, .untap, .untapAndDraw, .beginCombat, .endCombat, .endTurn:
             await pressMain()

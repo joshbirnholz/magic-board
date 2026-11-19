@@ -312,6 +312,38 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
     }
 
+    @MainActor func testExistingBlockCanBeDraggedToTheSecondAttacker() async throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let app = startFixtureGame(endpoint: endpoint + "/retarget")
+        defer { app.terminate() }
+        let cards = app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex
+        let blocker = try XCTUnwrap(cards.first { ($0.value as? String) == "Blocking" })
+        let attacker = try XCTUnwrap(cards.filter { ($0.value as? String) == "Attacking" }.max { $0.frame.midX < $1.frame.midX })
+        var request = URLRequest(url: try XCTUnwrap(URL(string: endpoint + "/observer")))
+        request.setValue("Bearer rules-local-verification-key", forHTTPHeaderField: "Authorization")
+        let observer = URLSession.shared.webSocketTask(with: request); observer.resume()
+        defer { observer.cancel(with: .goingAway, reason: nil) }
+        func currentAttacker() async throws -> String? {
+            switch try await observer.receive() {
+            case .string(let text): return (try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])?["attacker"] as? String
+            case .data(let data): return (try JSONSerialization.jsonObject(with: data) as? [String: Any])?["attacker"] as? String
+            @unknown default: return nil
+            }
+        }
+        let initial = try await currentAttacker()
+        XCTAssertEqual(initial, "00000000-0000-0000-0000-000000000020")
+        blocker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1, thenDragTo: attacker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 1500, thenHoldForDuration: 0)
+        var actual: String?
+        for _ in 0..<30 {
+            try await observer.send(.string("status")); actual = try await currentAttacker()
+            if actual == "00000000-0000-0000-0000-000000000021" { break }
+            try await Task.sleep(nanoseconds: 200_000_000)
+        }
+        XCTAssertEqual(actual, "00000000-0000-0000-0000-000000000021", "The exact dropped-on attacker must replace the previous assignment")
+        exitFixtureGame(app)
+    }
+
     @MainActor func testRulesReconnectsAfterAppRelaunchAndClearsSeatOnExit() throws {
         guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
         let app = startFixtureGame(endpoint: endpoint)

@@ -2223,7 +2223,12 @@ extension BoardViewController: UIDropInteractionDelegate {
     private func phoneAttachmentTarget(at point: CGPoint, excluding ids: Set<UUID>) -> CardInstance? {
         guard phoneMode != nil else { return nil }
         if let target = board.subviews.reversed().compactMap({ $0 as? MiniCardView }).first(where: {
-            !$0.isHidden && !ids.contains($0.cardInstance.uuid) && $0.bounds.contains($0.convert(point, from: view))
+            guard !$0.isHidden, !ids.contains($0.cardInstance.uuid),
+                  let geometry = phoneCardGeometry($0.cardInstance) else { return false }
+            let dx = point.x - geometry.center.x, dy = point.y - geometry.center.y
+            let x = dx * cos(geometry.angle) + dy * sin(geometry.angle)
+            let y = -dx * sin(geometry.angle) + dy * cos(geometry.angle)
+            return abs(x) <= geometry.size.width / 2 && abs(y) <= geometry.size.height / 2
         }) { return target.cardInstance }
         let windowPoint = view.convert(point, to: view.window)
         return [landOrganizer, opponentLandOrganizer].compactMap { $0 }
