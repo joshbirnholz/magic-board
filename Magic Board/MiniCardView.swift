@@ -350,8 +350,8 @@ class MiniCardView: UIView {
         self.properties = properties
       }).disposed(by: bag)
 		
-    Observable.combineLatest(cardInstance.power, cardInstance.toughness, cardInstance.counters, cardInstance.isPowerToughnessVisible)
-      .subscribe(onNext: { [weak self] power, toughness, counters, isPowerToughnessVisible in
+    Observable.combineLatest(cardInstance.power, cardInstance.toughness, cardInstance.counters, cardInstance.isPowerToughnessVisible, cardInstance.markedDamage)
+      .subscribe(onNext: { [weak self] power, toughness, counters, isPowerToughnessVisible, _ in
         let powerToughnessString: NSAttributedString? = {
           guard isPowerToughnessVisible else { return nil }
           guard let self = self else { return nil }
@@ -852,7 +852,6 @@ class MiniCardView: UIView {
   }
   
 	private func powerToughnessLabelText(power: String, toughness: String, counters: [Counter]) -> NSAttributedString {
-		let attributedString = NSMutableAttributedString()
 		
 		func string(for power: String) -> String {
             #if !BOARD_CONNECT
@@ -881,19 +880,28 @@ class MiniCardView: UIView {
 		guard let properties = properties else { return NSAttributedString() }
 		
 		let modifiedColor = properties.isInverted || properties.backgroundStyle == .vehicle ? #colorLiteral(red: 0.2392156869, green: 0.6745098233, blue: 0.9686274529, alpha: 1) : #colorLiteral(red: 0.03035263158, green: 0.3804000616, blue: 1, alpha: 1)
-		let modifiedAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: modifiedColor]
+        return Self.powerToughnessText(power: powerString, toughness: toughnessString,
+            printedPower: cardInstance.representation.power, printedToughness: cardInstance.representation.toughness,
+            damage: cardInstance.markedDamage.value, modifiedColor: modifiedColor)
+    }
 
-		let powerAttributedString = NSAttributedString(string: powerString, attributes: (powerString == self.cardInstance.representation.power) ? [:] : modifiedAttributes)
-		attributedString.append(powerAttributedString)
+    /// Only the displayed toughness loses marked damage. Rules, detail pages and combat still
+    /// use the effective toughness; clearing the engine's damage restores the usual stat color.
+    static func powerToughnessText(power: String, toughness: String, printedPower: String?, printedToughness: String?,
+                                   damage: Int, modifiedColor: UIColor) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let modified: [NSAttributedString.Key: Any] = [.foregroundColor: modifiedColor]
+        result.append(NSAttributedString(string: power, attributes: power == printedPower ? [:] : modified))
+        result.append(NSAttributedString(string: "/"))
+        let marked = max(0, damage)
+        if marked > 0, let effective = Int(toughness) {
+            result.append(NSAttributedString(string: String(effective - marked), attributes: [.foregroundColor: UIColor.systemRed]))
+        } else {
+            result.append(NSAttributedString(string: toughness, attributes: toughness == printedToughness ? [:] : modified))
+        }
+        return result
+    }
 
-		attributedString.append(NSAttributedString(string: "/"))
-
-		let toughnessAttributedString = NSAttributedString(string: toughnessString, attributes: (toughnessString == self.cardInstance.representation.toughness) ? [:] : modifiedAttributes)
-		attributedString.append(toughnessAttributedString)
-
-		return attributedString
-	}
-	
 	override init(frame: CGRect) {
 		super.init(frame: frame)
 		commonInit()

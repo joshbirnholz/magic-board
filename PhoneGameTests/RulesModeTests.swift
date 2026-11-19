@@ -1,9 +1,41 @@
 import XCTest
 import CardService
+import UIKit
 @testable import Magic_Board
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testMarkedDamageOnlyChangesDisplayedToughnessAndClears() async throws {
+        let me = UUID().uuidString, id = UUID().uuidString
+        func state(damage: Int?) throws -> RulesSnapshot {
+            var card: [String: Any] = ["id": id, "name": "Damage fixture", "faceDown": false, "transformed": false,
+                                      "typeLine": "Creature", "power": "7", "toughness": "7", "counters": []]
+            card["damage"] = damage
+            return try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+                "gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "hand": [], "stack": [], "playableIds": [],
+                "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 30,
+                             "battlefield": [card], "graveyard": [], "exile": []]]]))
+        }
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        for damage in [5, 0, -1] {
+            try await adapter.project(state(damage: damage), refreshArtwork: false)
+            let instance = try XCTUnwrap(adapter.presentation.state.battlefield.value.first)
+            XCTAssertEqual(instance.toughness.value, "7", "Marked damage must never reduce actual toughness")
+            XCTAssertEqual(instance.markedDamage.value, max(0, damage))
+            let text = MiniCardView.powerToughnessText(power: instance.power.value, toughness: instance.toughness.value,
+                printedPower: "7", printedToughness: "7", damage: instance.markedDamage.value, modifiedColor: .blue)
+            XCTAssertEqual(text.string, damage > 0 ? "7/2" : "7/7")
+            XCTAssertNil(text.attribute(.foregroundColor, at: 0, effectiveRange: nil), "Damage must not recolor power")
+            XCTAssertEqual(text.attribute(.foregroundColor, at: 2, effectiveRange: nil) as? UIColor, damage > 0 ? .systemRed : nil)
+        }
+        try await adapter.project(state(damage: nil), refreshArtwork: false)
+        XCTAssertEqual(adapter.presentation.state.battlefield.value.first?.markedDamage.value, 0, "Older bridges must not retain stale damage")
+        let modified = MiniCardView.powerToughnessText(power: "8", toughness: "9", printedPower: "7", printedToughness: "7", damage: 5, modifiedColor: .blue)
+        XCTAssertEqual(modified.string, "8/4")
+        XCTAssertEqual(modified.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor, .blue)
+        XCTAssertEqual(modified.attribute(.foregroundColor, at: 2, effectiveRange: nil) as? UIColor, .systemRed)
+    }
+
     func testLondonMulliganDoesNotCaptureScryOrOtherLibraryDecisions() throws {
         func prompt(_ text: String, method: String = "GAME_TARGET") throws -> RulesPrompt {
             let json: [String: Any] = ["id": "p", "method": method, "revision": 1, "message": text,

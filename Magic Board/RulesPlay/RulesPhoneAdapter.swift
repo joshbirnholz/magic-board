@@ -718,6 +718,7 @@ final class RulesPhoneAdapter {
             if hasStats, let power = card.power { result.power.accept(power) }
             if hasStats, let toughness = card.toughness { result.toughness.accept(toughness) }
             result.isPowerToughnessVisible.accept(hasStats && (card.power != nil || card.toughness != nil))
+            result.markedDamage.accept(battlefield && hasStats ? max(0, card.damage ?? 0) : 0)
             let counterTypes: [String: Counter] = ["+1/+1": .plusOnePlusOne, "-1/-1": .minusOneMinusOne,
                                                  "loyalty": .loyalty, "lore": .lore, "stun": .stun,
                                                  "shield": .shield, "flying": .flying, "finality": .finality]

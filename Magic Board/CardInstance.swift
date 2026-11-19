@@ -73,6 +73,8 @@ final class CardInstance: NSObject, Codable {
 	
 	let power: BehaviorRelay<String>
 	let toughness: BehaviorRelay<String>
+  /// Engine presentation only; marked damage never changes actual toughness or saved sandbox state.
+  let markedDamage = BehaviorRelay<Int>(value: 0)
   let colors: BehaviorRelay<[MTGColor]>
   
   // TODO: Add isArtifact and isEnchantment
