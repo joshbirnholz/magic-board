@@ -177,3 +177,31 @@ struct RulesPhaseMarkers: View {
             .accessibilityValue(isActive ? (session.snapshot?.step ?? "").replacingOccurrences(of: "_", with: " ").capitalized : "Inactive")
     }
 }
+
+/// Shared phase strip placement. Sandbox uses its manually tracked turn stage;
+/// Rules uses the engine's exact step through the same seven-glyph renderer.
+struct PhonePhaseMarkers: View {
+    @ObservedObject var session: PhoneGameSession
+    let mine: Bool
+    var body: some View {
+        if let engine = session.rulesAdapter?.engine {
+            RulesPhaseMarkers(session: engine, mine: mine)
+        } else {
+            let player = mine ? session.player : session.opponent
+            let active = session.game.turn?.player == player
+            let step: String = {
+                switch session.game.turn?.phase {
+                case .beginning: return "UPKEEP"
+                case .main: return "PRECOMBAT_MAIN"
+                case .combat: return "DECLARE_ATTACKERS"
+                case .ending: return "POSTCOMBAT_MAIN"
+                case nil: return ""
+                }
+            }()
+            RulesPhaseRow(step: step, mine: mine, active: active)
+                .accessibilityIdentifier(mine ? "phone-phase-markers-local" : "phone-phase-markers-opponent")
+                .accessibilityLabel(mine ? "Your phases" : "Opponent's phases")
+                .accessibilityValue(active ? step.replacingOccurrences(of: "_", with: " ").capitalized : "Inactive")
+        }
+    }
+}

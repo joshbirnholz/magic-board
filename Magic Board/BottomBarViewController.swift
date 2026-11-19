@@ -586,7 +586,10 @@ extension BottomBarViewController {
         }
         for (constraint,pile) in zip(phonePileWidths,piles) { constraint.constant = width(for:pile) }
         let lifeContainer = children.first(where: { $0 is LifeTrackerViewController })?.view.superview
-        lifeContainer?.accessibilityIdentifier = isLocal ? "phone-life-local" : "phone-life-opponent"
+        // The board presents the same life relay in the centered circular phone HUD.
+        // Keep this controller bound for the shared model, without a duplicate visible tracker.
+        lifeContainer?.isHidden = true
+        lifeContainer?.accessibilityIdentifier = isLocal ? "phone-life-original-local" : "phone-life-original-opponent"
         if phoneHUDConstraints.isEmpty, let lifeContainer {
             let fixedViews: [UIView] = piles + [lifeContainer, untapButton]
             // Each HUD control fits inside the fixed bar with equal vertical padding.
@@ -611,7 +614,7 @@ extension BottomBarViewController {
                 // The board already keeps the bar clear of the camera (reserved regions); the
                 // bar's own safe area would push the life total in by the whole side inset again.
                 lifeContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
-                untapButton.trailingAnchor.constraint(equalTo: lifeContainer.leadingAnchor, constant: -8)
+                untapButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4)
             ]
             NSLayoutConstraint.activate(phoneHUDConstraints)
             // The storyboard's left-to-right pile row (graveyard, library, exile) and the life total

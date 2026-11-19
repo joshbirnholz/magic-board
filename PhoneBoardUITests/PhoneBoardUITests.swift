@@ -1690,7 +1690,7 @@ final class PhoneBoardUITests: XCTestCase {
         }
     }
 
-    /// The opponent's HUD (life top left, piles top right) comes back unchanged from the background,
+    /// The opponent's HUD (centered life, piles top right) comes back unchanged from the background,
     /// including the size-class change of the snapshot iOS takes there (simulated by the flag).
     @MainActor func testOpponentHUDSurvivesBackgrounding() {
         let app = XCUIApplication()
@@ -1707,7 +1707,7 @@ final class PhoneBoardUITests: XCTestCase {
             let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Opponent HUD \(label)"; shot.lifetime = .keepAlways; add(shot)
             let width = app.windows.firstMatch.frame.width
             XCTAssertLessThan(life.frame.width, width * 0.4, "opponent life too wide \(label)")
-            XCTAssertLessThan(life.frame.midX, width / 2, "opponent life not on the left \(label)")
+            XCTAssertEqual(life.frame.midX, width / 2, accuracy: 2, "opponent life not centered \(label)")
             XCTAssertTrue(graveyard.exists && library.exists, "opponent piles missing \(label)")
             XCTAssertGreaterThan(graveyard.frame.midX, width / 2, "opponent graveyard not on the right \(label)")
             XCTAssertEqual(life.frame, before[0], "opponent life moved \(label)")

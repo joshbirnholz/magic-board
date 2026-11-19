@@ -21,7 +21,6 @@ struct RulesActionStack: View {
                 .accessibilityLabel("Mana pool \(mine.floatingMana)")
                 .accessibilityIdentifier("rules-mana-pool")
             }
-            RulesFastForwardPill(session: session)
             if let title = RulesPhoneAdapter.secondaryButton(prompt: session.prompt, snapshot: session.snapshot) {
                 Button(title) { Task { await adapter.pressSecondary() } }
                     .buttonStyle(RulesArenaButtonStyle(kind: title == "No Attacks" ? .blue : .outline))

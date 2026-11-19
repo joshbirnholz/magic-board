@@ -79,7 +79,10 @@ class BoardViewController: UIViewController {
   /// The banner's vertical position in the gap between the two players' permanents.
   private var rulesBannerCenterY: NSLayoutConstraint?
   /// Rules mode's phase lights beside each life total: local, then opponent.
-  private var rulesPhaseMarkerHosts: [UIHostingController<RulesPhaseMarkers>] = []
+  private var rulesPhaseMarkerHosts: [UIHostingController<PhonePhaseMarkers>] = []
+  private var phoneLifeHosts: [Player.Identifier: UIHostingController<LifeTracker>] = [:]
+  private var rulesFastForwardHost: UIViewController?
+  private var rulesFastForwardConstraints: [NSLayoutConstraint] = []
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
   private var phoneSettingsButton: UIButton?
@@ -2624,15 +2627,6 @@ extension BoardViewController {
         ])
         banner.didMove(toParent: self)
         rulesBannerHost = banner
-        rulesPhaseMarkerHosts = [true, false].map { mine in
-            let markers = UIHostingController(rootView: RulesPhaseMarkers(session: adapter.engine, mine: mine))
-            markers.view.backgroundColor = .clear
-            markers.view.isUserInteractionEnabled = false
-            addChild(markers)
-            view.addSubview(markers.view)
-            markers.didMove(toParent: self)
-            return markers
-        }
         // Decisions that aren't on the board take over the screen (Arena); the layer hides itself
         // between them so it never swallows touches meant for the board.
         let modal = UIHostingController(rootView: RulesPromptModal(session: adapter.engine,
@@ -2659,6 +2653,12 @@ extension BoardViewController {
         actions.view.translatesAutoresizingMaskIntoConstraints = false
         actions.didMove(toParent: self)
         rulesActionHost = actions
+        let skip = UIHostingController(rootView: RulesFastForwardPill(session: adapter.engine))
+        skip.view.backgroundColor = .clear
+        if #available(iOS 16.0, *) { skip.sizingOptions = .intrinsicContentSize }
+        addChild(skip); view.addSubview(skip.view); skip.didMove(toParent: self)
+        skip.view.translatesAutoresizingMaskIntoConstraints = false
+        rulesFastForwardHost = skip
     }
 
     private func showRulesToast(_ message: String) {
@@ -2699,12 +2699,13 @@ extension BoardViewController {
             return nil
         }
         for (host, mine) in zip(rulesPhaseMarkerHosts, [true, false]) where host.view.superview === view {
-            guard let life = lifeContainer(mine ? "phone-life-local" : "phone-life-opponent"), life.window != nil, !life.isHidden else {
+            let player = mine ? phoneMode?.player : phoneMode?.opponent
+            guard let life = player.flatMap({ phoneLifeHosts[$0]?.view }) ?? lifeContainer(mine ? "phone-life-local" : "phone-life-opponent"), life.window != nil, !life.isHidden else {
                 host.view.isHidden = true; continue
             }
             let lifeFrame = view.convert(life.bounds, from: life)
             let size = host.sizeThatFits(in: CGSize(width: 400, height: 100))
-            let x = mine ? lifeFrame.maxX - size.width : lifeFrame.minX
+            let x = lifeFrame.midX - size.width / 2
             let y = mine ? lifeFrame.minY - size.height - 2 : lifeFrame.maxY + 2
             let frame = CGRect(x: x, y: y, width: size.width, height: size.height).integral
             host.view.isHidden = false
@@ -2756,12 +2757,25 @@ extension BoardViewController {
             // Arena hides the turn controls while the opening hand is being decided.
             actions.isHidden = phoneBrowserMode == .openingHand
         }
+        if let skip = rulesFastForwardHost?.view, let button = localPhoneBar?.untapButton, button.window != nil {
+            if rulesFastForwardConstraints.isEmpty {
+                rulesFastForwardConstraints = [skip.trailingAnchor.constraint(equalTo: button.leadingAnchor, constant: -8),
+                                               skip.centerYAnchor.constraint(equalTo: button.centerYAnchor)]
+                NSLayoutConstraint.activate(rulesFastForwardConstraints)
+            }
+            skip.isHidden = phoneBrowserMode == .openingHand
+            view.bringSubviewToFront(skip)
+        }
         // The open hand draws over the turn controls and prompt strip (as on Arena); decisions that
         // take over the screen stay above it.
         if localPhoneBar?.handViewController?.phonePresentation.isExpanded == true,
            let hand = localPhoneBar?.handContainerView, hand.superview === view {
             view.bringSubviewToFront(hand)
             if let preview = phoneDragPreview { view.bringSubviewToFront(preview) }
+        }
+        if localPhoneBar?.handViewController?.phonePresentation.isExpanded != true {
+            for host in phoneLifeHosts.values { view.bringSubviewToFront(host.view) }
+            positionRulesPhaseMarkers()
         }
         if let modal = rulesModalHost?.view, modal.superview === view { view.bringSubviewToFront(modal) }
     }
@@ -2885,6 +2899,15 @@ extension BoardViewController {
         setNeedsUpdateOfHomeIndicatorAutoHidden()
         if !view.interactions.contains(where: { $0 is UIDropInteraction }) {
             view.addInteraction(UIDropInteraction(delegate: self))
+        }
+        if rulesPhaseMarkerHosts.isEmpty {
+            rulesPhaseMarkerHosts = [true, false].map { mine in
+                let host = UIHostingController(rootView: PhonePhaseMarkers(session: session, mine: mine))
+                host.view.backgroundColor = .clear
+                host.view.isUserInteractionEnabled = false
+                addChild(host); view.addSubview(host.view); host.didMove(toParent: self)
+                return host
+            }
         }
         session.onUpdate = { [weak self] in self?.refreshPhoneBoard() }
         session.$error.compactMap { $0 }.sink { [weak self, weak session] message in
@@ -4300,6 +4323,7 @@ extension BoardViewController {
         guard let session = phoneMode else { return nil }
         switch target {
         case .player(let player):
+            if let life = phoneLifeHosts[player]?.view { return life.convert(life.bounds, to: view) }
             guard let bar = [bottomBarA, bottomBarB].compactMap({ $0 }).first(where: { $0.player.identifier == player }),
                   let life = bar.children.first(where: { $0 is LifeTrackerViewController })?.view else { return nil }
             return life.convert(life.bounds, to: view)
@@ -5414,6 +5438,39 @@ extension BoardViewController {
         if #available(iOS 16.4, *) { hand.safeAreaRegions = [] }
     }
 
+    private func layoutPhoneLifeOverlays() {
+        guard let session = phoneMode else { return }
+        let diameter = min(68, max(42, min(view.bounds.width, view.bounds.height) * 0.12))
+        for bar in [bottomBarA, bottomBarB].compactMap({ $0 }) {
+            guard let tracker = bar.children.first(where: { $0 is LifeTrackerViewController }) as? LifeTrackerViewController,
+                  let value = tracker.value else { continue }
+            let player = bar.player.identifier
+            let mine = player == session.player
+            let host = phoneLifeHosts[player] ?? {
+                let host = UIHostingController(rootView: LifeTracker(life: value,
+                    showsMarks: mine && session.mode != .rules, showsChanges: true, circular: true))
+                host.view.backgroundColor = .clear
+                if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+                host.view.layer.borderColor = UIColor.white.withAlphaComponent(0.65).cgColor
+                host.view.layer.borderWidth = 1.5
+                host.view.layer.shadowColor = UIColor.black.cgColor
+                host.view.layer.shadowOpacity = 0.65
+                host.view.layer.shadowRadius = 4
+                addChild(host); view.addSubview(host.view); host.didMove(toParent: self)
+                phoneLifeHosts[player] = host
+                return host
+            }()
+            let y = mine ? view.bounds.maxY - diameter * 1.25 : max(4, view.safeAreaInsets.top + 2)
+            host.view.frame = CGRect(x: view.bounds.midX - diameter / 2, y: y, width: diameter, height: diameter)
+            host.view.layer.cornerRadius = diameter / 2
+            host.view.isUserInteractionEnabled = mine && session.mode != .rules
+            host.view.accessibilityIdentifier = mine ? "phone-life-local" : "phone-life-opponent"
+            host.view.accessibilityValue = String(value.value)
+            view.bringSubviewToFront(host.view)
+        }
+        positionRulesPhaseMarkers()
+    }
+
     private func layoutPhoneHandOverlay() {
         adoptPhoneHandContainer()
         guard let bar = localPhoneBar, let hand = bar.handViewController,
@@ -5433,6 +5490,7 @@ extension BoardViewController {
             if let preview = phoneDragPreview { view.bringSubviewToFront(preview) }
             // Hand layout also runs independently after battlefield layout. Keep the Rules
             // overlay above its transparent hit area; this is a no-op in normal Phone Play.
+            layoutPhoneLifeOverlays()
             positionRulesPrompt()
         }
         if container.frame != frame { container.frame = frame }

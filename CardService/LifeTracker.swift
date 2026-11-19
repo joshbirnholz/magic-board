@@ -59,6 +59,8 @@ struct LifeTracker: View {
   var showsMarks = true
   /// Arena's life-change feedback (Rules games): the box flashes red or green and the change floats up.
   var showsChanges = false
+  /// Compact centered phone HUD; the classic board retains its rectangular tracker.
+  var circular = false
   
   var body: some View {
     ZStack {
@@ -98,11 +100,11 @@ struct LifeTracker: View {
     }
 //    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
     
-    .cornerRadius(15)
+    .clipShape(RoundedRectangle(cornerRadius: circular ? 1000 : 15))
     // Phone Play positions the tracker explicitly; fill that frame exactly on every device.
      .transaction { if AppDelegate.shared.usesPhoneSession { $0.animation = nil } }
      // After the transaction above, so its animation-off rule doesn't reach the feedback.
-     .overlay { if showsChanges { LifeChangeFeedback(value: life.value) } }
+     .overlay { if showsChanges { LifeChangeFeedback(value: life.value, circular: circular) } }
 
   }
 }
@@ -111,6 +113,7 @@ struct LifeTracker: View {
 /// the box and the amount floating up out of it.
 struct LifeChangeFeedback: View {
   let value: Int
+  var circular = false
   @State private var last: Int?
   @State private var delta = 0
   @State private var shown = false
@@ -119,11 +122,12 @@ struct LifeChangeFeedback: View {
 
   var body: some View {
     GeometryReader { proxy in
+      let radius = circular ? min(proxy.size.width, proxy.size.height) / 2 : 15
       let color = delta < 0 ? Color(red: 1, green: 0.3, blue: 0.25) : Color(red: 0.35, green: 0.95, blue: 0.45)
       ZStack {
-        RoundedRectangle(cornerRadius: 15)
+        RoundedRectangle(cornerRadius: radius)
           .strokeBorder(color, lineWidth: 3)
-          .background(RoundedRectangle(cornerRadius: 15).fill(color.opacity(0.25)))
+          .background(RoundedRectangle(cornerRadius: radius).fill(color.opacity(0.25)))
           .shadow(color: color, radius: 6)
           .opacity(shown ? 1 : 0)
         Text(delta > 0 ? "+\(delta)" : "\(delta)")
