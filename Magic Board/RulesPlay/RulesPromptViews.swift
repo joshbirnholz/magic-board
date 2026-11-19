@@ -460,7 +460,10 @@ struct RulesPromptModal: View {
             }
             ScrollView {
                 VStack(spacing: 10) {
-                    ForEach(prompt.choices.filter { choiceSearch.isEmpty || $0.label.localizedCaseInsensitiveContains(choiceSearch) }) { choice in
+                    ForEach(prompt.choices.filter {
+                        !(prompt.canCancel == true && RulesText.plain($0.label).trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "cancel")
+                            && (choiceSearch.isEmpty || $0.label.localizedCaseInsensitiveContains(choiceSearch))
+                    }) { choice in
                         Button { Task { await session.answer(.choice(choice.id)) } } label: {
                             RulesSymbolText(text: RulesText.plain(choice.label), size: 16)
                                 .foregroundStyle(.white)

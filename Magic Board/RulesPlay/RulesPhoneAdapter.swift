@@ -17,6 +17,7 @@ final class RulesPhoneAdapter {
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
+    private var autoChosenPromptID: String?
     private var autoPassTask: Task<Void, Never>?
     /// The scry / surveil cards as the player arranged them in the browser, top of the library
     /// first. XMage then asks for the order of the cards going on top (and on the bottom) one card
@@ -131,6 +132,15 @@ final class RulesPhoneAdapter {
            status == .connected, prompt.supported, let land = Self.autoPayLand(prompt, snapshot: engine.snapshot) {
             autoPassedPromptID = prompt.id
             Task { [weak self] in await self?.engine.answer(.object(land)) }
+        }
+        if let prompt, pending == nil, status == .connected, prompt.supported,
+           prompt.id != autoChosenPromptID, let answer = Self.onlyLegalChoice(prompt) {
+            autoChosenPromptID = prompt.id
+            Task { [weak self] in
+                guard let self, !self.isLeaving, self.engine.prompt?.id == prompt.id,
+                      self.engine.pendingRequest == nil, self.engine.status == .connected else { return }
+                await self.engine.answer(answer)
+            }
         }
         // A land tapped for a payment that left the cost unchanged couldn't pay it (XMage just asks
         // again): say so, instead of the tap seeming to do nothing.
@@ -250,6 +260,26 @@ final class RulesPhoneAdapter {
     }
 
     /// The caption for the step that passing priority (with an empty stack) moves to, e.g. "To Attackers".
+    /// Required singleton targets and already-initiated spell/ability choices have no decision.
+    /// Optional targets, numeric costs, yes/no questions and card-order drafts remain explicit.
+    static func onlyLegalChoice(_ prompt: RulesPrompt) -> RulesAnswer? {
+        guard prompt.supported else { return nil }
+        if prompt.method == "GAME_TARGET", prompt.required == true, !(prompt.min == 0 && (prompt.max ?? 0) > 0),
+           let targets = prompt.targets, targets.count == 1,
+           prompt.selectedIds?.contains(targets[0]) != true {
+            return .object(targets[0])
+        }
+        if prompt.method == "GAME_CHOOSE_ABILITY", prompt.choices.count == 1,
+           let choice = prompt.choices.first, UUID(uuidString: choice.id) != nil {
+            return .choice(choice.id)
+        }
+        if prompt.method == "GAME_CHOOSE_CHOICE", prompt.canCancel != true, prompt.choices.count == 1,
+           let choice = prompt.choices.first, RulesText.plain(choice.label).lowercased() != "cancel" {
+            return .choice(choice.id)
+        }
+        return nil
+    }
+
     static func nextStep(after step: String?, attacked: Bool) -> String? {
         switch step ?? "" {
         case "UNTAP": return "To Upkeep"

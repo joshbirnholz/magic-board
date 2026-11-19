@@ -782,6 +782,27 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(printed.oracleText, "Printed text")
     }
 
+    func testOnlyLegalChoiceAnswersRequiredSingletonsButKeepsOptionalDecisions() throws {
+        func prompt(method: String = "GAME_TARGET", required: Bool = true, minimum: Int? = nil, maximum: Int? = nil, targets: [String] = ["opponent"], choices: [[String: String]] = [], cancel: Bool = false) throws -> RulesPrompt {
+            var json: [String: Any] = ["id": "one", "method": method, "revision": 1, "supported": true,
+                                      "required": required, "targets": targets, "choices": choices, "canCancel": cancel]
+            if let minimum { json["min"] = minimum }
+            if let maximum { json["max"] = maximum }
+            return try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: json))
+        }
+        guard case .object("opponent")? = RulesPhoneAdapter.onlyLegalChoice(try prompt()) else { return XCTFail("Choose the only opponent") }
+        XCTAssertNil(RulesPhoneAdapter.onlyLegalChoice(try prompt(required: false)))
+        guard case .object("opponent")? = RulesPhoneAdapter.onlyLegalChoice(try prompt(minimum: 0)) else { return XCTFail("XMage defaults unused target min/max fields to zero") }
+        XCTAssertNil(RulesPhoneAdapter.onlyLegalChoice(try prompt(minimum: 0, maximum: 1)))
+        XCTAssertNil(RulesPhoneAdapter.onlyLegalChoice(try prompt(targets: ["one", "two"])))
+        XCTAssertNil(RulesPhoneAdapter.onlyLegalChoice(try prompt(method: "GAME_ASK")))
+        let id = UUID().uuidString
+        let ability = try prompt(method: "GAME_CHOOSE_ABILITY", choices: [["id": id, "label": "Cast Lluwen"]], cancel: true)
+        guard case .choice(let chosen)? = RulesPhoneAdapter.onlyLegalChoice(ability) else { return XCTFail("One cast option should be automatic") }
+        XCTAssertEqual(chosen, id)
+        XCTAssertNil(RulesPhoneAdapter.onlyLegalChoice(try prompt(method: "GAME_CHOOSE_CHOICE", choices: [["id": "no", "label": "Cancel"]], cancel: true)))
+    }
+
     func testCurrentKeywordMetadataReplacesPrintedKeywordsAndExpires() throws {
         let printed = try RulesPhoneAdapter.placeholder(name: "Tonberry", typeLine: "Creature — Tonberry", rules: "During your turn, this creature has first strike and deathtouch.")
         func current(_ keywords: [String]) throws -> MTGCard {
