@@ -670,6 +670,9 @@ extension BottomBarViewController {
         }
         let status = phase == .opponentsCombat || phase == .opponentsTurn
         let rulesSession = AppDelegate.shared.phoneSession.flatMap { $0.mode == .rules ? $0 : nil }
+        // Keep/Mulligan/Return in the opening-hand browser own this decision. The
+        // disabled generic “Choose” action underneath has nothing to do here.
+        if rulesSession?.game.opening != nil { untapButton.isHidden = true }
         if let rulesSession, isLocal {
             configureRulesMainButton(rulesSession.rulesPrimaryLabel, enabled: rulesSession.rulesPrimaryEnabled, height: controlHeight)
         } else {

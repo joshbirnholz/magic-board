@@ -39,6 +39,7 @@ final class RulesDiscardUITests: XCTestCase {
         }
         let app = try await openFixture(address, opening: true)
         defer { app.terminate() }
+        XCTAssertFalse(app.buttons["Choose"].exists, "The opening-hand browser owns this decision")
         app.buttons["Mulligan"].tap()
         XCTAssertTrue(app.buttons["Keep 6"].waitForExistence(timeout: 5))
         app.buttons["Mulligan"].tap()
