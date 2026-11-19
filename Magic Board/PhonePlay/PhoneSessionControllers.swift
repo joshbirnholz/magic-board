@@ -1008,7 +1008,9 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
 
     /// A Rules card choice: taps draft a selection, and Confirm submits this engine callback.
     /// Scry/surveil retain their own Done/order flow.
-    func configureChoice(title: String, subtitle: String?, confirm: Bool = false, confirmEnabled: Bool = false) {
+    func configureChoice(title: String, subtitle: String?, confirm: Bool = false, confirmEnabled: Bool = false,
+                         split: (left: String, right: String)? = nil) {
+        setSplit(split)
         configureOpening(title: title, subtitle: subtitle, done: confirm ? "Confirm" : nil, secondary: nil, secondaryCaption: nil, returnZone: false)
         doneButton.isEnabled = confirmEnabled
         doneButton.alpha = confirmEnabled ? 1 : 0.45
@@ -1027,15 +1029,137 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     /// Dims cards that can't be chosen (darkened, not see-through) and rims the chosen ones.
     func setChoiceStates(selectable: Set<UUID>, selected: Set<UUID>, identifiers: [UUID: String]) {
         choiceSelectable = selectable
+        let moved = choiceSelected != selected
         choiceSelected = selected
         choiceIdentifiers = identifiers
         applyChoiceStates()
+        // Scry / surveil: a chosen card moves to the left pile.
+        if moved, splitLabels != nil, lifted == nil { layoutCards(animated: true) }
+    }
+
+    // MARK: Scry / surveil piles (Arena)
+
+    /// Scry / surveil, as on Arena: the chosen cards (put on the bottom, or into the graveyard) fan
+    /// on the left of a framed panel, the rest on the right (staying on top), each pile labelled
+    /// under it. Dragging a card across the middle moves it to the other pile; within a pile the
+    /// leftmost card ends up highest. Nil is the ordinary scrolling fan.
+    private(set) var splitLabels: (left: String, right: String)?
+    private let splitPanel = UIView()
+    private let splitLeftLabel = UILabel()
+    private let splitRightLabel = UILabel()
+    /// While a card is held over the panel: which pile it would join (true: the left one).
+    private var splitTargetLeft: Bool?
+
+    private func setSplit(_ split: (left: String, right: String)?) {
+        let changed = split?.left != splitLabels?.left || split?.right != splitLabels?.right
+        splitLabels = split
+        guard changed else { return }
+        if splitPanel.superview == nil {
+            splitPanel.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+            splitPanel.layer.cornerRadius = 6
+            splitPanel.layer.borderWidth = 1
+            splitPanel.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
+            splitPanel.isUserInteractionEnabled = false
+            insertSubview(splitPanel, belowSubview: scrollView)
+            for (label, identifier) in [(splitLeftLabel, "phone-browser-split-left"), (splitRightLabel, "phone-browser-split-right")] {
+                let font = UIFont(name: "Beleren2016-Bold", size: 22) ?? .boldSystemFont(ofSize: 22)
+                let descriptor = font.fontDescriptor.withSymbolicTraits([.traitItalic, .traitBold]) ?? font.fontDescriptor
+                label.font = UIFont(descriptor: descriptor, size: 22)
+                label.textColor = .white
+                label.textAlignment = .center
+                label.layer.shadowColor = UIColor.black.cgColor
+                label.layer.shadowOpacity = 0.8
+                label.layer.shadowRadius = 3
+                label.layer.shadowOffset = .zero
+                label.accessibilityIdentifier = identifier
+                addSubview(label)
+            }
+        }
+        splitLeftLabel.text = split?.left.uppercased()
+        splitRightLabel.text = split?.right.uppercased()
+        for view in [splitPanel, splitLeftLabel, splitRightLabel] { view.isHidden = split == nil }
+        scrollView.isScrollEnabled = split == nil
+        scrollView.alwaysBounceHorizontal = split == nil
+        setNeedsLayout()
+    }
+
+    /// The two piles, in display order, without the lifted card (it joins `splitTargetLeft`'s pile
+    /// at `gapIndex` while held).
+    private func splitPiles() -> (left: [CardInstance], right: [CardInstance]) {
+        let others = cards.filter { $0.uuid != lifted?.card.uuid }
+        var left = others.filter { choiceSelected.contains($0.uuid) }
+        var right = others.filter { !choiceSelected.contains($0.uuid) }
+        if let lifted, let toLeft = splitTargetLeft {
+            if toLeft { left.insert(lifted.card, at: min(gapIndex ?? left.count, left.count)) }
+            else { right.insert(lifted.card, at: min(gapIndex ?? right.count, right.count)) }
+        }
+        return (left, right)
+    }
+
+    /// Card offset within a pile (as a fraction of a card's width).
+    private static let splitOverlap: CGFloat = 0.3
+    /// Gap between the two piles (as a fraction of a card's width).
+    private static let splitGap: CGFloat = 0.9
+
+    private func layoutSplit(animated: Bool) {
+        let size = cardSize
+        let (left, right) = splitPiles()
+        scrollView.contentSize = scrollView.bounds.size
+        scrollView.contentOffset = .zero
+        let step = size.width * Self.splitOverlap, gap = size.width * Self.splitGap
+        let midX = bounds.midX
+        func pileWidth(_ count: Int) -> CGFloat { size.width + step * CGFloat(max(0, count - 1)) }
+        let y = 10 + size.height / 2
+        var centers: [UUID: (CGPoint, CGFloat)] = [:]
+        // The left pile ends at the middle; the right one starts there. Cards further back tilt a
+        // little more, as Arena's stacked fan.
+        let leftStart = midX - gap / 2 - pileWidth(left.count) + size.width / 2
+        for (index, card) in left.enumerated() {
+            let depth = CGFloat(left.count - 1 - index)
+            centers[card.uuid] = (CGPoint(x: leftStart + step * CGFloat(index), y: y + depth * 3), -0.035 * depth)
+        }
+        let rightStart = midX + gap / 2 + size.width / 2
+        for (index, card) in right.enumerated() {
+            let depth = CGFloat(right.count - 1 - index)
+            centers[card.uuid] = (CGPoint(x: rightStart + step * CGFloat(index), y: y + depth * 3), -0.035 * depth)
+        }
+        let panelWidth = min(bounds.width - 16, max(pileWidth(max(1, left.count)), pileWidth(max(1, right.count))) * 2 + gap + 40)
+        splitPanel.frame = CGRect(x: midX - panelWidth / 2, y: scrollView.frame.minY - 4, width: panelWidth, height: size.height + 26)
+        let labelY = splitPanel.frame.maxY + 2
+        splitLeftLabel.frame = CGRect(x: midX - gap / 2 - 220, y: labelY, width: 220, height: 30)
+        splitRightLabel.frame = CGRect(x: midX + gap / 2, y: labelY, width: 220, height: 30)
+        splitLeftLabel.center.x = left.isEmpty ? midX - gap / 2 - size.width / 2 : leftStart + (pileWidth(left.count) - size.width) / 2
+        splitRightLabel.center.x = right.isEmpty ? rightStart : rightStart + (pileWidth(right.count) - size.width) / 2
+        let changes = {
+            for card in left + right {
+                guard let view = self.cardViews[card.uuid], view !== self.lifted?.view, let (center, angle) = centers[card.uuid] else { continue }
+                view.transform = .identity
+                view.bounds = CGRect(origin: .zero, size: size)
+                view.cornerRadius = size.width * 0.045
+                view.center = center
+                view.transform = CGAffineTransform(rotationAngle: angle)
+                self.scrollView.bringSubviewToFront(view)
+            }
+        }
+        hiddenCount.isHidden = true
+        track.isHidden = true; thumb.isHidden = true
+        if animated { UIView.animate(withDuration: 0.18, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction], animations: changes) } else { changes() }
+    }
+
+    /// Which pile, and where in it, a card held at `point` would go; nil off the panel.
+    private func splitDrop(at point: CGPoint) -> (left: Bool, index: Int)? {
+        guard scrollView.frame.insetBy(dx: 0, dy: -40).contains(point) else { return nil }
+        let toLeft = point.x < bounds.midX
+        let (left, right) = splitPiles()
+        let pile = (toLeft ? left : right).filter { $0.uuid != lifted?.card.uuid }
+        let x = convert(point, to: scrollView).x
+        return (toLeft, pile.filter { (cardViews[$0.uuid]?.center.x ?? 0) < x }.count)
     }
     private func applyChoiceStates() {
         guard let selectable = choiceSelectable else { return }
         for (id, view) in cardViews {
             view.isDimmed = !selectable.contains(id) && !choiceSelected.contains(id)
-            view.isHighlighted = choiceSelected.contains(id)
+            view.isHighlighted = splitLabels == nil && choiceSelected.contains(id)
             if choiceSelected.contains(id) { view.accessibilityTraits.insert(.selected) }
             else { view.accessibilityTraits.remove(.selected) }
             if let identifier = choiceIdentifiers[id] { view.accessibilityIdentifier = identifier }
@@ -1325,6 +1449,16 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     private var cardSize: CGSize {
         // Fills the space the controls leave (bigger on large screens), within the width too.
         var height = min(fanArea.height * 0.86, 460, bounds.width * 0.42 * 88 / 63)
+        if splitLabels != nil {
+            // Room for the pile labels below, and both piles side by side across the panel.
+            height = min(fanArea.height * 0.72, 420)
+            let selected = cards.filter { choiceSelected.contains($0.uuid) }.count
+            let widest = CGFloat(max(1, selected, cards.count - selected))
+            let units = 2 * (1 + Self.splitOverlap * (widest - 1)) + Self.splitGap
+            let safe = safeAreaInsets
+            let available = bounds.width - max(24, safe.left + 12) - max(24, safe.right + 12) - 40
+            height = min(height, available / units * 88 / 63)
+        }
         if isOpeningHand, cards.count > 0 {
             // The whole hand fits across, without scrolling.
             let safe = safeAreaInsets
@@ -1386,6 +1520,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     }
 
     private func layoutCards(animated: Bool) {
+        if splitLabels != nil { layoutSplit(animated: animated); return }
         let size = cardSize
         var order = cards.filter { $0.uuid != lifted?.card.uuid }
         if let gapIndex, let lifted { order.insert(lifted.card, at: min(gapIndex, order.count)) }
@@ -1433,6 +1568,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
 
     /// Arena's arc: cards tilt and dip away from the middle of the visible window.
     private func applyFan() {
+        guard splitLabels == nil else { return }
         let middle = scrollView.contentOffset.x + scrollView.bounds.width / 2
         for view in cardViews.values where view !== lifted?.view {
             let position = (view.center.x - middle) / max(1, scrollView.bounds.width / 2)
@@ -1490,7 +1626,14 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             view.center = center
             lifted = (card, view, CGPoint(x: center.x - point.x, y: center.y - point.y))
             onLiftChanged?(true)
-            gapIndex = cards.firstIndex { $0.uuid == card.uuid }
+            if splitLabels != nil {
+                let toLeft = choiceSelected.contains(card.uuid)
+                splitTargetLeft = toLeft
+                gapIndex = cards.filter { $0.uuid != card.uuid && choiceSelected.contains($0.uuid) == toLeft }
+                    .firstIndex { (cardViews[$0.uuid]?.center.x ?? 0) > view.center.x } ?? cards.filter { $0.uuid != card.uuid && choiceSelected.contains($0.uuid) == toLeft }.count
+            } else {
+                gapIndex = cards.firstIndex { $0.uuid == card.uuid }
+            }
             UIImpactFeedbackGenerator(style: .medium).impactOccurred(intensity: 0.9)
             UIView.animate(withDuration: 0.15) { view.transform = CGAffineTransform(scaleX: 1.08, y: 1.08) }
             view.isHighlighted = true
@@ -1509,6 +1652,16 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             }
             setBattlefieldHighlighted(destination == .battlefield || (returnZone && destination == .library))
             showDropLabel(for: destination, above: lifted.view)
+            if splitLabels != nil {
+                if destination == nil, let drop = splitDrop(at: point), drop.left != splitTargetLeft || drop.index != gapIndex {
+                    splitTargetLeft = drop.left
+                    gapIndex = drop.index
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.7)
+                    layoutCards(animated: true)
+                }
+                liftedPoint = point
+                return
+            }
             let newGap = destination == nil && scrollView.frame.insetBy(dx: 0, dy: -30).contains(point) ? insertionIndex(at: point) : gapIndex
             if newGap != gapIndex {
                 gapIndex = newGap
@@ -1543,6 +1696,34 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
                 gapIndex = nil
                 layoutCards(animated: true)
                 onMove?(card, destination)
+            } else if splitLabels != nil {
+                // Into the pile it was held over: across the middle chooses (or un-chooses) it.
+                let card = lifted.card
+                let wasLeft = choiceSelected.contains(card.uuid)
+                let toLeft = splitTargetLeft ?? wasLeft
+                let canMove = choiceSelectable?.contains(card.uuid) != false && onTapCard != nil
+                if toLeft != wasLeft, !canMove { gapIndex = nil; splitTargetLeft = wasLeft }
+                let (left, right) = splitPiles()
+                let center = convert(lifted.view.center, to: scrollView)
+                scrollView.addSubview(lifted.view)
+                lifted.view.center = center
+                var newLeft = left.filter { $0.uuid != card.uuid }, newRight = right.filter { $0.uuid != card.uuid }
+                let side = splitTargetLeft ?? wasLeft
+                if side { newLeft.insert(card, at: min(gapIndex ?? newLeft.count, newLeft.count)) }
+                else { newRight.insert(card, at: min(gapIndex ?? newRight.count, newRight.count)) }
+                let order = newLeft + newRight
+                let reordered = order.map(\.uuid) != cards.map(\.uuid)
+                cards = order
+                gapIndex = nil
+                splitTargetLeft = nil
+                if side != wasLeft {
+                    // Shown in its new pile at once; the engine's answer confirms it.
+                    if side { choiceSelected.insert(card.uuid) } else { choiceSelected.remove(card.uuid) }
+                    applyChoiceStates()
+                }
+                layoutCards(animated: true)
+                if reordered { onReorder?(cards) }
+                if side != wasLeft { onTapCard?(card) }
             } else {
                 // Back into the fan, at the gap it was held over.
                 let center = convert(lifted.view.center, to: scrollView)
@@ -1577,7 +1758,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             if gap != externalGap { externalGap = gap; layoutCards(animated: true) }
             return
         }
-        guard let point = liftedPoint, lifted != nil, destination(at: point) == nil else { return }
+        guard splitLabels == nil, let point = liftedPoint, lifted != nil, destination(at: point) == nil else { return }
         let zone: CGFloat = 70
         let speed: CGFloat
         if point.x < zone { speed = -(zone - point.x) / zone * 18 }

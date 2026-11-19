@@ -727,8 +727,8 @@ final class RulesPhoneAdapter {
             case .choose: prompt.plainMessage
             }
             let hint: String? = switch kind {
-            case .scry: "Drag cards to the bottom of your library (or tap them). Drag to reorder: the leftmost ends up on top."
-            case .surveil: "Drag cards to your graveyard (or tap them). Drag to reorder: the leftmost ends up on top."
+            case .scry: "Drag cards to put them on the top or bottom of your library. The leftmost card of each pile ends up highest."
+            case .surveil: "Drag cards to put them in your graveyard or on top of your library. The leftmost card on top ends up highest."
             case .choose: nil
             }
             // A new scry / surveil starts in XMage's order (top first); a rearrangement is kept

@@ -4884,7 +4884,9 @@ extension BoardViewController {
         guard let browser = phoneBrowser, phoneBrowserMode == .rulesChoice else { return }
         browser.configureChoice(title: choice.title, subtitle: choice.subtitle,
                                 confirm: choice.kind == .choose,
-                                confirmEnabled: session.rulesAdapter?.canConfirmBrowserChoice == true)
+                                confirmEnabled: session.rulesAdapter?.canConfirmBrowserChoice == true,
+                                // Arena's scry / surveil: the chosen cards on the left, the rest on top.
+                                split: choice.kind == .scry ? ("Bottom", "Top") : choice.kind == .surveil ? ("Graveyard", "Top") : nil)
         browser.onDone = { session.rulesAdapter.map { adapter in Task { await adapter.confirmBrowserChoice() } } }
         browser.setChoiceStates(selectable: choice.selectable, selected: choice.selected,
                                 identifiers: Dictionary(uniqueKeysWithValues: choice.cardIDs.map { ($0, "rules-prompt-card-\($0.uuidString.lowercased())") }))
