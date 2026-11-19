@@ -26,6 +26,9 @@ final class RulesGameSession: ObservableObject {
     /// this cost with basic lands, not just one mana (Josh). Ends when the cost is paid or no basic
     /// land can pay what's left (see RulesPhoneAdapter.updateStatus).
     var payingCostAutomatically = false
+    /// Table discovery shares request acknowledgements, but isn't a game-start operation.
+    private var pendingCommandType: String?
+    var isPerformingGameAction: Bool { pendingRequest != nil && pendingCommandType != "listTables" }
     private var socket: URLSessionWebSocketTask?
     private var connectionTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
@@ -233,6 +236,7 @@ final class RulesGameSession: ObservableObject {
 
     private func submit(_ command: RulesCommand) async {
         guard status == .connected, let socket, pendingRequest == nil else { return }
+        pendingCommandType = command.type
         pendingRequest = command.requestId
         let generation = self.generation
         do {

@@ -66,7 +66,9 @@ struct RulesConnectionView: View {
                             .disabled(session.pendingRequest != nil)
                             .accessibilityIdentifier("rules-create-human")
                     }
-                    if session.pendingRequest != nil { ProgressView("Working…") }
+                    // Waiting-game polling is background maintenance, not reconnecting or
+                    // starting a game. Don't insert/remove a progress row every three seconds.
+                    if session.isPerformingGameAction { ProgressView("Working…") }
                     Button("Disconnect") { session.disconnect() }
                 } else {
                     Button(session.hasRetainedSession ? "Reconnect" : "Connect") { session.connect(address: address, key: key) }

@@ -4,6 +4,8 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 
 ## Evening follow-up (November 18)
 
+Connected-lobby spinner: table polling every3s now stays quiet; real connection/start-game progress remains visible. `pendingCommandType` separates discovery from game actions; all46 Rules units pass (`/private/tmp/rules-lobby-progress-unit.log`). Verified bridge bundle is rebuilt locally at7c8a03e, but PC had2 active bridge connections at20:54, so **no deployment/restart**. New target-card metadata is still pending server deployment.
+
 All new reports, including explicit summoning sickness, combat lunges, Arena speed reference and WSS port normalization, are in `Docs/RulesModeRequests.md` (R01–R24). Remaining animation/status/selection work is open there.
 
 - Off-board targets: legal UUID-only prompts now resolve against this seat’s own hand and both public graveyards/exiles. Unknown/mixed battlefield targets and hidden opponent cards never become browser candidates. Real Pothole Mole, Soul-Shackled Zombie (both graveyards) and Brainstorm probes pass; all425 captured updates decode with current Swift types. Optional `prompt.targetZone` is available. **Brainstorm really asks one card at a time**, with min/max defaulting0; do not infer a multi-selection count from that. Local tap-toggle/Confirm UX now passes the independent-observer UI check (zero answers after selecting/deselecting, exactly one after Confirm); required callbacks remain one card at a time. Scry/surveil retain their existing reversible ordering flow. All46 Rules units + eligibility/confirmation UI pass: `/private/tmp/rules-confirmed-browser-choice.log`.
