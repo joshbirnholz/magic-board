@@ -39,6 +39,12 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(keep.waitForExistence(timeout: 15), app.debugDescription)
         keep.tap()
         XCTAssertTrue(app.descendants(matching: .any)["phone-hand-0"].waitForExistence(timeout: 15), "The engine opening hand should appear in Phone Play's card fan")
+        // Phase lights sit by each life total; only the active player's row shows a phase.
+        let localPhases = app.descendants(matching: .any)["rules-phase-markers-local"]
+        let opponentPhases = app.descendants(matching: .any)["rules-phase-markers-opponent"]
+        XCTAssertTrue(localPhases.waitForExistence(timeout: 5) && opponentPhases.exists, app.debugDescription)
+        let lit = [localPhases, opponentPhases].filter { ($0.value as? String) != "Inactive" }
+        XCTAssertEqual(lit.count, 1, "\(localPhases.value ?? "") / \(opponentPhases.value ?? "")")
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Rules mode — shared Phone Play interface"
         screenshot.lifetime = .keepAlways
