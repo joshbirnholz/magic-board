@@ -1,5 +1,6 @@
 import SwiftUI
 import CardService
+import CardView
 
 // Rules mode prompts, styled after MTG Arena:
 // - Playing on the board (priority, paying mana, picking targets on the battlefield) keeps the board
@@ -613,7 +614,14 @@ struct RulesChoiceCardFace: View {
     var body: some View {
         VStack(spacing: 4) {
             if let instance {
-                PhoneHandCardFace(card: instance, height: height, faceDown: card.faceDown)
+                if card.ability == true, !card.faceDown {
+                    PhoneAbilityPanel(source: instance,
+                                      text: RulesText.cardRules(card.rules ?? "", name: card.name, typeLine: card.typeLine),
+                                      width: height * MTGCardView.AbilityLayout.aspect)
+                        .accessibilityIdentifier("rules-trigger-ability-face")
+                } else {
+                    PhoneHandCardFace(card: instance, height: height, faceDown: card.faceDown)
+                }
             } else {
                 RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.25)).frame(width: height * 63 / 88, height: height)
             }

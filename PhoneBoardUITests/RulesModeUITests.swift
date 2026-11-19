@@ -357,6 +357,10 @@ final class RulesModeUITests: XCTestCase {
         let choices = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'rules-prompt-card-'"))
         XCTAssertTrue(choices.firstMatch.waitForExistence(timeout: 8))
         XCTAssertEqual(choices.count, 2)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = "Trigger choices rendered as stack ability cards"
+        attachment.lifetime = .keepAlways
+        add(attachment)
         choices.element(boundBy: 0).tap()
         expectation(for: NSPredicate(format: "label CONTAINS 'No'"), evaluatedWith: app.buttons["phone-untap-local"])
         waitForExpectations(timeout: 8)
