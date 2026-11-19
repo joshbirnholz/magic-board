@@ -3199,15 +3199,10 @@ extension BoardViewController {
         // Identical non-land permanents are laid out one by one when that fits without shrinking
         // the cards or paging a row; otherwise (or for 5+ copies) they stack. Lands keep their stacking.
         var splitDuplicates = false
-        // Reserve the instruction's actual height between the two rows in Rules games. A wrapped
-        // crew/target restriction needs more room than “Choose blockers.”; sandbox layout is unchanged.
-        var instructionGap: CGFloat = 4
-        if session.rulesAdapter?.engine.prompt?.boardBannerText != nil, let banner = rulesBannerHost?.view {
-            let width = max(1, view.safeAreaLayoutGuide.layoutFrame.width - 24)
-            let size = banner.systemLayoutSizeFitting(CGSize(width: width, height: 0),
-                withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
-            instructionGap = max(4, size.height + 8)
-        }
+        // Keep the Rules instruction lane reserved even with no prompt. Prompt updates must
+        // never move or resize permanents; sandbox keeps its existing spacing.
+        let instructionGap: CGFloat = session.mode == .rules
+            ? UIFont.preferredFont(forTextStyle: .headline).lineHeight * 2 + 12 : 4
         func groups(for player: Player.Identifier, row: PhoneBattlefieldLayout.Row, ignoringTapped: Bool = false) -> [PhoneCardGroup] {
             func visible(_ groups: [PhoneCardGroup]) -> [PhoneCardGroup] {
                 groups.filter {
@@ -3670,6 +3665,8 @@ extension BoardViewController {
 
     @objc private func phoneStackPanned(_ pan: UIPanGestureRecognizer) {
         guard let session = phoneMode else { return }
+        // Rules targets belong to the engine, including objects controlled by the opponent.
+        guard session.mode != .rules else { endPhoneStackDrag(); return }
         let point = pan.location(in: view)
         switch pan.state {
         case .began:

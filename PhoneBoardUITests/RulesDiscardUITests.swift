@@ -85,10 +85,40 @@ final class RulesDiscardUITests: XCTestCase {
         let linked = expectation(for: NSPredicate(format: "value CONTAINS '1 ability source connections'"), evaluatedWith: stack)
         await fulfillment(of: [linked], timeout: 5)
         XCTAssertTrue((stack.value as? String)?.contains("0 target connections") == true, "Source arrows are not target arrows")
+        let origin = stack.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let creature = app.buttons.matching(identifier: "phone-creature-card").firstMatch
+        XCTAssertTrue(creature.exists)
+        origin.press(forDuration: 0.1, thenDragTo: creature.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        XCTAssertTrue((stack.value as? String)?.contains("0 target connections") == true,
+                      "Dragging a Rules stack object must not create an editable targeting line")
+        XCTAssertTrue((stack.value as? String)?.contains("1 ability source connections") == true)
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "White arrow from Ahriman to its stack ability"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    @MainActor func testPromptAppearanceDoesNotMoveOrResizePermanents() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/stable")
+        defer { app.terminate() }
+        let cards = app.buttons.matching(identifier: "phone-creature-card")
+        XCTAssertTrue(cards.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["rules-board-banner"].exists)
+        let before = cards.allElementsBoundByIndex.map(\.frame)
+        XCTAssertEqual(before.count, 3)
+        app.buttons["phone-untap-local"].tap()
+        XCTAssertTrue(app.staticTexts["rules-board-banner"].waitForExistence(timeout: 5))
+        let after = cards.allElementsBoundByIndex.map(\.frame)
+        XCTAssertEqual(before.count, after.count)
+        for (old, new) in zip(before, after) {
+            XCTAssertEqual(old.minX, new.minX, accuracy: 1)
+            XCTAssertEqual(old.minY, new.minY, accuracy: 1)
+            XCTAssertEqual(old.width, new.width, accuracy: 1)
+            XCTAssertEqual(old.height, new.height, accuracy: 1)
+        }
     }
 
     @MainActor func testLongCrewInstructionStaysBetweenTheCardRows() async throws {
