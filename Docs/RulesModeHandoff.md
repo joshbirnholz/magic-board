@@ -6,6 +6,8 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 
 Josh explicitly authorized Codex to cover all Claude work until **Tuesday Nov24 at1:00AM ET**. All edits stay in `/private/tmp/MagicBoard-Rules` on `rules-mode-codex`; Claude's worktree is untouched. **Visual improvements now apply to normal Phone Play as well as Rules mode**, per Josh's new instruction. Preserve sandbox gameplay, free drags, saves and gestures; engine authority stays Rules-only.
 
+**Current PC bridge:** source `ee3888807aff6b07a862535da071fe67b5d9f0af`, PID55724; XMage unchanged43152. ZIP SHA256 `513030d674b020d7845e14e1dae2fc1ebc74e7de0ada58f5c1f88c2e12c0243d`. Source/PIDs/hash verified after existing updater and fresh zero-client check. Latest app commits merged through ee38888.
+
 **Token identity/base stats:** R44 partial fix uses optional engine token/basePower/baseToughness; hidden identity omitted. Named and copied permanents wrap the shared token representation; base stats stay separate from effective power/toughness, so unchanged Darkstar 2/2 is unmodified. Actual Darkstar PermanentView and copy/privacy Java regression pass, plus all60 Rules units `/private/tmp/rules-token-identity-base-swift.log`. Related token art R42 still open; both app/bridge updates needed.
 
 **Marked damage display:** R48 uses transient CardInstance.markedDamage (excluded from saved/network sandbox edits), with Rules projection only for battlefield creatures. Shared mini renderer shows effective toughness minus damage in red; actual toughness unchanged. Zero/missing/negative damage clears and restores normal modified/unmodified color. Focused adapter + attributed-text regression passes `/private/tmp/rules-marked-damage-display.log`.
