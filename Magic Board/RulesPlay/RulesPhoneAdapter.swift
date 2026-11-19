@@ -856,7 +856,7 @@ enum RulesCardCharacteristics {
         var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(printed)) as! [String: Any]
         func apply(to values: inout [String: Any]) {
             if let type = RulesText.typeLine(engine) { values["typeLine"] = type }
-            if let rules = engine.rules { values["oracleText"] = RulesText.cardRules(rules, name: engine.name, typeLine: RulesText.typeLine(engine)); values["keywords"] = [] }
+            if let rules = engine.rules { values["oracleText"] = RulesText.cardRules(rules, name: engine.name, typeLine: RulesText.typeLine(engine)); values["keywords"] = engine.keywords ?? [] }
             if let mana = engine.manaCost { values["manaCost"] = mana }
             if let colors = engine.colors { values["colors"] = colors }
         }

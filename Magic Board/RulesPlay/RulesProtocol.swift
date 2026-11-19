@@ -47,6 +47,8 @@ struct RulesCard: Decodable, Identifiable, Equatable {
     var sourceId: String? = nil
     /// Chosen X reported by XMage's variable-cost metadata; zero is meaningful, nil is unknown.
     var chosenX: Int? = nil
+    /// Current keyword abilities from engine permanent icons, including gained abilities.
+    var keywords: [String]? = nil
     let counters: [Counter]
 }
 

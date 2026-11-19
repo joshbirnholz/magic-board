@@ -558,6 +558,7 @@ final class XMageSession implements MageClient, AutoCloseable {
                 item.addProperty("tapped", permanent.isTapped());
                 item.addProperty("damage", permanent.getDamage());
                 item.addProperty("summoningSick", permanent.hasSummoningSickness());
+                item.add("keywords", JSON.toJsonTree(CardKeywords.from(card)));
                 item.addProperty("attachedTo", permanent.getAttachedTo() == null ? null : permanent.getAttachedTo().toString());
             }
             JsonArray counters = new JsonArray();

@@ -774,6 +774,20 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(printed.oracleText, "Printed text")
     }
 
+    func testCurrentKeywordMetadataReplacesPrintedKeywordsAndExpires() throws {
+        let printed = try RulesPhoneAdapter.placeholder(name: "Tonberry", typeLine: "Creature — Tonberry", rules: "During your turn, this creature has first strike and deathtouch.")
+        func current(_ keywords: [String]) throws -> MTGCard {
+            let json: [String: Any] = ["id": UUID().uuidString, "name": "Tonberry", "faceDown": false,
+                                      "transformed": false, "typeLine": "Creature — Tonberry", "rules": printed.oracleText ?? "",
+                                      "keywords": keywords, "counters": []]
+            let engine = try JSONDecoder().decode(RulesCard.self, from: JSONSerialization.data(withJSONObject: json))
+            return try RulesCardCharacteristics.applying(engine, to: printed)
+        }
+        XCTAssertEqual(try current(["First strike", "Deathtouch"]).keywords, ["First strike", "Deathtouch"])
+        XCTAssertEqual(try current([]).keywords, [], "An expired granted ability must not survive from the printing/previous view")
+        XCTAssertEqual(printed.keywords, [])
+    }
+
     func testEngineMainPhasesDoNotCreateCombat() {
         XCTAssertEqual(RulesPhoneAdapter.phonePhase("PRECOMBAT_MAIN"), .main)
         XCTAssertEqual(RulesPhoneAdapter.phonePhase("POSTCOMBAT_MAIN"), .ending)
