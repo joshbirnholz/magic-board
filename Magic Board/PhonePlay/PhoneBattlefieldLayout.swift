@@ -50,6 +50,7 @@ enum PhoneBattlefieldLayout {
               card.controllerIdentifier.value == other.controllerIdentifier.value,
               (ignoringTapped || card.isTapped.value == other.isTapped.value),
               card.power.value == other.power.value, card.toughness.value == other.toughness.value,
+              card.markedDamage.value == other.markedDamage.value,
               card.counters.value == other.counters.value,
               card.isSummoningSick.value == other.isSummoningSick.value,
               card.isFlying.value == other.isFlying.value,

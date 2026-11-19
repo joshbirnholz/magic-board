@@ -181,6 +181,24 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertEqual(cards.count, 3, "Losing sickness must not remove or move the creature")
     }
 
+    @MainActor func testTwoIdenticalTokensSpreadOutOnASparseBattlefield() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Requires BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/sparse")
+        defer { app.terminate() }
+        let tokens = app.buttons.matching(identifier: "phone-creature-card").matching(NSPredicate(format: "label CONTAINS[c] 'Soldier'"))
+        XCTAssertTrue(tokens.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(tokens.count, 2, "Two identical creatures must remain individually visible when the board has room")
+        let frames = tokens.allElementsBoundByIndex.map(\.frame).sorted { $0.minX < $1.minX }
+        if frames.count == 2 {
+            XCTAssertLessThanOrEqual(frames[0].maxX, frames[1].minX + 1, "Sparse duplicate creatures should not overlap")
+            XCTAssertGreaterThan(frames[0].width, app.frame.height * 0.18, "Spreading creatures must keep them readable")
+        }
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "Two identical tokens on a sparse battlefield"; shot.lifetime = .keepAlways; add(shot)
+    }
+
     @MainActor func testPromptAppearanceDoesNotMoveOrResizePermanents() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

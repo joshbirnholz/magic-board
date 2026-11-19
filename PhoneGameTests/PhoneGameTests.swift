@@ -655,6 +655,13 @@ final class PhoneGameTests: XCTestCase {
         game.state.battlefield.accept([zombie, copy, copyOfCopy])
         XCTAssertTrue(PhoneBattlefieldLayout.canGroup(copy, with: zombie, game: game))
         XCTAssertTrue(PhoneBattlefieldLayout.canGroup(copyOfCopy, with: zombie, game: game))
+        zombie.markedDamage.accept(1)
+        XCTAssertFalse(PhoneBattlefieldLayout.canGroup(copy, with: zombie, game: game), "Marked damage changes the visible toughness and must separate tokens")
+        copy.markedDamage.accept(1)
+        XCTAssertTrue(PhoneBattlefieldLayout.canGroup(copy, with: zombie, game: game))
+        zombie.markedDamage.accept(0)
+        copy.markedDamage.accept(0)
+        XCTAssertTrue(PhoneBattlefieldLayout.canGroup(copy, with: zombie, game: game), "Clearing damage restores visual equivalence")
         // A token copy of a nontoken card is still distinct from that card.
         let bears = try card("Grizzly Bears", type: "Creature — Bear")
         let bearsCopy = CardInstance(card: CardRepresentation.tokenCopy(bears.representation), center: nil, ownerIdentifier: .a)

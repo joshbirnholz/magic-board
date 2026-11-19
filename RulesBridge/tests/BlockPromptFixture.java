@@ -44,6 +44,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/mana") ? "mana"
                 : request.getResourceDescriptor().endsWith("/crew") ? "crew"
                 : request.getResourceDescriptor().endsWith("/stable") ? "stable"
+                : request.getResourceDescriptor().endsWith("/sparse") ? "sparse"
                 : request.getResourceDescriptor().endsWith("/sickness") ? "sickness"
                 : request.getResourceDescriptor().endsWith("/lobby") ? "lobby"
                 : request.getResourceDescriptor().endsWith("/delve") ? "delve"
@@ -185,7 +186,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                     "supported", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
             return;
         }
-        if (stage.equals("x") || stage.equals("ability") || stage.equals("stable") || stage.equals("sickness") || stage.equals("recovered")) {
+        if (stage.equals("sparse") || stage.equals("x") || stage.equals("ability") || stage.equals("stable") || stage.equals("sickness") || stage.equals("recovered")) {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
                     "revision", revision, "message", !stage.equals("ability") ? "Play spells and abilities" : "Play instants and activated abilities", "supported", true,
                     "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
@@ -276,6 +277,14 @@ public final class BlockPromptFixture extends WebSocketServer {
         }
         JsonObject theirs = object("id", THEM, "name", "Opponent", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(FIRST, true), card(SECOND, true)}, "graveyard", new Object[]{}, "exile", new Object[]{});
+        if (stage.equals("sparse")) {
+            JsonObject first = card(FIRST, false), second = card(SECOND, false);
+            for (JsonObject token : java.util.List.of(first, second)) {
+                token.addProperty("name", "Soldier Token"); token.addProperty("typeLine", "Token Creature — Soldier");
+                token.remove("set"); token.remove("collectorNumber");
+            }
+            theirs.add("battlefield", JSON.toJsonTree(new Object[]{first, second}));
+        }
         if (stage.equals("pacing")) {
             JsonObject spell = card(TRIGGER_FIRST, false);
             spell.addProperty("name", "Divination"); spell.addProperty("typeLine", "Sorcery"); spell.addProperty("controllerId", THEM);
@@ -292,10 +301,13 @@ public final class BlockPromptFixture extends WebSocketServer {
         if (stage.equals("burstResolve") || stage.equals("burstTurn")) {
             mine.add("battlefield", new JsonArray()); mine.add("graveyard", JSON.toJsonTree(new Object[]{card(BLOCKER, false)}));
         }
-        Object[] combat = (stage.equals("attack") || stage.startsWith("mana")) ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
+        Object[] combat = (stage.equals("sparse") || stage.equals("attack") || stage.startsWith("mana")) ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
         JsonObject state = object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
                 "phase", "COMBAT", "step", stage.equals("attack") ? "DECLARE_ATTACKERS" : "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", stage.equals("attack") ? ME : THEM, "priorityPlayer", "You",
                 "hand", new Object[]{}, "stack", stack, "players", new Object[]{mine, theirs}, "playableIds", stage.equals("pacing") ? new String[]{} : new String[]{BLOCKER}, "combat", combat);
+        if (stage.equals("sparse")) {
+            state.addProperty("phase", "PRECOMBAT_MAIN"); state.addProperty("step", "PRECOMBAT_MAIN");
+        }
         if (stage.startsWith("burst")) {
             state.addProperty("phase", "POSTCOMBAT_MAIN"); state.addProperty("step", "POSTCOMBAT_MAIN");
             state.add("combat", new JsonArray()); state.add("playableIds", new JsonArray());
