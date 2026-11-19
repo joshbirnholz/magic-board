@@ -77,6 +77,8 @@ class BoardViewController: UIViewController {
   private var rulesBannerHost: UIViewController?
   /// The banner's vertical position in the gap between the two players' permanents.
   private var rulesBannerCenterY: NSLayoutConstraint?
+  /// Rules mode's phase lights beside each life total: local, then opponent.
+  private var rulesPhaseMarkerHosts: [UIHostingController<RulesPhaseMarkers>] = []
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
   /// Arena's phase row, second button and fast-forward pill, just above the main button.
@@ -2588,6 +2590,15 @@ extension BoardViewController {
         ])
         banner.didMove(toParent: self)
         rulesBannerHost = banner
+        rulesPhaseMarkerHosts = [true, false].map { mine in
+            let markers = UIHostingController(rootView: RulesPhaseMarkers(session: adapter.engine, mine: mine))
+            markers.view.backgroundColor = .clear
+            markers.view.isUserInteractionEnabled = false
+            addChild(markers)
+            view.addSubview(markers.view)
+            markers.didMove(toParent: self)
+            return markers
+        }
         // Decisions that aren't on the board take over the screen (Arena); the layer hides itself
         // between them so it never swallows touches meant for the board.
         let modal = UIHostingController(rootView: RulesPromptModal(session: adapter.engine,
@@ -2642,6 +2653,32 @@ extension BoardViewController {
 
     /// Keeps the Rules prompt above everything the board re-raises, sitting just above the local
     /// phase button (or near the bottom when that button isn't laid out yet).
+    /// Just above the local life total (bottom right) and just below the opponent's (top left).
+    private func positionRulesPhaseMarkers() {
+        func lifeContainer(_ identifier: String) -> UIView? {
+            var queue = [bottomBarA?.view, bottomBarB?.view].compactMap { $0 }
+            while !queue.isEmpty {
+                let next = queue.removeFirst()
+                if next.accessibilityIdentifier == identifier { return next }
+                queue += next.subviews
+            }
+            return nil
+        }
+        for (host, mine) in zip(rulesPhaseMarkerHosts, [true, false]) where host.view.superview === view {
+            guard let life = lifeContainer(mine ? "phone-life-local" : "phone-life-opponent"), life.window != nil, !life.isHidden else {
+                host.view.isHidden = true; continue
+            }
+            let lifeFrame = view.convert(life.bounds, from: life)
+            let size = host.sizeThatFits(in: CGSize(width: 400, height: 100))
+            let x = mine ? lifeFrame.maxX - size.width : lifeFrame.minX
+            let y = mine ? lifeFrame.minY - size.height - 2 : lifeFrame.maxY + 2
+            let frame = CGRect(x: x, y: y, width: size.width, height: size.height).integral
+            host.view.isHidden = false
+            if host.view.frame != frame { host.view.frame = frame }
+            view.bringSubviewToFront(host.view)
+        }
+    }
+
     private func positionRulesPrompt() {
         guard let host = rulesPromptHost?.view, host.superview === view else { return }
         // Above both the phase button and the top of the hand fan, so no hand card hides under it.
@@ -2652,6 +2689,7 @@ extension BoardViewController {
             let constant = -(view.safeAreaLayoutGuide.layoutFrame.maxY - top + 8)
             if rulesPromptBottom?.constant != constant { rulesPromptBottom?.constant = constant }
         }
+        positionRulesPhaseMarkers()
         if let banner = rulesBannerHost?.view, banner.superview === view {
             view.bringSubviewToFront(banner)
             // In the open space between the opponent's permanents and yours, so it never covers a
