@@ -754,7 +754,7 @@ final class RulesPhoneAdapter {
         func instance(_ card: RulesCard, owner: Player.Identifier, battlefield: Bool = false) throws -> CardInstance {
             let printed = try models[card.id] ?? Self.placeholder(name: RulesText.tokenName(card) ?? card.name ?? "Unknown card", typeLine: RulesText.typeLine(card) ?? "", rules: card.rules, manaCost: card.manaCost)
             let model = try battlefield ? RulesCardCharacteristics.applying(card, to: printed) : printed
-            var representation = CardRepresentation.card(model).choosingFrontFace
+            var representation = battlefield ? CardRepresentation.card(model).choosingBattlefieldFace : CardRepresentation.card(model).choosingFrontFace
             if card.transformed, let back = model.cardFaces?.last { representation = .alternateFace(model, back) }
             if card.token == true { representation = .tokenCopy(representation) }
             if card.faceDown { representation = .faceDown(representation) }
@@ -801,6 +801,12 @@ final class RulesPhoneAdapter {
             projected.library.cards.accept(OrderedSet(try hiddenCards(player.libraryCount, key: player.id + ":library", owner: owner)))
             if owner == .b { projected.hand.cards.accept(OrderedSet(try hiddenCards(player.handCount, key: player.id + ":hand", owner: owner))) }
         }
+        // Native permissions (Adventure, flashback, stolen exile cards…) use the existing
+        // beside-hand presentation. Rebuild from each snapshot so a consumed permission clears.
+        let playable = Set(snapshot.playableIds)
+        let permitted = snapshot.players.flatMap { $0.graveyard + $0.exile }
+            .filter { playable.contains($0.id) }.compactMap { UUID(uuidString: $0.id) }
+        game.markedCastable = Dictionary(uniqueKeysWithValues: permitted.map { ($0, Player.Identifier.a) })
         let hand = try snapshot.hand.map { try instance($0, owner: .a) }
         let oldOrder = presentation.state.player1.hand.cards.value.map(\.uuid)
         game.state.player1.hand.cards.accept(OrderedSet(oldOrder.compactMap { id in hand.first { $0.uuid == id } } + hand.filter { !oldOrder.contains($0.uuid) }))

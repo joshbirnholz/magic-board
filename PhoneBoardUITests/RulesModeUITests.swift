@@ -312,6 +312,26 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
     }
 
+    @MainActor func testNativeCastableExileCanBeCastFromBesideTheHand() throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let app = startFixtureGame(endpoint: endpoint + "/exile-cast")
+        defer { app.terminate() }
+        let castable = app.descendants(matching: .any).matching(identifier: "phone-castable-0").firstMatch
+        XCTAssertTrue(castable.waitForExistence(timeout: 10))
+        XCTAssertEqual(castable.label, "Silvercoat Lion")
+        castable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+        let hand = app.descendants(matching: .any).matching(identifier: "phone-local-hand").firstMatch
+        expectation(for: NSPredicate(format: "value == 'Expanded'"), evaluatedWith: hand)
+        waitForExpectations(timeout: 5)
+        castable.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+            .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 1000, thenHoldForDuration: 0)
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: castable)
+        waitForExpectations(timeout: 10)
+        XCTAssertTrue(app.buttons.matching(identifier: "phone-creature-card").allElementsBoundByIndex.contains { $0.label == "Silvercoat Lion" })
+        exitFixtureGame(app)
+    }
+
     @MainActor func testOpeningHandWaitsForOpponentAndShowsKeptCount() async throws {
         guard let endpoint = ProcessInfo.processInfo.environment["RULES_MULLIGAN_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires MulliganPromptFixture") }
         XCUIDevice.shared.orientation = .landscapeLeft

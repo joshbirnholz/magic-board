@@ -5,6 +5,37 @@ import UIKit
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testAdventurePermanentUsesItsCreatureFaceOnBattlefield() throws {
+        let template = try RulesPhoneAdapter.placeholder(name: "Beanstalk Wurm // Plant Beans", typeLine: "Creature — Plant Wurm // Sorcery — Adventure", rules: "Reach", manaCost: "{4}{G}")
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(template)) as? [String: Any])
+        json["layout"] = "adventure"
+        json["cardFaces"] = [["name": "Beanstalk Wurm", "typeLine": "Creature — Plant Wurm", "oracleText": "Reach", "manaCost": "{4}{G}", "power": "5", "toughness": "4"],
+                             ["name": "Plant Beans", "typeLine": "Sorcery — Adventure", "oracleText": "You may play an additional land this turn.", "manaCost": "{1}{G}"]]
+        let card = try JSONDecoder().decode(MTGCard.self, from: JSONSerialization.data(withJSONObject: json))
+        let battlefield = CardRepresentation.card(card).choosingBattlefieldFace
+        guard case .alternateFace = battlefield else { return XCTFail("A combined Adventure must not draw as an undecided full card on the battlefield") }
+        XCTAssertEqual(battlefield.name, "Beanstalk Wurm")
+        XCTAssertEqual(battlefield.typeLine, "Creature — Plant Wurm")
+        XCTAssertEqual(battlefield.power, "5")
+        guard case .card = CardRepresentation.card(card).choosingFrontFace else { return XCTFail("Hand retains both cast choices") }
+    }
+
+    func testNativeCastableExileAppearsBesideHandAndClearsWithPermission() async throws {
+        let me = UUID().uuidString.lowercased(), id = UUID().uuidString.lowercased()
+        func snapshot(playable: [String]) throws -> RulesSnapshot {
+            try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: [
+                "gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 3, "hand": [], "stack": [], "playableIds": playable,
+                "players": [["id": me, "name": "Me", "life": 20, "handCount": 0, "libraryCount": 30, "battlefield": [], "graveyard": [],
+                    "exile": [["id": id, "name": "Beanstalk Wurm", "typeLine": "Creature — Plant Wurm", "faceDown": false, "transformed": false, "counters": []]]]]]))
+        }
+        let adapter = RulesPhoneAdapter(engine: RulesGameSession())
+        try await adapter.project(snapshot(playable: [id]), refreshArtwork: false)
+        XCTAssertEqual(adapter.presentation.castableCards(for: .a).map(\.uuid), [UUID(uuidString: id)!])
+        XCTAssertEqual(adapter.presentation.state.player1.exile.cards.value.count, 1, "Presentation permission does not move the card")
+        try await adapter.project(snapshot(playable: []), refreshArtwork: false)
+        XCTAssertTrue(adapter.presentation.castableCards(for: .a).isEmpty, "Native permission disappearing removes the extra hand entry")
+    }
+
     func testAbilityChoiceCardsUseAvailablePhoneAndDuoSpace() {
         let phone = RulesPromptSizing.choiceCardHeight(size: CGSize(width: 852, height: 393), count: 2)
         let duo = RulesPromptSizing.choiceCardHeight(size: CGSize(width: 951, height: 669), count: 2)

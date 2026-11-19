@@ -40,7 +40,8 @@ public final class BlockPromptFixture extends WebSocketServer {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
         if (request.getResourceDescriptor().endsWith("/observer")) { observers.add(socket); status(socket); return; }
         retarget = request.getResourceDescriptor().endsWith("/retarget");
-        initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
+        initialStage = request.getResourceDescriptor().endsWith("/exile-cast") ? "exileCast"
+                : request.getResourceDescriptor().endsWith("/ordering") ? "order"
                 : request.getResourceDescriptor().endsWith("/burst") ? "burst"
                 : request.getResourceDescriptor().endsWith("/x") ? "x"
                 : request.getResourceDescriptor().endsWith("/attack") ? "attack"
@@ -110,6 +111,10 @@ public final class BlockPromptFixture extends WebSocketServer {
             case "settings" -> { autoOrderTriggers = request.get("autoOrderTriggers").getAsBoolean(); settings(socket); ack(socket, request); }
             case "answer" -> {
                 String value = request.get("value").getAsString();
+                if (stage.equals("exileCast") && value.equals(BLOCKER)) {
+                    stage = "exileCasted"; revision++;
+                    send(socket, object("type", "promptCleared")); ack(socket, request); snapshot(socket); prompt(socket); return;
+                }
                 if (retarget && stage.equals("done") && value.equals(BLOCKER)) {
                     selectedAttacker = null; stage = "select"; revision++;
                     send(socket, object("type", "promptCleared")); ack(socket, request); snapshot(socket); prompt(socket);
@@ -254,6 +259,10 @@ public final class BlockPromptFixture extends WebSocketServer {
             mine.add("graveyard", JSON.toJsonTree(choices.stream().filter(c -> !stage.equals("delvePaid") || !delveCards.contains(c.get("id").getAsString())).toList()));
             mine.add("exile", JSON.toJsonTree(choices.stream().filter(c -> stage.equals("delvePaid") && delveCards.contains(c.get("id").getAsString())).toList()));
         }
+        if (stage.startsWith("exileCast")) {
+            mine.add("exile", JSON.toJsonTree(stage.equals("exileCast") ? new Object[]{card(BLOCKER, false)} : new Object[]{}));
+            mine.add("battlefield", JSON.toJsonTree(stage.equals("exileCasted") ? new Object[]{card(BLOCKER, false)} : new Object[]{}));
+        }
         if (stage.equals("sickness")) {
             JsonObject sick = card(BLOCKER, false);
             sick.addProperty("summoningSick", true);
@@ -327,6 +336,11 @@ public final class BlockPromptFixture extends WebSocketServer {
                 state.addProperty("phase", "PRECOMBAT_MAIN"); state.addProperty("step", "PRECOMBAT_MAIN");
                 state.add("hand", JSON.toJsonTree(new Object[]{card(TRIGGER_SECOND, false)}));
             }
+        }
+        if (stage.startsWith("exileCast")) {
+            state.addProperty("phase", "PRECOMBAT_MAIN"); state.addProperty("step", "PRECOMBAT_MAIN");
+            state.add("combat", new JsonArray());
+            state.add("playableIds", JSON.toJsonTree(new String[]{BLOCKER}));
         }
         send(socket, state);
     }

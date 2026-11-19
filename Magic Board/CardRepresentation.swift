@@ -593,6 +593,15 @@ indirect enum CardRepresentation: Codable, Equatable, Hashable {
 		return .alternateFace(card, front)
 	}
 	
+    /// On the battlefield, an Adventure is its permanent face. Hand/stack selection still
+    /// keeps both spells available until the player has chosen which one to cast.
+    var choosingBattlefieldFace: CardRepresentation {
+        if case .card(let card) = self, card.layout == "adventure", let permanent = card.cardFaces?.first {
+            return .alternateFace(card, permanent)
+        }
+        return choosingFrontFace
+    }
+
 	/// A Room (Duskmourn): one split card with two doors that lock and unlock — never two faces.
 	var isRoom: Bool { card.layout == "split" && (card.typeLine ?? "").contains("Room") }
 
