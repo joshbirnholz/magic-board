@@ -21,12 +21,7 @@ struct RulesActionStack: View {
                 .accessibilityLabel("Mana pool \(mine.floatingMana)")
                 .accessibilityIdentifier("rules-mana-pool")
             }
-            HStack(spacing: 8) {
-                RulesFastForwardPill(session: session)
-                if let state = session.snapshot, state.activePlayerId != nil {
-                    RulesPhaseRow(step: state.step ?? "", mine: state.activePlayerId == state.playerId)
-                }
-            }
+            RulesFastForwardPill(session: session)
             if let title = RulesPhoneAdapter.secondaryButton(prompt: session.prompt, snapshot: session.snapshot) {
                 Button(title) { Task { await adapter.pressSecondary() } }
                     .buttonStyle(RulesArenaButtonStyle(kind: title == "No Attacks" ? .blue : .outline))
@@ -71,6 +66,7 @@ struct RulesFastForwardPill: View {
 struct RulesPhaseRow: View {
     let step: String
     let mine: Bool
+    var active: Bool = true
 
     private enum Segment: CaseIterable { case beginning, main1, attackers, blockers, damage, main2, end }
 
@@ -90,9 +86,9 @@ struct RulesPhaseRow: View {
         HStack(spacing: 7) {
             ForEach(Segment.allCases, id: \.self) { segment in
                 glyph(segment)
-                    .foregroundStyle(segment == current ? (mine ? Color(red: 1, green: 0.66, blue: 0.3) : Color(red: 0.45, green: 0.75, blue: 1)) : Color.black.opacity(0.75))
-                    .shadow(color: segment == current ? (mine ? .orange : .blue) : .clear, radius: 5)
-                    .shadow(color: .white.opacity(segment == current ? 0 : 0.35), radius: 0.5)
+                    .foregroundStyle(active && segment == current ? (mine ? Color(red: 1, green: 0.66, blue: 0.3) : Color(red: 0.45, green: 0.75, blue: 1)) : Color.black.opacity(0.75))
+                    .shadow(color: active && segment == current ? (mine ? .orange : .blue) : .clear, radius: 5)
+                    .shadow(color: .white.opacity(active && segment == current ? 0 : 0.35), radius: 0.5)
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 4)

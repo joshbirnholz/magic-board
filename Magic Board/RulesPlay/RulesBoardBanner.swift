@@ -167,29 +167,13 @@ struct RulesPhaseMarkers: View {
 
     private var current: Int? { isActive ? Self.index(of: session.snapshot?.phase) : nil }
 
-    private var glow: Color { mine ? Color(red: 1, green: 0.55, blue: 0.1) : Color(red: 0.2, green: 0.55, blue: 1) }
-
     var body: some View {
-        HStack(spacing: 2) {
-            ForEach(Self.phases.indices, id: \.self) { index in
-                let lit = index == current
-                Image(systemName: Self.phases[index].symbol)
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(lit ? Color.white : Color.white.opacity(isActive ? (index < (current ?? 0) ? 0.3 : 0.55) : 0.18))
-                    .frame(width: 13, height: 13)
-                    .background(Circle().fill(lit ? glow : Color.black.opacity(0.45)))
-                    .shadow(color: lit ? glow : .clear, radius: 4)
-            }
-        }
-        .padding(.horizontal, 1)
-        .padding(.vertical, 2)
-        .fixedSize()
-        .opacity(session.snapshot == nil ? 0 : 1)
-        .animation(.easeOut(duration: 0.2), value: current)
-        .allowsHitTesting(false)
-        .accessibilityElement(children: .ignore)
-        .accessibilityIdentifier(mine ? "rules-phase-markers-local" : "rules-phase-markers-opponent")
-        .accessibilityLabel(mine ? "Your phases" : "Opponent's phases")
-        .accessibilityValue(current.map { Self.phases[$0].name } ?? "Inactive")
+        RulesPhaseRow(step: session.snapshot?.step ?? "", mine: mine, active: isActive)
+            .fixedSize()
+            .opacity(session.snapshot == nil ? 0 : 1)
+            .allowsHitTesting(false)
+            .accessibilityIdentifier(mine ? "rules-phase-markers-local" : "rules-phase-markers-opponent")
+            .accessibilityLabel(mine ? "Your phases" : "Opponent's phases")
+            .accessibilityValue(isActive ? (session.snapshot?.step ?? "").replacingOccurrences(of: "_", with: " ").capitalized : "Inactive")
     }
 }

@@ -157,6 +157,12 @@ final class RulesDiscardUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["rules-board-banner"].exists)
         let before = cards.allElementsBoundByIndex.map(\.frame)
         XCTAssertEqual(before.count, 3)
+        XCTAssertGreaterThan(before.map(\.width).min() ?? 0, app.frame.height * 0.18,
+                             "A sparse battlefield must use a readable card size")
+        XCTAssertTrue(app.descendants(matching: .any)["rules-phase-markers-local"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["rules-phase-markers-opponent"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["rules-phase-row"].exists,
+                       "The obsolete third phase strip must be removed")
         app.buttons["phone-untap-local"].tap()
         XCTAssertTrue(app.staticTexts["rules-board-banner"].waitForExistence(timeout: 5))
         let after = cards.allElementsBoundByIndex.map(\.frame)
