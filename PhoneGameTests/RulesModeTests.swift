@@ -389,6 +389,18 @@ final class RulesModeTests: XCTestCase {
         XCTAssertTrue(adapter.abilitySources.isEmpty)
     }
 
+    func testAlternatePaymentActionOnlyAppearsWhenEngineOffersIt() throws {
+        func prompt(_ method: String, available: Bool, label: String = "Special action") throws -> RulesPrompt {
+            try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
+                "id": "p", "method": method, "revision": 1, "supported": true, "choices": [],
+                "specialActionAvailable": available, "specialActionLabel": label]))
+        }
+        XCTAssertEqual(try prompt("GAME_PLAY_MANA", available: true).paymentSpecialActionLabel, "Other Payment")
+        XCTAssertEqual(try prompt("GAME_PLAY_XMANA", available: true, label: "Delve").paymentSpecialActionLabel, "Delve")
+        XCTAssertNil(try prompt("GAME_PLAY_MANA", available: false).paymentSpecialActionLabel)
+        XCTAssertNil(try prompt("GAME_SELECT", available: true).paymentSpecialActionLabel)
+    }
+
     func testStackChosenXPreservesZeroAndClearsMissingValues() async throws {
         let id = UUID(), me = UUID().uuidString
         var card: [String: Any] = ["id": id.uuidString, "name": "Blaze", "faceDown": false,

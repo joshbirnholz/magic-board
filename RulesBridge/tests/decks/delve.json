@@ -1,0 +1,31 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "Delve payment",
+    "main": [
+      {
+        "name": "Swamp",
+        "count": 16
+      },
+      {
+        "name": "Stitcher\u2019s Supplier",
+        "count": 12
+      },
+      {
+        "name": "Gurmag Angler",
+        "count": 12
+      }
+    ],
+    "sideboard": []
+  },
+  "aiDeck": {
+    "name": "Passive payment opponent",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 40
+      }
+    ],
+    "sideboard": []
+  }
+}

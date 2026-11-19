@@ -23,6 +23,7 @@ public final class BlockPromptFixture extends WebSocketServer {
     private boolean hasGame;
     private int pacingAnswers;
     private String initialStage = "select";
+    private final java.util.Set<String> delveCards = new java.util.LinkedHashSet<>();
     private boolean holdingPriority;
     private boolean autoOrderTriggers = true;
 
@@ -43,6 +44,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/stable") ? "stable"
                 : request.getResourceDescriptor().endsWith("/sickness") ? "sickness"
                 : request.getResourceDescriptor().endsWith("/lobby") ? "lobby"
+                : request.getResourceDescriptor().endsWith("/delve") ? "delve"
                 : request.getResourceDescriptor().endsWith("/ability") ? "ability"
                 : request.getResourceDescriptor().endsWith("/pacing") ? "pacing" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
@@ -78,7 +80,7 @@ public final class BlockPromptFixture extends WebSocketServer {
             }
             case "createAiGame" -> {
                 revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true; pacingAnswers = 0;
-                holdingPriority = false; autoOrderTriggers = true;
+                holdingPriority = false; autoOrderTriggers = true; delveCards.clear();
                 ack(socket, request); snapshot(socket); prompt(socket);
             }
             case "priorityControl" -> {
@@ -89,6 +91,17 @@ public final class BlockPromptFixture extends WebSocketServer {
             case "settings" -> { autoOrderTriggers = request.get("autoOrderTriggers").getAsBoolean(); settings(socket); ack(socket, request); }
             case "answer" -> {
                 String value = request.get("value").getAsString();
+                if (stage.equals("delve") || stage.equals("delvePick")) {
+                    String kind = request.get("kind").getAsString();
+                    if (stage.equals("delve") && kind.equals("special")) stage = "delvePick";
+                    else if (stage.equals("delvePick") && kind.equals("uuid") && (value.equals(TRIGGER_FIRST) || value.equals(TRIGGER_SECOND))) {
+                        delveCards.add(value); if (delveCards.size() == 2) stage = "delvePaid";
+                    } else if (stage.equals("delvePick") && kind.equals("boolean") && !request.get("value").getAsBoolean()) stage = "delvePaid";
+                    else throw new AssertionError("Unexpected Delve fixture answer");
+                    revision++; send(socket, object("type", "promptCleared")); ack(socket, request); snapshot(socket); prompt(socket);
+                    if (stage.equals("delvePaid")) System.out.println("PASS Delve browser confirmed " + delveCards.size() + " graveyard cards and finished cost selection");
+                    return;
+                }
                 if (stage.equals("sickness")) {
                     if (!request.get("kind").getAsString().equals("boolean")) throw new AssertionError("Expected priority pass");
                     stage = "recovered"; revision++;
@@ -139,7 +152,22 @@ public final class BlockPromptFixture extends WebSocketServer {
     private static void ack(WebSocket socket, JsonObject request) { send(socket, object("type", "ack", "requestId", request.get("requestId"))); }
     private void settings(WebSocket socket) { send(socket, object("type", "prioritySettings", "holdingPriority", holdingPriority, "autoOrderTriggers", autoOrderTriggers)); }
     private void prompt(WebSocket socket) {
-        if (stage.equals("pacing") || stage.equals("paced")) {
+        if (stage.equals("delve")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_PLAY_MANA", "revision", revision,
+                    "message", "Pay {2}<div>Gurmag Angler</div>", "supported", true, "canCancel", true,
+                    "specialActionAvailable", true, "specialActionLabel", "Special action", "choices", new Object[]{}, "cards", new Object[]{}));
+            return;
+        }
+        if (stage.equals("delvePick")) {
+            send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_TARGET", "revision", revision,
+                    "message", "Select cards from your graveyard (selected " + delveCards.size() + " of 2)", "targetZone", "GRAVEYARD",
+                    "supported", true, "required", false, "canCancel", true, "choices", new Object[]{},
+                    "cards", new Object[]{card(TRIGGER_FIRST, false), card(TRIGGER_SECOND, false)},
+                    "targets", java.util.stream.Stream.of(TRIGGER_FIRST, TRIGGER_SECOND).filter(id -> !delveCards.contains(id)).toList(),
+                    "selectedIds", delveCards));
+            return;
+        }
+        if (stage.equals("pacing") || stage.equals("paced") || stage.equals("delvePaid")) {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
                     "revision", revision, "message", stage.equals("pacing") ? "Play instants and activated abilities" : "Play spells and abilities",
                     "supported", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
@@ -197,6 +225,11 @@ public final class BlockPromptFixture extends WebSocketServer {
     private void snapshot(WebSocket socket) {
         JsonObject mine = object("id", ME, "name", "You", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(BLOCKER, false)}, "graveyard", new Object[]{}, "exile", new Object[]{});
+        if (stage.startsWith("delve")) {
+            var choices = java.util.List.of(card(TRIGGER_FIRST, false), card(TRIGGER_SECOND, false));
+            mine.add("graveyard", JSON.toJsonTree(choices.stream().filter(c -> !stage.equals("delvePaid") || !delveCards.contains(c.get("id").getAsString())).toList()));
+            mine.add("exile", JSON.toJsonTree(choices.stream().filter(c -> stage.equals("delvePaid") && delveCards.contains(c.get("id").getAsString())).toList()));
+        }
         if (stage.equals("sickness")) {
             JsonObject sick = card(BLOCKER, false);
             sick.addProperty("summoningSick", true);

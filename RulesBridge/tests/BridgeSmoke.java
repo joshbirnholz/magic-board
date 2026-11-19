@@ -131,6 +131,7 @@ public final class BridgeSmoke implements WebSocket.Listener {
         Deque<String> recent = new ArrayDeque<>();
         String lastFingerprint = "";
         int repeated = 0;
+        Set<String> delveSelected = new HashSet<>();
         int specialTrace = 0;
         Set<String> faceDownPermanents = new HashSet<>();
         String searchedCard = null;
@@ -223,6 +224,12 @@ public final class BridgeSmoke implements WebSocket.Listener {
                         if (playable.contains(card.get("id").getAsString())) {
                             if (System.getenv("RULES_SMOKE_FORCE_DISCARD") != null) continue;
                             if (System.getenv("RULES_SMOKE_RESPOND") != null && name(card).equals("Revitalize")) continue;
+                            if (System.getenv("RULES_SMOKE_DELVE") != null && name(card).equals("Gurmag Angler")) {
+                                int grave = 0;
+                                for (JsonElement player : currentState.getAsJsonArray("players"))
+                                    if (player.getAsJsonObject().get("id").equals(currentState.get("playerId"))) grave = player.getAsJsonObject().getAsJsonArray("graveyard").size();
+                                if (untappedLands(currentState) == 0 || untappedLands(currentState) + grave < 7) continue;
+                            }
                             if (requiredPrompts.contains("NONZERO_X_SPELL_CAST") && name(card).equals("Blaze")
                                     && untappedLands(currentState) < 2) continue;
                             object = card.get("id").getAsString();
@@ -315,7 +322,8 @@ public final class BridgeSmoke implements WebSocket.Listener {
                 if (method.equals("GAME_TARGET") && !targetsComplete && nextPrompt.has("targets")
                         && nextPrompt.getAsJsonArray("targets").size() > 0) {
                     for (JsonElement target : nextPrompt.getAsJsonArray("targets")) {
-                        if (!dividing || !dividedTargets.contains(target.getAsString())) { object = target.getAsString(); break; }
+                        boolean alreadyChosen = nextPrompt.has("selectedIds") && nextPrompt.getAsJsonArray("selectedIds").contains(target);
+                        if (!alreadyChosen && (!dividing || !dividedTargets.contains(target.getAsString()))) { object = target.getAsString(); break; }
                     }
                     if (dividing && object != null) dividedTargets.add(object);
                 }
@@ -364,7 +372,16 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     observedPrompts.add("SPECIAL_ACTION");
                     specialTrace = 8;
                     answer.addProperty("kind", "special"); answer.addProperty("value", true);
+                } else if (System.getenv("RULES_SMOKE_DELVE") != null && Set.of("GAME_PLAY_MANA", "GAME_PLAY_XMANA").contains(method)
+                        && nextPrompt.has("specialActionAvailable") && nextPrompt.get("specialActionAvailable").getAsBoolean()
+                        && !observedPrompts.contains("DELVE_GRAVEYARD_EXILED") && untappedLands(currentState) == 0) {
+                    observedPrompts.add("PAYMENT_SPECIAL_ACTION"); specialTrace = 12;
+                    answer.addProperty("kind", "special"); answer.addProperty("value", true);
                 } else if (object != null) {
+                    if (System.getenv("RULES_SMOKE_DELVE") != null && method.equals("GAME_TARGET")
+                            && nextPrompt.has("targetZone") && nextPrompt.get("targetZone").getAsString().equals("GRAVEYARD")) {
+                        delveSelected.add(object); observedPrompts.add("DELVE_GRAVEYARD_BROWSER");
+                    }
                     answer.addProperty("kind", "uuid"); answer.addProperty("value", object);
                 } else if (method.equals("GAME_CHOOSE_CHOICE") || method.equals("GAME_CHOOSE_ABILITY")) {
                     answer.addProperty("kind", "string");
@@ -393,6 +410,10 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     if (requiredPrompts.contains("NONZERO_X_SPELL_CAST") && nextPrompt.get("message").getAsString().contains("{X}")) {
                         amount = Math.min(nextPrompt.get("max").getAsInt(), Math.max(1, amount));
                         paidX = amount > 0;
+                    }
+                    if (System.getenv("RULES_SMOKE_X_VALUE") != null && nextPrompt.get("message").getAsString().contains("{X}")) {
+                        amount = Integer.parseInt(System.getenv("RULES_SMOKE_X_VALUE"));
+                        if (amount < nextPrompt.get("min").getAsInt() || amount > nextPrompt.get("max").getAsInt()) throw new AssertionError("Requested X outside engine range");
                     }
                     answer.addProperty("kind", "integer"); answer.addProperty("value", amount);
                 } else if (method.equals("GAME_GET_MULTI_AMOUNT")) {
@@ -517,6 +538,12 @@ public final class BridgeSmoke implements WebSocket.Listener {
                             if (playable.contains(permanent.get("id").getAsString())) playablePermanents.add(name(permanent));
                         }
                     }
+                    if (!delveSelected.isEmpty()) for (JsonElement player : event.getAsJsonArray("players")) {
+                        JsonObject owner = player.getAsJsonObject();
+                        if (!owner.get("id").getAsString().equals(me)) continue;
+                        for (JsonElement exiled : owner.getAsJsonArray("exile"))
+                            if (delveSelected.contains(exiled.getAsJsonObject().get("id").getAsString())) observedPrompts.add("DELVE_GRAVEYARD_EXILED");
+                    }
                     for (JsonElement item : event.getAsJsonArray("stack")) {
                         JsonObject object = item.getAsJsonObject();
                         if (name(object).equals("Ahriman") && object.has("sourceId") && object.get("ability").getAsBoolean()) {
@@ -532,11 +559,17 @@ public final class BridgeSmoke implements WebSocket.Listener {
                                     }
                         }
                         if (!object.has("controllerId")) throw new AssertionError("Stack object without a controller: " + object.get("name"));
+                        if (name(object).equals("Blaze") && object.has("chosenX")) {
+                            int x = object.get("chosenX").getAsInt();
+                            observedPrompts.add("STACK_X_EQUALS_" + x);
+                            if (!object.get("controllerId").getAsString().equals(me)) observedPrompts.add("OPPONENT_STACK_X");
+                        }
                         if (object.get("controllerId").getAsString().equals(me)) {
                             myStackObjects.add(object.get("id").getAsString());
                             if (name(object).equals("Blessed Alliance")) observedPrompts.add("MODAL_SPELL_CAST");
                             if (name(object).equals("Reverent Mantra")) observedPrompts.add("ALTERNATIVE_SPELL_CAST");
                             if (name(object).equals("Blaze") && paidX) observedPrompts.add("NONZERO_X_SPELL_CAST");
+                            if (name(object).equals("Gurmag Angler") && !delveSelected.isEmpty()) observedPrompts.add("DELVE_SPELL_CAST");
                             if (name(object).equals("Safehold Elite")) observedPrompts.add("HYBRID_SPELL_CAST");
                             if (name(object).equals("Sylvan Scrying")) searchOnStack = true;
                             if (name(object).equals("Arc Lightning")) observedPrompts.add("DIVIDED_DAMAGE_SPELL_CAST");

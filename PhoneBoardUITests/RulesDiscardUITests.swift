@@ -99,6 +99,34 @@ final class RulesDiscardUITests: XCTestCase {
         add(screenshot)
     }
 
+    @MainActor func testDelvePaymentOpensConfirmedGraveyardSelection() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/delve")
+        defer { app.terminate() }
+        let alternate = app.buttons["rules-payment-special"]
+        XCTAssertTrue(alternate.waitForExistence(timeout: 5))
+        XCTAssertEqual(alternate.label, "Other Payment")
+        alternate.tap()
+        let card = app.buttons["rules-prompt-card-00000000-0000-0000-0000-000000000030"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.tap()
+        let confirm = app.buttons["phone-browser-done"]
+        XCTAssertTrue(confirm.isEnabled)
+        confirm.tap()
+        let selected = expectation(for: NSPredicate(format: "label CONTAINS 'selected 1 of 2'"),
+                                   evaluatedWith: app.descendants(matching: .any)["rules-prompt-message"])
+        await fulfillment(of: [selected], timeout: 5)
+        let done = app.buttons["phone-untap-local"]
+        XCTAssertEqual(done.label, "Done", "Up-to costs can finish before selecting every graveyard card")
+        done.tap()
+        let closed = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: card)
+        await fulfillment(of: [closed], timeout: 5)
+        XCTAssertTrue(done.isEnabled)
+        XCTAssertFalse(app.buttons["rules-payment-special"].exists)
+    }
+
     @MainActor func testSummoningSicknessMarkerFollowsEngineState() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

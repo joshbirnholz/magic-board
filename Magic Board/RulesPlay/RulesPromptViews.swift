@@ -36,6 +36,11 @@ extension RulesPrompt {
     /// XMage's London mulligan: "Select a card (N more) to put on the bottom of your library".
     /// A "Pay {…}" mana payment prompt.
     var isPayment: Bool { method == "GAME_PLAY_MANA" || method == "GAME_PLAY_XMANA" }
+    var paymentSpecialActionLabel: String? {
+        guard isPayment, specialActionAvailable == true else { return nil }
+        let label = specialActionLabel.map(RulesText.plain) ?? ""
+        return label.isEmpty || label.caseInsensitiveCompare("Special action") == .orderedSame ? "Other Payment" : label
+    }
 
     var isLondonBottom: Bool {
         guard method == "GAME_TARGET" else { return false }
@@ -213,6 +218,10 @@ struct RulesPromptBar: View {
                     .accessibilityHidden(true)
                 HStack {
                     answer("Cancel", .boolean(false), primary: false)
+                    if let label = prompt.paymentSpecialActionLabel {
+                        answer(label, .specialAction, primary: false)
+                            .accessibilityIdentifier("rules-payment-special")
+                    }
                     if prompt.method == "GAME_PLAY_XMANA" { answer("Done", .boolean(true)) }
                     // With automatic payment turned off, one tap still pays the whole cost with fitting
                     // basic lands (the adapter pays each mana XMage asks for next the same way).
