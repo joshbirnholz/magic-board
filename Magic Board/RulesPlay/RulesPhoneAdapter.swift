@@ -450,15 +450,18 @@ final class RulesPhoneAdapter {
                            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
     }
 
-    /// Arena passes priority for you when you have nothing you could do. XMage stops at every
-    /// "Play instants and activated abilities" (each step of the opponent's turn, responses to their
-    /// spells…), so pass those automatically when the engine reports nothing playable. Your own main
-    /// phases ("Play spells…") and attack/block declarations always wait for you.
+    /// Pass only ordinary priority or an explicitly empty native combat selection. Missing
+    /// selection metadata is not proof that no legal attackers/blockers exist on older bridges.
     static func shouldAutoPass(_ prompt: RulesPrompt, snapshot: RulesSnapshot?, holdingPriority: Bool = false) -> Bool {
         guard !holdingPriority, prompt.method == "GAME_SELECT", prompt.specialActionAvailable != true,
-              let snapshot, snapshot.playableIds.isEmpty else { return false }
+              let snapshot else { return false }
         let message = RulesText.plain(prompt.message ?? "").lowercased()
-        return message.contains("instants") && !message.contains("select")
+        if message.contains("select attackers") || message.contains("select blockers") {
+            guard let legal = prompt.selectionIds else { return false }
+            return legal.isEmpty && (prompt.selectedIds ?? []).isEmpty
+        }
+        guard snapshot.playableIds.isEmpty else { return false }
+        return !message.contains("select") && (message.contains("instants") || message.contains("play spells"))
     }
 
     /// What to do with a target chosen by gesture (a spell dragged onto a target, a blocker dragged

@@ -327,9 +327,20 @@ final class RulesModeTests: XCTestCase {
         let idle = try snapshot(playable: []), ready = try snapshot(playable: [UUID().uuidString])
         XCTAssertTrue(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play instants and activated abilities"), snapshot: idle))
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play instants and activated abilities"), snapshot: ready), "something to respond with")
-        XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play spells and abilities"), snapshot: idle), "your main phase waits")
+        XCTAssertTrue(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Play spells and abilities"), snapshot: idle), "empty main phase passes")
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_SELECT", "Select attackers"), snapshot: idle))
         XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(try prompt("GAME_ASK", "Play instants?"), snapshot: idle))
+        for message in ["Select attackers", "Select blockers"] {
+            var combat = try prompt("GAME_SELECT", message)
+            XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: idle), "missing legality stays manual")
+            combat.selectionIds = []
+            XCTAssertTrue(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: ready), "native empty legal combat set")
+            XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: idle, holdingPriority: true))
+            combat.selectionIds = ["legal-creature"]
+            XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: idle))
+            combat.selectionIds = []; combat.selectedIds = ["chosen-creature"]
+            XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: idle), "never confirm a player's combat draft")
+        }
     }
 
     func testFloatingManaReadsAsSymbols() throws {
