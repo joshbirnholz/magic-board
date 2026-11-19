@@ -320,6 +320,14 @@ struct RulesPromptBar: View {
 // MARK: - Full-screen decisions
 
 /// Decisions that take over the screen (Arena's dimmed browser with large cards and pill buttons).
+enum RulesPromptSizing {
+    static func choiceCardHeight(size: CGSize, count: Int) -> CGFloat {
+        let columns = CGFloat(max(1, min(count, 3)))
+        let widthFit = max(100, (size.width - 80 - (columns - 1) * 12) / columns / MTGCardView.AbilityLayout.aspect)
+        return max(100, min(size.height * 0.60, size.height - 172, widthFit))
+    }
+}
+
 struct RulesPromptModal: View {
     @ObservedObject var session: RulesGameSession
     var exit: (() -> Void)? = nil
@@ -345,14 +353,16 @@ struct RulesPromptModal: View {
     }
 
     var body: some View {
+        GeometryReader { geometry in
         ZStack {
             if isVisible, !minimized {
                 Color.black.opacity(0.78).ignoresSafeArea()
-                content
+                content(choiceHeight: RulesPromptSizing.choiceCardHeight(size: geometry.size, count: session.prompt?.cards?.count ?? 1))
                     .padding(.horizontal, 24).padding(.vertical, 16)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .transition(.opacity)
             }
+        }
         }
         .environment(\.colorScheme, .dark)
         .disabled(session.pendingRequest != nil)
@@ -365,13 +375,13 @@ struct RulesPromptModal: View {
         .onAppear { acknowledgeContextInformation() }
     }
 
-    @ViewBuilder private var content: some View {
+    @ViewBuilder private func content(choiceHeight: CGFloat) -> some View {
         if let result = session.result {
             gameOver(result)
         } else if let prompt = session.prompt, prompt.style == .modal {
             VStack(spacing: 14) {
                 title(prompt)
-                body(for: prompt)
+                body(for: prompt, choiceHeight: choiceHeight)
             }
         } else if let group = informationGroup {
             RulesCardInformationView(group: group, reason: RulesCardInformationView.reason(for: group, log: session.gameLog),
@@ -384,7 +394,7 @@ struct RulesPromptModal: View {
         VStack(spacing: 4) {
             // Long engine sentences ("Select up to one card to put on the bottom…") get a smaller size
             // so the cards still fit in landscape.
-            let title = prompt.isStartingPlayer ? "Who plays first?" : prompt.isMulligan ? mulliganTitle(prompt) : prompt.plainMessage
+            let title = prompt.queryType == "PICK_ABILITY" ? "Order Triggers" : prompt.isStartingPlayer ? "Who plays first?" : prompt.isMulligan ? mulliganTitle(prompt) : prompt.plainMessage
             RulesSymbolText(text: title, size: title.count > 48 ? 18 : 24, beleren: true)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
@@ -394,7 +404,7 @@ struct RulesPromptModal: View {
                 RulesSymbolText(text: sub, size: 15).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
             }
             if prompt.queryType == "PICK_ABILITY" {
-                Text("Choose the order: the first one you pick goes on the stack first.")
+                Text("Choose the ability to put on the stack first.")
                     .font(.caption).foregroundStyle(.white.opacity(0.7))
             }
             if prompt.style == .modal, prompt.method != "GAME_ASK" || prompt.isMulligan {
@@ -410,7 +420,7 @@ struct RulesPromptModal: View {
         return "Your opening hand: \(hand) card\(hand == 1 ? "" : "s")"
     }
 
-    @ViewBuilder private func body(for prompt: RulesPrompt) -> some View {
+    @ViewBuilder private func body(for prompt: RulesPrompt, choiceHeight: CGFloat) -> some View {
         switch prompt.method {
         case "GAME_ASK":
             if prompt.isMulligan {
@@ -435,7 +445,7 @@ struct RulesPromptModal: View {
                     }
                 }
             } else {
-                cardRow(prompt.cards ?? [], height: 150, selectable: true)
+                cardRow(prompt.cards ?? [], height: prompt.queryType == "PICK_ABILITY" ? choiceHeight : 150, selectable: true)
                 // "Up to one…" (scry, optional targets) can be finished without choosing.
                 if prompt.required != true || prompt.canCancel == true || (prompt.min ?? 1) == 0 {
                     answer("Done", .boolean(false), primary: false)

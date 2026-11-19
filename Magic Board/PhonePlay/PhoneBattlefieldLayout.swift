@@ -9,9 +9,30 @@ struct PhoneCardGroup: Identifiable {
 enum PhoneBattlefieldLayout {
     /// A small board starts large. Dense boards stop shrinking and use row pages.
     static func cardExtent(screenWidth: CGFloat, screenHeight: CGFloat, groups: Int) -> CGFloat {
-        let comfortable = min(230, max(88, screenHeight * 0.25))
+        let comfortable = min(230, max(88, screenHeight * 0.32))
         let widthFit = max(200, screenWidth - comfortable) / (CGFloat(max(1, min(groups, 12))) + 0.35)
         return max(64, max(comfortable * 0.62, min(comfortable, widthFit)))
+    }
+
+    struct PackedRow {
+        let centers: [CGFloat]
+        let width: CGFloat
+    }
+    /// Each group's attachments reserve space once, just before that group, rather than
+    /// multiplying the widest attachment fan across every permanent on both sides.
+    static func packedRow(extras: [CGFloat], availableWidth: CGFloat, cellWidth: CGFloat, rotationSpill: CGFloat) -> PackedRow {
+        guard !extras.isEmpty else { return PackedRow(centers: [], width: 0) }
+        let extra = extras.reduce(0, +)
+        let spacing = extras.count > 1 ? min(cellWidth, max(cellWidth * 0.45,
+            (availableWidth - cellWidth - extra + 20) / CGFloat(extras.count - 1))) : cellWidth
+        var center = rotationSpill + 250
+        var centers: [CGFloat] = []
+        for (index, fan) in extras.enumerated() {
+            if index > 0 { center += spacing }
+            center += fan
+            centers.append(center)
+        }
+        return PackedRow(centers: centers, width: cellWidth + CGFloat(extras.count - 1) * spacing + extra - 20)
     }
 
     /// Identical non-land permanents with at least this many copies always stack.

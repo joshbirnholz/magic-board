@@ -2716,8 +2716,14 @@ extension BoardViewController {
             }
             let lifeFrame = view.convert(life.bounds, from: life)
             let size = host.sizeThatFits(in: CGSize(width: 400, height: 100))
-            let x = lifeFrame.midX - size.width / 2
-            let y = mine ? lifeFrame.minY - size.height - 2 : lifeFrame.maxY + 2
+            var x = lifeFrame.midX - size.width / 2
+            var y = lifeFrame.maxY + 2
+            if mine, let button = localPhoneBar?.untapButton, button.window != nil {
+                let action = view.convert(button.bounds, from: button)
+                let extraTop = rulesActionHost?.view.flatMap { !$0.isHidden && $0.bounds.height > 0 ? $0.frame.minY : nil } ?? action.minY
+                x = action.midX - size.width / 2
+                y = min(action.minY, extraTop) - size.height - 4
+            }
             let frame = CGRect(x: x, y: y, width: size.width, height: size.height).integral
             host.view.isHidden = false
             if host.view.frame != frame { host.view.frame = frame }
@@ -3194,7 +3200,7 @@ extension BoardViewController {
         let bottom = localIsA ? player1BarContainerView! : player2BarContainerView!
         let top = localIsA ? player2BarContainerView! : player1BarContainerView!
         // Swap the two existing bars for player 2; preserve their original views.
-        let barHeight: CGFloat = min(124, max(52, view.bounds.height * 0.12))
+        let barHeight: CGFloat = min(104, max(52, view.bounds.height * 0.10))
         if phoneBackgroundLogo == nil, let logo = board.subviews.compactMap({ $0 as? UIImageView }).first {
             // The playmat belongs to the screen, independently of card zoom and paging.
             for constraint in board.constraints where constraint.firstItem as? UIView === logo || constraint.secondItem as? UIView === logo {
@@ -3215,7 +3221,7 @@ extension BoardViewController {
                 constraint.constant = container === bottom ? bottomSpan : barHeight // both bars share one height
             }
         }
-        let landHeight: CGFloat = showLandOrganizer ? min(120, max(54, view.bounds.height * 0.14)) : 0
+        let landHeight: CGFloat = showLandOrganizer ? min(100, max(44, view.bounds.height * 0.10)) : 0
         for constraint in landOrganizerContainerView.constraints where constraint.firstAttribute == .height && constraint.secondItem == nil {
             rememberPhoneConstraint(constraint); constraint.constant = landHeight
         }
@@ -3231,7 +3237,7 @@ extension BoardViewController {
         safe.top += 8
         // Each bar reaches as close to the edges as the system allows along its own band: on a
         // closed iPhone Duo only the camera's strip is avoided, not the whole side of the safe area.
-        let barHeightEstimate = min(124, max(52, min(view.bounds.width, view.bounds.height) * 0.12))
+        let barHeightEstimate = min(104, max(52, min(view.bounds.width, view.bounds.height) * 0.10))
         let topBand = phoneBandInsets(0...(barHeightEstimate + view.safeAreaInsets.top))
         let bottomBand = phoneBandInsets((view.bounds.height - barHeightEstimate - view.safeAreaInsets.bottom)...view.bounds.height)
         landOrganizerContainerView.accessibilityIdentifier = "phone-local-lands"
@@ -3278,7 +3284,7 @@ extension BoardViewController {
         view.bringSubviewToFront(top); view.bringSubviewToFront(bottom)
         layoutPhoneHandOverlay()
         if let shield = phoneHandShield, !shield.isHidden { view.bringSubviewToFront(shield) }
-        let opponentLandHeight = min(124, max(52, view.bounds.height * 0.14))
+        let opponentLandHeight = min(100, max(44, view.bounds.height * 0.10))
         let landRowTop = top.frame.maxY + landGap
         // Each band of the field keeps clear only of the reserved regions (camera) it crosses.
         let opponentLandBand = phoneBandInsets(landRowTop...(landRowTop + opponentLandHeight), margin: 32, minimum: 32)
@@ -3380,7 +3386,21 @@ extension BoardViewController {
         func attachmentOffset(_ layer: Int) -> CGPoint {
             CGPoint(x: -attachmentStep * CGFloat(layer + 1), y: -6 - CGFloat(layer) * 6)
         }
-        struct FieldPlan { var leftSpill: CGFloat; var bottomSpill: CGFloat; var useColumn: Bool; var visible: CGRect; var extent: CGFloat }
+        let cellWidth = 520 + rotationSpill * 2
+        func extraWidth(_ group: PhoneCardGroup) -> CGFloat {
+            max(CGFloat(min(2, group.cards.count - 1)) * 22,
+                CGFloat(session.game.attachedCards(to: group.top.uuid).count) * attachmentStep)
+        }
+        func laneExtra(_ player: Player.Identifier, _ row: PhoneBattlefieldLayout.Row) -> CGFloat {
+            guard laidOut(player, row) > 0 else { return 0 }
+            return groups(for: player, row: row).reduce(0) { $0 + extraWidth($1) }
+        }
+        func lanes(for player: Player.Identifier, width: CGFloat) -> (support: PhoneLane, creatures: PhoneLane, side: PhoneLane) {
+            phoneLanes(fieldWidth: width, cellWidth: cellWidth,
+                support: laidOut(player, .support), creatures: laidOut(player, .creatures), side: laidOut(player, .side),
+                supportExtra: laneExtra(player, .support), creatureExtra: laneExtra(player, .creatures), sideExtra: laneExtra(player, .side))
+        }
+        struct FieldPlan { var bottomSpill: CGFloat; var useColumn: Bool; var visible: CGRect; var extent: CGFloat }
         func plan() -> FieldPlan {
             // A player's lanes (other permanents, creatures, planeswalkers) share one band, so size
             // the cards for the fullest band, not just its longest row.
@@ -3389,13 +3409,10 @@ extension BoardViewController {
             }.max() ?? 0
             // A row includes its fanned duplicates and attachments. Keep that entire
             // footprint inside its player's half, clear of both land organizers.
-            let attachmentCount = descriptors.flatMap { groups(for: $0.0, row: $0.1) }
-                .map { session.game.attachedCards(to: $0.top.uuid).count }.max() ?? 0
             // Fanned duplicates (up to 3 layers at 22/18 per layer) and attachments only reserve space when present.
             let maxLayers = min(3, descriptors.flatMap { groups(for: $0.0, row: $0.1) }.map(\.cards.count).max() ?? 1)
             // Attachments tuck behind their card, each one attachmentStep further to the left (and a bit up).
             let bottomSpill: CGFloat = CGFloat(maxLayers - 1) * 18 + rotationSpill
-            let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? attachmentStep * CGFloat(attachmentCount) : 0) + rotationSpill
             func extent(in rect: CGRect) -> CGFloat {
                 // Two card footprints share one instruction gap, not one gap per player.
                 let availableHeight = session.mode == .rules ? (rect.height - instructionGap) / 2 : rect.height / 2 - instructionGap
@@ -3404,10 +3421,13 @@ extension BoardViewController {
             }
             // The column must fit its largest row without paging (cards shrink within it if needed);
             // otherwise the row layout (which pages dense rows) is used.
-            let cellUnits = 520 + leftSpill + rotationSpill
             func fittedColumnExtent() -> CGFloat {
                 var fitted = extent(in: columnVisible)
-                let needed = CGFloat(max(1, largestRow)) * cellUnits - 20
+                let needed = max(500, Set(descriptors.map(\.0)).map { player in
+                    descriptors.filter { $0.0 == player }.reduce(CGFloat(0)) { total, descriptor in
+                        total + groups(for: player, row: descriptor.1, ignoringTapped: true).reduce(CGFloat(0)) { $0 + cellWidth + extraWidth($1) }
+                    }
+                }.max() ?? 500) - 20
                 // The stack overlays the battlefield (Arena), so it never changes this layout.
                 let available = columnVisible.width
                 if needed * fitted / 500 > available { fitted = max(24, available * 500 / needed) }
@@ -3415,7 +3435,7 @@ extension BoardViewController {
             }
             let centeredColumnFits = session.mode != .rules || view.bounds.width - 2 * columnInset >= 100
             let useColumn = centeredColumnFits && fittedColumnExtent() > extent(in: rowVisible) * 1.05
-            return FieldPlan(leftSpill: leftSpill, bottomSpill: bottomSpill, useColumn: useColumn,
+            return FieldPlan(bottomSpill: bottomSpill, useColumn: useColumn,
                              visible: useColumn ? columnVisible : rowVisible,
                              extent: useColumn ? fittedColumnExtent() : extent(in: rowVisible))
         }
@@ -3423,13 +3443,11 @@ extension BoardViewController {
         func fitsWithoutPaging(_ plan: FieldPlan) -> Bool {
             let zoom = plan.extent / 500
             let fieldWidth = max(500, plan.visible.width / zoom)
-            let cellWidth = 520 + plan.leftSpill + rotationSpill
             return descriptors.allSatisfy { player, row in
-                let count = groups(for: player, row: row).count
-                let lanes = phoneLanes(fieldWidth: fieldWidth, cellWidth: cellWidth,
-                                       support: laidOut(player, .support), creatures: laidOut(player, .creatures), side: laidOut(player, .side))
+                let rowGroups = groups(for: player, row: row)
+                let lanes = lanes(for: player, width: fieldWidth)
                 let rowWidth = row == .support ? lanes.support.width : row == .side ? lanes.side.width : lanes.creatures.width
-                return count <= max(1, Int((rowWidth + 20) / cellWidth))
+                return rowGroups.reduce(CGFloat(0)) { $0 + cellWidth + extraWidth($1) } - 20 <= rowWidth
             }
         }
         func choosePlan() -> FieldPlan {
@@ -3437,7 +3455,7 @@ extension BoardViewController {
             let stackedPlan = plan()
             splitDuplicates = true
             let splitPlan = plan()
-            splitDuplicates = splitPlan.extent >= stackedPlan.extent - 0.5 && fitsWithoutPaging(splitPlan)
+            splitDuplicates = splitPlan.extent >= stackedPlan.extent * 0.82 && fitsWithoutPaging(splitPlan)
             return splitDuplicates ? splitPlan : stackedPlan
         }
         // Use the widest attachment step that doesn't noticeably shrink the cards or make a row
@@ -3452,7 +3470,6 @@ extension BoardViewController {
         }
         attachmentStep = roomyStep ?? tightStep
         let fieldPlan = choosePlan() // also leaves splitDuplicates set for the chosen step
-        let leftSpill = fieldPlan.leftSpill
         let bottomSpill = fieldPlan.bottomSpill
         let visible = fieldPlan.visible
         let extent = fieldPlan.extent
@@ -3522,11 +3539,9 @@ extension BoardViewController {
         for descriptor in descriptors {
             let allGroups = groups(for: descriptor.0, row: descriptor.1)
             let key = descriptor.0.rawValue + (descriptor.1 == .creatures ? "creatures" : descriptor.1 == .side ? "side" : "support")
-            let cellWidth = 520 + leftSpill + rotationSpill // 20-unit gap; less padding between cards
             // Support permanents, creatures and planeswalkers/sagas use separate horizontal lanes in
             // the same player band. Four fractional rows could overlap vertically.
-            let lanes = phoneLanes(fieldWidth: field.width, cellWidth: cellWidth,
-                                   support: laidOut(descriptor.0, .support), creatures: laidOut(descriptor.0, .creatures), side: laidOut(descriptor.0, .side))
+            let lanes = lanes(for: descriptor.0, width: field.width)
             let lane = descriptor.1 == .support ? lanes.support : descriptor.1 == .side ? lanes.side : lanes.creatures
             let rowX = field.minX + lane.minX
             let rowWidth = lane.width
@@ -3535,12 +3550,22 @@ extension BoardViewController {
             // A full row first overlaps its cards (as on Arena), down to 45% of a card apart;
             // it pages only beyond that.
             let minSpacing = cellWidth * 0.45
-            func overlapCapacity(_ width: CGFloat) -> Int { max(1, Int((width - cellWidth + 20) / minSpacing) + 1) }
-            let pages = allGroups.count > max(Int((rowWidth + 20) / cellWidth), overlapCapacity(rowWidth))
+            func overlapCapacity(_ groups: [PhoneCardGroup], width: CGFloat) -> Int {
+                var extras: CGFloat = 0
+                var count = 0
+                for group in groups {
+                    extras += extraWidth(group)
+                    if cellWidth + CGFloat(count) * minSpacing + extras - 20 > width { break }
+                    count += 1
+                }
+                return max(1, count)
+            }
+            let pages = overlapCapacity(allGroups, width: rowWidth) < allGroups.count
             let layoutWidth = pages ? max(cellWidth, rowWidth - pageReserve) : rowWidth
-            let capacity = pages ? overlapCapacity(layoutWidth) : max(1, allGroups.count)
             let startIndex = min(phoneRowOffsets[key] ?? 0, max(0, allGroups.count - 1))
-            let pageGroups = Array(allGroups.dropFirst(startIndex).prefix(capacity))
+            let remaining = Array(allGroups.dropFirst(startIndex))
+            let capacity = pages ? overlapCapacity(remaining, width: layoutWidth) : max(1, allGroups.count)
+            let pageGroups = Array(remaining.prefix(capacity))
             let fraction: CGFloat = descriptor.0 == session.player ? 0.75 : 0.25
             let rowMidY: CGFloat
             if session.mode == .rules {
@@ -3572,19 +3597,17 @@ extension BoardViewController {
                 }, for: .touchUpInside)
                 view.addSubview(button); phoneGroupButtons.append(button)
             }
-            let spacing = pageGroups.count > 1
-                ? min(cellWidth, (layoutWidth - cellWidth + 20) / CGFloat(pageGroups.count - 1)) : cellWidth
-            let width = CGFloat(max(0, pageGroups.count - 1)) * spacing + cellWidth - 20
-            // Creature rows center on the screen (not on the lane beside the lands), sliding
-            // toward the lane only as far as needed to stay clear of the lands.
+            let packed = PhoneBattlefieldLayout.packedRow(extras: pageGroups.map(extraWidth), availableWidth: layoutWidth,
+                cellWidth: cellWidth, rotationSpill: rotationSpill)
+            // Center a sparse group as a compact visual unit, including only its own attachment fans.
             var start = row.minX
             if descriptor.1 == .creatures {
                 let screenMidX = board.convert(CGPoint(x: view.bounds.midX, y: 0), from: view).x
-                let centered = screenMidX - leftSpill - 250 - CGFloat(max(0, pageGroups.count - 1)) * spacing / 2
-                start = min(max(centered, row.minX), max(row.minX, row.minX + layoutWidth - width))
+                let centered = screenMidX - packed.width / 2
+                start = min(max(centered, row.minX), max(row.minX, row.minX + layoutWidth - packed.width))
             }
             for (column, group) in pageGroups.enumerated() {
-                let point = CGPoint(x: start + leftSpill + 250 + CGFloat(column) * spacing, y: row.midY)
+                let point = CGPoint(x: start + packed.centers[column], y: row.midY)
                 for (layer, card) in group.cards.prefix(3).enumerated().reversed() {
                     if let cardView = cardView(for: card) {
                         cardView.isHidden = false
@@ -5386,24 +5409,26 @@ extension BoardViewController {
     /// room when the band has something else to share it with.
     private struct PhoneLane { var minX: CGFloat; var width: CGFloat }
 
-    private func phoneLanes(fieldWidth: CGFloat, cellWidth: CGFloat, support: Int, creatures: Int, side: Int)
+    private func phoneLanes(fieldWidth: CGFloat, cellWidth: CGFloat, support: Int, creatures: Int, side: Int,
+                            supportExtra: CGFloat = 0, creatureExtra: CGFloat = 0, sideExtra: CGFloat = 0)
         -> (support: PhoneLane, creatures: PhoneLane, side: PhoneLane) {
         let others = support + creatures
         // Lanes get the room their cards need when everything fits; otherwise a share in
         // proportion to their card counts (at least one card each). No fixed caps, so two
         // planeswalkers beside one creature both show when there's space.
-        let total = max(1, support + creatures + side)
-        let fits = CGFloat(total) * cellWidth <= fieldWidth + 20
-        func share(_ count: Int) -> CGFloat {
+        let totalWidth = max(cellWidth, CGFloat(support + creatures + side) * cellWidth + supportExtra + creatureExtra + sideExtra)
+        let fits = totalWidth <= fieldWidth + 20
+        func share(_ count: Int, extra: CGFloat) -> CGFloat {
             guard count > 0 else { return 0 }
-            return fits ? CGFloat(count) * cellWidth : max(cellWidth, fieldWidth * CGFloat(count) / CGFloat(total))
+            let wanted = CGFloat(count) * cellWidth + extra
+            return fits ? wanted : max(cellWidth, fieldWidth * wanted / totalWidth)
         }
         let sideWidth: CGFloat = side == 0 ? 0 : others > 0
-            ? min(share(side), fieldWidth - cellWidth)
-            : min(fieldWidth, max(cellWidth, CGFloat(side) * cellWidth))
+            ? min(share(side, extra: sideExtra), fieldWidth - cellWidth)
+            : min(fieldWidth, max(cellWidth, CGFloat(side) * cellWidth + sideExtra))
         let remaining = fieldWidth - (others > 0 ? sideWidth : 0)
         let supportWidth: CGFloat = support > 0 && creatures > 0
-            ? min(share(support), remaining - cellWidth)
+            ? min(share(support, extra: supportExtra), remaining - cellWidth)
             : (creatures > 0 ? 0 : remaining)
         // Alone in the band, planeswalkers and sagas still sit at its right end.
         return (PhoneLane(minX: 0, width: max(0, supportWidth)),

@@ -5,6 +5,16 @@ import UIKit
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testAbilityChoiceCardsUseAvailablePhoneAndDuoSpace() {
+        let phone = RulesPromptSizing.choiceCardHeight(size: CGSize(width: 852, height: 393), count: 2)
+        let duo = RulesPromptSizing.choiceCardHeight(size: CGSize(width: 951, height: 669), count: 2)
+        XCTAssertGreaterThan(phone, 200)
+        XCTAssertGreaterThan(duo, 360)
+        XCTAssertLessThanOrEqual(phone + 172, 393)
+        XCTAssertLessThanOrEqual(duo + 172, 669)
+        XCTAssertGreaterThan(duo, phone)
+    }
+
     func testNamedTokensAndCopiesRetainTokenStyleAndCreatedBaseStats() async throws {
         let me = UUID().uuidString, id = UUID().uuidString
         var card: [String: Any] = ["id": id, "name": "Darkstar", "faceDown": false, "transformed": false,

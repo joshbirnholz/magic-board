@@ -21,6 +21,17 @@ final class PhoneGameTests: XCTestCase {
         return CardInstance(card: model, center: nil, ownerIdentifier: player)
     }
 
+    func testAttachmentFootprintsOnlyPadTheirOwnGroup() {
+        let plain = PhoneBattlefieldLayout.packedRow(extras: [0, 0, 0, 0], availableWidth: 5000, cellWidth: 600, rotationSpill: 40)
+        XCTAssertEqual(plain.centers, [290, 890, 1490, 2090])
+        let equipped = PhoneBattlefieldLayout.packedRow(extras: [0, 390, 0, 0], availableWidth: 5000, cellWidth: 600, rotationSpill: 40)
+        XCTAssertEqual(equipped.centers, [290, 1280, 1880, 2480])
+        XCTAssertEqual(equipped.centers[3] - equipped.centers[2], plain.centers[3] - plain.centers[2], "Plain cards must not inherit another creature's equipment fan")
+        XCTAssertEqual(equipped.width - plain.width, 390, "Reserve one attachment fan, not one per creature")
+        let dense = PhoneBattlefieldLayout.packedRow(extras: [0, 100, 0], availableWidth: 1500, cellWidth: 600, rotationSpill: 40)
+        XCTAssertLessThanOrEqual(dense.width, 1500)
+    }
+
     func testStackTargetsAreOwnedPublicUniqueAndSurviveSnapshots() throws {
         var game = PhoneGame()
         let spell = try card("Spell", type: "Instant")
