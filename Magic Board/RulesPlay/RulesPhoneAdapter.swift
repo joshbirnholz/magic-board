@@ -226,7 +226,11 @@ final class RulesPhoneAdapter {
             switch snapshot.step ?? "" {
             case "PRECOMBAT_MAIN": return (creatures.contains { $0.summoningSick != true } ? "Next\nTo Combat" : "Next\nTo Main 2", true)
             case "POSTCOMBAT_MAIN", "END_TURN", "CLEANUP": return ("End Turn", true)
-            default: return ("Next", true)
+            default:
+                if let next = nextStep(after: snapshot.step, attacked: combat.contains { !$0.attackers.isEmpty }) {
+                    return ("Next\n\(next)", true)
+                }
+                return ("Next", true)
             }
         }
         // The opponent's turn: once they've attacked, passing takes you to declaring blockers.

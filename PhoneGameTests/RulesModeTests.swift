@@ -712,10 +712,10 @@ final class RulesModeTests: XCTestCase {
         let prompt = try JSONDecoder().decode(RulesPrompt.self, from: JSONSerialization.data(withJSONObject: [
             "id": "p", "method": "GAME_SELECT", "revision": 1, "supported": true, "choices": [],
             "message": "Play spells and abilities"] as [String: Any]))
-        func label(_ step: String, stack: [[String: Any]] = []) throws -> String {
+        func label(_ step: String, stack: [[String: Any]] = [], ownTurn: Bool = false) throws -> String {
             let player: (String) -> [String: Any] = { ["id": $0, "name": $0, "life": 20, "handCount": 0, "libraryCount": 0, "battlefield": [], "graveyard": [], "exile": []] }
             let json: [String: Any] = ["gameId": UUID().uuidString, "playerId": me, "revision": 1, "turn": 2,
-                                       "phase": "X", "step": step, "activePlayerId": opponent, "hand": [], "stack": stack,
+                                       "phase": "X", "step": step, "activePlayerId": ownTurn ? me : opponent, "hand": [], "stack": stack,
                                        "playableIds": [], "players": [player(me), player(opponent)], "combat": []]
             let snapshot = try JSONDecoder().decode(RulesSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
             return RulesPhoneAdapter.primaryButton(prompt: prompt, snapshot: snapshot, pending: false).0
@@ -724,6 +724,13 @@ final class RulesModeTests: XCTestCase {
         XCTAssertEqual(try label("DECLARE_ATTACKERS"), "Pass\nTo End of Combat")
         XCTAssertEqual(try label("POSTCOMBAT_MAIN"), "Pass\nTo End Step")
         XCTAssertEqual(try label("END_TURN"), "Pass\nTo Your Turn")
+        XCTAssertEqual(try label("UPKEEP", ownTurn: true), "Next\nTo Draw")
+        XCTAssertEqual(try label("DRAW", ownTurn: true), "Next\nTo Main 1")
+        XCTAssertEqual(try label("BEGIN_COMBAT", ownTurn: true), "Next\nTo Attackers")
+        XCTAssertEqual(try label("DECLARE_BLOCKERS", ownTurn: true), "Next\nTo Damage")
+        XCTAssertEqual(try label("COMBAT_DAMAGE", ownTurn: true), "Next\nTo End of Combat")
+        XCTAssertEqual(try label("END_COMBAT", ownTurn: true), "Next\nTo Main 2")
+        XCTAssertEqual(try label("POSTCOMBAT_MAIN", ownTurn: true), "End Turn")
     }
 
     func testOpponentsCombatKeepsAttackersAndUntappedBlockers() async throws {
