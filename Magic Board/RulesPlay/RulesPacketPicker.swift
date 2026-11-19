@@ -24,12 +24,35 @@ enum RulesPackets {
         }
     }
 
-    static func offers(_ source: RulesDeckSource, set: String, first: String?) -> [String] {
+    /// Three offers whose display names are all different and differ from every name already shown
+    /// (the first round's offers), so variants such as "Vampires 1" and "Vampires 4" never both appear.
+    static func offers(_ source: RulesDeckSource, set: String, first: String?, shown: [String] = []) -> [String] {
+        let shownNames = Set((shown + [first].compactMap { $0 }).map(OfflineGameLibrary.packetDisplayName))
         switch source {
-        case .jumpStart: return library.jumpStartOffers(set: set, excluding: first)
-        case .jumpIn: return Array(library.jumpInPackets(set: set, first: first).prefix(3))
+        case .jumpStart:
+            let pool = library.games.filter { $0.kind == "JumpStart" && ($0.setCode ?? "JMP") == set }.map(\.name)
+            return uniqueOffers(pool.shuffled(), excluding: shownNames)
+        case .jumpIn:
+            // Jump In's offers follow colour rules, so redraw until one has no repeated names.
+            var best: [String] = []
+            for _ in 0..<40 {
+                let draw = uniqueOffers(library.jumpInPackets(set: set, first: first), excluding: shownNames)
+                if draw.count > best.count { best = draw }
+                if best.count >= 3 { break }
+            }
+            return best
         default: return []
         }
+    }
+
+    /// The first three candidates with distinct display names not in `excluding`.
+    static func uniqueOffers(_ candidates: [String], excluding: Set<String>, count: Int = 3) -> [String] {
+        var seen = excluding
+        var result: [String] = []
+        for name in candidates where result.count < count {
+            if seen.insert(OfflineGameLibrary.packetDisplayName(name)).inserted { result.append(name) }
+        }
+        return result
     }
 
     static func deckList(_ source: RulesDeckSource, set: String, first: String, second: String) -> String? {
@@ -62,7 +85,7 @@ enum RulesPackets {
             // First pick: prefer a one- or two-colour packet, so a two-colour deck stays possible.
             let firstOffers = offers(source, set: set, first: nil)
             guard let first = (firstOffers.filter { colors(source, set: set, name: $0).count <= 2 }.randomElement() ?? firstOffers.randomElement()) else { continue }
-            let secondOffers = offers(source, set: set, first: first).filter { $0 != first }
+            let secondOffers = offers(source, set: set, first: first, shown: firstOffers).filter { $0 != first }
                 .map { (name: $0, colors: colors(source, set: set, name: $0)) }
             guard let second = aiSecondPick(firstColors: colors(source, set: set, name: first), offers: secondOffers),
                   let deck = deckList(source, set: set, first: first, second: second) else { continue }
@@ -82,6 +105,7 @@ struct RulesPacketPicker: View {
     let done: (String?) -> Void
     @State private var first: String?
     @State private var offers: [String] = []
+    @State private var firstOffers: [String] = []
     @State private var failure: String?
 
     var body: some View {
@@ -113,14 +137,14 @@ struct RulesPacketPicker: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { done(nil) } } }
         }
-        .onAppear { if offers.isEmpty { offers = RulesPackets.offers(source, set: set, first: nil) } }
+        .onAppear { if offers.isEmpty { offers = RulesPackets.offers(source, set: set, first: nil); firstOffers = offers } }
         .interactiveDismissDisabled()
     }
 
     private func choose(_ name: String) {
         guard let first else {
             first = name
-            offers = RulesPackets.offers(source, set: set, first: name).filter { $0 != name }
+            offers = RulesPackets.offers(source, set: set, first: name, shown: firstOffers).filter { $0 != name }
             return
         }
         if let deck = RulesPackets.deckList(source, set: set, first: first, second: name) { done(deck) }

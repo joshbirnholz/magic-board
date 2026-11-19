@@ -568,6 +568,25 @@ final class RulesModeTests: XCTestCase {
         }
     }
 
+    func testPacketOffersNeverRepeatADisplayName() throws {
+        XCTAssertEqual(RulesPackets.uniqueOffers(["Vampires 1", "Vampires 4", "Angels", "Dogs 2", "Dogs"], excluding: ["Angels"]),
+                       ["Vampires 1", "Dogs 2"])
+        for source in [RulesDeckSource.jumpStart, .jumpIn] {
+            for set in RulesPackets.sets(for: source).map(\.code) {
+                for _ in 0..<5 {
+                    let firstRound = RulesPackets.offers(source, set: set, first: nil)
+                    let names = firstRound.map(OfflineGameLibrary.packetDisplayName)
+                    XCTAssertEqual(Set(names).count, names.count, "\(source.rawValue) \(set): \(firstRound)")
+                    guard let first = firstRound.first else { continue }
+                    let secondRound = RulesPackets.offers(source, set: set, first: first, shown: firstRound)
+                    let second = secondRound.map(OfflineGameLibrary.packetDisplayName)
+                    XCTAssertEqual(Set(second).count, second.count, "\(source.rawValue) \(set): \(secondRound)")
+                    XCTAssertTrue(Set(second).isDisjoint(with: names), "\(source.rawValue) \(set): \(firstRound) then \(secondRound)")
+                }
+            }
+        }
+    }
+
     func testAIPicksASecondPacketThatKeepsItToTwoColorsWhenPossible() {
         let offers: [(name: String, colors: Set<String>)] = [("Dragons", ["R"]), ("Angels", ["W"]), ("Sea", ["U", "G"])]
         for _ in 0..<20 {
