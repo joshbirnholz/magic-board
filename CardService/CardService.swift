@@ -587,6 +587,26 @@ public final class OfflineGameLibrary {
         public let randomSlots: [[JumpInSlotCard]]
         public let fixedCards: [String]
     }
+    /// Offer distinct packet display names, excluding all names shown in the previous round.
+    /// Repeated draws preserve Jump In's existing colour constraints.
+    public func distinctPacketOffers(kind: String, set: String, first: String?, shown: [String] = []) -> [String] {
+        let excluded = Set((shown + [first].compactMap { $0 }).map(Self.packetDisplayName))
+        if kind != "Jump In" {
+            var seen = excluded
+            return Array(games.filter { $0.kind == kind && ($0.setCode ?? "JMP") == set.uppercased() }
+                .map(\.name).shuffled().filter { seen.insert(Self.packetDisplayName($0)).inserted }.prefix(3))
+        }
+        var best: [String] = []
+        for _ in 0..<40 {
+            let draw = jumpInPackets(set: set, first: first)
+            var seen = excluded
+            let unique = draw.filter { seen.insert(Self.packetDisplayName($0)).inserted }
+            if unique.count > best.count { best = unique }
+            if best.count >= 3 { break }
+        }
+        return Array(best.prefix(3))
+    }
+
     public func packetColorNames(kind: String, set: String, name: String) -> String {
         let colors: [MTGColor]
         if kind == "Jump In", let packet = jumpInPacket(set: set, choice: name) {

@@ -572,7 +572,7 @@ struct PhoneGame: Codable {
             let library = OfflineGameLibrary.shared
             var selection = PacketSelection(kind: kind, setCode: set)
             for player in [Player.Identifier.a, .b] {
-                let offers = kind == "Jump In" ? library.jumpInPackets(set: set, first: nil) : library.jumpStartOffers(set: set)
+                let offers = library.distinctPacketOffers(kind: kind, set: set, first: nil)
                 guard !offers.isEmpty else { throw PhoneGameError.message("No offline packets are available for this set.") }
                 selection.offers[player.rawValue] = offers
             }
@@ -592,7 +592,8 @@ struct PhoneGame: Codable {
                 selection.offers[player.rawValue] = []
             } else {
                 selection.firstChoices[player.rawValue] = choice
-                selection.offers[player.rawValue] = selection.kind == "Jump In" ? library.jumpInPackets(set: selection.setCode, first: choice) : library.jumpStartOffers(set: selection.setCode, excluding: choice)
+                selection.offers[player.rawValue] = library.distinctPacketOffers(kind: selection.kind, set: selection.setCode, first: choice,
+                                                                                   shown: selection.offers[player.rawValue] ?? [])
             }
             packetSelection = selection.completed.count == 2 ? nil : selection
         case .load(let list, let name):

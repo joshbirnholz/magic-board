@@ -803,6 +803,17 @@ final class RulesModeTests: XCTestCase {
         XCTAssertNil(RulesPhoneAdapter.onlyLegalChoice(try prompt(method: "GAME_CHOOSE_CHOICE", choices: [["id": "no", "label": "Cancel"]], cancel: true)))
     }
 
+    func testMixedSetPacketOriginsUseEachPacketsSet() throws {
+        let packets = RulesPackets.library.jumpInPacketPool
+        let first = try XCTUnwrap(packets.first)
+        let second = try XCTUnwrap(packets.first { $0.setCode != first.setCode })
+        for packet in [first, second] {
+            let name = packet.setCode + " · " + packet.name
+            XCTAssertEqual(PacketPresentation.origin(kind: "Jump In", set: "ALL", name: name), packet.setCode)
+            XCTAssertNotNil(PacketPresentation.artwork(kind: "Jump In", set: "ALL", name: name))
+        }
+    }
+
     func testCurrentKeywordMetadataReplacesPrintedKeywordsAndExpires() throws {
         let printed = try RulesPhoneAdapter.placeholder(name: "Tonberry", typeLine: "Creature — Tonberry", rules: "During your turn, this creature has first strike and deathtouch.")
         func current(_ keywords: [String]) throws -> MTGCard {

@@ -821,6 +821,39 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Add Ability to Stack…"].exists)
     }
 
+    @MainActor func testArenaPacketDraftWaitsForConfirmation() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--phone-board-fixture"]
+        app.launch()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.buttons["phone-settings"].waitForExistence(timeout: 15))
+        app.buttons["phone-settings"].tap()
+        app.buttons["Load Deck / JumpStart / Jump In"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Load Deck"].waitForExistence(timeout: 5))
+        app.staticTexts["Jump In!"].tap()
+        XCTAssertTrue(app.buttons["BLB"].waitForExistence(timeout: 5))
+        app.buttons["BLB"].tap()
+        let choices = app.buttons.matching(identifier: "phone-packet-choice")
+        XCTAssertTrue(choices.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(choices.count, 3)
+        XCTAssertFalse(app.buttons["packet-confirm-pick"].isEnabled)
+        choices.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Choose First Packet"].exists, "Tapping only drafts the choice")
+        XCTAssertTrue(app.buttons["packet-confirm-pick"].isEnabled)
+        let first = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        first.name = "Arena packet first pick with artwork and origin"; first.lifetime = .keepAlways; add(first)
+        app.buttons["packet-confirm-pick"].tap()
+        XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
+        XCTAssertEqual(choices.count, 3)
+        XCTAssertFalse(app.buttons["packet-confirm-pick"].isEnabled)
+        let second = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        second.name = "First packet retained beside second-round offers"; second.lifetime = .keepAlways; add(second)
+        choices.firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
+        XCTAssertTrue(app.buttons["phone-settings"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons["phone-library-a"].value as? String, "40")
+    }
+
     @MainActor func testMenuDeckChoosersAndOfflineCatalog() {
         let app = XCUIApplication()
         app.launchArguments = ["--phone-board-fixture"]
@@ -837,8 +870,10 @@ final class PhoneBoardUITests: XCTestCase {
         XCTAssertTrue(app.buttons["phone-packet-choice"].firstMatch.waitForExistence(timeout: 5))
         let choice = NSPredicate(format: "identifier == 'phone-packet-choice'")
         app.buttons.matching(choice).firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
         app.buttons.matching(choice).firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["Choose Second Packet"])
         waitForExpectations(timeout: 5)
         XCTAssertFalse(app.navigationBars["Deck Ready"].exists)
@@ -911,8 +946,10 @@ final class PhoneBoardUITests: XCTestCase {
         do { let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "Packet chooser"; shot.lifetime = .keepAlways; add(shot) }
         let packetChoice = NSPredicate(format: "identifier == 'phone-packet-choice'")
         app.buttons.matching(packetChoice).firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
         app.buttons.matching(packetChoice).firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["Choose Second Packet"])
         waitForExpectations(timeout: 5)
         XCTAssertFalse(app.navigationBars["Deck Ready"].exists)
@@ -946,8 +983,10 @@ final class PhoneBoardUITests: XCTestCase {
         let choice = NSPredicate(format: "identifier == 'phone-packet-choice'")
         XCTAssertTrue(app.buttons.matching(choice).firstMatch.waitForExistence(timeout: 5))
         app.buttons.matching(choice).firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
         app.buttons.matching(choice).firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["Choose Second Packet"])
         waitForExpectations(timeout: 5)
         XCTAssertFalse(app.navigationBars["Deck Ready"].exists)

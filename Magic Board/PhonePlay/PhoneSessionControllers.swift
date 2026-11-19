@@ -528,6 +528,7 @@ struct PacketChoiceCard: View {
     let title: String
     let manaSymbols: String
     var setCode: String? = nil
+    var artworkURL: URL? = nil
     @State private var setSymbol: SVG?
     var body: some View {
         Group {
@@ -537,7 +538,34 @@ struct PacketChoiceCard: View {
                     else { mysteryTile.overlay { if phase.error == nil { ProgressView() } } }
                 }
             } else {
-                mysteryTile
+                GeometryReader { proxy in
+                    ZStack {
+                        Color(white: 0.16)
+                        if let artworkURL {
+                            if artworkURL.isFileURL, let image = UIImage(contentsOfFile: artworkURL.path) {
+                                Image(uiImage: image).resizable().scaledToFill()
+                            } else {
+                                SwiftUI.AsyncImage(url: artworkURL) { image in image.resizable().scaledToFill() }
+                                    placeholder: { Color(white: 0.2) }
+                            }
+                        }
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.height).clipped()
+                    .overlay(Image("packet-front-overlay").resizable().scaledToFill())
+                    .overlay(alignment: .center) {
+                        Text(title)
+                            .font(.custom("Beleren2016-Bold", size: max(15, proxy.size.width * 0.12)))
+                            .lineLimit(2).minimumScaleFactor(0.6).multilineTextAlignment(.center)
+                            .foregroundStyle(.white).shadow(color: .black, radius: 2)
+                            .padding(.horizontal, 8)
+                            .frame(maxWidth: .infinity)
+                            .offset(y: proxy.size.height * 0.23)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        addSymbols(string: manaSymbols, symbolLength: max(14, proxy.size.width * 0.14))
+                            .padding(proxy.size.width * 0.04)
+                    }
+                }
             }
         }
         .aspectRatio(63 / 88, contentMode: .fit)
@@ -575,6 +603,140 @@ struct PacketChoiceCard: View {
     }
 }
 
+/// The packet's origin and artwork are independent of the format's aggregate set selection.
+enum PacketPresentation {
+    static func origin(kind: String, set: String, name: String) -> String {
+        let library = OfflineGameLibrary.shared
+        if kind == "Jump In", let packet = library.jumpInPacket(set: set, choice: name) { return packet.setCode }
+        return library.games.first { $0.kind == kind && ($0.name == name || $0.name == set.uppercased() + " · " + name) }?.setCode ?? set
+    }
+
+    static func artwork(kind: String, set: String, name: String) -> URL? {
+        let library = OfflineGameLibrary.shared
+        let cards: [MTGCard]
+        if kind == "Jump In", let packet = library.jumpInPacket(set: set, choice: name) {
+            let names = packet.fixedCards + packet.randomSlots.flatMap { $0.map(\.name) }
+            cards = names.compactMap { library.card(for: .name($0)) }
+        } else {
+            cards = library.games.first { $0.kind == kind && ($0.name == name || $0.name == set.uppercased() + " · " + name) }?
+                .entries.compactMap { library.card(forKey: $0.key) } ?? []
+        }
+        func rank(_ card: MTGCard) -> Int {
+            switch String(describing: card.rarity).lowercased() {
+            case "mythic": return 3
+            case "rare": return 2
+            case "uncommon": return 1
+            default: return 0
+            }
+        }
+        guard let card = cards.filter({ $0.typeLine?.contains("Land") != true })
+            .sorted(by: { rank($0) > rank($1) }).first ?? cards.first,
+              let remote = card.imageURL(type: .art) else { return nil }
+        return library.artworkURL(for: remote) ?? remote
+    }
+}
+
+/// Shared Arena packet draft: taps select locally; only Confirm Pick advances either mode.
+struct PacketDraftOffers: View {
+    let kind: String
+    let set: String
+    let first: String?
+    let offers: [String]
+    let choiceIdentifier: String
+    let confirm: (String) -> Void
+    @State private var selected: String?
+
+    var body: some View {
+        GeometryReader { proxy in
+            let count = offers.count + (first == nil ? 0 : 1)
+            let height = max(90, min(proxy.size.height - 154, (proxy.size.width - 48 - CGFloat(max(0, count - 1)) * 16) / CGFloat(max(1, count)) * 88 / 63))
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Choose one of these themed packets")
+                    .font(.custom("Beleren2016-Bold", size: 22, relativeTo: .title2))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text("Choose two packets, one from each group of three. Each packet contains 20 cards, including lands.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: 16) {
+                    if let first {
+                        face(first, height: height)
+                            .overlay(alignment: .top) { Text("Packet 1").font(.caption.bold()).padding(4).background(.ultraThinMaterial, in: Capsule()) }
+                            .accessibilityLabel("First packet: \(OfflineGameLibrary.packetDisplayName(first))")
+                    }
+                    ForEach(offers, id: \.self) { name in
+                        Button { selected = name } label: {
+                            face(name, height: height)
+                                .shadow(color: selected == name ? .orange.opacity(0.6) : .clear, radius: 8)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(OfflineGameLibrary.packetDisplayName(name))
+                        .accessibilityAddTraits(selected == name ? .isSelected : [])
+                        .accessibilityIdentifier(choiceIdentifier)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                HStack {
+                    Spacer()
+                    Button("Confirm Pick") {
+                        guard let selected, offers.contains(selected) else { return }
+                        self.selected = nil
+                        confirm(selected)
+                    }
+                    .buttonStyle(PacketConfirmStyle())
+                    .disabled(selected == nil)
+                    .accessibilityIdentifier("packet-confirm-pick")
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+        }
+        .onChange(of: offers) { _ in selected = nil }
+    }
+
+    private func face(_ name: String, height: CGFloat) -> some View {
+        let origin = PacketPresentation.origin(kind: kind, set: set, name: name)
+        return VStack(spacing: 4) {
+            PacketChoiceCard(frontCardURL: OfflineGameLibrary.shared.packetFrontCardURL(kind: kind, set: set, name: name),
+                             title: OfflineGameLibrary.packetDisplayName(name),
+                             manaSymbols: OfflineGameLibrary.shared.packetColorSymbols(kind: kind, set: set, name: name),
+                             artworkURL: PacketPresentation.artwork(kind: kind, set: set, name: name))
+                .frame(width: height * 63 / 88, height: height)
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(selected == name ? Color.orange : .clear, lineWidth: 3))
+            PacketOriginSymbol(code: origin)
+        }
+    }
+}
+
+private struct PacketConfirmStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.custom("Beleren2016-Bold", size: 18, relativeTo: .headline))
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.6), radius: 1, y: 1)
+            .padding(.horizontal, 24).padding(.vertical, 10)
+            .background(Capsule().fill(LinearGradient(colors: [.orange, Color(red: 1, green: 0.65, blue: 0.25)], startPoint: .top, endPoint: .bottom)))
+            .overlay(Capsule().strokeBorder(.white.opacity(0.8), lineWidth: 1.5))
+            .opacity(configuration.isPressed ? 0.75 : 1)
+    }
+}
+
+private struct PacketOriginSymbol: View {
+    let code: String
+    @State private var symbol: SVG?
+    var body: some View {
+        HStack(spacing: 4) {
+            if let symbol {
+                SVGView(svg: symbol).renderingMode(.template).resizable().scaledToFit().frame(width: 20, height: 16)
+            }
+            Text(code.uppercased()).font(.caption2.bold())
+        }
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Originating set: \(code.uppercased())")
+        .task(id: code) { symbol = try? await ScryfallSetSymbolStore.shared.symbol(for: code) }
+    }
+}
+
 /// Offers belong to the authoritative game, so both phones enter the same draft.
 struct PhonePacketChoiceView: View {
     @ObservedObject var session: PhoneGameSession
@@ -590,30 +752,10 @@ struct PhonePacketChoiceView: View {
                !selection.completed.contains(session.player.rawValue) {
                 let player = session.player.rawValue
                 let offers = selection.offers[player] ?? []
-                GeometryReader { proxy in
-                    VStack(spacing: 10) {
-                        if let first = selection.firstChoices[player] {
-                            Text("First packet: \(OfflineGameLibrary.packetDisplayName(first))").font(.footnote).foregroundStyle(.secondary)
-                        }
-                        // The three offers side by side, as large as the screen allows.
-                        HStack(alignment: .top, spacing: 16) {
-                            ForEach(offers, id: \.self) { name in
-                                Button {
-                                    session.send(.choosePacket(selection.id, name))
-                                } label: {
-                                    PacketChoiceCard(frontCardURL: library.packetFrontCardURL(kind: selection.kind, set: selection.setCode, name: name),
-                                                     title: OfflineGameLibrary.packetDisplayName(name),
-                                                     manaSymbols: library.packetColorSymbols(kind: selection.kind, set: selection.setCode, name: name))
-                                }
-                                .buttonStyle(.plain)
-                                .frame(maxWidth: (proxy.size.width - 64) / 3)
-                                .accessibilityIdentifier("phone-packet-choice")
-                            }
-                        }
-                        .frame(maxHeight: max(120, proxy.size.height - 24))
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(width: proxy.size.width, height: proxy.size.height)
+                PacketDraftOffers(kind: selection.kind, set: selection.setCode,
+                                  first: selection.firstChoices[player], offers: offers,
+                                  choiceIdentifier: "phone-packet-choice") { name in
+                    session.send(.choosePacket(selection.id, name))
                 }
                 .navigationTitle(selection.firstChoices[player] == nil ? "Choose First Packet" : "Choose Second Packet")
                 .navigationBarTitleDisplayMode(.inline)

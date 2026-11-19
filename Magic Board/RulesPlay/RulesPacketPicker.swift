@@ -27,22 +27,7 @@ enum RulesPackets {
     /// Three offers whose display names are all different and differ from every name already shown
     /// (the first round's offers), so variants such as "Vampires 1" and "Vampires 4" never both appear.
     static func offers(_ source: RulesDeckSource, set: String, first: String?, shown: [String] = []) -> [String] {
-        let shownNames = Set((shown + [first].compactMap { $0 }).map(OfflineGameLibrary.packetDisplayName))
-        switch source {
-        case .jumpStart:
-            let pool = library.games.filter { $0.kind == "JumpStart" && ($0.setCode ?? "JMP") == set }.map(\.name)
-            return uniqueOffers(pool.shuffled(), excluding: shownNames)
-        case .jumpIn:
-            // Jump In's offers follow colour rules, so redraw until one has no repeated names.
-            var best: [String] = []
-            for _ in 0..<40 {
-                let draw = uniqueOffers(library.jumpInPackets(set: set, first: first), excluding: shownNames)
-                if draw.count > best.count { best = draw }
-                if best.count >= 3 { break }
-            }
-            return best
-        default: return []
-        }
+        library.distinctPacketOffers(kind: kind(source), set: set, first: first, shown: shown)
     }
 
     /// The first three candidates with distinct display names not in `excluding`.
@@ -110,29 +95,10 @@ struct RulesPacketPicker: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { proxy in
-                VStack(spacing: 10) {
-                    if let first {
-                        Text("First packet: \(OfflineGameLibrary.packetDisplayName(first))").font(.footnote).foregroundStyle(.secondary)
-                    }
-                    HStack(alignment: .top, spacing: 16) {
-                        ForEach(offers, id: \.self) { name in
-                            Button { choose(name) } label: {
-                                PacketChoiceCard(frontCardURL: RulesPackets.library.packetFrontCardURL(kind: RulesPackets.kind(source), set: set, name: name),
-                                                 title: OfflineGameLibrary.packetDisplayName(name),
-                                                 manaSymbols: RulesPackets.library.packetColorSymbols(kind: RulesPackets.kind(source), set: set, name: name),
-                                                 setCode: set)
-                            }
-                            .buttonStyle(.plain)
-                            .frame(maxWidth: (proxy.size.width - 64) / 3)
-                            .accessibilityIdentifier("rules-packet-choice")
-                        }
-                    }
-                    .frame(maxHeight: max(120, proxy.size.height - 24))
-                    if let failure { Text(failure).foregroundStyle(.red).font(.callout) }
-                }
-                .padding(.horizontal, 16)
-                .frame(width: proxy.size.width, height: proxy.size.height)
+            VStack(spacing: 8) {
+                PacketDraftOffers(kind: RulesPackets.kind(source), set: set, first: first, offers: offers,
+                                  choiceIdentifier: "rules-packet-choice", confirm: choose)
+                if let failure { Text(failure).foregroundStyle(.red).font(.callout) }
             }
             .navigationTitle(first == nil ? "Choose First Packet" : "Choose Second Packet")
             .navigationBarTitleDisplayMode(.inline)

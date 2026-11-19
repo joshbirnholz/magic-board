@@ -437,8 +437,10 @@ final class RulesModeUITests: XCTestCase {
             let choice = app.buttons.matching(identifier: "rules-packet-choice")
             XCTAssertTrue(choice.firstMatch.waitForExistence(timeout: 10), "Creating a packet game should offer packets")
             choice.firstMatch.tap()
+            app.buttons["packet-confirm-pick"].tap()
             XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
             choice.firstMatch.tap()
+            app.buttons["packet-confirm-pick"].tap()
         }
         let start = app.buttons["rules-start-human"]
         XCTAssertTrue(start.waitForExistence(timeout: 20), "Creating the waiting game failed")
@@ -761,16 +763,15 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(packets.firstMatch.waitForExistence(timeout: 10), "Starting a \(source) game should offer packets")
         XCTAssertTrue(app.navigationBars["Choose First Packet"].exists)
         packets.firstMatch.tap()
+        app.buttons["packet-confirm-pick"].tap()
         XCTAssertTrue(app.navigationBars["Choose Second Packet"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'First packet:'")).firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'First packet:'")).firstMatch.exists)
         packets.firstMatch.tap()
-        // The engine game starts with that deck: the phone board and an opening-hand decision.
-        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 30),
-                      "The \(source) game didn't start: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
-        let message = app.descendants(matching: .any)["rules-prompt-message"]
-        XCTAssertTrue(message.waitForExistence(timeout: 30))
-        if message.label.localizedCaseInsensitiveContains("starting player"), app.buttons["Magic Board"].waitForExistence(timeout: 5) { app.buttons["Magic Board"].tap() }
-        XCTAssertTrue(keepButton(app).waitForExistence(timeout: 20))
+        app.buttons["packet-confirm-pick"].tap()
+        // Opening-hand decisions intentionally hide the generic phase button. Verify the
+        // actual visible control, then expect normal battlefield controls after keeping.
+        XCTAssertTrue(keepButton(app).waitForExistence(timeout: 30),
+                      "The \(source) opening hand didn't appear: \(app.staticTexts.allElementsBoundByIndex.map(\.label))")
         let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         screenshot.name = "Rules mode — \(source) opening hand"
         screenshot.lifetime = .keepAlways
