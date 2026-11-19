@@ -2,6 +2,25 @@
 
 Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coordination record outside git, including active task claims and the shared simulator lock. Claude and Codex are both working; check ownership there before editing shared files.
 
+## Current Codex takeover — November 19
+
+Josh explicitly authorized Codex to cover all Claude work until **Tuesday Nov24 at1:00AM ET**. All edits stay in `/private/tmp/MagicBoard-Rules` on `rules-mode-codex`; Claude's worktree is untouched. **Visual improvements now apply to normal Phone Play as well as Rules mode**, per Josh's new instruction. Preserve sandbox gameplay, free drags, saves and gestures; engine authority stays Rules-only.
+
+**Priority order:** playtest sizing, animations and Arena HUD placement; two-human room/join/deck flow; reported bugs; remaining features; additional prompt/scenario testing and polish. Full tracker is `Docs/RulesModeRequests.md`, now R01–R48 with all supplied screenshots/assets recorded. Do not lose R35/R36 keyword/inspection, R41 sparse duplicates, R42/R44 related token art/frame/base P/T, R43 condition hints, R45 mode-card choices, R46 sickness pulse, R47 Saga chapter asset, or R48 red damage display.
+
+Verified completed batch through2ef30d9:
+- R28: reserve one prompt gap, pack opposing rows around it, reset stale land reservation on viewport resize and reject invalid centered columns. Sparse minimum-size, stable prompt frames, wrapped crew and normal sandbox tap/drag pass. Actual Duo fold remains unverified.
+- R30/R31: one per-player pair of original seven-glyph phase strips (obsolete strip removed); trigger choices use the shared stack ability frame. Focused UI passes; screenshots inspected.
+- R27: visible X badge on opponent stack spell and accessible X value; focused UI passes. Real X0/1/copy metadata was previously verified.
+- R35 bridge current keyword icons → optional keywords → permanent tiles. Java current/copy/expiry/privacy/shroud checks and Swift projection pass. Physical Tonberry and server deployment pending.
+- R38/R39: shared top-right gear replaces phone empty-board hold, preserving sandbox menu actions; native XMage CONCEDE produces a loss, retains final state, handles duplicate receipt and replays the result. UI passes Defeat → View Battlefield → Game Result. Concession bridge deployment pending. Gear reserves its own slot beside opponent piles.
+- R07: mandatory singleton targets/one ability choice auto-answer; optional decisions remain explicit; one bottom Cancel. R43 known engine ICON_GOOD/BAD hints become ✓/✗ with spacing; captured Aclazotz metadata informed the regression.
+- R17/R18/R40: shared select-then-confirm packet draft, first packet retained at left, artwork-only fallback with Josh's overlay, each packet's own set symbol underneath. Both modes use shared distinct offers across rounds. Normal UI completes40-card deck; actual Rules packet game reaches opening hand and kept hand. The old test incorrectly waited for the intentionally hidden phase button before Keep; driver alone corrected.
+
+**Verification:** all122 units (68Phone +54Rules) pass in `/private/tmp/rules-packets-singletons-final.log`; that run's Rules UI failed only on the obsolete phase-button expectation. Corrected real Rules UI passes `/private/tmp/rules-real-packet-opening-ui.log`. Normal packet confirmation UI and inspected screenshots: `/private/tmp/rules-arena-packet-selection-ui.log`, `/private/tmp/rules-arena-packet-selection-attachments/`. Concession native proof `/private/tmp/rules-real-concede-smoke.log`; gear/result/X UI `/private/tmp/rules-shared-packets-result-ui.log`. Two initial X tests queried the wrong AX element (child is folded into button, then a duplicate button/static-text identifier); button query and screenshot confirm actual badge. Avoid repeating those selectors.
+
+**Runtime:** PC and shared Mac bridge remain12d5f2c (do not assume current source). Isolated candidate17182 is running new current-keyword/concession code for smoke/UI checks, no active test game after completion. Fixture17183 refreshed for chosen-X and concession/result UI. Before any deployment check0clients; package only committed source; update only bridge, never XMage. The user is actively testing, so preserve their games.
+
 ## Evening follow-up (November 18)
 
 **Current deployment (21:54 ET):** main12d5f2c is delivered; PC bridge **12d5f2c**, PID56048, package SHA256 `d82c9f43f5757be0b591fbd5b4d6d070eee19edbbcac0a0638e82fb57b8cd4a5`. Update used the existing `pc-bridge-update.ps1` at0 connected clients; XMage PID43152 stayed running. Actual public `wss://xmage.compc.cc` Delve game passes selector, paid exiled UUIDs, Gurmag cast, reconnect, duplicate-command and stale-answer checks (`/private/tmp/rules-pc-public-delve-smoke.log`). Source/hash verified. Optional live backup failed because Windows locks logs/JARs; no valid backup was claimed, incomplete artifact removed if present. Updater invocation needs the already documented process-only `-ExecutionPolicy Bypass`; no system policy change.
