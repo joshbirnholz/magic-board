@@ -5,7 +5,7 @@ final class RulesModeUITests: XCTestCase {
     /// Requires the real bridge on localhost with the test connection key.
     @MainActor func testRulesConnectsAndUsesThePhonePlayInterface() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-host"].waitForExistence(timeout: 15))
@@ -53,7 +53,7 @@ final class RulesModeUITests: XCTestCase {
     /// and checks the real engine accepted it (the hand shrinks and the next prompt arrives).
     @MainActor func testRulesLandDraggedFromHandIsPlayedByTheEngine() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -140,7 +140,7 @@ final class RulesModeUITests: XCTestCase {
     /// and press the main button for everything else. Fails on any stuck or unsupported prompt.
     @MainActor func testRulesFullGameAgainstTheAIThroughTheInterface() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -310,17 +310,21 @@ final class RulesModeUITests: XCTestCase {
         guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
         let app = startFixtureGame(endpoint: endpoint)
         app.terminate()
+        app.launchArguments.removeAll { $0 == "--rules-manual-connect" }
         app.launch()
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
         app.buttons["start-rules"].tap()
-        XCTAssertTrue(app.buttons["rules-connect-new"].waitForExistence(timeout: 5), "The relaunched process should load its saved seat")
-        app.buttons["rules-connect"].tap()
-        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 15), "Reconnect should reopen the existing game without creating a new one")
+        XCTAssertTrue(app.buttons["phone-untap-local"].waitForExistence(timeout: 15), "Opening Rules Game should automatically resume the saved seat without a connection-button tap")
         XCTAssertEqual(app.buttons.matching(identifier: "phone-creature-card").count, 3)
         exitFixtureGame(app)
         app.buttons["start-rules"].tap()
+        XCTAssertTrue(app.buttons["rules-start-ai"].waitForExistence(timeout: 15), "The saved server reconnects after Exit, but the exited game must not reopen")
+        XCTAssertFalse(app.buttons["phone-untap-local"].exists)
+        app.buttons["Disconnect"].tap()
         XCTAssertTrue(app.buttons["rules-connect"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["rules-connect-new"].exists, "Explicit Exit Game must delete the retained seat")
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertTrue(app.buttons["rules-connect"].exists, "Explicit Disconnect must not start a reconnection loop")
+        XCTAssertFalse(app.buttons["rules-start-ai"].exists)
     }
 
     @MainActor func testRulesFullControlMenuReflectsEngineSetting() throws {
@@ -355,7 +359,7 @@ final class RulesModeUITests: XCTestCase {
 
     @MainActor private func startFixtureGame(endpoint: String) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -396,7 +400,7 @@ final class RulesModeUITests: XCTestCase {
             throw XCTSkip("Start SecondSeatBot and set TEST_RUNNER_RULES_SECOND_SEAT=1 to run this check")
         }
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         // TEST_RUNNER_RULES_UI_TEST_PACKETS=JumpStart (or "Jump In"): draft two packets for this seat first.
         let packets = ProcessInfo.processInfo.environment["RULES_UI_TEST_PACKETS"]
         if let packets { app.launchArguments += ["-rules.deckSource", "\"\(packets)\""] }
@@ -551,7 +555,7 @@ final class RulesModeUITests: XCTestCase {
         let app = XCUIApplication()
         // Launch-argument defaults are parsed as property lists: quote the value so its "\n" escapes
         // become line breaks (unquoted, only the first line would arrive).
-        app.launchArguments = ["--rules-ui-test", "-rules.deckList", "\"" + deck.replacingOccurrences(of: "\"", with: "") + "\""]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect", "-rules.deckList", "\"" + deck.replacingOccurrences(of: "\"", with: "") + "\""]
         // TEST_RUNNER_RULES_UI_TEST_MANUAL_MANA=1 turns automatic payment off, to exercise the Auto button.
         let manualMana = ProcessInfo.processInfo.environment["RULES_UI_TEST_MANUAL_MANA"] == "1"
         if manualMana { app.launchArguments += ["-rules.autoPayMana", "NO"] }
@@ -722,7 +726,7 @@ final class RulesModeUITests: XCTestCase {
     @MainActor func testRulesJumpStartPacketsAgainstTheAI() throws {
         let source = ProcessInfo.processInfo.environment["RULES_UI_TEST_PACKETS"] ?? "JumpStart"
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test", "-rules.deckSource", "\"\(source)\""]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect", "-rules.deckSource", "\"\(source)\""]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))
@@ -771,7 +775,7 @@ final class RulesModeUITests: XCTestCase {
     /// zone ("Return 1 Card"), then Keep 6, as a person would.
     @MainActor func testRulesMulliganReturnsACardByDraggingItToTheLibrary() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))

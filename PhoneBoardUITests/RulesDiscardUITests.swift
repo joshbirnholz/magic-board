@@ -346,7 +346,7 @@ final class RulesDiscardUITests: XCTestCase {
 
     @MainActor private func openFixture(_ address: String, information: Bool = false, opening: Bool = false, question: Bool = false) async throws -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--rules-ui-test"]
+        app.launchArguments = ["--rules-ui-test", "--rules-manual-connect"]
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 15))

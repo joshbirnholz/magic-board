@@ -37,6 +37,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 		// Override point for customization after application launch.
 		
         #if DEBUG
+        // Manual connection tests start with an empty address; recovery tests omit this flag
+        // on relaunch to exercise the same saved-server auto-connect used by the app.
+        if ProcessInfo.processInfo.arguments.contains("--rules-manual-connect") {
+            UserDefaults.standard.removeObject(forKey: "rules.bridgeAddress")
+        }
         let isolatedPhoneCheck = ProcessInfo.processInfo.arguments.contains { $0 == "--phone-board-fixture" || $0 == "--phone-companion-fixture" || $0 == "--rules-ui-test" || $0.hasPrefix("--phone-network-") }
         #else
         let isolatedPhoneCheck = false

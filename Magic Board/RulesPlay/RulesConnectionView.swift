@@ -8,6 +8,7 @@ struct RulesConnectionView: View {
     @AppStorage("rules.bridgeAddress") private var address = ""
     @State private var key = ""
     @State private var transferred = false
+    @State private var attemptedAutomaticConnection = false
     @AppStorage("rules.deckList") private var deckList = ""
     @State private var format = "Limited"
     @State private var showDeckImport = false
@@ -162,7 +163,15 @@ struct RulesConnectionView: View {
                 deckList = text
             } catch { session.error = error.localizedDescription }
         }
-        .onAppear { key = session.connectionKey }
+        .onAppear {
+            key = session.connectionKey
+            guard !attemptedAutomaticConnection else { return }
+            attemptedAutomaticConnection = true
+            guard session.status == .disconnected,
+                  !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !key.isEmpty else { return }
+            session.connect(address: address, key: key)
+        }
         .onChange(of: session.formats) { formats in
             if !formats.contains(format) { format = formats.contains("Limited") ? "Limited" : (formats.first ?? "Limited") }
         }
