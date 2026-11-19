@@ -44,6 +44,7 @@ class BoardViewController: UIViewController {
   private var phoneLandContentMaxX: CGFloat?
   /// Column layout: reserved right edge of the land rows for this game (only grows, with one stack of slack).
   private var phoneLandReservation: (gameID: UUID, maxX: CGFloat)?
+  private var phoneRulesLandReservationSize: CGSize?
   private weak var phoneBackgroundLogo: UIImageView?
   private var phoneAttackIndicators: [UUID: PhoneAttackIndicatorView] = [:]
   /// Glows around attacking (orange) and blocking (blue) cards' actual art.
@@ -3200,6 +3201,12 @@ extension BoardViewController {
         // Tapping a land splits its stack (wider row). Reserve one stack of slack and never shrink
         // within a game, so land taps don't move the battlefield.
         let landStackWidth = max(landHeight, opponentLandHeight) * 480 / 420 * 1.5 + 14 // a tapped (rotated) stack is wider than a card
+        // A reservation belongs to the current viewport. Keeping the wide-screen value after
+        // resizing can leave no centered column on the smaller display.
+        if session.mode == .rules, phoneRulesLandReservationSize != view.bounds.size {
+            phoneLandReservation = nil
+            phoneRulesLandReservationSize = view.bounds.size
+        }
         if phoneLandReservation?.gameID != session.game.id { phoneLandReservation = nil }
         if measuredLandMaxX > (phoneLandReservation?.maxX ?? -.infinity) {
             phoneLandReservation = (session.game.id, measuredLandMaxX + landStackWidth)
@@ -3296,7 +3303,9 @@ extension BoardViewController {
             let bottomSpill: CGFloat = CGFloat(maxLayers - 1) * 18 + rotationSpill
             let leftSpill: CGFloat = max(CGFloat(maxLayers - 1) * 22, attachmentCount > 0 ? attachmentStep * CGFloat(attachmentCount) : 0) + rotationSpill
             func extent(in rect: CGRect) -> CGFloat {
-                let heightFit = max(24, (rect.height / 2 - instructionGap) / (1 + (topSpill + bottomSpill) / 500))
+                // Two card footprints share one instruction gap, not one gap per player.
+                let availableHeight = session.mode == .rules ? (rect.height - instructionGap) / 2 : rect.height / 2 - instructionGap
+                let heightFit = max(24, availableHeight / (1 + (topSpill + bottomSpill) / 500))
                 return min(heightFit, PhoneBattlefieldLayout.cardExtent(screenWidth: rect.width, screenHeight: view.bounds.height, groups: largestRow))
             }
             // The column must fit its largest row without paging (cards shrink within it if needed);
@@ -3310,7 +3319,8 @@ extension BoardViewController {
                 if needed * fitted / 500 > available { fitted = max(24, available * 500 / needed) }
                 return fitted
             }
-            let useColumn = fittedColumnExtent() > extent(in: rowVisible) * 1.05
+            let centeredColumnFits = session.mode != .rules || view.bounds.width - 2 * columnInset >= 100
+            let useColumn = centeredColumnFits && fittedColumnExtent() > extent(in: rowVisible) * 1.05
             return FieldPlan(leftSpill: leftSpill, bottomSpill: bottomSpill, useColumn: useColumn,
                              visible: useColumn ? columnVisible : rowVisible,
                              extent: useColumn ? fittedColumnExtent() : extent(in: rowVisible))
@@ -3438,7 +3448,17 @@ extension BoardViewController {
             let startIndex = min(phoneRowOffsets[key] ?? 0, max(0, allGroups.count - 1))
             let pageGroups = Array(allGroups.dropFirst(startIndex).prefix(capacity))
             let fraction: CGFloat = descriptor.0 == session.player ? 0.75 : 0.25
-            let centerY = field.minY + field.height * fraction - (bottomSpill - topSpill) / 2
+            let rowMidY: CGFloat
+            if session.mode == .rules {
+                // Keep the same clear lane in screen points at every card scale. Pack each
+                // row against it so sparse boards use their available height, without
+                // responding to the appearance or disappearance of a prompt.
+                let offset = (500 + topSpill + bottomSpill + instructionGap / scrollView.zoomScale) / 2
+                rowMidY = field.midY + (descriptor.0 == session.player ? offset : -offset)
+            } else {
+                rowMidY = field.minY + field.height * fraction
+            }
+            let centerY = rowMidY - (bottomSpill - topSpill) / 2
             let row = CGRect(x: rowX, y: centerY - 250, width: layoutWidth, height: 500)
             if descriptor.1 == .creatures { creatureLanes[descriptor.0] = rowX...(rowX + layoutWidth) }
             if allGroups.count > capacity {
