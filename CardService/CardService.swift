@@ -598,11 +598,24 @@ public final class OfflineGameLibrary {
         }
         var best: [String] = []
         for _ in 0..<40 {
-            let draw = jumpInPackets(set: set, first: first)
+            let draw = jumpInPackets(set: set, first: first, excludingNames: excluded)
             var seen = excluded
             let unique = draw.filter { seen.insert(Self.packetDisplayName($0)).inserted }
             if unique.count > best.count { best = unique }
             if best.count >= 3 { break }
+        }
+        // Cross-set variants can still share display names. Fill a short draw from the
+        // remaining pool, preferring the fewest extra colors without repeating earlier offers.
+        if best.count < 3 {
+            let colors = Set(first.flatMap { jumpInPacket(set: set, choice: $0) }?.colors ?? [])
+            let allSets = set.uppercased() == "ALL"
+            let remaining = jumpInPacketPool.filter { allSets || $0.setCode == set.uppercased() }
+                .shuffled().sorted { colors.union($0.colors).count < colors.union($1.colors).count }
+            var seen = excluded.union(best.map(Self.packetDisplayName))
+            for packet in remaining where best.count < 3 {
+                let choice = allSets ? packet.setCode + " · " + packet.name : packet.name
+                if seen.insert(Self.packetDisplayName(choice)).inserted { best.append(choice) }
+            }
         }
         return Array(best.prefix(3))
     }
@@ -662,10 +675,13 @@ public final class OfflineGameLibrary {
         }
     }
     /// Same color constraints as the packet server, sampling without replacement.
-    public func jumpInPackets(set: String, first: String?) -> [String] {
+    public func jumpInPackets(set: String, first: String?, excludingNames: Set<String> = []) -> [String] {
         let allSets = set.uppercased() == "ALL"
         func choice(_ packet: JumpInPacket) -> String { allSets ? packet.setCode + " · " + packet.name : packet.name }
-        let eligible = jumpInPacketPool.filter { (allSets || $0.setCode == set.uppercased()) && choice($0) != first }
+        let eligible = jumpInPacketPool.filter {
+            (allSets || $0.setCode == set.uppercased()) && choice($0) != first
+                && !excludingNames.contains(Self.packetDisplayName(choice($0)))
+        }
         var remaining = eligible
         let chosen = first.flatMap { jumpInPacket(set: set, choice: $0) }
         var result: [JumpInPacket] = []

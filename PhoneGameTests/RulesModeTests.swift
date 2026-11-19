@@ -604,6 +604,22 @@ final class RulesModeTests: XCTestCase {
         }
     }
 
+    func testFINSecondPacketAlwaysHasThreeFreshOffers() throws {
+        let library = RulesPackets.library
+        let allNames = Set(library.jumpInPacketPool.filter { $0.setCode == "FIN" }.map { OfflineGameLibrary.packetDisplayName($0.name) })
+        XCTAssertGreaterThanOrEqual(allNames.count, 6)
+        for _ in 0..<30 {
+            let firstRound = library.distinctPacketOffers(kind: "Jump In", set: "FIN", first: nil)
+            XCTAssertEqual(firstRound.count, 3)
+            for first in firstRound {
+                let second = library.distinctPacketOffers(kind: "Jump In", set: "FIN", first: first, shown: firstRound)
+                XCTAssertEqual(second.count, 3, "First reminder is separate: \(firstRound) -> \(second)")
+                XCTAssertEqual(Set(second.map(OfflineGameLibrary.packetDisplayName)).count, 3)
+                XCTAssertTrue(Set(second.map(OfflineGameLibrary.packetDisplayName)).isDisjoint(with: firstRound.map(OfflineGameLibrary.packetDisplayName)))
+            }
+        }
+    }
+
     func testPacketOffersNeverRepeatADisplayName() throws {
         XCTAssertEqual(RulesPackets.uniqueOffers(["Vampires 1", "Vampires 4", "Angels", "Dogs 2", "Dogs"], excluding: ["Angels"]),
                        ["Vampires 1", "Dogs 2"])
