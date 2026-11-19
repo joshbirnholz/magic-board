@@ -882,18 +882,37 @@ class BoardViewController: UIViewController {
             let size = PhoneStackCardsView.cardSize(in: stackView.bounds.size)
             let transform = PhoneStackCardsView.cardTransform(in: stackView.bounds.size, depth: depth)
             let center = CGPoint(x: size.width / 2, y: size.height / 2).applying(transform)
-            let image = UIImageView(image: card.representation.imageIfLoaded(type: .normal)
-                                    ?? card.representation.image(type: .normal))
-            image.contentMode = .scaleAspectFill
-            image.clipsToBounds = true
-            image.layer.cornerCurve = .continuous
-            image.layer.cornerRadius = max(4, size.width * 0.045)
-            image.isUserInteractionEnabled = false
-            image.bounds = CGRect(origin: .zero, size: size)
-            image.center = stackView.convert(center, to: view)
-            image.transform = CGAffineTransform(rotationAngle: -4 * CGFloat(depth) * .pi / 180)
-            view.addSubview(image)
-            stand = PhoneMenuStandIn(card: card.uuid, view: image, host: nil, isStack: true)
+            let item = session.game.stack[index]
+            let standView: UIView
+            let standHost: UIViewController?
+            if item.isAbility == true {
+                // The details page still shows the source card. Its transition source and return
+                // destination must remain the same ability face that's actually on the stack.
+                let host = UIHostingController(rootView:
+                    PhoneAbilityPanel(source: card, text: item.text, width: size.width, depth: CGFloat(depth))
+                        .frame(width: size.width, height: size.height, alignment: .top))
+                if #available(iOS 16.4, *) { host.safeAreaRegions = [] }
+                host.view.backgroundColor = .clear
+                host.view.accessibilityIdentifier = "phone-stack-ability-transition"
+                standView = host.view
+                standHost = host
+            } else {
+                let image = UIImageView(image: card.representation.imageIfLoaded(type: .normal)
+                                        ?? card.representation.image(type: .normal))
+                image.contentMode = .scaleAspectFill
+                image.clipsToBounds = true
+                image.layer.cornerCurve = .continuous
+                image.layer.cornerRadius = max(4, size.width * 0.045)
+                standView = image
+                standHost = nil
+            }
+            standView.isUserInteractionEnabled = false
+            standView.bounds = CGRect(origin: .zero, size: size)
+            standView.center = stackView.convert(center, to: view)
+            standView.transform = CGAffineTransform(rotationAngle: -4 * CGFloat(depth) * .pi / 180)
+            view.addSubview(standView)
+            standView.layoutIfNeeded()
+            stand = PhoneMenuStandIn(card: card.uuid, view: standView, host: standHost, isStack: true)
             phoneStackCards?.rootView = makePhoneStackView(session, concealing: card.uuid)
         } else {
             return nil
