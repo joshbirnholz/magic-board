@@ -40,7 +40,7 @@ struct RulesConnectionView: View {
                     .autocorrectionDisabled()
                     .accessibilityIdentifier("rules-connection-key")
             } header: { Text("Rules server") } footer: {
-                Text("Connect to the Magic Board bridge on your PC. Use its local address at home or its private network address away from home.")
+                Text("Connect to the Magic Board bridge on your PC using its local or private network address, or a secure wss:// address.")
             }
             Section {
                 if session.status == .connecting {

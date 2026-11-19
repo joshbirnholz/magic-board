@@ -573,7 +573,12 @@ final class RulesModeTests: XCTestCase {
 
     func testRulesAddressValidationAndDefaultPort() throws {
         XCTAssertEqual(try RulesEndpoint.parse("my-pc.local").absoluteString, "ws://my-pc.local:17180")
-        XCTAssertEqual(try RulesEndpoint.parse("wss://example.test:443/rules").scheme, "wss")
+        XCTAssertEqual(try RulesEndpoint.parse("ws://my-pc.local").absoluteString, "ws://my-pc.local:17180")
+        XCTAssertEqual(try RulesEndpoint.parse("wss://xmage.compc.cc").absoluteString, "wss://xmage.compc.cc")
+        XCTAssertNil(try RulesEndpoint.parse("wss://xmage.compc.cc").port)
+        XCTAssertEqual(try RulesEndpoint.parse("wss://example.test/rules").path, "/rules")
+        XCTAssertEqual(try RulesEndpoint.parse("wss://example.test:443/rules").port, 443)
+        XCTAssertEqual(try RulesEndpoint.parse("wss://example.test:17180/rules").port, 17180)
         for address in ["", "https://example.test", "ws://user:password@example.test", "ws://example.test?token=secret", "ws://example.test:70000"] {
             XCTAssertThrowsError(try RulesEndpoint.parse(address), address)
         }

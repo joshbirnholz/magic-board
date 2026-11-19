@@ -205,8 +205,10 @@ enum RulesEndpoint {
               let host = components.host, !host.isEmpty,
               components.user == nil, components.password == nil,
               components.query == nil, components.fragment == nil else { throw Failure.invalidAddress }
-        if components.port == nil { components.port = 17180 }
-        guard let port = components.port, (1...65535).contains(port), let url = components.url else { throw Failure.invalidAddress }
+        // Secure endpoints normally terminate at an HTTPS proxy (port 443). Keep its
+        // implicit port intact; only direct, unencrypted bridge connections default to 17180.
+        if components.port == nil, components.scheme == "ws" { components.port = 17180 }
+        guard (1...65535).contains(components.port ?? 443), let url = components.url else { throw Failure.invalidAddress }
         return url
     }
     enum Failure: LocalizedError {
