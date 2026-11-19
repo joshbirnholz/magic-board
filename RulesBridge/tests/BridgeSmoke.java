@@ -197,6 +197,22 @@ public final class BridgeSmoke implements WebSocket.Listener {
                     if (observedPrompts.add(tag)) System.out.println("Prompt query: " + tag);
                 }
                 if (String.valueOf(nextPrompt.get("message")).toLowerCase(Locale.ROOT).contains("exile a white card")) observedPrompts.add("ALTERNATIVE_COST");
+                if (method.equals("GAME_TARGET") && nextPrompt.has("targetZone") && nextPrompt.has("cards") && !nextPrompt.getAsJsonArray("cards").isEmpty()) {
+                    String zone = nextPrompt.get("targetZone").getAsString();
+                    if (zone.equals("HAND")) observedPrompts.add("HAND_CHOICE_HAS_CARDS");
+                    if (zone.equals("GRAVEYARD")) {
+                        observedPrompts.add("GRAVEYARD_CHOICE_HAS_CARDS");
+                        int seats = 0;
+                        for (JsonElement player : currentState.getAsJsonArray("players")) {
+                            boolean hasTarget = false;
+                            for (JsonElement dead : player.getAsJsonObject().getAsJsonArray("graveyard"))
+                                for (JsonElement candidate : nextPrompt.getAsJsonArray("cards"))
+                                    if (dead.getAsJsonObject().get("id").equals(candidate.getAsJsonObject().get("id"))) hasTarget = true;
+                            if (hasTarget) seats++;
+                        }
+                        if (seats == 2) observedPrompts.add("GRAVEYARD_CHOICES_BOTH_SEATS");
+                    }
+                }
                 if (method.equals("GAME_CHOOSE_ABILITY")) choseAbility = true;
                 String object = null;
                 if (method.equals("GAME_SELECT") && currentState.get("step").getAsString().contains("MAIN")) {
@@ -508,7 +524,12 @@ public final class BridgeSmoke implements WebSocket.Listener {
                             for (JsonElement player : event.getAsJsonArray("players"))
                                 for (JsonElement card : player.getAsJsonObject().getAsJsonArray("battlefield"))
                                     if (card.getAsJsonObject().get("id").getAsString().equals(sourceId)
-                                            && name(card.getAsJsonObject()).equals("Ahriman")) observedPrompts.add("ABILITY_SOURCE_LINK");
+                                            && name(card.getAsJsonObject()).equals("Ahriman")) {
+                                        observedPrompts.add("ABILITY_SOURCE_LINK");
+                                        if (object.getAsJsonArray("colors").equals(card.getAsJsonObject().getAsJsonArray("colors"))
+                                                && object.getAsJsonArray("colors").contains(new JsonPrimitive("B")))
+                                            observedPrompts.add("ABILITY_SOURCE_COLOR");
+                                    }
                         }
                         if (!object.has("controllerId")) throw new AssertionError("Stack object without a controller: " + object.get("name"));
                         if (object.get("controllerId").getAsString().equals(me)) {

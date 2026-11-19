@@ -18,6 +18,7 @@ final class PromptMetadata {
     static void apply(String method, GameClientMessage message, JsonObject result) {
         Map<String, Serializable> options = message.getOptions() == null ? Map.of() : message.getOptions();
         if (options.get("queryType") instanceof Enum<?> query) result.addProperty("queryType", query.name());
+        if (options.get("targetZone") instanceof mage.constants.Zone zone) result.addProperty("targetZone", zone.name());
         if (options.get("secondMessage") instanceof String text) result.addProperty("subMessage", text);
         copyIds(options, "possibleTargets", "selectionIds", result);
         copyIds(options, "chosenTargets", "selectedIds", result);

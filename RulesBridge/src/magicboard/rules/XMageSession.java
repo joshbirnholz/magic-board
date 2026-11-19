@@ -502,6 +502,7 @@ final class XMageSession implements MageClient, AutoCloseable {
             result.addProperty("required", message.isFlag());
             PromptMetadata.apply(method, message, result);
             JsonArray suppliedCards = message.getCardsView1() == null ? new JsonArray() : cards(message.getCardsView1().values());
+            suppliedCards = PromptTargetCards.resolve(method, message, snapshot, suppliedCards);
             result.add("cards", PromptContextCards.forQuestion(method, message.getMessage(), snapshot, suppliedCards));
             result.add("secondPile", message.getCardsView2() == null ? new JsonArray() : cards(message.getCardsView2().values()));
             JsonArray targets = new JsonArray();
@@ -563,12 +564,15 @@ final class XMageSession implements MageClient, AutoCloseable {
             if (card.getCounters() != null) card.getCounters().forEach(counter -> counters.add(object("name", counter.getName(), "count", counter.getCount())));
             item.add("counters", counters);
             JsonArray colors = new JsonArray();
-            if (card.getColor() != null) {
-                if (card.getColor().isWhite()) colors.add("W");
-                if (card.getColor().isBlue()) colors.add("U");
-                if (card.getColor().isBlack()) colors.add("B");
-                if (card.getColor().isRed()) colors.add("R");
-                if (card.getColor().isGreen()) colors.add("G");
+            // A stack ability has no colors of its own; its UI frame depicts its source, like the
+            // source name/printing above. Rules legality remains entirely in XMage.
+            CardView appearance = source != null ? source : card;
+            if (appearance.getColor() != null) {
+                if (appearance.getColor().isWhite()) colors.add("W");
+                if (appearance.getColor().isBlue()) colors.add("U");
+                if (appearance.getColor().isBlack()) colors.add("B");
+                if (appearance.getColor().isRed()) colors.add("R");
+                if (appearance.getColor().isGreen()) colors.add("G");
             }
             item.add("colors", colors);
             JsonArray targets = new JsonArray();

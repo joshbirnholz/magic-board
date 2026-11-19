@@ -1,0 +1,35 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "graveyard-exile",
+    "main": [
+      {
+        "name": "Swamp",
+        "count": 20
+      },
+      {
+        "name": "Stitcher’s Supplier",
+        "count": 10
+      },
+      {
+        "name": "Soul-Shackled Zombie",
+        "count": 10
+      }
+    ],
+    "sideboard": []
+  },
+  "aiDeck": {
+    "name": "Prompt verification opponent",
+    "main": [
+      {
+        "name": "Island",
+        "count": 24
+      },
+      {
+        "name": "Opt",
+        "count": 16
+      }
+    ],
+    "sideboard": []
+  }
+}

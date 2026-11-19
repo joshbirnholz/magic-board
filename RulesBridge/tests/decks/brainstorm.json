@@ -1,0 +1,27 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "brainstorm",
+    "main": [
+      {
+        "name": "Island",
+        "count": 24
+      },
+      {
+        "name": "Brainstorm",
+        "count": 16
+      }
+    ],
+    "sideboard": []
+  },
+  "aiDeck": {
+    "name": "Prompt verification opponent",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 40
+      }
+    ],
+    "sideboard": []
+  }
+}

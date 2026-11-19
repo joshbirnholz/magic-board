@@ -138,6 +138,7 @@ struct RulesPrompt: Decodable, Identifiable {
     let amounts: [Amount]?
     let canCancel: Bool?
     var queryType: String? = nil
+    var targetZone: String? = nil
     var subMessage: String? = nil
     var source: Source? = nil
     var specialActionAvailable: Bool? = nil

@@ -2,6 +2,7 @@ package magicboard.rules;
 
 import com.google.gson.JsonObject;
 import mage.choices.ChoiceImpl;
+import mage.constants.Zone;
 import mage.game.events.PlayerQueryEvent;
 import mage.view.GameClientMessage;
 import java.util.Map;
@@ -17,6 +18,10 @@ public final class PromptMetadataTest {
                 Map.of("queryType", PlayerQueryEvent.QueryType.PICK_ABILITY), "Order triggers", null, null, true));
         check("PICK_ABILITY".equals(ordering.get("queryType").getAsString()), "Trigger ordering metadata lost");
         check(!ordering.get("canCancel").getAsBoolean(), "Required target can be cancelled");
+        JsonObject zone = metadata("GAME_TARGET", new GameClientMessage(null, Map.of("targetZone", Zone.GRAVEYARD), "Choose a card"));
+        check("GRAVEYARD".equals(zone.get("targetZone").getAsString()), "Target zone lost");
+        JsonObject invalidZone = metadata("GAME_TARGET", new GameClientMessage(null, Map.of("targetZone", "private"), "Choose a card"));
+        check(!invalidZone.has("targetZone"), "Arbitrary target-zone object leaked");
         JsonObject optionalTarget = metadata("GAME_TARGET", new GameClientMessage(null, null, "Up to one", null, null, false));
         check(optionalTarget.get("canCancel").getAsBoolean(), "Optional target cannot be cancelled");
         UUID allowed = UUID.randomUUID(), selected = UUID.randomUUID();

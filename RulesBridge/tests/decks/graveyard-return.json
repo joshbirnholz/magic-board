@@ -1,0 +1,27 @@
+{
+  "format": "Limited",
+  "deck": {
+    "name": "graveyard-return",
+    "main": [
+      {
+        "name": "Forest",
+        "count": 24
+      },
+      {
+        "name": "Pothole Mole",
+        "count": 16
+      }
+    ],
+    "sideboard": []
+  },
+  "aiDeck": {
+    "name": "Prompt verification opponent",
+    "main": [
+      {
+        "name": "Plains",
+        "count": 40
+      }
+    ],
+    "sideboard": []
+  }
+}
