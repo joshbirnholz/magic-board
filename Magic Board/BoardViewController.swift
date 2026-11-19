@@ -2287,7 +2287,14 @@ extension BoardViewController: UIDropInteractionDelegate {
     /// Drops that declare or cancel a block. Returns true when the drop was a combat drop.
     private func performPhoneCombatDrop(at point: CGPoint, ids: Set<UUID>) -> Bool {
         guard let session = phoneMode, ids.count == 1, let id = ids.first else { return false }
-        if let target = armedPhoneBlockTarget(at: point, excluding: ids) {
+        // A Rules blocker drop is an explicit declaration. It needn't dwell until the
+        // sandbox attach/block hover arms; the adapter retains the attacker for XMage's
+        // asynchronous follow-up question.
+        let immediate = session.mode == .rules && canPhoneBlock(with: id, session: session)
+            ? phoneAttachmentTarget(at: point, excluding: ids).flatMap {
+                session.game.combat?.attackers.contains($0.uuid) == true ? $0 : nil
+            } : nil
+        if let target = immediate ?? armedPhoneBlockTarget(at: point, excluding: ids) {
             clearPhoneAttachHover()
             session.send(.block(id, target.uuid))
             return true

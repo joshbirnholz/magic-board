@@ -291,7 +291,7 @@ final class RulesModeUITests: XCTestCase {
         let blocker = try XCTUnwrap(creatures.first { ($0.value as? String) == "Untapped" && $0.isHittable })
         let attacker = try XCTUnwrap(creatures.first { ($0.value as? String) == "Attacking" && $0.isHittable })
         blocker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            .press(forDuration: 0.1, thenDragTo: attacker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.7)
+            .press(forDuration: 0.1, thenDragTo: attacker.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), withVelocity: 1500, thenHoldForDuration: 0)
         expectation(for: NSPredicate(format: "label CONTAINS 'Block' AND NOT label CONTAINS 'No'"), evaluatedWith: next)
         waitForExpectations(timeout: 8)
         XCTAssertEqual(next.value as? String, "1 blocking assignments")
