@@ -82,6 +82,7 @@ class BoardViewController: UIViewController {
   private var rulesPhaseMarkerHosts: [UIHostingController<RulesPhaseMarkers>] = []
   /// Full-screen Rules decisions (mulligan, choices, game over); hidden when there's none.
   private var rulesModalHost: UIViewController?
+  private var phoneSettingsButton: UIButton?
   /// Arena's phase row, second button and fast-forward pill, just above the main button.
   private var rulesActionHost: UIViewController?
   private var rulesActionConstraints: [NSLayoutConstraint] = []
@@ -1555,8 +1556,14 @@ class BoardViewController: UIViewController {
     return actions
   }
 	
-	@objc func longPressRecognized(gestureRecognizer: UIGestureRecognizer) {
-		guard presentedViewController == nil else { return }
+    @objc func longPressRecognized(gestureRecognizer: UIGestureRecognizer) {
+        // Phone battlefields use the visible gear; keep the original iPad board gesture.
+        guard phoneMode == nil else { return }
+        showBattlefieldMenu()
+    }
+
+    @objc private func showBattlefieldMenu() {
+        guard presentedViewController == nil else { return }
         if phoneMode?.mode == .rules {
             let menu = BoardMenuSheetController(title: "Battlefield", message: nil, preferredStyle: .alert)
             if let engine = phoneMode?.rulesAdapter?.engine, engine.status == .connected, engine.result == nil {
@@ -1579,6 +1586,13 @@ class BoardViewController: UIViewController {
                 })
                 menu.addAction(BoardMenuAction(title: engine.autoOrderTriggers ? "Order Triggers Manually" : "Order Triggers Automatically", style: .default) { _ in
                     Task { await engine.setAutoOrderTriggers(!engine.autoOrderTriggers) }
+                })
+                menu.addAction(BoardMenuAction(title: "Concede", style: .destructive) { [weak self] _ in
+                    guard let self else { return }
+                    let confirm = UIAlertController(title: "Concede game?", message: "This game will end in a loss.", preferredStyle: .alert)
+                    confirm.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+                    confirm.addAction(UIAlertAction(title: "Concede", style: .destructive) { _ in Task { await engine.concede() } })
+                    self.present(confirm, animated: true)
                 })
                 let autoPay = RulesPhoneAdapter.autoPaysMana
                 menu.addAction(BoardMenuAction(title: autoPay ? "Turn Off Mana Auto-Pay" : "Turn On Mana Auto-Pay", style: .default) { _ in
@@ -3086,8 +3100,31 @@ extension BoardViewController {
         }
     }
 
+    private func layoutPhoneSettingsButton() {
+        guard phoneMode != nil else { phoneSettingsButton?.isHidden = true; return }
+        let button = phoneSettingsButton ?? {
+            let button = UIButton(type: .system)
+            button.setImage(UIImage(systemName: "gearshape.fill"), for: .normal)
+            button.setPreferredSymbolConfiguration(.init(pointSize: 23, weight: .semibold), forImageIn: .normal)
+            button.tintColor = .white.withAlphaComponent(0.85)
+            button.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+            button.layer.cornerRadius = 22
+            button.accessibilityIdentifier = "phone-settings"
+            button.accessibilityLabel = "Settings"
+            button.addTarget(self, action: #selector(showBattlefieldMenu), for: .touchUpInside)
+            view.addSubview(button)
+            phoneSettingsButton = button
+            return button
+        }()
+        let safe = view.safeAreaInsets
+        button.frame = CGRect(x: view.bounds.maxX - safe.right - 48, y: max(4, safe.top), width: 44, height: 44)
+        button.isHidden = false
+        view.bringSubviewToFront(button)
+    }
+
     private func layoutPhoneBattlefield() {
         guard let session = phoneMode, view.bounds.width > 0 else { return }
+        defer { layoutPhoneSettingsButton() }
         phoneLayoutInProgress = true
         defer { phoneLayoutInProgress = false }
         // Don't reset these transforms to identity each pass: briefly moving a bar back to its
@@ -3151,7 +3188,10 @@ extension BoardViewController {
         for constraint in view.constraints {
             let first = constraint.firstItem as? UIView
             let second = constraint.secondItem as? UIView
-            func band(_ container: UIView?) -> (left: CGFloat, right: CGFloat) { container === top ? topBand : bottomBand }
+            func band(_ container: UIView?) -> (left: CGFloat, right: CGFloat) {
+                // The visible gear has its own slot; it must not cover the opponent's graveyard.
+                container === top ? (topBand.left, max(topBand.right, view.safeAreaInsets.right + 52)) : bottomBand
+            }
             if (first === player1BarContainerView || first === player2BarContainerView) && constraint.firstAttribute == .leading {
                 rememberPhoneConstraint(constraint); constraint.constant = band(first).left - (constraint.secondItem is UILayoutGuide ? view.safeAreaInsets.left : 0)
             }

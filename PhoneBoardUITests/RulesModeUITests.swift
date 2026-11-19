@@ -49,7 +49,7 @@ final class RulesModeUITests: XCTestCase {
         screenshot.name = "Rules mode — shared Phone Play interface"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Reset Decks and Life"].exists, "Rules games must not offer sandbox reset controls")
         app.buttons["Exit Game"].tap()
@@ -306,7 +306,7 @@ final class RulesModeUITests: XCTestCase {
         screenshot.name = "Rules — blocker assigned by drag through a target prompt"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5))
         app.buttons["Exit Game"].tap()
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
@@ -336,16 +336,16 @@ final class RulesModeUITests: XCTestCase {
     @MainActor func testRulesFullControlMenuReflectsEngineSetting() throws {
         guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
         let app = startFixtureGame(endpoint: endpoint)
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Hold Full Control"].waitForExistence(timeout: 5))
         app.buttons["Hold Full Control"].tap()
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Release Full Control"].waitForExistence(timeout: 5))
         app.buttons["Release Full Control"].tap()
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Order Triggers Manually"].waitForExistence(timeout: 5))
         app.buttons["Order Triggers Manually"].tap()
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Order Triggers Automatically"].waitForExistence(timeout: 5))
         app.buttons["Order Triggers Automatically"].tap()
         exitFixtureGame(app)
@@ -395,7 +395,7 @@ final class RulesModeUITests: XCTestCase {
     }
 
     @MainActor private func exitFixtureGame(_ app: XCUIApplication) {
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.buttons["Exit Game"].waitForExistence(timeout: 5))
         app.buttons["Exit Game"].tap()
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
@@ -547,7 +547,7 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(played, 2, "This phone barely got to play against the second seat")
         // The other seat's hand stays hidden: no opponent card names in our hand list.
         XCTAssertLessThanOrEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'")).count, 10)
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
 
@@ -628,7 +628,7 @@ final class RulesModeUITests: XCTestCase {
             if stuck >= 40 { break }
             if manualTriggersPending, text.localizedCaseInsensitiveContains("Play spells") {
                 manualTriggersPending = false
-                app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+                app.buttons["phone-settings"].tap()
                 let manual = app.buttons["Order Triggers Manually"]
                 XCTAssertTrue(manual.waitForExistence(timeout: 5), "The battlefield menu should offer manual trigger ordering")
                 if manual.exists { manual.tap() }
@@ -727,7 +727,7 @@ final class RulesModeUITests: XCTestCase {
         for required in requiredPrompts {
             XCTAssertTrue(seen.contains { $0.localizedCaseInsensitiveContains(required) }, "Never reached \(required); prompts: \(seen)")
         }
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
     /// JumpStart against the AI chosen on the Rules Game page: pick two packets when the game
@@ -777,7 +777,7 @@ final class RulesModeUITests: XCTestCase {
         add(screenshot)
         keepButton(app).tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "phone-hand-0").firstMatch.waitForExistence(timeout: 15))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
 
@@ -831,7 +831,7 @@ final class RulesModeUITests: XCTestCase {
                       "After returning the card, the game starts with the kept six")
         let hand = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'phone-hand-'"))
         XCTAssertLessThanOrEqual(hand.count, 7, "Six kept, plus at most one draw")
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         if app.buttons["Exit Game"].waitForExistence(timeout: 5) { app.buttons["Exit Game"].tap() }
     }
 

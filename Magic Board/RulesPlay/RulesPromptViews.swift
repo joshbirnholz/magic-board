@@ -352,7 +352,7 @@ struct RulesPromptModal: View {
             } else if isVisible {
                 // Arena lets you hide a decision to look at the board; this brings it back.
                 Button { minimized = false } label: {
-                    Label(informationGroup == nil ? "Back to choice" : "Revealed Cards",
+                    Label(session.result != nil ? "Game Result" : informationGroup == nil ? "Back to choice" : "Revealed Cards",
                           systemImage: informationGroup == nil ? "rectangle.on.rectangle" : "eye")
                 }
                     .buttonStyle(RulesPillButtonStyle())
@@ -500,6 +500,9 @@ struct RulesPromptModal: View {
                 .font(.custom("Beleren2016-Bold", size: 56, relativeTo: .largeTitle))
                 .foregroundStyle(won ? Color(red: 1, green: 0.8, blue: 0.3) : .white)
             Text(text).font(.callout).foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
+            Button("View Battlefield") { minimized = true }
+                .buttonStyle(RulesPillButtonStyle(primary: false))
+                .accessibilityIdentifier("rules-result-view-battlefield")
             if let exit { Button("Exit Game", action: exit).buttonStyle(RulesPillButtonStyle()) }
         }
     }

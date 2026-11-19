@@ -253,6 +253,11 @@ final class RulesGameSession: ObservableObject {
         await submit(RulesCommand(type: "settings", requestId: UUID().uuidString, autoOrderTriggers: enabled))
     }
 
+    func concede() async {
+        guard snapshot != nil, result == nil else { return }
+        await submit(RulesCommand(type: "concede", requestId: UUID().uuidString))
+    }
+
     private func submit(_ command: RulesCommand) async {
         guard status == .connected, let socket, pendingRequest == nil else { return }
         pendingRequest = command.requestId

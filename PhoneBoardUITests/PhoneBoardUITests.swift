@@ -827,7 +827,7 @@ final class PhoneBoardUITests: XCTestCase {
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         XCTAssertTrue(app.navigationBars["Battlefield"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Reset Decks and Life"].exists, "Reset options sit on the menu's first page")
         let menuShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); menuShot.name = "Board menu"; menuShot.lifetime = .keepAlways; add(menuShot)
@@ -896,7 +896,7 @@ final class PhoneBoardUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
         func menu() {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+            app.buttons["phone-settings"].tap()
             XCTAssertTrue(app.navigationBars["Battlefield"].waitForExistence(timeout: 5))
         }
         menu()
@@ -936,7 +936,7 @@ final class PhoneBoardUITests: XCTestCase {
         app.launch()
         XCUIDevice.shared.orientation = .landscapeLeft
         XCTAssertTrue(app.buttons["phone-stack"].waitForExistence(timeout: 15))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).press(forDuration: 0.6)
+        app.buttons["phone-settings"].tap()
         app.buttons["Load Deck / JumpStart / Jump In"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Load Deck"].waitForExistence(timeout: 5))
         if !app.buttons["Marvel Super Heroes JumpStart"].isHittable { app.swipeUp() }

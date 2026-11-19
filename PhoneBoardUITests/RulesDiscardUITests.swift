@@ -99,6 +99,25 @@ final class RulesDiscardUITests: XCTestCase {
         add(screenshot)
     }
 
+    @MainActor func testGearConcedeAndFinalBattlefield() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let app = try await openFixture(address + "/stable")
+        defer { app.terminate() }
+        app.buttons["phone-settings"].tap()
+        XCTAssertTrue(app.buttons["Concede"].waitForExistence(timeout: 5))
+        app.buttons["Concede"].tap()
+        let confirm = app.alerts["Concede game?"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.buttons["Concede"].tap()
+        XCTAssertTrue(app.staticTexts["Defeat"].waitForExistence(timeout: 5))
+        app.buttons["rules-result-view-battlefield"].tap()
+        XCTAssertFalse(app.staticTexts["Defeat"].exists)
+        XCTAssertTrue(app.buttons.matching(identifier: "phone-creature-card").firstMatch.exists)
+        XCTAssertTrue(app.buttons["Game Result"].waitForExistence(timeout: 5))
+        app.buttons["Game Result"].tap()
+        XCTAssertTrue(app.staticTexts["Defeat"].waitForExistence(timeout: 5))
+    }
+
     @MainActor func testOpponentStackSpellDisplaysChosenX() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Requires BlockPromptFixture")

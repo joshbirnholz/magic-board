@@ -75,6 +75,11 @@ final class XMageSession implements MageClient, AutoCloseable {
                 case "answer" -> answer(request);
                 case "priorityControl" -> priorityControl(request);
                 case "settings" -> updateSettings(request);
+                case "concede" -> {
+                    if (gameId == null || gameOver != null) throw new IllegalStateException("There is no active game to concede.");
+                    if (!session.sendPlayerAction(PlayerAction.CONCEDE, gameId, null))
+                        throw new IllegalStateException("XMage did not accept the concession.");
+                }
                 case "resync" -> replay();
                 default -> throw new IllegalArgumentException("Unsupported command.");
             }

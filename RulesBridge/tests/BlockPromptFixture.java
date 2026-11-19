@@ -84,6 +84,11 @@ public final class BlockPromptFixture extends WebSocketServer {
                 holdingPriority = false; autoOrderTriggers = true; delveCards.clear();
                 ack(socket, request); snapshot(socket); prompt(socket);
             }
+            case "concede" -> {
+                stage = "finished";
+                ack(socket, request);
+                send(socket, object("type", "gameOver", "message", "Opponent is the winner"));
+            }
             case "priorityControl" -> {
                 holdingPriority = request.get("priorityAction").getAsString().equals("hold");
                 settings(socket);
