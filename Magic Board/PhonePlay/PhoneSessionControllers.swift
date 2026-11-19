@@ -1204,6 +1204,16 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         setNeedsLayout()
     }
 
+    /// Inspection-only Rules views cannot offer manual moves or reorder their source zone.
+    func configureReadOnlyInspection() {
+        allowsCardDragging = false
+        battlefieldZone.isHidden = true
+        onMove = nil
+        onReorder = nil
+        zoneAt = nil
+        setNeedsLayout()
+    }
+
     private var choiceSelectable: Set<UUID>?
     private var choiceSelected: Set<UUID> = []
     private var choiceIdentifiers: [UUID: String] = [:]

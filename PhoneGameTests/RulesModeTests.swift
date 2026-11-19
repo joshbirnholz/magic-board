@@ -5,6 +5,18 @@ import UIKit
 
 @MainActor
 final class RulesModeTests: XCTestCase {
+    func testReadOnlyPileBrowserHidesDestinationAndDisablesCardDragging() throws {
+        let card = CardInstance(card: try RulesPhoneAdapter.placeholder(name: "Test creature", typeLine: "Creature", rules: "", manaCost: "{1}"), center: nil, ownerIdentifier: .a)
+        let browser = PhoneZoneBrowserView(title: "Graveyard", cards: [card])
+        browser.onMove = { _, _ in XCTFail("Read-only browser moved a card") }
+        browser.onReorder = { _ in XCTFail("Read-only browser reordered cards") }
+        browser.configureReadOnlyInspection()
+        XCTAssertFalse(browser.allowsCardDragging)
+        XCTAssertNil(browser.onMove)
+        XCTAssertNil(browser.onReorder)
+        XCTAssertTrue(try XCTUnwrap(browser.subviews.first { $0.accessibilityIdentifier == "phone-browser-zone-battlefield" }).isHidden)
+    }
+
     func testAdventurePermanentUsesItsCreatureFaceOnBattlefield() throws {
         let template = try RulesPhoneAdapter.placeholder(name: "Beanstalk Wurm // Plant Beans", typeLine: "Creature — Plant Wurm // Sorcery — Adventure", rules: "Reach", manaCost: "{4}{G}")
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(template)) as? [String: Any])

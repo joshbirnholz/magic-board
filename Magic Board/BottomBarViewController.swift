@@ -562,6 +562,11 @@ extension BottomBarViewController {
         graveyardPileView.accessibilityLabel = "Graveyard"
         graveyardPileView.accessibilityValue = String(graveyardPileView.pile.cards.value.count)
         graveyardPileView.accessibilityTraits = .button
+        exilePileView.isAccessibilityElement = true
+        exilePileView.accessibilityIdentifier = "phone-exile-" + player.identifier.rawValue
+        exilePileView.accessibilityLabel = "Exile"
+        exilePileView.accessibilityValue = String(exilePileView.pile.cards.value.count)
+        exilePileView.accessibilityTraits = .button
         let sceneSize = parent?.view.bounds.size ?? view.window?.bounds.size ?? CGSize(width: 667, height: 375)
         let shortSide = min(sceneSize.width, sceneSize.height)
         let uiScale = min(2.4, max(1, shortSide / 375))

@@ -312,6 +312,23 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
     }
 
+    @MainActor func testManualRulesExileBrowserCannotMoveCards() throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let app = startFixtureGame(endpoint: endpoint + "/exile-cast")
+        defer { app.terminate() }
+        app.buttons["phone-exile-a"].tap()
+        let card = app.descendants(matching: .any).matching(identifier: "phone-browser-card").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "phone-browser-zone-battlefield").firstMatch.exists)
+        card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.5, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)), withVelocity: 600, thenHoldForDuration: 0)
+        XCTAssertTrue(card.exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "phone-hand-drag-preview").firstMatch.exists)
+        app.buttons["phone-browser-done"].tap()
+        XCTAssertEqual(app.buttons["phone-exile-a"].value as? String, "1")
+        exitFixtureGame(app)
+    }
+
     @MainActor func testNativeCastableExileCanBeCastFromBesideTheHand() throws {
         guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
         XCUIDevice.shared.orientation = .landscapeLeft

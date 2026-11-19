@@ -5251,6 +5251,10 @@ extension BoardViewController {
             }
             browser.isOpeningHand = true
         }
+        if session.mode == .rules, mode != .rulesChoice, mode != .openingHand {
+            browser.configureReadOnlyInspection()
+            browser.onTapCard = { [weak self] card in self?.focus(on: card, view: nil) }
+        }
         phoneBrowser = browser
         phoneBrowserMode = mode
         if mode == .openingHand { configureRulesOpening(browser, session: session) }
@@ -5320,6 +5324,7 @@ extension BoardViewController {
             self.closePhoneZoneBrowser()
             if let pileView { bar.presentPileSheet(from: pileView) }
         }]
+        if session.mode == .rules { return UIMenu(children: items) }
         if location == .library && owner == session.player {
             items.append(UIAction(title: "Search", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in self?.showPhoneZoneBrowser(.search) })
             items.append(UIMenu(title: "Look at", image: UIImage(systemName: "eye"), children: (1...10).map { count in
