@@ -12,6 +12,8 @@ final class RulesPhoneAdapter {
     private var projectionTask: Task<Void, Never>?
     private var artworkTask: Task<Void, Never>?
     private var isLeaving = false
+    /// A browser tap is only a draft. XMage's one-card callback is answered on Confirm.
+    private var browserDraft: (promptID: String, cardID: UUID)?
     private let catalog = RulesCardCatalog.shared
     private var pendingTarget: PhoneGame.Target? { didSet { pendingTargetPromptID = pendingTarget == nil ? nil : engine.prompt?.id } }
     private var autoPassedPromptID: String?
@@ -72,6 +74,7 @@ final class RulesPhoneAdapter {
     private func updateStatus(_ status: RulesGameSession.Status, prompt: RulesPrompt?, pending: String?, holdingPriority: Bool,
                               alertOpen: Bool) {
         guard !isLeaving else { return }
+        if browserDraft?.promptID != prompt?.id || status != .connected { browserDraft = nil }
         if (status != .connected || holdingPriority || alertOpen), prompt?.method == "GAME_SELECT" { autoPassedPromptID = nil }
         if autoPassTask != nil, status != .connected || holdingPriority || alertOpen || pending != nil || prompt?.id != autoPassedPromptID {
             autoPassTask?.cancel()
@@ -497,10 +500,36 @@ final class RulesPhoneAdapter {
         return (top ? ranked.max { $0.1 < $1.1 } : ranked.min { $0.1 < $1.1 })?.0
     }
 
-    /// A card tapped in the board's card-choice browser.
+    /// A card tapped in the board's card-choice browser. General choices stay local until
+    /// confirmed; scry/surveil keep the engine's reversible selection and ordering flow.
     func chooseInBrowser(_ id: UUID) async {
-        guard let prompt = engine.prompt, prompt.style == .browser, engine.canAnswer else { return }
-        await engine.answer(.object(id.uuidString.lowercased()))
+        guard !isLeaving, let prompt = engine.prompt, prompt.style == .browser, engine.canAnswer,
+              prompt.cards?.contains(where: { UUID(uuidString: $0.id) == id }) == true,
+              prompt.isCardSelectable(id.uuidString.lowercased()) else { return }
+        guard presentation.rulesChoice?.kind == .choose else {
+            await engine.answer(.object(id.uuidString.lowercased()))
+            return
+        }
+        browserDraft = browserDraft?.promptID == prompt.id && browserDraft?.cardID == id ? nil : (prompt.id, id)
+        var selected = Set((prompt.selectedIds ?? []).compactMap(UUID.init(uuidString:)))
+        if let draft = browserDraft { selected.insert(draft.cardID) }
+        presentation.rulesChoice?.selected = selected
+        refresh()
+    }
+
+    var canConfirmBrowserChoice: Bool {
+        guard !isLeaving, engine.canAnswer, let prompt = engine.prompt, prompt.style == .browser,
+              presentation.rulesChoice?.kind == .choose, let draft = browserDraft,
+              draft.promptID == prompt.id, prompt.isCardSelectable(draft.cardID.uuidString.lowercased()),
+              prompt.cards?.contains(where: { UUID(uuidString: $0.id) == draft.cardID }) == true else { return false }
+        return true
+    }
+
+    func confirmBrowserChoice() async {
+        guard canConfirmBrowserChoice, let draft = browserDraft else { return }
+        // Clear before suspending so a second tap cannot submit the same choice twice.
+        browserDraft = nil
+        await engine.answer(.object(draft.cardID.uuidString.lowercased()))
     }
 
     /// Whether this card is one of the current target prompt's choices (so tapping it answers).
@@ -595,6 +624,7 @@ final class RulesPhoneAdapter {
         autoPassTask?.cancel()
         subscriptions.removeAll()
         pendingTarget = nil
+        browserDraft = nil
         choiceCards = []
         abilitySources = [:]
         presentation.rulesChoice = nil
@@ -701,11 +731,16 @@ final class RulesPhoneAdapter {
             // A new scry / surveil starts in XMage's order (top first); a rearrangement is kept
             // while the same cards are asked about again (each tap is a new question).
             if kind != .choose, Set(arrangedLibraryOrder) != Set(ids) { arrangedLibraryOrder = ids }
+            var selected = Set((prompt.selectedIds ?? []).compactMap(UUID.init(uuidString:)))
+            if let draft = browserDraft, draft.promptID == prompt.id,
+               ids.contains(draft.cardID), prompt.isCardSelectable(draft.cardID.uuidString.lowercased()) {
+                selected.insert(draft.cardID)
+            }
             game.rulesChoice = .init(id: prompt.id, title: title,
                                      subtitle: hint ?? prompt.subMessage.map(RulesText.plain).flatMap { $0.isEmpty ? nil : $0 },
                                      cardIDs: ids,
                                      selectable: Set(ids.filter { prompt.isCardSelectable($0.uuidString.lowercased()) }),
-                                     selected: Set((prompt.selectedIds ?? []).compactMap(UUID.init(uuidString:))),
+                                     selected: selected,
                                      kind: kind)
         } else {
             choiceCards = []

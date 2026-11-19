@@ -4832,7 +4832,10 @@ extension BoardViewController {
             showPhoneZoneBrowser(.rulesChoice)
         }
         guard let browser = phoneBrowser, phoneBrowserMode == .rulesChoice else { return }
-        browser.configureChoice(title: choice.title, subtitle: choice.subtitle)
+        browser.configureChoice(title: choice.title, subtitle: choice.subtitle,
+                                confirm: choice.kind == .choose,
+                                confirmEnabled: session.rulesAdapter?.canConfirmBrowserChoice == true)
+        browser.onDone = { session.rulesAdapter.map { adapter in Task { await adapter.confirmBrowserChoice() } } }
         browser.setChoiceStates(selectable: choice.selectable, selected: choice.selected,
                                 identifiers: Dictionary(uniqueKeysWithValues: choice.cardIDs.map { ($0, "rules-prompt-card-\($0.uuidString.lowercased())") }))
         browser.onTapCard = { card in session.rulesAdapter.map { adapter in Task { await adapter.chooseInBrowser(card.uuid) } } }

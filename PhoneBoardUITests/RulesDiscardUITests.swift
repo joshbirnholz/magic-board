@@ -262,10 +262,27 @@ final class RulesDiscardUITests: XCTestCase {
         screenshot.name = "Engine-provided card eligibility"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        instant.tap()
+        let confirm = app.buttons["phone-browser-done"]
+        XCTAssertTrue(confirm.exists)
+        XCTAssertEqual(confirm.label, "Confirm")
+        XCTAssertFalse(confirm.isEnabled)
         let observer = try informationObserver(address)
         defer { observer.cancel(with: .goingAway, reason: nil) }
-        let status = try await readStatus(observer)
+        instant.tap()
+        XCTAssertTrue(instant.isSelected)
+        XCTAssertTrue(confirm.isEnabled)
+        var status = try await readStatus(observer)
+        XCTAssertEqual(status.answers, 0, "Tapping must not answer the engine")
+        instant.tap()
+        XCTAssertFalse(instant.isSelected)
+        XCTAssertFalse(confirm.isEnabled, "Selection can be toggled off before committing")
+        observer.send(.string("status")) { _ in }
+        status = try await readStatus(observer)
+        XCTAssertEqual(status.answers, 0)
+        instant.tap()
+        confirm.tap()
+        observer.send(.string("status")) { _ in }
+        status = try await readStatus(observer)
         XCTAssertTrue(status.complete)
         XCTAssertEqual(status.answers, 1)
     }

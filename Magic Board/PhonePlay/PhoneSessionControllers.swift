@@ -999,10 +999,12 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     /// Tapping a card (Rules games' card choices); nil leaves taps alone.
     var onTapCard: ((CardInstance) -> Void)?
 
-    /// A Rules game's card choice: the engine's question as the title, no zone to drop on and no
-    /// Done here (an optional choice is finished with the main button, as on Arena).
-    func configureChoice(title: String, subtitle: String?) {
-        configureOpening(title: title, subtitle: subtitle, done: nil, secondary: nil, secondaryCaption: nil, returnZone: false)
+    /// A Rules card choice: taps draft a selection, and Confirm submits this engine callback.
+    /// Scry/surveil retain their own Done/order flow.
+    func configureChoice(title: String, subtitle: String?, confirm: Bool = false, confirmEnabled: Bool = false) {
+        configureOpening(title: title, subtitle: subtitle, done: confirm ? "Confirm" : nil, secondary: nil, secondaryCaption: nil, returnZone: false)
+        doneButton.isEnabled = confirmEnabled
+        doneButton.alpha = confirmEnabled ? 1 : 0.45
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 2
         titleLabel.adjustsFontSizeToFitWidth = true
@@ -1027,6 +1029,8 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
         for (id, view) in cardViews {
             view.isDimmed = !selectable.contains(id) && !choiceSelected.contains(id)
             view.isHighlighted = choiceSelected.contains(id)
+            if choiceSelected.contains(id) { view.accessibilityTraits.insert(.selected) }
+            else { view.accessibilityTraits.remove(.selected) }
             if let identifier = choiceIdentifiers[id] { view.accessibilityIdentifier = identifier }
         }
     }
