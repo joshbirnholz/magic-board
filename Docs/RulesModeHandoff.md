@@ -4,7 +4,9 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 
 ## Evening follow-up (November 18)
 
-Connected-lobby spinner: table polling every3s now stays quiet; real connection/start-game progress remains visible. `pendingCommandType` separates discovery from game actions; all46 Rules units pass (`/private/tmp/rules-lobby-progress-unit.log`). Verified bridge bundle is rebuilt locally at7c8a03e, but PC had2 active bridge connections at20:54, so **no deployment/restart**. New target-card metadata is still pending server deployment.
+Summoning sickness is now visible on Rules creatures as a white spiral on their art (Arena reference inspected). It uses the engine sickness flag, clears when the flag clears, and is included in VoiceOver status. No editable counter or sandbox appearance changes. Rules state-transition UI and ordinary Phone Play tap/drag pass; final legible marker UI passes after screenshot review (`/private/tmp/rules-sickness-legible-marker-ui.log`, screenshot `/private/tmp/rules-sickness-legible-attachments/C7A8B6DC-5FF9-4C2B-BBD4-5EBB98632664.png`). Prepared/ring-bearer/player progress and combat/pacing animations remain open.
+
+Connected-lobby spinner: table polling every3s now stays quiet; real connection/start-game progress remains visible. The initial spinner-only fix left controls briefly disabled; table discovery now has its **own** request ID/timeout, leaving `pendingRequest` for game actions. All47 Rules units pass, including actual delayed discovery ACK while a game action is pending (`/private/tmp/rules-independent-lobby-discovery-unit.log`). Verified bridge bundle is rebuilt locally at7c8a03e, but PC had2 active bridge connections at20:54, so **no deployment/restart**. New target-card metadata is still pending server deployment.
 
 All new reports, including explicit summoning sickness, combat lunges, Arena speed reference and WSS port normalization, are in `Docs/RulesModeRequests.md` (R01–R24). Remaining animation/status/selection work is open there.
 
