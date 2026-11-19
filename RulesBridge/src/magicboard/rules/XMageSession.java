@@ -350,6 +350,13 @@ final class XMageSession implements MageClient, AutoCloseable {
             default -> throw new IllegalArgumentException("Unsupported answer type.");
         }
         if (!sent) throw new IllegalStateException("XMage did not accept the answer.");
+        String message = string(prompt, "message").toLowerCase(Locale.ROOT);
+        if (method.equals("GAME_TARGET") && message.contains("starting player") && kind.equals("uuid"))
+            output.accept(object("type", "openingProgress", "kind", "startingPlayer", "gameId", gameId,
+                "playerId", playerId, "startingPlayerId", value.getAsString()));
+        if (method.equals("GAME_ASK") && message.contains("mulligan") && kind.equals("boolean") && !value.getAsBoolean())
+            output.accept(object("type", "openingProgress", "kind", "kept", "gameId", gameId, "playerId", playerId,
+                "count", snapshot == null ? 0 : snapshot.getAsJsonArray("hand").size()));
         prompt = null;
         output.accept(object("type", "promptCleared"));
     }
@@ -399,6 +406,10 @@ final class XMageSession implements MageClient, AutoCloseable {
         }
         if (callback.getMethod().getType() == ClientCallbackType.DIALOG && method.startsWith("GAME_")) {
             prompt = makePrompt(callback, data);
+            String question = string(prompt, "message").toLowerCase(Locale.ROOT);
+            if (method.equals("GAME_ASK") && question.contains("mulligan")
+                    || method.equals("GAME_TARGET") && question.contains("more) to put on the bottom of your library"))
+                output.accept(object("type", "openingProgress", "kind", "deciding", "gameId", gameId, "playerId", playerId));
             output.accept(prompt);
         } else if (callback.getMethod() == ClientCallbackMethod.GAME_OVER) {
             prompt = null;

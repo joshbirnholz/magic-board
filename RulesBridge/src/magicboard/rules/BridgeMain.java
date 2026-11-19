@@ -40,7 +40,7 @@ public final class BridgeMain extends WebSocketServer {
             WebSocket target = socket;
             if (target != null && target.isOpen()) target.send(JSON.toJson(event));
         }
-        Seat(WebSocket socket) {
+        Seat(WebSocket socket, RulesRooms rooms) {
             this.socket = socket;
             engine = new XMageSession(event -> {
                 if (string(event, "type").equals("ready")) {
@@ -50,6 +50,9 @@ public final class BridgeMain extends WebSocketServer {
                     ready = true;
                 }
                 if (string(event, "type").equals("engineDisconnected")) ready = false;
+                String type = string(event, "type");
+                if (type.equals("snapshot") || type.equals("openingProgress")) rooms.observe(this, event);
+                if (type.equals("openingProgress")) return;
                 WebSocket target = this.socket;
                 if (target != null && target.isOpen()) target.send(JSON.toJson(event));
             });
@@ -107,7 +110,7 @@ public final class BridgeMain extends WebSocketServer {
                     return;
                 }
                 makeRoomForSession();
-                Seat created = new Seat(socket);
+                Seat created = new Seat(socket, rooms);
                 seats.put(created.resumeToken, created);
                 connections.put(socket, created);
                 created.engine.queue.execute(() -> {

@@ -1065,6 +1065,15 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     private(set) var cards: [CardInstance] = []
     var onMove: ((CardInstance, Destination) -> Void)?
     var onReorder: (([CardInstance]) -> Void)?
+    var allowsCardDragging = true {
+        didSet {
+            for view in cardViews.values {
+                for recognizer in view.gestureRecognizers ?? [] where recognizer is UILongPressGestureRecognizer {
+                    recognizer.isEnabled = allowsCardDragging
+                }
+            }
+        }
+    }
     var onDone: (() -> Void)?
     var onSecondary: (() -> Void)?
     var onShowOpponent: ((Bool) -> Void)?
@@ -1141,7 +1150,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
     /// Rules mode's opening hand, as Arena words it: the title ("Opponent Goes First" /
     /// "Return 1 Card"), a line under it, the Keep and Mulligan buttons (nil hides one) with a caption
     /// under Mulligan, and whether the top zone is the Library to drag returned cards to.
-    func configureOpening(title: String, subtitle: String?, done: String?, secondary: String?, secondaryCaption caption: String?, returnZone: Bool) {
+    func configureOpening(title: String, subtitle: String?, done: String?, secondary: String?, secondaryCaption caption: String?, returnZone: Bool, enabled: Bool = true) {
         titleLabel.text = title
         subtitleLabel.text = subtitle
         subtitleLabel.font = .italicSystemFont(ofSize: 14)
@@ -1165,6 +1174,8 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
                 button.accessibilityLabel = text
             }
         }
+        doneButton.isEnabled = enabled; secondaryButton.isEnabled = enabled
+        doneButton.alpha = enabled ? 1 : 0.45; secondaryButton.alpha = enabled ? 1 : 0.45
         self.returnZone = returnZone
         battlefieldZone.text = returnZone ? "Library" : "Battlefield"
         battlefieldZone.isHidden = isOpeningHand && !returnZone
@@ -1534,6 +1545,7 @@ final class PhoneZoneBrowserView: UIView, UIScrollViewDelegate {
             view.card = hidden ? nil : card
             view.showsAbilityTiles = isOpeningHand
             let hold = UILongPressGestureRecognizer(target: self, action: #selector(held(_:)))
+            hold.isEnabled = allowsCardDragging
             hold.minimumPressDuration = 0.15
             view.addGestureRecognizer(hold)
             view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tappedCard(_:))))

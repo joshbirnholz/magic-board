@@ -36,6 +36,15 @@ struct RulesRoom: Decodable, Equatable, Identifiable {
     var needsDeck: Bool { stage == "choosing" && !ready }
 }
 
+/// Public progress only; never contains either player's hand/card identities.
+struct RulesOpeningState: Decodable, Equatable {
+    let gameId: String
+    let active: Bool
+    let startingPlayerId: String?
+    let decidingPlayerId: String?
+    let kept: [String: Int]
+}
+
 /// Rules-only presentation values. These never enter PhoneGame or its editable state patches.
 struct RulesCard: Decodable, Identifiable, Equatable {
     struct Counter: Decodable, Equatable { let name: String; let count: Int }

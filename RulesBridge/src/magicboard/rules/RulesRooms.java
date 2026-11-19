@@ -18,6 +18,7 @@ final class RulesRooms implements AutoCloseable {
         void inRoom(boolean value);
     }
     private static final Set<String> COMMANDS = Set.of("openRoom", "joinRoom", "submitRoomDeck", "leaveRoom", "listRooms");
+    private final OpeningHands openingHands = new OpeningHands();
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final Map<String, Room> rooms = new LinkedHashMap<>();
     private final Map<Client, Room> membership = new HashMap<>();
@@ -35,9 +36,13 @@ final class RulesRooms implements AutoCloseable {
     }
     boolean handles(String type) { return COMMANDS.contains(type); }
     void command(Client client, JsonObject request) { worker.execute(() -> process(client, request)); }
-    void replay(Client client) { worker.execute(() -> { Room room = membership.get(client); if (room != null) publish(room, client); }); }
+    void replay(Client client) { worker.execute(() -> { Room room = membership.get(client); if (room != null) publish(room, client); openingHands.replay(client); }); }
+    void observe(Client client, JsonObject event) {
+        try { worker.execute(() -> { if (client.alive()) openingHands.observe(client, event); }); }
+        catch (RejectedExecutionException ignored) { }
+    }
     void detachedPermanently(Client client) {
-        try { worker.execute(() -> { leave(client); receipts.remove(client); }); }
+        try { worker.execute(() -> { leave(client); receipts.remove(client); openingHands.remove(client); }); }
         catch (RejectedExecutionException ignored) { }
     }
     private <T> T engine(Client client, Callable<T> call) throws Exception {

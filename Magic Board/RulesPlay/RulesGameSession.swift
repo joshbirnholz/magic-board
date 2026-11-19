@@ -11,6 +11,7 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var prompt: RulesPrompt?
     @Published private(set) var tables: [RulesTable] = []
     @Published private(set) var room: RulesRoom?
+    @Published private(set) var openingState: RulesOpeningState?
     @Published private(set) var features: [String] = []
     var supportsRooms: Bool { features.contains("rooms") }
     @Published private(set) var tableId: String?
@@ -82,7 +83,7 @@ final class RulesGameSession: ObservableObject {
         if endpoint != url || !resume {
             resumeToken = nil; snapshot = nil; prompt = nil
             RulesConnectionKey.delete(account: "retainedSeat")
-            tableId = nil; ownsTable = false; tables = []; room = nil; features = []
+            tableId = nil; ownsTable = false; tables = []; room = nil; features = []; openingState = nil
             result = nil
             holdingPriority = false
             autoOrderTriggers = true
@@ -170,7 +171,7 @@ final class RulesGameSession: ObservableObject {
         disconnect()
         resumeToken = nil; snapshot = nil; prompt = nil
         RulesConnectionKey.delete(account: "retainedSeat")
-        tableId = nil; ownsTable = false; tables = []; room = nil
+        tableId = nil; ownsTable = false; tables = []; room = nil; openingState = nil
         result = nil
         isPromptMinimized = false
         holdingPriority = false
@@ -355,6 +356,10 @@ final class RulesGameSession: ObservableObject {
             }
             presentationClock.presented(next, now: ProcessInfo.processInfo.systemUptime)
             snapshot = next
+        case "openingState":
+            let next = try decoder.decode(RulesOpeningState.self, from: data)
+            guard snapshot == nil || snapshot?.gameId == next.gameId else { return }
+            if next != openingState { openingState = next }
         case "roomState":
             let next = try decoder.decode(RulesRoom.self, from: data)
             if snapshot == nil {
@@ -390,7 +395,7 @@ final class RulesGameSession: ObservableObject {
             if header.code == "sessionExpired" {
                 resumeToken = nil
                 RulesConnectionKey.delete(account: "retainedSeat")
-                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; room = nil; holdingPriority = false; autoOrderTriggers = true
+                snapshot = nil; prompt = nil; tableId = nil; ownsTable = false; room = nil; openingState = nil; holdingPriority = false; autoOrderTriggers = true
                 result = nil; tables = []
                 clearCardInformation()
             }

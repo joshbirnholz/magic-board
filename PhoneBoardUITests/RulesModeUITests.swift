@@ -312,6 +312,30 @@ final class RulesModeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-rules"].waitForExistence(timeout: 5))
     }
 
+    @MainActor func testOpeningHandWaitsForOpponentAndShowsKeptCount() async throws {
+        guard let endpoint = ProcessInfo.processInfo.environment["RULES_MULLIGAN_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires MulliganPromptFixture") }
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let app = startFixtureGame(endpoint: endpoint + "/waiting", startAI: false)
+        app.buttons["rules-start-ai"].tap()
+        defer { app.terminate() }
+        let keep = app.buttons["Keep 7"]
+        XCTAssertTrue(keep.waitForExistence(timeout: 10))
+        XCTAssertFalse(keep.isEnabled)
+        XCTAssertFalse(app.buttons["Mulligan"].isEnabled)
+        XCTAssertTrue(app.staticTexts["Opponent Goes First"].exists)
+        XCTAssertTrue(app.staticTexts["Your opponent is deciding whether to keep or mulligan."].exists)
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "phone-browser-card").count, 7)
+        var request = URLRequest(url: try XCTUnwrap(URL(string: endpoint + "/observer")))
+        request.setValue("Bearer rules-local-verification-key", forHTTPHeaderField: "Authorization")
+        let observer = URLSession.shared.webSocketTask(with: request); observer.resume()
+        defer { observer.cancel(with: .goingAway, reason: nil) }
+        _ = try await observer.receive()
+        try await observer.send(.string("advance"))
+        XCTAssertTrue(app.staticTexts["Your opponent kept a hand of 6 cards."].waitForExistence(timeout: 10))
+        XCTAssertTrue(keep.isEnabled)
+        XCTAssertTrue(app.buttons["Mulligan"].isEnabled)
+    }
+
     @MainActor func testExistingBlockCanBeDraggedToTheSecondAttacker() async throws {
         guard let endpoint = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
         let app = startFixtureGame(endpoint: endpoint + "/retarget")

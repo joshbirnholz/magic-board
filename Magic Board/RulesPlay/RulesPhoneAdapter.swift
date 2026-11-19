@@ -59,6 +59,17 @@ final class RulesPhoneAdapter {
                 catch { self.phone?.error = "Unable to display the rules game: \(error.localizedDescription)" }
             }
         }.store(in: &subscriptions)
+        engine.$openingState.removeDuplicates().dropFirst().sink { [weak self] _ in
+            guard let self else { return }
+            // @Published delivers before its stored value changes; read progress on the next
+            // main-actor turn so the browser receives the new kept count/starting player.
+            Task { [weak self] in
+                guard let self else { return }
+                self.updateStatus(self.engine.status, prompt: self.engine.prompt,
+                    pending: self.engine.pendingRequest ?? (self.engine.isPresentingActions ? "presentation" : nil),
+                    holdingPriority: self.engine.holdingPriority, alertOpen: !self.engine.cardInformation.isEmpty)
+            }
+        }.store(in: &subscriptions)
         let actionPending = engine.$pendingRequest.combineLatest(engine.$isPresentingActions)
             .map { request, presenting in request ?? (presenting ? "presentation" : nil) }
         Publishers.CombineLatest4(engine.$status, engine.$prompt, actionPending, engine.$holdingPriority)
@@ -425,10 +436,18 @@ final class RulesPhoneAdapter {
 
     /// While XMage asks "Mulligan?", Phone Play's opening-hand browser shows the hand (Keep / Mulligan).
     private func openingHand(for prompt: RulesPrompt?) -> PhoneGame.Opening? {
-        guard let prompt, prompt.isMulligan || prompt.isLondonBottom else { return nil }
-        // The browser's title says who goes first ("You Go First"): the engine's starting player.
+        guard engine.result == nil else { return nil }
         let snapshot = engine.snapshot
-        let first: Player.Identifier = snapshot?.activePlayerId.map { $0 == snapshot?.playerId ? .a : .b } ?? .a
+        let starting = engine.openingState?.startingPlayerId
+        let first: Player.Identifier = starting.map { $0 == snapshot?.playerId ? .a : .b } ?? .a
+        guard let prompt, prompt.isMulligan || prompt.isLondonBottom else {
+            guard let progress = engine.openingState, progress.active,
+                  let snapshot, snapshot.step == nil, !snapshot.hand.isEmpty,
+                  progress.kept.count < snapshot.players.count else { return nil }
+            // Both seats keep their own hand visible while only the prompted seat may decide.
+            return PhoneGame.Opening(id: Self.stableID("opening-wait:" + snapshot.gameId), firstPlayer: first,
+                                     deciding: [phone?.player.rawValue ?? Player.Identifier.a.rawValue], keepCount: snapshot.hand.count)
+        }
         // Returning cards after Keep is a new opening (the browser closed when Keep was tapped).
         let key = mulliganChoice == .keeping ? prompt.id + "-return" : prompt.id
         var opening = PhoneGame.Opening(id: UUID(uuidString: key) ?? Self.stableID(key), firstPlayer: first,

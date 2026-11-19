@@ -15,6 +15,8 @@ public final class MulliganPromptFixture extends WebSocketServer {
     private int round, remaining, returns, revision;
     private String stage = "ask";
     private boolean complete;
+    private boolean waitingMode;
+    private WebSocket playerSocket;
 
     private MulliganPromptFixture(int port) { super(new InetSocketAddress("127.0.0.1", port), 1); }
     private static JsonObject object(Object... pairs) {
@@ -30,16 +32,19 @@ public final class MulliganPromptFixture extends WebSocketServer {
             socket.close(1008, "Invalid key"); return;
         }
         if (request.getResourceDescriptor().endsWith("/observer")) { observers.add(socket); status(socket); }
-        else send(socket, object("type", "hello", "protocolVersion", 1));
+        else { waitingMode = request.getResourceDescriptor().endsWith("/waiting"); playerSocket = socket; send(socket, object("type", "hello", "protocolVersion", 1)); }
     }
     @Override public synchronized void onMessage(WebSocket socket, String text) {
-        if (observers.contains(socket)) { status(socket); return; }
+        if (observers.contains(socket)) {
+            if (text.equals("advance") && waitingMode && playerSocket != null) { stage = "ask"; revision++; publish(playerSocket); }
+            status(socket); return;
+        }
         JsonObject request = JsonParser.parseString(text).getAsJsonObject();
         switch (request.get("type").getAsString()) {
             case "connect" -> send(socket, object("type", "ready", "protocolVersion", 1, "resumeToken", "mulligan-fixture", "formats", new String[]{"Limited"}));
             case "listTables" -> { send(socket, object("type", "tables", "tables", new Object[]{})); ack(socket, request); }
             case "createAiGame" -> {
-                round = remaining = returns = 0; revision = 1; stage = "ask"; complete = false;
+                round = remaining = returns = 0; revision = 1; stage = waitingMode ? "waiting" : "ask"; complete = false;
                 drawSeven(); ack(socket, request); publish(socket);
             }
             case "answer" -> {
@@ -87,6 +92,12 @@ public final class MulliganPromptFixture extends WebSocketServer {
                 "stack", new Object[]{}, "playableIds", new Object[]{});
         if (complete) { snapshot.addProperty("phase", "PRECOMBAT_MAIN"); snapshot.addProperty("step", "PRECOMBAT_MAIN"); }
         send(socket, snapshot);
+        if (waitingMode) {
+            send(socket, object("type", "openingState", "gameId", "00000000-0000-0000-0000-000000000099", "active", true,
+                "startingPlayerId", THEM, "decidingPlayerId", stage.equals("waiting") ? THEM : ME,
+                "kept", stage.equals("waiting") ? Map.of() : Map.of(THEM, 6)));
+            if (stage.equals("waiting")) return;
+        }
         String method = stage.equals("return") ? "GAME_TARGET" : complete ? "GAME_SELECT" : "GAME_ASK";
         String message = stage.equals("return") ? "Select a card (" + remaining + " more) to put on the bottom of your library"
                 : complete ? "Play spells and abilities" : "Mulligan <font color=#ffff00>down to " + (6 - round) + " cards</font>?";

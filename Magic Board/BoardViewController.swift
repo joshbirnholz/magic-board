@@ -4998,17 +4998,25 @@ extension BoardViewController {
     /// Rules mode: Arena's wording for the opening hand ("Keep 6", "Return 2 Cards"…).
     private func configureRulesOpening(_ browser: PhoneZoneBrowserView, session: PhoneGameSession) {
         guard session.mode == .rules, let opening = session.game.opening else { return }
-        let first = opening.firstPlayer == session.player ? "You Go First" : "Opponent Goes First"
+        let engine = session.rulesAdapter?.engine
+        let progress = engine?.openingState
+        let first = progress?.startingPlayerId.map { $0 == engine?.snapshot?.playerId ? "You Go First" : "Opponent Goes First" } ?? "Opening Hand"
+        let canDecide = engine?.canAnswer == true && (engine?.prompt?.isMulligan == true || engine?.prompt?.isLondonBottom == true)
+        let opponentID = engine?.snapshot?.players.first(where: { $0.id != engine?.snapshot?.playerId })?.id
+        let opponentKept = opponentID.flatMap { progress?.kept[$0] }
+        let subtitle = opponentKept.map { "Your opponent kept a hand of \($0) cards." }
+            ?? (canDecide ? nil : "Your opponent is deciding whether to keep or mulligan.")
+        browser.allowsCardDragging = canDecide
         if let returning = opening.returning {
             browser.configureOpening(title: "Return \(returning) Card\(returning == 1 ? "" : "s")",
                                      subtitle: "Drag \(returning) card\(returning == 1 ? "" : "s") to the bottom of your library.",
                                      done: nil, secondary: nil, secondaryCaption: nil, returnZone: true)
         } else {
             let returns = opening.mulliganReturns ?? 1
-            browser.configureOpening(title: first, subtitle: nil,
+            browser.configureOpening(title: first, subtitle: subtitle,
                                      done: "Keep \(opening.keepCount ?? 7)", secondary: "Mulligan",
                                      secondaryCaption: "You will return \(returns) card\(returns == 1 ? "" : "s") to the bottom of your library.",
-                                     returnZone: false)
+                                     returnZone: false, enabled: canDecide)
         }
     }
 
