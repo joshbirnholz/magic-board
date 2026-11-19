@@ -41,6 +41,15 @@ class MiniCardView: UIView {
 	@IBOutlet weak var countersStackView: UIStackView!
 	@IBOutlet weak var cardView: RMShapedImageView!
 	
+    /// Rules supplies this from the engine. Sandbox views keep their existing appearance.
+    var showsRulesSummoningSickness = false {
+        didSet {
+            guard showsRulesSummoningSickness != oldValue else { return }
+            setNeedsLayout()
+        }
+    }
+    private var summoningSicknessMark: UIImageView?
+
 	private enum Contents: Equatable {
 		case image(UIImage)
 		case cardProperties(MTGCardView.CardProperties)
@@ -615,6 +624,41 @@ class MiniCardView: UIView {
     if !doorLockViews.isEmpty { updateDoorLocks() }
     layoutCountersOnCard()
     updateFullImageTapShade()
+    layoutSummoningSicknessMark()
+  }
+
+  /// Arena uses a white spiral for summoning sickness. Keep it on the art, clear of
+  /// the name, counters and power/toughness, and outside the editable counter model.
+  private func layoutSummoningSicknessMark() {
+    guard showsRulesSummoningSickness, let cardView, let drawn = drawnImageRect else {
+      summoningSicknessMark?.removeFromSuperview()
+      summoningSicknessMark = nil
+      return
+    }
+    let mark: UIImageView
+    if let existing = summoningSicknessMark { mark = existing }
+    else {
+      mark = UIImageView(image: UIImage(systemName: "hurricane"))
+      mark.tintColor = .white
+      mark.backgroundColor = UIColor(white: 0.08, alpha: 0.85)
+      mark.contentMode = .scaleAspectFit
+      mark.isUserInteractionEnabled = false
+      mark.accessibilityIdentifier = "rules-summoning-sickness"
+      cardView.addSubview(mark)
+      summoningSicknessMark = mark
+    }
+    let fraction = renderedCardFraction ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+    let face = CGRect(x: drawn.minX + drawn.width * fraction.minX,
+                      y: drawn.minY + drawn.height * fraction.minY,
+                      width: drawn.width * fraction.width, height: drawn.height * fraction.height)
+    // MiniCardView can use a large logical canvas scaled down by its board transform.
+    // Proportion to the card face rather than capping logical points, so the marker stays legible.
+    let size = face.width * 0.16
+    mark.frame = CGRect(x: face.maxX - size - face.width * 0.06,
+                        y: face.minY + face.height * 0.2, width: size, height: size)
+    mark.layer.cornerRadius = size / 2
+    mark.layer.masksToBounds = true
+    cardView.bringSubviewToFront(mark)
   }
 
   /// Where the card image is actually drawn inside `cardView` (it's aspect-fit in a square).

@@ -3357,6 +3357,11 @@ extension BoardViewController {
             let blocking = session.game.combat?.blockers[cardView.cardInstance.uuid] != nil
             cardView.layer.borderWidth = 0
             cardView.accessibilityValue = attacking ? "Attacking" : blocking ? "Blocking" : cardView.cardInstance.isTapped.value ? "Tapped" : "Untapped"
+            cardView.showsRulesSummoningSickness = session.mode == .rules
+                && cardView.cardInstance.isPhoneCreature && cardView.cardInstance.isSummoningSick.value
+            if cardView.showsRulesSummoningSickness {
+                cardView.accessibilityValue = (cardView.accessibilityValue ?? "") + ", Summoning sick"
+            }
             // A Room's locked doors, by name.
             if cardView.cardInstance.representation.isRoom, let faces = cardView.cardInstance.representation.card.cardFaces {
                 let locked = [Counter.lockedDoorLeft, .lockedDoorRight].enumerated()

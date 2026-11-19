@@ -41,6 +41,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                 : request.getResourceDescriptor().endsWith("/mana") ? "mana"
                 : request.getResourceDescriptor().endsWith("/crew") ? "crew"
                 : request.getResourceDescriptor().endsWith("/stable") ? "stable"
+                : request.getResourceDescriptor().endsWith("/sickness") ? "sickness"
                 : request.getResourceDescriptor().endsWith("/ability") ? "ability"
                 : request.getResourceDescriptor().endsWith("/pacing") ? "pacing" : "select";
         send(socket, object("type", "hello", "protocolVersion", 1));
@@ -72,6 +73,12 @@ public final class BlockPromptFixture extends WebSocketServer {
             case "settings" -> { autoOrderTriggers = request.get("autoOrderTriggers").getAsBoolean(); settings(socket); ack(socket, request); }
             case "answer" -> {
                 String value = request.get("value").getAsString();
+                if (stage.equals("sickness")) {
+                    if (!request.get("kind").getAsString().equals("boolean")) throw new AssertionError("Expected priority pass");
+                    stage = "recovered"; revision++;
+                    send(socket, object("type", "promptCleared")); ack(socket, request); snapshot(socket); prompt(socket);
+                    return;
+                }
                 if (stage.equals("stable")) {
                     if (!request.get("kind").getAsString().equals("boolean")) throw new AssertionError("Expected priority pass");
                     stage = "crew"; revision++;
@@ -122,9 +129,9 @@ public final class BlockPromptFixture extends WebSocketServer {
                     "supported", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
             return;
         }
-        if (stage.equals("ability") || stage.equals("stable")) {
+        if (stage.equals("ability") || stage.equals("stable") || stage.equals("sickness") || stage.equals("recovered")) {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
-                    "revision", revision, "message", stage.equals("stable") ? "Play spells and abilities" : "Play instants and activated abilities", "supported", true,
+                    "revision", revision, "message", !stage.equals("ability") ? "Play spells and abilities" : "Play instants and activated abilities", "supported", true,
                     "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
             return;
         }
@@ -174,6 +181,11 @@ public final class BlockPromptFixture extends WebSocketServer {
     private void snapshot(WebSocket socket) {
         JsonObject mine = object("id", ME, "name", "You", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(BLOCKER, false)}, "graveyard", new Object[]{}, "exile", new Object[]{});
+        if (stage.equals("sickness")) {
+            JsonObject sick = card(BLOCKER, false);
+            sick.addProperty("summoningSick", true);
+            mine.add("battlefield", JSON.toJsonTree(new Object[]{sick}));
+        }
         if (stage.startsWith("mana")) {
             JsonObject land = card(BLOCKER, stage.equals("manaAdded"));
             land.addProperty("name", "Capital City"); land.addProperty("typeLine", "Land");

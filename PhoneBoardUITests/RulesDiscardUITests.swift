@@ -99,6 +99,25 @@ final class RulesDiscardUITests: XCTestCase {
         add(screenshot)
     }
 
+    @MainActor func testSummoningSicknessMarkerFollowsEngineState() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/sickness")
+        defer { app.terminate() }
+        let cards = app.buttons.matching(identifier: "phone-creature-card")
+        let sick = cards.matching(NSPredicate(format: "value CONTAINS 'Summoning sick'")).firstMatch
+        XCTAssertTrue(sick.waitForExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Engine summoning-sickness spiral on creature art"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["phone-untap-local"].tap()
+        let cleared = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: sick)
+        await fulfillment(of: [cleared], timeout: 5)
+        XCTAssertEqual(cards.count, 3, "Losing sickness must not remove or move the creature")
+    }
+
     @MainActor func testPromptAppearanceDoesNotMoveOrResizePermanents() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")
