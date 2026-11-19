@@ -728,7 +728,6 @@ private struct PacketOriginSymbol: View {
             if let symbol {
                 SVGView(svg: symbol).renderingMode(.template).resizable().scaledToFit().frame(width: 20, height: 16)
             }
-            Text(code.uppercased()).font(.caption2.bold())
         }
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
