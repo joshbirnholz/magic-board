@@ -35,6 +35,12 @@ public final class PromptMetadataTest {
         JsonObject special = metadata("GAME_SELECT", new GameClientMessage(null, Map.of("specialButton", "Special choice"), "Priority"));
         check(special.get("specialActionAvailable").getAsBoolean(), "Special action unavailable");
         check("Special choice".equals(special.get("specialActionLabel").getAsString()), "Special label lost");
+        for (String key : List.of("possibleAttackers", "possibleBlockers")) {
+            JsonObject emptyCombat = metadata("GAME_SELECT", new GameClientMessage(null, Map.of(key, new java.util.ArrayList<UUID>()), "Combat"));
+            check(emptyCombat.has("selectionIds") && emptyCombat.getAsJsonArray("selectionIds").isEmpty(), "Empty native combat set lost");
+            JsonObject availableCombat = metadata("GAME_SELECT", new GameClientMessage(null, Map.of(key, new java.util.ArrayList<UUID>(List.of(allowed))), "Combat"));
+            check(availableCombat.getAsJsonArray("selectionIds").get(0).getAsString().equals(allowed.toString()), "Native combat candidate lost");
+        }
         ChoiceImpl choice = new ChoiceImpl(true);
         choice.setMessage("Choose a mode");
         choice.setKeyChoices(Map.of(UUID.randomUUID().toString(), "First mode"));

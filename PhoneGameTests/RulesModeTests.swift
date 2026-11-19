@@ -340,6 +340,9 @@ final class RulesModeTests: XCTestCase {
             XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: idle))
             combat.selectionIds = []; combat.selectedIds = ["chosen-creature"]
             XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: idle), "never confirm a player's combat draft")
+            combat.selectedIds = []
+            let declared = try JSONDecoder().decode(RulesSnapshot.self, from: Data(#"{"gameId":"g","playerId":"p","revision":1,"turn":2,"hand":[],"stack":[],"players":[],"playableIds":[],"combat":[{"defenderId":"p","attackers":["a"],"blockers":["b"]}]}"#.utf8))
+            XCTAssertFalse(RulesPhoneAdapter.shouldAutoPass(combat, snapshot: declared), "snapshot assignments also preserve the player's combat draft")
         }
     }
 

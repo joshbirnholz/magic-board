@@ -482,7 +482,10 @@ final class RulesPhoneAdapter {
         let message = RulesText.plain(prompt.message ?? "").lowercased()
         if message.contains("select attackers") || message.contains("select blockers") {
             guard let legal = prompt.selectionIds else { return false }
-            return legal.isEmpty && (prompt.selectedIds ?? []).isEmpty
+            let alreadyDeclared = (snapshot.combat ?? []).contains {
+                message.contains("attackers") ? !$0.attackers.isEmpty : !$0.blockers.isEmpty
+            }
+            return legal.isEmpty && (prompt.selectedIds ?? []).isEmpty && !alreadyDeclared
         }
         guard snapshot.playableIds.isEmpty else { return false }
         return !message.contains("select") && (message.contains("instants") || message.contains("play spells"))

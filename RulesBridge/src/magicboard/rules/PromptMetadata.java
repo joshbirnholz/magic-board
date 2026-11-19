@@ -22,6 +22,12 @@ final class PromptMetadata {
         if (options.get("secondMessage") instanceof String text) result.addProperty("subMessage", text);
         copyIds(options, "possibleTargets", "selectionIds", result);
         copyIds(options, "chosenTargets", "selectedIds", result);
+        if (method.equals("GAME_SELECT")) {
+            // Native combat uses different option keys from ordinary target selections.
+            // possibleBlockers is a candidate set, not proof of legality against every attacker.
+            copyIds(options, "possibleAttackers", "selectionIds", result);
+            copyIds(options, "possibleBlockers", "selectionIds", result);
+        }
         boolean special = (message.getGameView() != null && message.getGameView().getSpecial())
                 || options.get("specialButton") instanceof String;
         result.addProperty("specialActionAvailable", special);
