@@ -99,6 +99,22 @@ final class RulesDiscardUITests: XCTestCase {
         add(screenshot)
     }
 
+    @MainActor func testOpponentStackSpellDisplaysChosenX() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
+            throw XCTSkip("Requires BlockPromptFixture")
+        }
+        let app = try await openFixture(address + "/x")
+        defer { app.terminate() }
+        let spell = app.buttons["phone-stack-full-card"]
+        XCTAssertTrue(spell.waitForExistence(timeout: 5))
+        XCTAssertTrue((spell.value as? String)?.contains("X = 3") == true,
+                      "Chosen X belongs to the accessible stack card, not a separate button")
+        let screenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        screenshot.name = "Opponent spell with engine chosen X"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     @MainActor func testDelvePaymentOpensConfirmedGraveyardSelection() async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

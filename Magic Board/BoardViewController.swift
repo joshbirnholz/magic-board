@@ -4326,7 +4326,8 @@ extension BoardViewController {
                                 else { self.focus(on: card, view: nil) }
                             },
                             browse: { [weak self] in self?.showPhoneAbilityOptions() },
-                            concealedCardID: concealing ?? phoneConcealedArrival ?? (phoneMenuStandIn?.isStack == true ? phoneMenuStandIn?.card : nil))
+                            concealedCardID: concealing ?? phoneConcealedArrival ?? (phoneMenuStandIn?.isStack == true ? phoneMenuStandIn?.card : nil),
+                            chosenX: session.mode == .rules ? session.rulesAdapter?.stackChosenX ?? [:] : [:])
     }
 
     private func layoutPhoneStack(_ session: PhoneGameSession, top: CGFloat, bottom: CGFloat) {

@@ -37,6 +37,7 @@ public final class BlockPromptFixture extends WebSocketServer {
     @Override public void onOpen(WebSocket socket, ClientHandshake request) {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
         initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
+                : request.getResourceDescriptor().endsWith("/x") ? "x"
                 : request.getResourceDescriptor().endsWith("/attack") ? "attack"
                 : request.getResourceDescriptor().endsWith("/source") ? "sacrifice"
                 : request.getResourceDescriptor().endsWith("/mana") ? "mana"
@@ -173,7 +174,7 @@ public final class BlockPromptFixture extends WebSocketServer {
                     "supported", true, "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
             return;
         }
-        if (stage.equals("ability") || stage.equals("stable") || stage.equals("sickness") || stage.equals("recovered")) {
+        if (stage.equals("x") || stage.equals("ability") || stage.equals("stable") || stage.equals("sickness") || stage.equals("recovered")) {
             send(socket, object("type", "prompt", "id", "fixture-" + revision, "method", "GAME_SELECT",
                     "revision", revision, "message", !stage.equals("ability") ? "Play spells and abilities" : "Play instants and activated abilities", "supported", true,
                     "choices", new Object[]{}, "cards", new Object[]{}, "targets", new Object[]{}));
@@ -254,6 +255,13 @@ public final class BlockPromptFixture extends WebSocketServer {
             ability.addProperty("sourceId", BLOCKER); ability.addProperty("controllerId", ME);
             ability.addProperty("rules", "Draw a card.");
             stack = new JsonObject[]{ability};
+        }
+        if (stage.equals("x")) {
+            JsonObject spell = card(TRIGGER_FIRST, false);
+            spell.addProperty("name", "Blaze"); spell.addProperty("typeLine", "Sorcery");
+            spell.addProperty("controllerId", THEM); spell.addProperty("chosenX", 3);
+            spell.remove("set"); spell.remove("collectorNumber");
+            stack = new JsonObject[]{spell};
         }
         JsonObject theirs = object("id", THEM, "name", "Opponent", "life", 20, "handCount", 0, "libraryCount", 30,
                 "battlefield", new Object[]{card(FIRST, true), card(SECOND, true)}, "graveyard", new Object[]{}, "exile", new Object[]{});

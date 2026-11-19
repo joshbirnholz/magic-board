@@ -225,6 +225,8 @@ struct PhoneStackCardsView: View {
     let browse: () -> Void
     /// Hidden while its stand-in zooms into (or back from) the card menu.
     var concealedCardID: UUID? = nil
+    /// Rules-only engine values. Sandbox stack cards retain their normal appearance.
+    var chosenX: [UUID: Int] = [:]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     static func cardSize(in size: CGSize) -> CGSize {
         let width = min(size.width / 1.62, size.height * 0.88 * 63 / 88)
@@ -290,6 +292,18 @@ struct PhoneStackCardsView: View {
                         }
                     }
                         .buttonStyle(.plain)
+                        .overlay(alignment: .topTrailing) {
+                            if let value = chosenX[item.id] {
+                                Text("X = \(value)")
+                                    .font(.system(size: max(12, width * 0.075), weight: .bold, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 7).padding(.vertical, 4)
+                                    .background(Capsule().fill(Color.black.opacity(0.9)))
+                                    .overlay(Capsule().strokeBorder(.white.opacity(0.8), lineWidth: 1))
+                                    .accessibilityIdentifier("rules-stack-chosen-x")
+                            }
+                        }
                         .opacity(item.card != nil && item.card?.uuid == concealedCardID ? 0 : 1)
                         .rotationEffect(.degrees(-4 * depth), anchor: .bottom)
                         .position(x: geometry.size.width - width / 2 - 5 - depth * width * 0.08,
@@ -299,7 +313,8 @@ struct PhoneStackCardsView: View {
 
                         .accessibilityLabel(item.text)
                         .accessibilityValue((depth == 0 ? "Top of stack, resolves next" : "\(visible.count - index) from top")
-                                            + ", \(item.targets?.count ?? 0) targets")
+                                            + ", \(item.targets?.count ?? 0) targets"
+                                            + (chosenX[item.id].map { ", X = \($0)" } ?? ""))
                         .accessibilityIdentifier("phone-stack-full-card")
                 }
             }
