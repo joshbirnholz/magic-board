@@ -4458,6 +4458,7 @@ extension BoardViewController {
         }
         guard let lines = phoneCombatLines else { return }
         lines.frame = view.bounds
+        lines.color = session.mode == .rules ? PhoneCombatLinesView.arenaYellow : PhoneCombatLinesView.gold
         if let anchor = phoneTargetArcs ?? phoneStackCards?.view,
            lines.superview !== view || view.subviews.firstIndex(of: lines) != (view.subviews.firstIndex(of: anchor) ?? 0) - 1 {
             view.insertSubview(lines, belowSubview: anchor)
@@ -4685,6 +4686,11 @@ extension BoardViewController {
             }
             let frame = view.convert(card.bounds, from: card)
             let local = card.cardInstance.controllerIdentifier.value == session.player
+            // Rules mode (Arena): a blocked attacker's chevron turns the blockers' yellow.
+            let blocked = session.mode == .rules
+                && session.game.combat?.blockers.values.contains(card.cardInstance.uuid) == true
+            indicator.glowColor = blocked ? PhoneCombatLinesView.arenaYellow : .systemOrange
+            indicator.accessibilityValue = blocked ? "Blocked" : "Attacking"
             indicator.bounds.size = CGSize(width: min(72, max(28, frame.width * 0.6)), height: 20)
             indicator.center = CGPoint(x: frame.midX, y: local ? frame.minY - 13 : frame.maxY + 13)
             indicator.transform = local ? .identity : CGAffineTransform(rotationAngle: .pi)
@@ -4710,7 +4716,8 @@ extension BoardViewController {
         }
         for id in combat?.attackers ?? [] { wanted[id] = .systemOrange }
         // Blockers glow gold, matching their golden lines (Arena).
-        for id in combat?.blockers.keys.map({ $0 }) ?? [] { wanted[id] = PhoneCombatLinesView.gold }
+        let blockColor = session.mode == .rules ? PhoneCombatLinesView.arenaYellow : PhoneCombatLinesView.gold
+        for id in combat?.blockers.keys.map({ $0 }) ?? [] { wanted[id] = blockColor }
         for (id, glow) in phoneCombatGlows where wanted[id] == nil {
             glow.removeFromSuperview()
             phoneCombatGlows[id] = nil

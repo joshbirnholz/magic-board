@@ -351,9 +351,12 @@ final class PhoneCombatLinesView: UIView {
     struct Line { let from: CGPoint; let to: CGPoint; let preview: Bool; var blocker: CGRect? = nil }
     var lines: [Line] = [] { didSet { setNeedsDisplay() } }
     static let gold = UIColor(red: 1, green: 0.8, blue: 0.3, alpha: 1)
+    /// Arena's block colour (Rules mode): a brighter, less orange yellow than `gold`.
+    static let arenaYellow = UIColor(red: 1, green: 0.88, blue: 0.2, alpha: 1)
+    var color: UIColor = PhoneCombatLinesView.gold { didSet { setNeedsDisplay() } }
     override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
-        let gold = Self.gold
+        let gold = color
         var haloed: Set<String> = []
         for line in lines {
             let distance = hypot(line.to.x - line.from.x, line.to.y - line.from.y)
@@ -773,7 +776,11 @@ final class PhoneHandCardController: UIViewController, PileDisplaying, UITableVi
 }
 
 /// Arena-style attack chevron: a white core over an orange glow, independent of card rotation.
+/// `glowColor` turns yellow once the attacker is blocked (Rules mode, Arena).
 final class PhoneAttackIndicatorView: UIView {
+    var glowColor: UIColor = .systemOrange {
+        didSet { glow.strokeColor = glowColor.cgColor; glow.shadowColor = glowColor.cgColor }
+    }
     private let glow = CAShapeLayer()
     private let core = CAShapeLayer()
     override init(frame: CGRect) {

@@ -18,7 +18,7 @@ All changes are Rules-only unless explicitly stated. Preserve normal Phone Play'
 - [x] **R09 — Stable battlefield.** Prompt appearance/disappearance must never resize or move permanents. Reserve a consistent gap independently of the current prompt and/or compact the instruction. Card sizing may change for changes in battlefield contents. This supersedes the earlier measured-per-prompt gap implementation.
 - [x] **R10 — Next phase.** On your turn the Next button must show the upcoming phase/step, not just a generic Next.
 - [x] **R11 — Phase markers.** Put markers next to each player's life total; light only the active player's markers. Done: `RulesPhaseMarkers` (five lights: beginning, main 1, combat, main 2, end) above the local life total and below the opponent's; only the active player's row lights its current phase.
-- [ ] **R12 — Combat styling.** Arena-yellow blocker connections; blocked attackers' chevrons become yellow. Existing references: `/private/tmp/MagicBoard-Rules-refs/1.png`–`4.png`.
+- [x] **R12 — Combat styling.** Arena-yellow blocker connections; blocked attackers' chevrons become yellow. Existing references: `/private/tmp/MagicBoard-Rules-refs/1.png`–`4.png`.
 - [ ] **R13 — Scry/surveil.** Match Josh's Arena fanned-card arrangement reference (first scry screenshot in the reference folder above), retaining drag ordering and destination choices.
 
 ## Player progress and permanent designations
