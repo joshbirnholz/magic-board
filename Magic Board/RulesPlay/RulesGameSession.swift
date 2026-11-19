@@ -15,6 +15,9 @@ final class RulesGameSession: ObservableObject {
     @Published private(set) var formats: [String] = ["Limited"]
     @Published private(set) var result: String?
     @Published private(set) var pendingRequest: String?
+    /// A newer engine action is waiting for the currently visible action's reading time.
+    @Published private(set) var isPresentingActions = false
+    private var presentationClock = RulesPresentationClock()
     @Published private(set) var notice = ""
     @Published private(set) var holdingPriority = false
     @Published private(set) var autoOrderTriggers = true
@@ -57,7 +60,7 @@ final class RulesGameSession: ObservableObject {
         }
     }
 
-    var canAnswer: Bool { status == .connected && prompt?.supported == true && pendingRequest == nil }
+    var canAnswer: Bool { status == .connected && prompt?.supported == true && pendingRequest == nil && !isPresentingActions }
     var hasRetainedSession: Bool { resumeToken != nil }
     var connectionKey: String {
         get { RulesConnectionKey.read() }
@@ -85,6 +88,8 @@ final class RulesGameSession: ObservableObject {
         defaults.set(url.absoluteString, forKey: "rules.bridgeAddress")
         connectionKey = key
         unreadableReports = 0
+        presentationClock.reset()
+        isPresentingActions = false
         status = .connecting
         notice = "Connecting to your rules server…"
         error = nil
@@ -139,6 +144,8 @@ final class RulesGameSession: ObservableObject {
 
     func disconnect() {
         generation = UUID()
+        presentationClock.reset()
+        isPresentingActions = false
         connectionTask?.cancel(); connectionTask = nil
         timeoutTask?.cancel(); timeoutTask = nil
         tableRefreshTimeoutTask?.cancel(); tableRefreshTimeoutTask = nil
@@ -312,6 +319,9 @@ final class RulesGameSession: ObservableObject {
             let next = try decoder.decode(RulesSnapshot.self, from: data)
             if let old = snapshot, old.gameId == next.gameId, old.revision > next.revision { return }
             if let old = snapshot, old.gameId != next.gameId { clearCardInformation() }
+            let pause = presentationClock.delay(before: next, now: ProcessInfo.processInfo.systemUptime)
+            if pause > 0 { try await pausePresentation(pause, socket: socket) }
+            guard self.socket === socket, status == .connected else { return }
             // XMage may clear these transient views on the very next priority update. Retain
             // each permitted view until dismissed so a fast replay can't hide it before rendering.
             let groups = ((next.revealed ?? []) + (next.lookedAt ?? [])).filter { !$0.cards.isEmpty }
@@ -326,6 +336,7 @@ final class RulesGameSession: ObservableObject {
                     cardInformation[index] = group
                 } else { cardInformation.append(group) }
             }
+            presentationClock.presented(next, now: ProcessInfo.processInfo.systemUptime)
             snapshot = next
         case "tables":
             struct TableList: Decodable { let tables: [RulesTable] }
@@ -371,9 +382,33 @@ final class RulesGameSession: ObservableObject {
             }
         case "notice": notice = header.message ?? ""
         case "engineDisconnected": fail(header.message ?? "XMage disconnected.")
-        case "gameOver": prompt = nil; result = header.message ?? "Game finished"; notice = result ?? "Game finished"
+        case "gameOver":
+            let pause = max(0, presentationClock.deadline - ProcessInfo.processInfo.systemUptime)
+            if pause > 0 { try await pausePresentation(pause, socket: socket) }
+            guard self.socket === socket, status == .connected else { return }
+            prompt = nil; result = header.message ?? "Game finished"; notice = result ?? "Game finished"
         default: break
         }
+    }
+
+    private func pausePresentation(_ duration: TimeInterval, socket: URLSessionWebSocketTask) async throws {
+        let generation = self.generation
+        isPresentingActions = true
+        defer { if self.generation == generation { isPresentingActions = false } }
+        var remaining = duration
+        repeat {
+            try await Task.sleep(nanoseconds: UInt64(min(1, remaining) * 1_000_000_000))
+            try Task.checkCancellation()
+            guard self.generation == generation, self.socket === socket else { throw CancellationError() }
+            // Projection/artwork may finish after the wire update. Its first visible frame gets
+            // the same reading time; repeated artwork refreshes cannot prolong the action.
+            remaining = max(0, presentationClock.deadline - ProcessInfo.processInfo.systemUptime)
+        } while remaining > 0
+    }
+
+    func didPresentSnapshot(_ snapshot: RulesSnapshot) {
+        guard self.snapshot?.gameId == snapshot.gameId, self.snapshot?.revision == snapshot.revision else { return }
+        presentationClock.visible(revision: snapshot.revision, now: ProcessInfo.processInfo.systemUptime)
     }
 
     private func send(_ command: RulesCommand, through socket: URLSessionWebSocketTask) async throws {

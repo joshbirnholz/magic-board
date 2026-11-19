@@ -37,6 +37,7 @@ public final class BlockPromptFixture extends WebSocketServer {
     @Override public void onOpen(WebSocket socket, ClientHandshake request) {
         if (!request.getFieldValue("Authorization").equals("Bearer " + System.getenv("RULES_BRIDGE_TOKEN"))) { socket.close(1008, "Invalid key"); return; }
         initialStage = request.getResourceDescriptor().endsWith("/ordering") ? "order"
+                : request.getResourceDescriptor().endsWith("/burst") ? "burst"
                 : request.getResourceDescriptor().endsWith("/x") ? "x"
                 : request.getResourceDescriptor().endsWith("/attack") ? "attack"
                 : request.getResourceDescriptor().endsWith("/source") ? "sacrifice"
@@ -82,7 +83,12 @@ public final class BlockPromptFixture extends WebSocketServer {
             case "createAiGame" -> {
                 revision = 1; selectedAttacker = null; stage = initialStage; hasGame = true; pacingAnswers = 0;
                 holdingPriority = false; autoOrderTriggers = true; delveCards.clear();
-                ack(socket, request); snapshot(socket); prompt(socket);
+                ack(socket, request);
+                if (stage.equals("burst")) {
+                    for (String action : new String[]{"burstBase", "burstCast", "burstTarget", "burstResolve", "burstTurn"}) {
+                        stage = action; revision++; snapshot(socket);
+                    }
+                } else { snapshot(socket); prompt(socket); }
             }
             case "concede" -> {
                 stage = "finished";
@@ -276,10 +282,30 @@ public final class BlockPromptFixture extends WebSocketServer {
             spell.remove("set"); spell.remove("collectorNumber");
             stack = new JsonObject[]{spell};
         }
+        if (stage.equals("burstCast") || stage.equals("burstTarget")) {
+            JsonObject spell = card(TRIGGER_FIRST, false);
+            spell.addProperty("name", "Doom Blade"); spell.addProperty("typeLine", "Instant");
+            spell.addProperty("controllerId", THEM); spell.remove("set"); spell.remove("collectorNumber");
+            spell.add("targets", JSON.toJsonTree(stage.equals("burstTarget") ? new String[]{BLOCKER} : new String[]{}));
+            stack = new JsonObject[]{spell};
+        }
+        if (stage.equals("burstResolve") || stage.equals("burstTurn")) {
+            mine.add("battlefield", new JsonArray()); mine.add("graveyard", JSON.toJsonTree(new Object[]{card(BLOCKER, false)}));
+        }
         Object[] combat = (stage.equals("attack") || stage.startsWith("mana")) ? new Object[]{} : new Object[]{group(FIRST), group(SECOND)};
-        send(socket, object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
+        JsonObject state = object("type", "snapshot", "gameId", GAME, "playerId", ME, "revision", revision, "turn", 4,
                 "phase", "COMBAT", "step", stage.equals("attack") ? "DECLARE_ATTACKERS" : "DECLARE_BLOCKERS", "activePlayer", "Opponent", "activePlayerId", stage.equals("attack") ? ME : THEM, "priorityPlayer", "You",
-                "hand", new Object[]{}, "stack", stack, "players", new Object[]{mine, theirs}, "playableIds", stage.equals("pacing") ? new String[]{} : new String[]{BLOCKER}, "combat", combat));
+                "hand", new Object[]{}, "stack", stack, "players", new Object[]{mine, theirs}, "playableIds", stage.equals("pacing") ? new String[]{} : new String[]{BLOCKER}, "combat", combat);
+        if (stage.startsWith("burst")) {
+            state.addProperty("phase", "POSTCOMBAT_MAIN"); state.addProperty("step", "POSTCOMBAT_MAIN");
+            state.add("combat", new JsonArray()); state.add("playableIds", new JsonArray());
+            if (stage.equals("burstTurn")) {
+                state.addProperty("turn", 5); state.addProperty("activePlayerId", ME);
+                state.addProperty("phase", "PRECOMBAT_MAIN"); state.addProperty("step", "PRECOMBAT_MAIN");
+                state.add("hand", JSON.toJsonTree(new Object[]{card(TRIGGER_SECOND, false)}));
+            }
+        }
+        send(socket, state);
     }
     private JsonObject group(String attacker) { return object("defenderId", ME, "attackers", new String[]{attacker}, "blockers", attacker.equals(selectedAttacker) ? new String[]{BLOCKER} : new String[]{}); }
     @Override public void onClose(WebSocket socket, int code, String reason, boolean remote) { }

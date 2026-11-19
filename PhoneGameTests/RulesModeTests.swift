@@ -337,6 +337,51 @@ final class RulesModeTests: XCTestCase {
         }
     }
 
+    func testUnanswerableAIBurstKeepsCastTargetsAndResolutionReadable() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let engine = RulesGameSession()
+        let savedKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = savedKey }
+        engine.connect(address: address + "/burst", key: "rules-local-verification-key", resume: false)
+        try await waitForRulesCondition("burst connection") { engine.status == .connected }
+        await engine.startAiGame()
+        try await waitForRulesCondition("targeted AI spell") { engine.snapshot?.stack.first?.targets?.count == 1 }
+        let cast = ProcessInfo.processInfo.systemUptime
+        XCTAssertNil(engine.prompt, "There is no legal response prompt in this burst")
+        XCTAssertFalse(engine.holdingPriority)
+        XCTAssertFalse(engine.canAnswer)
+        XCTAssertEqual(engine.snapshot?.players.first?.battlefield.count, 1)
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertEqual(engine.snapshot?.stack.count, 1, "No response/full control must still leave the targeted spell visible")
+        try await waitForRulesCondition("removal resolution") { engine.snapshot?.stack.isEmpty == true }
+        XCTAssertGreaterThanOrEqual(ProcessInfo.processInfo.systemUptime - cast, 0.75)
+        let resolved = ProcessInfo.processInfo.systemUptime
+        XCTAssertEqual(engine.snapshot?.turn, 4, "Resolution must remain visible before the next turn")
+        XCTAssertEqual(engine.snapshot?.players.first?.graveyard.count, 1)
+        try await waitForRulesCondition("new turn and draw") { engine.snapshot?.turn == 5 }
+        XCTAssertGreaterThanOrEqual(ProcessInfo.processInfo.systemUptime - resolved, 0.4)
+        XCTAssertEqual(engine.snapshot?.hand.count, 1)
+        XCTAssertNil(engine.error)
+        await engine.endSession()
+    }
+
+    func testLeavingDuringAIBurstCancelsDelayedUpdates() async throws {
+        guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else { throw XCTSkip("Requires BlockPromptFixture") }
+        let engine = RulesGameSession()
+        let savedKey = engine.connectionKey
+        defer { engine.disconnect(); engine.connectionKey = savedKey }
+        engine.connect(address: address + "/burst", key: "rules-local-verification-key", resume: false)
+        try await waitForRulesCondition("burst connection") { engine.status == .connected }
+        await engine.startAiGame()
+        try await waitForRulesCondition("presentation hold") { engine.isPresentingActions && engine.snapshot?.stack.count == 1 }
+        await engine.endSession()
+        try await Task.sleep(nanoseconds: 1_100_000_000)
+        XCTAssertEqual(engine.status, .disconnected)
+        XCTAssertNil(engine.snapshot)
+        XCTAssertNil(engine.prompt)
+        XCTAssertFalse(engine.isPresentingActions)
+    }
+
     private func withPacingFixture(_ check: @MainActor (RulesGameSession, RulesPhoneAdapter) async throws -> Void) async throws {
         guard let address = ProcessInfo.processInfo.environment["RULES_BLOCK_FIXTURE_ADDRESS"] else {
             throw XCTSkip("Set TEST_RUNNER_RULES_BLOCK_FIXTURE_ADDRESS to BlockPromptFixture")

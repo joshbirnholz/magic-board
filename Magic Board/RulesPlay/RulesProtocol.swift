@@ -221,3 +221,70 @@ enum RulesEndpoint {
         var errorDescription: String? { "Enter a server address such as ws://my-pc.local:17180." }
     }
 }
+
+/// Display timing for actual engine transitions. Details (targets, art, mana taps) may enrich the
+/// current action immediately; a later action cannot erase it before it has been readable.
+struct RulesPresentationClock {
+    private(set) var previous: RulesSnapshot?
+    private(set) var deadline: TimeInterval = 0
+    private var currentHold: TimeInterval = 0
+    private var acknowledgedRevision: Int?
+
+    mutating func reset() { previous = nil; deadline = 0; currentHold = 0; acknowledgedRevision = nil }
+
+    mutating func visible(revision: Int, now: TimeInterval) {
+        guard previous?.revision == revision, acknowledgedRevision != revision else { return }
+        acknowledgedRevision = revision
+        deadline = max(deadline, now + currentHold)
+    }
+
+    func delay(before next: RulesSnapshot, now: TimeInterval) -> TimeInterval {
+        guard let previous, previous.gameId == next.gameId, next.revision > previous.revision,
+              !Self.isDetailUpdate(previous, next) else { return 0 }
+        return max(0, deadline - now)
+    }
+
+    mutating func presented(_ next: RulesSnapshot, now: TimeInterval) {
+        defer { previous = next }
+        guard let previous, previous.gameId == next.gameId else { deadline = 0; currentHold = 0; acknowledgedRevision = nil; return }
+        guard next.revision > previous.revision else { return }
+        let oldStack = Set(previous.stack.map(\.id)), newStack = Set(next.stack.map(\.id))
+        let duration: TimeInterval
+        if !newStack.subtracting(oldStack).isEmpty {
+            duration = 0.9
+        } else if !oldStack.subtracting(newStack).isEmpty {
+            duration = 0.55
+        } else if Self.targets(previous) != Self.targets(next), !next.stack.isEmpty {
+            duration = 0.85
+        } else if Self.battlefield(previous) != Self.battlefield(next) || Self.life(previous) != Self.life(next) {
+            duration = 0.5
+        } else if previous.turn != next.turn || previous.activePlayerId != next.activePlayerId {
+            duration = 0.4
+        } else if previous.hand.count != next.hand.count || previous.players.map(\.handCount) != next.players.map(\.handCount) {
+            duration = 0.3
+        } else {
+            duration = 0
+        }
+        currentHold = duration > 0 ? duration : max(0, deadline - now)
+        deadline = max(deadline, now + duration)
+    }
+
+    private static func targets(_ state: RulesSnapshot) -> [String: [String]] {
+        Dictionary(uniqueKeysWithValues: state.stack.map { ($0.id, $0.targets ?? []) })
+    }
+    private static func life(_ state: RulesSnapshot) -> [String: Int] {
+        Dictionary(uniqueKeysWithValues: state.players.map { ($0.id, $0.life) })
+    }
+    private static func battlefield(_ state: RulesSnapshot) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: state.players.flatMap(\.battlefield).map {
+            ($0.id, "\($0.power ?? "")/\($0.toughness ?? ""):\($0.damage ?? 0)")
+        })
+    }
+    private static func isDetailUpdate(_ old: RulesSnapshot, _ next: RulesSnapshot) -> Bool {
+        old.turn == next.turn && old.activePlayerId == next.activePlayerId && old.step == next.step
+            && Set(old.stack.map(\.id)) == Set(next.stack.map(\.id))
+            && battlefield(old) == battlefield(next) && life(old) == life(next)
+            && old.hand.count == next.hand.count && old.players.map(\.handCount) == next.players.map(\.handCount)
+            && old.players.map(\.libraryCount) == next.players.map(\.libraryCount)
+    }
+}

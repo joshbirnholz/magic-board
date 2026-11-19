@@ -6,6 +6,10 @@ Read `/private/tmp/MagicBoard-Rules-coordination.md` first. It is the live coord
 
 Josh explicitly authorized Codex to cover all Claude work until **Tuesday Nov24 at1:00AM ET**. All edits stay in `/private/tmp/MagicBoard-Rules` on `rules-mode-codex`; Claude's worktree is untouched. **Visual improvements now apply to normal Phone Play as well as Rules mode**, per Josh's new instruction. Preserve sandbox gameplay, free drags, saves and gestures; engine authority stays Rules-only.
 
+**Latest delivered pacing follow-up:** ordered snapshot presentation now holds the actual cast and targets, then resolution, before turn/draw advancement even with no response prompt/full control. Metadata-only target/mana/art updates are immediate; projection acknowledgment extends the first readable frame once; stale inputs are gated; Exit/reconnect resets and cancels holds. All57 Rules units pass (`/private/tmp/rules-ai-pacing-projection-clock-unit.log`), followed by the final gating/Exit pair (`/private/tmp/rules-ai-pacing-final-gating.log`). Full combat/zone animation still open. R49 three fresh FIN second-round offers is delivered661ff81;55 units and90 second-round cases pass.
+
+**PC update verified:** source9115810, bridge PID17720; XMage unchanged43152. Bundle SHA25687e912539650cba0c113dbc17830473d7bbd3d5b804b8542b1ab57c9af0a7bfb. Existing updater ran after a fresh0-client check. Actual public WSS native concession/final board/result replay passes (`/private/tmp/rules-public-pc-concede-smoke.log`). Keywords and Concede are now available on PC; shared Mac bridge remains12d5f2c until safely refreshed.
+
 **Priority order:** playtest sizing, animations and Arena HUD placement; two-human room/join/deck flow; reported bugs; remaining features; additional prompt/scenario testing and polish. Full tracker is `Docs/RulesModeRequests.md`, now R01–R48 with all supplied screenshots/assets recorded. Do not lose R35/R36 keyword/inspection, R41 sparse duplicates, R42/R44 related token art/frame/base P/T, R43 condition hints, R45 mode-card choices, R46 sickness pulse, R47 Saga chapter asset, or R48 red damage display.
 
 Verified completed batch through2ef30d9:

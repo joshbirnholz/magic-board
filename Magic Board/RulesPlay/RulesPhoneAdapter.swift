@@ -58,7 +58,9 @@ final class RulesPhoneAdapter {
                 catch { self.phone?.error = "Unable to display the rules game: \(error.localizedDescription)" }
             }
         }.store(in: &subscriptions)
-        Publishers.CombineLatest4(engine.$status, engine.$prompt, engine.$pendingRequest, engine.$holdingPriority)
+        let actionPending = engine.$pendingRequest.combineLatest(engine.$isPresentingActions)
+            .map { request, presenting in request ?? (presenting ? "presentation" : nil) }
+        Publishers.CombineLatest4(engine.$status, engine.$prompt, actionPending, engine.$holdingPriority)
             .sink { [weak self] status, prompt, pending, holding in
                 guard let self else { return }
                 self.updateStatus(status, prompt: prompt, pending: pending, holdingPriority: holding,
@@ -315,7 +317,7 @@ final class RulesPhoneAdapter {
             return
         }
         guard engine.prompt?.method == "GAME_SELECT" else { phone?.error = "Complete the current rules choice first."; return }
-        let (label, _) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil)
+        let (label, _) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil || engine.isPresentingActions)
         if label == "All Attack" { await selectInTurn(Self.attackers(engine.snapshot).available); return }
         await engine.answer(.boolean(true))
     }
@@ -668,7 +670,8 @@ final class RulesPhoneAdapter {
 
     private func refresh() {
         guard !isLeaving else { return }
-        let (label, enabled) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot, pending: engine.pendingRequest != nil)
+        let (label, enabled) = Self.primaryButton(prompt: engine.prompt, snapshot: engine.snapshot,
+                                                  pending: engine.pendingRequest != nil || engine.isPresentingActions)
         phone?.displayRules(presentation, connected: engine.status == .connected,
                             status: engine.notice, primaryLabel: label, primaryEnabled: enabled)
     }
@@ -828,6 +831,7 @@ final class RulesPhoneAdapter {
         presentation = game
         hasProjected = true
         refresh()
+        if phone != nil { engine.didPresentSnapshot(snapshot) }
         if refreshArtwork {
             artworkTask?.cancel()
             let missing = allCards.filter { !$0.faceDown && models[$0.id] == nil }
