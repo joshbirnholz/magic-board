@@ -120,7 +120,8 @@ struct RulesPacketPicker: View {
                             Button { choose(name) } label: {
                                 PacketChoiceCard(frontCardURL: RulesPackets.library.packetFrontCardURL(kind: RulesPackets.kind(source), set: set, name: name),
                                                  title: OfflineGameLibrary.packetDisplayName(name),
-                                                 manaSymbols: RulesPackets.library.packetColorSymbols(kind: RulesPackets.kind(source), set: set, name: name))
+                                                 manaSymbols: RulesPackets.library.packetColorSymbols(kind: RulesPackets.kind(source), set: set, name: name),
+                                                 setCode: set)
                             }
                             .buttonStyle(.plain)
                             .frame(maxWidth: (proxy.size.width - 64) / 3)

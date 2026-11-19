@@ -1,4 +1,5 @@
 import UIKit
+import SwiftDraw
 import CardView
 import Combine
 import MultipeerConnectivity
@@ -505,11 +506,14 @@ private struct OfflineCardArtworkView: View {
 
 /// One packet offer. With a JumpStart front card: just the card (its name and colors are printed
 /// on it). Without one: a plain card-shaped tile with the theme name (no variant number) and the
-/// colors as mana symbols, keeping the contents a mystery.
+/// colors as mana symbols, keeping the contents a mystery. With `setCode`, that tile also shows
+/// the set's symbol (Rules mode; Phone Play leaves it nil).
 struct PacketChoiceCard: View {
     let frontCardURL: URL?
     let title: String
     let manaSymbols: String
+    var setCode: String? = nil
+    @State private var setSymbol: SVG?
     var body: some View {
         Group {
             if let frontCardURL {
@@ -526,6 +530,10 @@ struct PacketChoiceCard: View {
         .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
+        .task(id: setCode) {
+            guard let setCode else { return }
+            setSymbol = try? await ScryfallSetSymbolStore.shared.symbol(for: setCode)
+        }
     }
 
     private var mysteryTile: some View {
@@ -534,6 +542,11 @@ struct PacketChoiceCard: View {
             .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
             .overlay {
                 VStack(spacing: 12) {
+                    if let setSymbol {
+                        SVGView(svg: setSymbol).renderingMode(.template).resizable().scaledToFit()
+                            .frame(maxWidth: 44, maxHeight: 30)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
                     Text(title)
                         .font(.custom("Beleren2016-Bold", size: 22))
                         .minimumScaleFactor(0.5)

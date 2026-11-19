@@ -30,7 +30,7 @@ All changes are Rules-only unless explicitly stated. Preserve normal Phone Play'
 ## Packet selection and compatibility
 
 - [x] **R17 — Packet names.** No duplicate packet names within an offer or between first- and second-round offers. Deduplicate by display name, not variant ID. Done: `RulesPackets.offers` dedupes by display name within an offer and against the first round (unit test `testPacketOffersNeverRepeatADisplayName`).
-- [ ] **R18 — Packet fallback faces.** When no front card exists, the custom name/colors face also shows the originating set's symbol.
+- [x] **R18 — Packet fallback faces.** When no front card exists, the custom name/colors face also shows the originating set's symbol.
 - [ ] **R19 — Unsupported packets.** Show a clear bridge-validation error and allow retry for unsupported newer cards (known 13 Marvel +2 SOS packets), without substituting cards silently.
 
 ## Existing integration work and limits
