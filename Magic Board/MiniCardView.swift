@@ -41,14 +41,14 @@ class MiniCardView: UIView {
 	@IBOutlet weak var countersStackView: UIStackView!
 	@IBOutlet weak var cardView: RMShapedImageView!
 	
-    /// Rules supplies this from the engine. Sandbox views keep their existing appearance.
-    var showsRulesSummoningSickness = false {
+    /// Both phone modes use the shared sickness presentation; Rules supplies engine state.
+    var showsSummoningSickness = false {
         didSet {
-            guard showsRulesSummoningSickness != oldValue else { return }
+            guard showsSummoningSickness != oldValue else { return }
             setNeedsLayout()
         }
     }
-    private var summoningSicknessMark: UIImageView?
+    private var summoningSicknessMark: PhoneSummoningSicknessView?
 
 	private enum Contents: Equatable {
 		case image(UIImage)
@@ -627,22 +627,17 @@ class MiniCardView: UIView {
     layoutSummoningSicknessMark()
   }
 
-  /// Arena uses a white spiral for summoning sickness. Keep it on the art, clear of
-  /// the name, counters and power/toughness, and outside the editable counter model.
+  /// A dark breathing spiral over the art, clear of the name, counters and P/T.
   private func layoutSummoningSicknessMark() {
-    guard showsRulesSummoningSickness, let cardView, let drawn = drawnImageRect else {
+    guard showsSummoningSickness, let cardView, let drawn = drawnImageRect else {
       summoningSicknessMark?.removeFromSuperview()
       summoningSicknessMark = nil
       return
     }
-    let mark: UIImageView
+    let mark: PhoneSummoningSicknessView
     if let existing = summoningSicknessMark { mark = existing }
     else {
-      mark = UIImageView(image: UIImage(systemName: "hurricane"))
-      mark.tintColor = .white
-      mark.backgroundColor = UIColor(white: 0.08, alpha: 0.85)
-      mark.contentMode = .scaleAspectFit
-      mark.isUserInteractionEnabled = false
+      mark = PhoneSummoningSicknessView(frame: .zero)
       mark.accessibilityIdentifier = "rules-summoning-sickness"
       cardView.addSubview(mark)
       summoningSicknessMark = mark
@@ -651,13 +646,10 @@ class MiniCardView: UIView {
     let face = CGRect(x: drawn.minX + drawn.width * fraction.minX,
                       y: drawn.minY + drawn.height * fraction.minY,
                       width: drawn.width * fraction.width, height: drawn.height * fraction.height)
-    // MiniCardView can use a large logical canvas scaled down by its board transform.
-    // Proportion to the card face rather than capping logical points, so the marker stays legible.
-    let size = face.width * 0.16
-    mark.frame = CGRect(x: face.maxX - size - face.width * 0.06,
-                        y: face.minY + face.height * 0.2, width: size, height: size)
-    mark.layer.cornerRadius = size / 2
-    mark.layer.masksToBounds = true
+    // Proportion to the drawn face, since the board scales a larger logical canvas.
+    let size = face.width * 0.65
+    mark.bounds = CGRect(x: 0, y: 0, width: size, height: size)
+    mark.center = CGPoint(x: face.midX, y: face.minY + face.height * 0.52)
     cardView.bringSubviewToFront(mark)
   }
 
@@ -1218,5 +1210,48 @@ extension MTGCardView.CardProperties {
     mutating func applyFrameColors(_ colors: [MTGColor], isLand: Bool, defaults: [MTGCardView.Color]) {
         let set = colors.compactMap { MTGCardView.Color(initial: $0.initial) }
         self.colors = isLand && set.isEmpty ? defaults : set
+    }
+}
+
+/// Decorative GPU animation: no timers or game state changes, and no animation offscreen.
+final class PhoneSummoningSicknessView: UIImageView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        image = UIImage(systemName: "hurricane", withConfiguration: UIImage.SymbolConfiguration(weight: .thin))
+        tintColor = .black
+        contentMode = .scaleAspectFit
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        layer.opacity = 0.36
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.9
+        layer.shadowOffset = .zero
+        for name in [UIAccessibility.reduceMotionStatusDidChangeNotification, UIApplication.didEnterBackgroundNotification, UIApplication.didBecomeActiveNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(updateMotion), name: name, object: nil)
+        }
+    }
+    required init?(coder: NSCoder) { nil }
+    deinit { NotificationCenter.default.removeObserver(self) }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.shadowRadius = bounds.width * 0.055
+    }
+    override func didMoveToWindow() { super.didMoveToWindow(); updateMotion() }
+    @objc private func updateMotion() {
+        guard window != nil, !UIAccessibility.isReduceMotionEnabled, UIApplication.shared.applicationState == .active else {
+            layer.removeAnimation(forKey: "sickness-pulse")
+            layer.removeAnimation(forKey: "sickness-spiral")
+            return
+        }
+        guard layer.animation(forKey: "sickness-pulse") == nil else { return }
+        let pulse = CABasicAnimation(keyPath: "opacity")
+        pulse.fromValue = 0.18; pulse.toValue = 0.58
+        pulse.duration = 1.35; pulse.autoreverses = true; pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer.add(pulse, forKey: "sickness-pulse")
+        let spiral = CABasicAnimation(keyPath: "transform.rotation.z")
+        spiral.fromValue = 0; spiral.toValue = -CGFloat.pi * 2
+        spiral.duration = 10; spiral.repeatCount = .infinity
+        layer.add(spiral, forKey: "sickness-spiral")
     }
 }
